@@ -18,11 +18,11 @@
 //        R_rearFar = R_rearMid + cfg::CAR_PIVOT_LENGTH * steerMul;
 //        R_frontNear = uns::pythag(R_inner, cfg::CAR_PIVOT_DIST_FRONT_REAR) * steerMul;
 //    } else
-//        R_rearMid = R_outer = R_inner = R_rearFar = R_frontNear = distance_t::from<millimeters>(0);
+//        R_rearMid = R_outer = R_inner = R_rearFar = R_frontNear = millimeter_t(0);
 //}
 //
 //void Trajectory::update(speed_t _speed, angle_t _steeringAngle) {
-//    uns::time_t d_time = uns::time_t::from<milliseconds>(0);
+//    millisecond_t d_time = millisecond_t(0);
 //
 //    pCar->speed = _speed;
 //
@@ -32,7 +32,7 @@
 //    }
 //
 //    if (!isNoSteering) {
-//        pCar->orientation += angle_t::from<radians>(d_time * pCar->speed / R_rearFar);
+//        pCar->orientation += radian_t(d_time * pCar->speed / R_rearFar);
 //
 //        // normalizes angle to the [0, 2*PI) interval
 //        if (pCar->orientation >= 2 * PI)
@@ -66,7 +66,7 @@
 //    } else {
 //        // origo    center of the trajectory circle of the rear pivot's center
 //        // obs        position of the obstacle relative to the rear pivot's center
-//        Point2<distance_t> origo(-R_rearMid, distance_t::from<millimeters>(0)), obs;
+//        Point2<distance_t> origo(-R_rearMid, millimeter_t(0)), obs;
 //
 //        obs.X = relativePos.X + R_rearMid;
 //        obs.Y = relativePos.Y + cfg::CAR_PIVOT_DIST_MID;
@@ -89,7 +89,7 @@
 //            // delta angle on the trajectory
 //            // -> the given part of the car that hits the obstacle will reach it before the rear pivot does
 //            // this angle specifies this difference
-//            angle_t dAngle = angle_t::from<radians>(0.0f);
+//            angle_t dAngle = radian_t(0.0f);
 //
 //            angle_t hitAngle = obsAngle - dAngle;
 //            td.remainingTime = R_rearFar * hitAngle / pCar->speed;

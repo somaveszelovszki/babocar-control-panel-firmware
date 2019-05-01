@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>gen</name>
-	<comment />
+	<comment></comment>
 	<projects>
 	</projects>
 	<buildSpec>
@@ -30,8 +30,6 @@
 			<type>1</type>
 			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c</location>
 		</link>
-		
-		
 		<link>
 			<name>Drivers/STM32F4xx_HAL_Driver/stm32f4xx_hal_cortex.c</name>
 			<type>1</type>
@@ -117,37 +115,5 @@
 			<type>1</type>
 			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c</location>
 		</link>
-	<link>
-			<name>Middlewares/FreeRTOS/port.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/croutine.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/croutine.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/event_groups.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/event_groups.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/list.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/list.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/queue.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/queue.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/tasks.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/tasks.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/timers.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/timers.c</location>
-		</link><link>
-			<name>Middlewares/FreeRTOS/cmsis_os.c</name>
-			<type>1</type>
-			<location>C:/Users/Soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.21.0/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c</location>
-		</link></linkedResources>
+	</linkedResources>
 </projectDescription>

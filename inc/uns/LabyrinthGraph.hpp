@@ -47,18 +47,18 @@ public:
         // e.g. if the current connection type is FORWARD and the pattern side is LEFT, then the car is coming from the top left segment of the Y.
         RotationDir pos;
 
-        angle_t value;
+        radian_t value;
     };
 
     Junction() : idx(-1) {
         this->segOrientations[0].seg = this->segOrientations[1].seg = this->segOrientations[2].seg = nullptr;
     }
 
-    Status setOrientation(Segment *seg, RotationDir segmentPos, angle_t orientation);
+    Status setOrientation(Segment *seg, RotationDir segmentPos, radian_t orientation);
 
-    Status getOrientation(Segment *seg, angle_t *result) const;
+    Status getOrientation(Segment *seg, radian_t *result) const;
 
-    Status getOrientation(RotationDir pos, angle_t *result) const;
+    Status getOrientation(RotationDir pos, radian_t *result) const;
 
     Segment* getSegment(Connection::Type type, RotationDir side) const;
 

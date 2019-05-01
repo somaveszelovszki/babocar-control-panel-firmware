@@ -6,12 +6,12 @@
 
 namespace uns {
 
-constexpr float32_t COMPLIANCE_RATE = 0.3f;          // Compliance for new measurement - relative to previous measurement.
-constexpr distance_t DEADBAND(centimeters(), 10.0f); // Deadband for new measurement.
+constexpr float32_t COMPLIANCE_RATE = 0.3f;         // Compliance for new measurement - relative to previous measurement.
+constexpr meter_t DEADBAND = centimeter_t(10.0f);   // Deadband for new measurement.
 
 class DistanceSensor : public Sensor<distance_t> {
 public:
-    DistanceSensor(time_t timeout, const gpio_pin_struct& _trigger, const gpio_pin_struct& _echo)
+    DistanceSensor(millisecond_t timeout, const gpio_pin_struct& _trigger, const gpio_pin_struct& _echo)
         : Sensor(timeout)
         , sonar(_trigger, _echo)
         , filter(COMPLIANCE_RATE, DEADBAND) {}

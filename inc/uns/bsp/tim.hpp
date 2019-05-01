@@ -10,22 +10,22 @@ typedef uint16_t tim_channel_t; // Timer channel identifier type.
 /* @brief Gets time since system startup.
  * @returns Time since system startup.
  **/
-uns::time_t getTime();
+millisecond_t getTime();
 
 /* @brief Gets exact time since system startup.
  * @returns Exact time since system startup.
  **/
-uns::time_t getExactTime();
+microsecond_t getExactTime();
 
 /* @brief Delays given amount of time. Does not block processor.
  * @param delay The amount of time to delay.
  **/
-void nonBlockingDelay(time_t delay);
+void nonBlockingDelay(millisecond_t delay);
 
 /* @brief Delays given amount of time. Blocks processor.
  * @param delay The amount of time to delay.
  **/
-void blockingDelay(time_t delay);
+void blockingDelay(millisecond_t delay);
 
 /* @brief Gets timer handle by timer id.
  * @param id The timer id.
@@ -45,24 +45,24 @@ tim_channel_t getTimerChannel(res_id_t id);
  * @param duty The duty cycle.
  * @return Status indicating operation success.
  **/
-Status writePWM(tim_handle_t * const htim, tim_channel_t channel, uint32_t duty);
+Status writePWM(tim_handle_t *htim, tim_channel_t channel, uint32_t duty);
 
 /* @brief Gets counter value.
  * @param htim Pointer to the timer handle.
  * @returns The timer counter's value.
  **/
-uint32_t getTimerCounter(tim_handle_t * const htim);
+uint32_t getTimerCounter(tim_handle_t *htim);
 
 /* @brief Sets counter value.
  * @param htim Pointer to the timer handle.
  * @param cntr The timer counter's value.
  **/
-void setTimerCounter(tim_handle_t * const htim, uint32_t cntr);
+void setTimerCounter(tim_handle_t *htim, uint32_t cntr);
 
 /* @brief Gets compare value.
  * @param htim Pointer to the timer handle.
  * @param channel The timer's channel.
  **/
-uint32_t getTimerCompare(tim_handle_t * const htim, uint32_t channel);
+uint32_t getTimerCompare(tim_handle_t *htim, uint32_t channel);
 
 } // namespace uns

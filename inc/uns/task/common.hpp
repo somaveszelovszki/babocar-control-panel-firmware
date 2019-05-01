@@ -16,7 +16,7 @@ enum class ProgramTask {
 };
 
 struct DebugParams {
-    optional<speed_t> speed;
+    optional<m_per_sec_t> speed;
     optional<PI_Controller> speedController;
 };
 

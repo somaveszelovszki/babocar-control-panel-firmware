@@ -16,13 +16,13 @@ extern CarProps car;
 using namespace uns;
 
 namespace {
-constexpr time_t period_DistanceSensor(milliseconds(), 50.0f);
+constexpr millisecond_t period_DistanceSensor = millisecond_t(50.0f);
 DistanceSensor frontDistSensor(period_DistanceSensor, cfg::gpio_DistSHTD3, cfg::gpio_DistINT2);
 
 bool isSafe(const Line& line) {
-    static const distance_t fastSpeedMaxLinePos(millimeters(), 85);
-    static const angle_t fastSpeedMaxLineAngle(degrees(), 4.0f);
-    static const angle_t fastSpeedMaxServoAngle(degrees(), 6.5f);
+    static const millimeter_t fastSpeedMaxLinePos = millimeter_t(85);
+    static const radian_t fastSpeedMaxLineAngle = degree_t(4.0f);
+    static const radian_t fastSpeedMaxServoAngle = degree_t(6.5f);
 
     return abs(line.pos) <= fastSpeedMaxLinePos && abs(line.angle) <= fastSpeedMaxLineAngle && abs(car.steeringAngle()) <= fastSpeedMaxServoAngle;
 }
@@ -42,22 +42,22 @@ extern "C" void runProgTrackTask(void const *argument) {
 //            debug::printerr(status, "Front distance sensor read error!");
 //        }
 //
-//        uns::nonBlockingDelay(time_t::from<milliseconds>(100));
+//        uns::nonBlockingDelay(millisecond_t(100));
         switch (PROGRAM_TASK) {
             case ProgramTask::SAFETY_CAR_FOLLOW:
                 // TODO follow safety car
-                uns::nonBlockingDelay(time_t::from<milliseconds>(50));
+                uns::nonBlockingDelay(millisecond_t(50));
                 break;
             case ProgramTask::OVERTAKE:
                 // TODO overtake safety car
-                uns::nonBlockingDelay(time_t::from<milliseconds>(50));
+                uns::nonBlockingDelay(millisecond_t(50));
                 break;
             case ProgramTask::RACE_TRACK:
                 // TODO race given number of laps on the track
-                uns::nonBlockingDelay(time_t::from<milliseconds>(50));
+                uns::nonBlockingDelay(millisecond_t(50));
                 break;
             default:
-                uns::nonBlockingDelay(time_t::from<milliseconds>(50));
+                uns::nonBlockingDelay(millisecond_t(50));
                 break;
         }
     }

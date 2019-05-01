@@ -6,11 +6,8 @@ using namespace uns;
 
 extern hw::DC_Motor motor;
 
-bool uns::isOk(Status status) {
-    return status == Status::OK;
-}
-
-const char * const uns::getStatusString(Status status) {
+namespace uns {
+const char* getStatusString(Status status) {
 
     static const char * const STR_OK            = "OK";
     static const char * const STR_ERROR         = "ERROR";
@@ -22,7 +19,7 @@ const char * const uns::getStatusString(Status status) {
     static const char * const STR_BUFFER_FULL   = "BUFFER_FULL";
     static const char * const STR_unknown       = "unknown error";
 
-    const char * result;
+    const char *result;
     switch (status) {
         case Status::OK:            result = STR_OK;            break;
         case Status::ERROR:         result = STR_ERROR;         break;
@@ -36,6 +33,7 @@ const char * const uns::getStatusString(Status status) {
     }
     return result;
 }
+} // namespace uns
 
 extern "C" void onHardFault() {
     motor.forceStop();

@@ -2,7 +2,7 @@
 
 using namespace uns;
 
-Status Junction::setOrientation(Segment *seg, RotationDir segmentPos, angle_t orientation) {
+Status Junction::setOrientation(Segment *seg, RotationDir segmentPos, radian_t orientation) {
     SegmentOrientation& ori0 = this->segOrientations[0];
     SegmentOrientation& ori1 = this->segOrientations[1];
     SegmentOrientation& ori2 = this->segOrientations[2];
@@ -35,7 +35,7 @@ Status Junction::setOrientation(Segment *seg, RotationDir segmentPos, angle_t or
     return status;
 }
 
-Status Junction::getOrientation(Segment *seg, angle_t *result) const {
+Status Junction::getOrientation(Segment *seg, radian_t *result) const {
     const SegmentOrientation& ori0 = this->segOrientations[0];
     const SegmentOrientation& ori1 = this->segOrientations[1];
     const SegmentOrientation& ori2 = this->segOrientations[2];
@@ -53,7 +53,7 @@ Status Junction::getOrientation(Segment *seg, angle_t *result) const {
     return status;
 }
 
-Status Junction::getOrientation(RotationDir pos, angle_t *result) const {
+Status Junction::getOrientation(RotationDir pos, radian_t *result) const {
     const SegmentOrientation& ori0 = this->segOrientations[0];
     const SegmentOrientation& ori1 = this->segOrientations[1];
     const SegmentOrientation& ori2 = this->segOrientations[2];

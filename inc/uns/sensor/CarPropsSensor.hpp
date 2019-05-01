@@ -8,7 +8,7 @@ namespace uns {
 
 constexpr uint32_t INCREMENT_PER_WHEEL_ROT = 46344; // Increments per wheel rotation - measured value.
 constexpr float32_t SPEED_COMPLIANCE_RATE = 1.1f;
-constexpr speed_t SPEED_DEAD_BAND(mm_per_sec(), 1000.0f);
+constexpr m_per_sec_t SPEED_DEAD_BAND = m_per_sec_t(1.0f);
 
 constexpr float32_t SPEED_WEIGHT_NEW = 2.0f;
 
@@ -26,7 +26,7 @@ public:
      * @param _htim The handle for the timer used in encoder mode.
      **/
     CarPropsSensor()
-        : Sensor(time_t::from<milliseconds>(0.0f))
+        : Sensor(millisecond_t(0.0f))
         , speed_updated(false) {}
 
     /* @brief Initializes sensor - measures encoder offset and calibrates gyroscope.

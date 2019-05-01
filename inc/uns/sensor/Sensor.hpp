@@ -8,7 +8,7 @@ template <typename M>
 class Sensor : public Runnable {
 
 public:
-    explicit Sensor(uns::time_t _period) : Runnable(_period) {}
+    explicit Sensor(millisecond_t _period) : Runnable(_period) {}
 
     /* @brief Gets measured value.
      * @returns The measured value.

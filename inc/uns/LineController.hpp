@@ -12,10 +12,10 @@ class LineController {
 
 public:
 
-	LineController(distance_t _wheelBase, distance_t _sensorWheelDist);
+	LineController(meter_t _wheelBase, meter_t _sensorWheelDist);
 
 
-	angle_t GetControlSignal(speed_t currentVelocity, distance_t followedLinePosition, angle_t currentLineOrientation);
+	radian_t GetControlSignal(m_per_sec_t currentVelocity, meter_t currentLinePosition, radian_t currentLineOrientation);
 
 
 	void _Test();
@@ -27,11 +27,11 @@ private:
 	void UpdateBaseline(distance_t newBaseLine);
 
 	// From config.
-	distance_t wheelBase;						// Distance between the two axles.
-	distance_t sensorWheelDist;			// Distance between the first axle and front led row.
-	distance_t projectedWheelBase ; 			// The original wheel base + the sensor distance.
+	meter_t wheelBase;						// Distance between the two axles.
+	meter_t sensorWheelDist;			// Distance between the first axle and front led row.
+	meter_t projectedWheelBase ; 			// The original wheel base + the sensor distance.
 
-	distance_t baseline;  					// The controller wants to keep the line at this point of the sensor.
+	meter_t baseline;  					// The controller wants to keep the line at this point of the sensor.
 
 };
 } // namespace uns

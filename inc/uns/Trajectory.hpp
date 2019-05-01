@@ -24,7 +24,7 @@
 //
 //        /* @brief Remaining time before the car reaches the point of the trajectory where it is nearest to (or where it hits) the obstacle.
 //         **/
-//        uns::time_t remainingTime;
+//        millisecond_t remainingTime;
 //    };
 //
 //private:

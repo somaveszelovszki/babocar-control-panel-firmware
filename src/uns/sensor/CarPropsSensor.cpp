@@ -21,9 +21,9 @@ Status CarPropsSensor::initialize() {
 }
 
 Status CarPropsSensor::run(angle_t d_angle) {
-    static constexpr angular_velocity_t deadBand(deg_per_sec(), 2.0f);
+    static constexpr deg_per_sec_t deadBand = deg_per_sec_t(2.0f);
 
-    uns::time_t d_time = this->updateTimeDiff();
+    millisecond_t d_time = this->updateTimeDiff();
     Status status = Status::OK;
 
     const distance_t d_dist = this->meas.speed() * d_time;

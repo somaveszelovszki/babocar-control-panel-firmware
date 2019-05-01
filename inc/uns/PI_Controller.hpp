@@ -21,7 +21,7 @@ public:
 
     /* @brief Constructor - sets period time and term weights.
      **/
-    PI_Controller(uns::time_t period_, uns::time_t Ti_, float32_t Kc_, float32_t outMin_, float32_t outMax_)
+    PI_Controller(millisecond_t period_, millisecond_t Ti_, float32_t Kc_, float32_t outMin_, float32_t outMax_)
         : Runnable(period_)
         , Ti(Ti_)
         , Kc(Kc_)
@@ -55,7 +55,7 @@ public:
         return this->output;
     }
 
-    void setDesired(speed_t desired_);
+    void setDesired(m_per_sec_t desired_);
 
     /* @brief Updates output according to current and previous errors.
      * @note If an error occurs (see result status), output will not be updated!
@@ -63,16 +63,16 @@ public:
      * @param measured The current measured speed.
      * @returns Status indicating operation success.
      **/
-    Status run(speed_t measured);
+    Status run(m_per_sec_t measured);
 
 private:
-    time_t Ti;
+    millisecond_t Ti;
     float32_t Kc;   // Weight of the proportional term.
     float32_t b0, b1;
     float32_t prevError;
     float32_t outMin;
     float32_t outMax;
-    speed_t desired;      // The desired value.
+    m_per_sec_t desired;      // The desired value.
     float32_t output;       // The output - updated in every cycle, holds the output value until the next update.
 };
 } // namespace uns

@@ -23,26 +23,26 @@ mutex_handle_t* getMutexHandle(MUTEX mutex);
  * @param The timeout to wait for the mutex.
  * @return Status indicating operation success (if not OK, it means the mutex is not available).
  **/
-Status mutexTake(mutex_handle_t * const hMutex, const time_t& timeout);
+Status mutexTake(mutex_handle_t *hMutex, millisecond_t timeout);
 
 /* @brief Checks if mutex is available and reserves it. Does not block.
  * @note This function must be called from an interrupt service routine!
  * @param hMutex Pointer to the mutex handle.
  * @return Status indicating operation success (if not OK, it means the mutex is not available).
  **/
-Status mutexTake_ISR(mutex_handle_t * const hMutex);
+Status mutexTake_ISR(mutex_handle_t *hMutex);
 
 /* @brief Releases mutex.
  * @param hMutex Pointer to the mutex handle.
  * @return Status indicating operation success.
  **/
-Status mutexRelease(mutex_handle_t * const hMutex);
+Status mutexRelease(mutex_handle_t *hMutex);
 
 /* @brief Releases mutex.
  * @note This function must be called from an interrupt service routine!
  * @param hMutex Pointer to the mutex handle.
  * @return Status indicating operation success.
  **/
-Status mutexRelease_ISR(mutex_handle_t * const hMutex);
+Status mutexRelease_ISR(mutex_handle_t *hMutex);
 
 } // namespace uns

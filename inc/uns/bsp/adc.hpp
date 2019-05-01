@@ -24,13 +24,13 @@ adc_channel_t getADCChannel(res_id_t id);
  * @param channel The channel to set.
  * @returns Status indicating operation success.
  **/
-Status ADC_SetChannel(adc_handle_t * const hadc, adc_channel_t channel);
+Status ADC_SetChannel(adc_handle_t *hadc, adc_channel_t channel);
 
 /* @brief Starts ADC and reads value.
  * @param hadc Pointer to the ADC handle.
  * @param pResult Pointer to the result variable.
  * @returns Status indicating operation success.
  **/
-Status ADC_ReadValue(adc_handle_t * const hadc, uint32_t *pResult);
+Status ADC_ReadValue(adc_handle_t *hadc, uint32_t *pResult);
 
 } // namespace uns

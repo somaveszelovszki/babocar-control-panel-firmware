@@ -3,5 +3,5 @@
 
 using namespace uns;
 
-const distance_t Line::INVALID_POS = distance_t(millimeters(), 1000);
-const angle_t Line::INVALID_ANGLE = uns::PI_2;
+const meter_t Line::INVALID_POS = meter_t(1.0f);
+const radian_t Line::INVALID_ANGLE = uns::PI_2;

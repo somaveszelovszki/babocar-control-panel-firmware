@@ -68,7 +68,7 @@ Status hw::DC_Motor::write(float32_t duty) {
         this->pwm = PWM_STOP;
     }
 
-    this->pwm = uns::incarcerate(this->pwm, PWM_BWD_MAX, PWM_FWD_MAX);
+    this->pwm = uns::clamp(this->pwm, PWM_BWD_MAX, PWM_FWD_MAX);
     const int32_t pwm2 = chnl2_pwm(this->pwm);
 
     uns::enterCritical();
@@ -80,15 +80,15 @@ Status hw::DC_Motor::write(float32_t duty) {
 }
 
 void hw::DC_Motor::forceStop() {
-    static constexpr speed_t DEADBAND(mm_per_sec(), 50.0f);
+    static constexpr m_per_sec_t DEADBAND = cm_per_sec_t(5.0f);
 
     // TODO
     if (car.speed() > DEADBAND) {
         this->write(-1.0f);
-        uns::blockingDelay(time_t::from<milliseconds>(1000.0f));
+        uns::blockingDelay(millisecond_t(1000.0f));
     } else if (car.speed() < -DEADBAND) {
         this->write(0.2f);
-        uns::blockingDelay(time_t::from<milliseconds>(1000.0f));
+        uns::blockingDelay(millisecond_t(1000.0f));
     }
     this->write(0.0f);
     forceStopActive = true;

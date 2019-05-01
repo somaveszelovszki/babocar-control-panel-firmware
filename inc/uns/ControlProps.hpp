@@ -5,7 +5,7 @@
 namespace uns {
 
 struct ControlProps {
-    speed_t speed;
+    m_per_sec_t speed;
     Line line;
 };
 

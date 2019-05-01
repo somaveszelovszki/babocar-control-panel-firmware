@@ -26,7 +26,7 @@ public:
         , maxIntegralRate(0.0f)
         , maxIntegral(0.0f) {}
 
-    explicit PID_Controller(uns::time_t _period)
+    explicit PID_Controller(millisecond_t _period)
         : Runnable(_period)
         , params{ 0.0f, 0.0f, 0.0f }
         , outMin(0.0f)
@@ -43,7 +43,7 @@ public:
      * @param _Ki The weight of the integral term.
      * @param _Kd The weight of the derivative term.
      **/
-    PID_Controller(uns::time_t _period, float32_t _Kp, float32_t _Ki, float32_t _Kd, float32_t _outMin, float32_t _outMax, float32_t _maxIntegralRate)
+    PID_Controller(millisecond_t _period, float32_t _Kp, float32_t _Ki, float32_t _Kd, float32_t _outMin, float32_t _outMax, float32_t _maxIntegralRate)
         : Runnable(_period)
         , params{ _Kp, _Ki, _Kd }
         , outMin(_outMin)

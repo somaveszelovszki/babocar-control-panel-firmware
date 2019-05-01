@@ -20,8 +20,8 @@ using namespace uns;
 
 // TIMER
 
-void uns::nonBlockingDelay(time_t delay) {
-    osDelay(delay.get<milliseconds>());
+void uns::nonBlockingDelay(millisecond_t delay) {
+    osDelay(delay.get());
 }
 
 // QUEUE
@@ -74,22 +74,22 @@ mutex_handle_t* uns::getMutexHandle(MUTEX mutex) {
     return hMutex;
 }
 
-Status uns::mutexTake(mutex_handle_t * const hMutex, const uns::time_t& timeout) {
-    Status result = xSemaphoreTake(static_cast<osMutexId>(hMutex), timeout.get<milliseconds>()) == pdTRUE ? Status::OK : Status::TIMEOUT;
+Status uns::mutexTake(mutex_handle_t *hMutex, millisecond_t timeout) {
+    Status result = xSemaphoreTake(static_cast<osMutexId>(hMutex), timeout.get()) == pdTRUE ? Status::OK : Status::TIMEOUT;
     return result;
 }
 
-Status uns::mutexTake_ISR(mutex_handle_t * const hMutex) {
+Status uns::mutexTake_ISR(mutex_handle_t *hMutex) {
     Status result = xSemaphoreTakeFromISR(static_cast<osMutexId>(hMutex), NULL) == pdTRUE ? Status::OK : Status::BUSY;
     return result;
 }
 
-Status uns::mutexRelease(mutex_handle_t * const hMutex)  {
+Status uns::mutexRelease(mutex_handle_t *hMutex)  {
     Status result = xSemaphoreGive(static_cast<osMutexId>(hMutex)) == pdTRUE ? Status::OK : Status::ERROR;
     return result;
 }
 
-Status uns::mutexRelease_ISR(mutex_handle_t * const hMutex)  {
+Status uns::mutexRelease_ISR(mutex_handle_t *hMutex)  {
     Status result = xSemaphoreGiveFromISR(static_cast<osMutexId>(hMutex), NULL) == pdTRUE ? Status::OK : Status::ERROR;
     return result;
 }

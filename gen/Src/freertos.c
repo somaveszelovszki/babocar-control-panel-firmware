@@ -238,7 +238,7 @@ void StartIdleTask(void const * argument)
 void StartLineDetectTask(void const * argument)
 {
   /* USER CODE BEGIN StartLineDetectTask */
-  runLineDetectTask(argument);
+  //runLineDetectTask(argument);
   /* USER CODE END StartLineDetectTask */
 }
 

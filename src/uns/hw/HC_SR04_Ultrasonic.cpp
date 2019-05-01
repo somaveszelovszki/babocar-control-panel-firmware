@@ -8,20 +8,19 @@
 using namespace uns;
 
 namespace {
-static constexpr uint32_t US_ROUNDTRIP_CM = 57; // Microseconds (uS) it takes sound to travel round-trip 1cm (2cm total), uses integer to save compiled code space.
+static constexpr uint32_t US_ROUNDTRIP_CM = 57; // Microseconds it takes sound to travel round-trip 1cm (2cm total), uses integer to save compiled code space.
 
-static constexpr distance_t MAX_DIST(millimeters(), 200);
+static constexpr centimeter_t MAX_DIST = centimeter_t(200);
 
-distance_t echoTimeToDist(uns::time_t echoTime) {
-    const uint32_t echoTime_us = static_cast<uint32_t>(echoTime.get<microseconds>());
-    return distance_t::from<centimeters>(max(echoTime_us / US_ROUNDTRIP_CM, (echoTime_us ? static_cast<uint32_t>(1) : 0)));
+centimeter_t echoTimeToDist(microsecond_t echoTime) {
+    return centimeter_t(uns::max(echoTime.get() / US_ROUNDTRIP_CM, (echoTime.get() ? 1.0f : 0.0f)));
 }
 
-uns::time_t distToEchoTime(const distance_t& dist) {
-    return uns::time_t::from<microseconds>(dist.get<centimeters>() * US_ROUNDTRIP_CM);
+microsecond_t distToEchoTime(centimeter_t dist) {
+    return microsecond_t(dist.get() * US_ROUNDTRIP_CM);
 }
 
-static constexpr time_t ECHO_OVERHEAD = time_t(microseconds(), 450);    // Overhead before echo.
+static constexpr microsecond_t ECHO_OVERHEAD = microsecond_t(450);    // Overhead before echo.
 
 } // namespace
 
@@ -48,25 +47,25 @@ void hw::HC_SR04_Ultrasonic::startMeasurement() {
         this->lastStartTime = uns::getExactTime();
         //this->lastStartTime_us = uns::getTime().get<microseconds>() + uns::getTimerCounter(cfg::tim_System);
         GPIO_WritePin(this->trigger, PinState::RESET);
-        while(uns::getExactTime() - this->lastStartTime < time_t::from<microseconds>(4)) {}
+        while(uns::getExactTime() - this->lastStartTime < microsecond_t(4)) {}
         GPIO_WritePin(this->trigger, PinState::SET);
-        while(uns::getExactTime() - this->lastStartTime < time_t::from<microseconds>(14)) {}
+        while(uns::getExactTime() - this->lastStartTime < microsecond_t(14)) {}
         GPIO_WritePin(this->trigger, PinState::RESET);
         this->busy = true;
     }
 
     while(GPIO_ReadPin(this->echo) != PinState::SET) {
-        if (uns::getExactTime() - this->lastStartTime > time_t::from<milliseconds>(500)){
+        if (uns::getExactTime() - this->lastStartTime > millisecond_t(500)){
             break;
         }
     }
-    const time_t echoTime = uns::getExactTime();
-    this->distance = echoTime > this->lastStartTime ? echoTimeToDist(echoTime - this->lastStartTime) : distance_t::from<millimeters>(0);
+    const microsecond_t echoTime = uns::getExactTime();
+    this->distance = echoTime > this->lastStartTime ? echoTimeToDist(echoTime - this->lastStartTime) : centimeter_t::ZERO();
     this->busy = false;
 }
 
 void hw::HC_SR04_Ultrasonic::onEchoReceived() {
-    const time_t echoTime = uns::getExactTime();
+    const microsecond_t echoTime = uns::getExactTime();
     this->distance = echoTime > this->lastStartTime - ECHO_OVERHEAD ? echoTimeToDist(echoTime - this->lastStartTime - ECHO_OVERHEAD) : MAX_DIST;
     this->busy = false;
 }

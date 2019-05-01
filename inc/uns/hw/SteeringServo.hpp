@@ -10,7 +10,7 @@ namespace hw {
  **/
 class SteeringServo : private Servo {
 private:
-    const angle_t angle_mid;     // The middle position angle.
+    const radian_t angle_mid;     // The middle position angle.
 
 public:
     /* @brief Constructor - initializes timer handle, channel, middle servo angle and delta maximum wheel angle.
@@ -19,14 +19,14 @@ public:
      * @param _angle_mid The middle servo angle.
      * @param _wheelAngle_d_max The maximum delta wheel angle.
      **/
-    SteeringServo(tim_handle_t * const _htim, tim_channel_t _chnl, angle_t _angle_mid, angle_t _wheelAngle_d_max)
+    SteeringServo(tim_handle_t *_htim, tim_channel_t _chnl, radian_t _angle_mid, radian_t _wheelAngle_d_max)
         : Servo(_htim, _chnl, _angle_mid - _wheelAngle_d_max / cfg::SERVO_WHEEL_TR, _angle_mid + _wheelAngle_d_max / cfg::SERVO_WHEEL_TR)
         , angle_mid(_angle_mid) {}
 
     /* @brief Writes wheel angle - converts value to servo angle and writes it to the PWM pin.
      * @param wheelAngle The wheel angle to write.
      **/
-    void writeWheelAngle(angle_t wheelAngle) {
+    void writeWheelAngle(radian_t wheelAngle) {
         this->write(this->angle_mid + wheelAngle / cfg::SERVO_WHEEL_TR);
     }
 
@@ -39,7 +39,7 @@ public:
     /* @brief Gets wheel angle - converts servo angle to wheel angle and returns it.
      * @returns The wheel angle.
      **/
-    angle_t getWheelAngle() const {
+    radian_t getWheelAngle() const {
         return (this->getAngle() - this->angle_mid) * cfg::SERVO_WHEEL_TR;
     }
 };

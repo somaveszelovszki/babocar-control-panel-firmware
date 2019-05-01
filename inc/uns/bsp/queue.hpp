@@ -25,13 +25,13 @@ queue_handle_t* getQueueHandle(QUEUE queue);
  * @param txBuffer The buffer storing the data to send.
  * @return Status indicating operation success (if not OK, it means the buffer is full).
  **/
-Status queueSend(queue_handle_t * const hQueue, const void * const txBuffer);
+Status queueSend(queue_handle_t *hQueue, const void *txBuffer);
 
 /* @brief Gets oldest element from the queue, if any.
  * @param hQueue Pointer to the queue handle.
  * @param rxBuffer The buffer that will store the received data.
  * @return Status indicating operation success (if not OK, it means the buffer is empty).
  **/
-Status queueReceive(queue_handle_t * const hQueue, void * const rxBuffer);
+Status queueReceive(queue_handle_t *hQueue, void *rxBuffer);
 
 } // namespace uns

@@ -17,7 +17,7 @@ public:
 
     void onEchoReceived();
 
-    distance_t getDistance() const {
+    centimeter_t getDistance() const {
         return this->distance;
     }
 
@@ -25,9 +25,9 @@ private:
     const gpio_pin_struct& trigger;
     const gpio_pin_struct& echo;
 
-    time_t lastStartTime;
+    microsecond_t lastStartTime;
     bool busy;
-    distance_t distance;
+    centimeter_t distance;
 };
 
 } // namespace hw

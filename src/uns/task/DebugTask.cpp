@@ -108,7 +108,7 @@ void handleRxMsg(debug::Msg& rxMsg) {
             isOk(readFloat(data, rxMsg.text.size - dataIdx, &strIdx, &v)) &&
             isOk(readFloat(data, rxMsg.text.size - dataIdx, &strIdx, &ori))) {
 
-            DEBUG_PARAMS.speed = speed_t::from<mm_per_sec>(v);
+            DEBUG_PARAMS.speed = mm_per_sec_t(v);
             debug::printf(debug::CONTENT_FLAG_LOG, "Speed updated: %f mm/sec", v);
             //debugMotorPWM = v;
         }
@@ -138,7 +138,7 @@ extern "C" void runDebugTask(void const *argument) {
     debug::Msg rxMsg, txMsg;
     char numBuff[STR_MAX_LEN_INT + 1];
 
-    uns::time_t rxStartTime = uns::getTime();
+    millisecond_t rxStartTime = uns::getTime();
 
     uns::UART_Receive_DMA(cfg::uart_Bluetooth, reinterpret_cast<uint8_t*>(uartBluetooth_Buffer), MAX_RX_BUFFER_SIZE);
 
@@ -146,7 +146,7 @@ extern "C" void runDebugTask(void const *argument) {
         // handle incoming control messages from the monitoring app
         if (isOk(getRxMsg(rxMsg))) {
             handleRxMsg(rxMsg);
-        } else if (uns::getTime() - rxStartTime > uns::time_t::from<milliseconds>(100)) {
+        } else if (uns::getTime() - rxStartTime > millisecond_t(100)) {
 
         }
 
@@ -168,13 +168,13 @@ extern "C" void runDebugTask(void const *argument) {
 
         if (txBuffer.size > 0) {
             while (!isOk(UART_Transmit_IT(uart_Debug, reinterpret_cast<const uint8_t * const>(static_cast<const char * const>(txBuffer)), txBuffer.size))) {  // sends messages once UART is free
-                uns::nonBlockingDelay(uns::time_t::from<milliseconds>(1));
+                uns::nonBlockingDelay(millisecond_t(1));
             }
 
             txBuffer.clear();
         }
 
-        uns::nonBlockingDelay(uns::time_t::from<milliseconds>(1));
+        uns::nonBlockingDelay(millisecond_t(1));
     }
 
     uns::deleteCurrentTask();

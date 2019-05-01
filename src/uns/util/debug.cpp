@@ -29,13 +29,15 @@ uint32_t debug::Msg::append(char c) {
     return this->append(&c, 1);
 }
 
-#ifdef DEBUG
+#define PRINTF_ENABLED true
+
+#if PRINTF_ENABLED
 void debug::printf(uint32_t content, const char *format, va_list args, Status result) {
     Status status = Status::OK;
     Msg txMsg;
     txMsg.content = content;
 
-    char numBuff[max(STR_MAX_LEN_INT, STR_LEN_FLOAT) + 1];
+    char numBuff[uns::max(STR_MAX_LEN_INT, STR_LEN_FLOAT) + 1];
 
     uint32_t n = 0; // will store the index of the current character
 
@@ -131,4 +133,4 @@ void debug::printerr(Status result, const char * const format, ...) {
     (void)format;
 }
 
-#endif // DEBUG
+#endif // PRINTF_ENABLED

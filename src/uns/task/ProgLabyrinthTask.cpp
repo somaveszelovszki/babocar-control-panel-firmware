@@ -17,8 +17,8 @@ extern CarProps car;
 
 namespace {
 volatile bool x = false;
-constexpr distance_t MIN_JUNCTION_POS_ACCURACY(centimeters(), 40);
-constexpr angle_t MERGE_LINE_ANGLE(degrees(), 45.0f);
+constexpr meter_t MIN_JUNCTION_POS_ACCURACY = centimeter_t(40);
+constexpr radian_t MERGE_LINE_ANGLE = degree_t(45);
 
 char startCounterBuffer;
 volatile char startCounter = '6';   // start counter will count back from 5 to 0
@@ -80,9 +80,9 @@ void switchToSegment(Segment *seg, Junction *junc) {
 }
 
 bool junctionOrientationsMatch(const Junction *junc, angle_t oriCenter, angle_t oriLeft, angle_t oriRight) {
-    static constexpr angle_t EPS(degrees(), 20.0f);
+    static constexpr radian_t EPS = degree_t(20);
 
-    angle_t ori;
+    radian_t ori;
     return isOk(junc->getOrientation(RotationDir::CENTER, &ori)) && uns::eqWithOverflow360(oriCenter, ori, EPS)
         && isOk(junc->getOrientation(RotationDir::LEFT, &ori)) && uns::eqWithOverflow360(oriLeft, ori, EPS)
         && isOk(junc->getOrientation(RotationDir::RIGHT, &ori)) && uns::eqWithOverflow360(oriRight, ori, EPS);
@@ -346,7 +346,7 @@ Connection::Type onJuntionDetected(const Point2<distance_t>& pos, Connection::Ty
     }
 
     // TODO calculate currentSeg's length
-    currentSeg->length = distance_t::from<meters>(0);
+    currentSeg->length = meter_t(0);
 
     //debug::printlog("Next: %c", nextSeg->name);
 
@@ -366,7 +366,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
         uns::UART_Receive_DMA(cfg::uart_RadioModule, reinterpret_cast<uint8_t*>(&startCounterBuffer), 1);
         while(startCounter != '0') {
             //debug::printlog("Seconds until start: %c", startCounter);
-            uns::nonBlockingDelay(time_t::from<milliseconds>(50));
+            uns::nonBlockingDelay(millisecond_t(50));
         }
     }
 
@@ -382,7 +382,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     bool nextJuncIsLastBeforeLaneChange = false;
     int32_t junctionLineIdx = -1;   // index of the junction line to follow
 
-    controlProps.speed = speed_t::from<m_per_sec>(1.2f); // TODO 1.2 m/sec
+    controlProps.speed = m_per_sec_t(1.2f);
 
     angle_t virtualLineAngle = angle_t::ZERO();   // When car needs to change lane (follow the CURVE), we send a virtual line orientation to the controller for fast change.
 
@@ -532,7 +532,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
         }
 
-        uns::nonBlockingDelay(time_t::from<milliseconds>(5));
+        uns::nonBlockingDelay(millisecond_t(5));
     }
 
     uns::deleteCurrentTask();

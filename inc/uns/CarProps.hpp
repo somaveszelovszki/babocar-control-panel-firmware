@@ -7,12 +7,12 @@ namespace uns {
 struct PosOri {
     /* @brief Position of the car relative to its start position.
     **/
-    Point2<distance_t> pos_;
+    Point2<meter_t> pos_;
 
     /* @brief Car's orientation.
     @note Orientation is relative to the X axis!
      **/
-    angle_t orientation_;
+    radian_t orientation_;
 };
 
 /* @brief Car properties.
@@ -29,7 +29,7 @@ public:
      * @param _pos The position.
      * @param _orientation The orientation.
      **/
-    CarProps(speed_t _speed, angle_t _steeringAngle, const Point2<distance_t>& _pos, angle_t _orientation)
+    CarProps(m_per_sec_t _speed, radian_t _steeringAngle, const Point2<meter_t>& _pos, radian_t _orientation)
         : speed_(_speed)
         , steeringAngle_(_steeringAngle)
         , pos_(_pos)
@@ -39,14 +39,14 @@ public:
      * @returns The car's steering direction.
      **/
     RotationDir getSteeringDir() const {
-        static constexpr angle_t TOLERANCE(degrees(), 1.0f);
-        return this->steeringAngle_.isZero(TOLERANCE) ? RotationDir::CENTER : this->steeringAngle_ > angle_t::ZERO() ? RotationDir::LEFT : RotationDir::RIGHT;
+        static constexpr radian_t EPS = degree_t(1.0f);
+        return uns::isZero(this->steeringAngle_, EPS) ? RotationDir::CENTER : this->steeringAngle_ > radian_t::ZERO() ? RotationDir::LEFT : RotationDir::RIGHT;
     }
 
-    speed_t speed() const { return this->speed_; };
-    angle_t steeringAngle() const { return this->steeringAngle_; };
-    Point2<distance_t> pos() const { return this->pos_; };
-    angle_t orientation() const { return this->orientation_; };
+    m_per_sec_t speed() const { return this->speed_; };
+    radian_t steeringAngle() const { return this->steeringAngle_; };
+    Point2<meter_t> pos() const { return this->pos_; };
+    radian_t orientation() const { return this->orientation_; };
 
     PosOri getPosOri() const { return PosOri{ this->pos_, this->orientation_ }; }
 
@@ -56,20 +56,20 @@ public:
 
     /* @brief The current speed of the car.
     **/
-    speed_t speed_;
+    m_per_sec_t speed_;
 
     /* @brief The current steering angle.
     @note Steering angle is relative to the Y axis!
      **/
-    angle_t steeringAngle_;
+    radian_t steeringAngle_;
 
     /* @brief Position of the car relative to its start position.
     **/
-    Point2<distance_t> pos_;
+    Point2<meter_t> pos_;
 
     /* @brief Car's orientation.
     @note Orientation is relative to the X axis!
      **/
-    angle_t orientation_;
+    radian_t orientation_;
 };
 } // namespace uns
