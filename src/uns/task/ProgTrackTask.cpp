@@ -28,7 +28,7 @@ bool isSafe(const Line& line) {
 }
 } // namespace
 
-extern "C" void runProgTrackTask(void const *argument) {
+extern "C" void runProgTrackTask(const void *argument) {
 
 //    if (!isOk(status = frontDistSensor.initialize())) {
 //        //debug::printerr(status, "Front distance sensor init error!");

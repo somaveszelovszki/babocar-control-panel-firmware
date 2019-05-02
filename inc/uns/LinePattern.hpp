@@ -1,6 +1,5 @@
 #pragma once
 
-#include <uns/Line.hpp>
 #include <uns/util/units.hpp>
 #include <uns/Point2.hpp>
 

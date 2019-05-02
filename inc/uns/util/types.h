@@ -22,11 +22,9 @@ typedef uint32_t res_id_t;  // Resource id type - used when referencing hardware
 #define STR_MAX_LEN_INT     11      // Maximum length of an integer string.
 
 #define uns_sizeof_DebugMsg         (4 + LOG_MSG_MAX_SIZE + 4)      // Size of a debug::Msg object.
-#define uns_sizeof_DetectedLines    ((4 + 4) + (4 + 4 + 4 + (4 + 4) + (4 + 4)) + (4 * 3 + 4)) // Size of a DetectedLines queue item (sizeof(LineData)).
 #define uns_sizeof_ControlProps     (4 + (4 + 4))                   // Size of a ControlProps queue item (speed + sizeof(LineData)).
 
 typedef uint8_t LogQueueItem_t[uns_sizeof_DebugMsg];                // Defines buffer type of Log queue item.
-typedef uint8_t DetectedLinesQueueItem_t[uns_sizeof_DetectedLines]; // Defines buffer type of DetectedLines queue item.
 typedef uint8_t ControlPropsQueueItem_t[uns_sizeof_ControlProps];   // Defines buffer type of ControlProps queue item.
 
 void onHardFault();

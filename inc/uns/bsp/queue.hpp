@@ -10,7 +10,6 @@ typedef void* queue_handle_t;    // Queue handle - type is OS library-dependent.
  **/
 enum class QUEUE : uint8_t {
     LOG,            // LogQueue
-    DETECTED_LINES, // DetectedLinesQueue
     CONTROL_PROPS   // ControlPropsQueue
 };
 

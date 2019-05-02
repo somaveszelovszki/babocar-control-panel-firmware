@@ -2,6 +2,7 @@
 
 #include <uns/util/units.hpp>
 #include <uns/util/algorithm.hpp>
+#include <uns/bsp/task.hpp>
 #include <uns/PI_Controller.hpp>
 
 namespace uns {

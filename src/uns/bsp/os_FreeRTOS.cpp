@@ -11,7 +11,6 @@
 #include "cmsis_os.h"
 
 extern "C" osMessageQId LogQueueHandle;
-extern "C" osMessageQId DetectedLinesQueueHandle;
 extern "C" osMessageQId ControlPropsQueueHandle;
 
 extern "C" osMutexId ControlPropsMutexHandle;
@@ -30,7 +29,6 @@ queue_handle_t* uns::getQueueHandle(QUEUE queue) {
     queue_handle_t *hQueue = nullptr;
     switch (queue) {
     case QUEUE::LOG:            hQueue = &LogQueueHandle;           break;
-    case QUEUE::DETECTED_LINES: hQueue = &DetectedLinesQueueHandle; break;
     case QUEUE::CONTROL_PROPS:  hQueue = &ControlPropsQueueHandle;  break;
     }
     return hQueue;

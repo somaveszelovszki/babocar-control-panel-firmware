@@ -11,7 +11,6 @@
 #include <uns/sensor/CarPropsSensor.hpp>
 #include <uns/bsp/task.hpp>
 #include <uns/LineController.hpp>
-#include <uns/LineData.hpp>
 #include <uns/PI_Controller.hpp>
 #include <uns/util/convert.hpp>
 #include <uns/ControlProps.hpp>
@@ -51,7 +50,7 @@ uint8_t carSpeedBuffer[4];
 
 } // namespace
 
-extern "C" void runControlTask(void const *argument) {
+extern "C" void runControlTask(const void *argument) {
 
     Status status;
     debug::printf(debug::CONTENT_FLAG_LOG, "Initializing CarProps sensor...");
@@ -136,25 +135,9 @@ extern "C" void runControlTask(void const *argument) {
     uns::deleteCurrentTask();
 }
 
-/* @brief Callback for RcRecv Timer Capture - called when PWM value is captured.
- **/
-void uns_RcRecv_Tim_IC_CaptureCallback() {
-    rcRecvInSpeed = rcRecvInSpeedFilter.update(uns::getTimerCompare(cfg::tim_RC_Recv, cfg::tim_chnl_RC_Recv2));
-}
-
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
 void uns_Gyro_Uart_RxCpltCallback() {
     currentCarOri = *reinterpret_cast<float32_t*>(carOriBuffer);
     carOriUpdated = true;
-}
-
-/* @brief Called when SPI exchange finishes.
- **/
-void uns_Encoder_I2C_RxCpltCallback() {
-    static constexpr distance_t INCR_TO_SPEED = (1.0f / INCREMENT_PER_WHEEL_ROT) * cfg::CAR_WHEEL_CIRC;
-    static constexpr millisecond_t INCR_DELTA_TIME = millisecond_t(5);
-    int32_t diff = *reinterpret_cast<int32_t*>(carSpeedBuffer);
-    car.speed_ = INCR_TO_SPEED * diff / INCR_DELTA_TIME;
-    uns::I2C_Slave_Receive_DMA(cfg::i2c_Encoder, carSpeedBuffer, 4);
 }

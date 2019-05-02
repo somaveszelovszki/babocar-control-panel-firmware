@@ -134,7 +134,7 @@ void handleRxMsg(debug::Msg& rxMsg) {
 
 } // namespace
 
-extern "C" void runDebugTask(void const *argument) {
+extern "C" void runDebugTask(const void *argument) {
     debug::Msg rxMsg, txMsg;
     char numBuff[STR_MAX_LEN_INT + 1];
 

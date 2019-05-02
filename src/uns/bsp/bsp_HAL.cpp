@@ -2,7 +2,6 @@
 
 #ifdef BSP_LIB_HAL
 
-#include <uns/util/types.h>
 #include <uns/bsp/gpio.hpp>
 #include <uns/bsp/tim.hpp>
 #include <uns/bsp/adc.hpp>
@@ -20,6 +19,23 @@
 #include "stm32f4xx_hal_usart.h"
 
 using namespace uns;
+
+namespace {
+/* @brief Converts HAL status to uns::Status.
+ * @param status The HAL status.
+ * @returns The status as an uns::Status.
+ **/
+Status toStatus(HAL_SPI_StateTypeDef status) {
+    Status result;
+    switch(status) {
+    case HAL_SPI_STATE_RESET:   result = Status::OK;    break;
+    case HAL_SPI_STATE_READY:   result = Status::OK;    break;
+    case HAL_SPI_STATE_ERROR:   result = Status::ERROR; break;
+    default:                    result = Status::BUSY;  break;
+    }
+    return result;
+}
+} // namespace
 
 // TIMER
 
@@ -41,22 +57,22 @@ Status toStatus(HAL_StatusTypeDef status) {
 }
 } // namespace
 
-extern "C" TIM_HandleTypeDef  htim1;            // TIM1 handle
-extern "C" TIM_HandleTypeDef  htim2;            // TIM2 handle
-extern "C" TIM_HandleTypeDef  htim3;            // TIM3 handle
-extern "C" TIM_HandleTypeDef  htim5;            // TIM5 handle
-extern "C" TIM_HandleTypeDef  htim8;            // TIM8 handle
-extern "C" UART_HandleTypeDef huart1;           // UART1 handle
-extern "C" DMA_HandleTypeDef  hdma_usart1_rx;   // DMA-USART1 handle.
-extern "C" DMA_HandleTypeDef  hdma_usart3_rx;   // DMA-USART3 handle.
-extern "C" DMA_HandleTypeDef  hdma_usart6_rx;   // DMA-USART6 handle.
-extern "C" DMA_HandleTypeDef hdma_i2c1_rx;      // DMA-I2C1 handle.
-extern "C" UART_HandleTypeDef huart2;           // UART2 handle
-extern "C" UART_HandleTypeDef huart3;           // UART3 handle
-extern "C" UART_HandleTypeDef huart6;           // UART6 handle
-//extern "C" ADC_HandleTypeDef  hadc1;            // ADC1 handle
-extern "C" SPI_HandleTypeDef  hspi1;            // SPI1 handle
-extern "C" I2C_HandleTypeDef  hi2c1;            // I2C1 handle
+extern "C" TIM_HandleTypeDef  htim1;
+extern "C" TIM_HandleTypeDef  htim5;
+extern "C" UART_HandleTypeDef huart4;
+extern "C" UART_HandleTypeDef huart5;
+extern "C" UART_HandleTypeDef huart1;
+extern "C" UART_HandleTypeDef huart2;
+extern "C" UART_HandleTypeDef huart3;
+extern "C" UART_HandleTypeDef huart6;
+extern "C" DMA_HandleTypeDef hdma_uart4_rx;
+extern "C" DMA_HandleTypeDef hdma_uart5_rx;
+extern "C" DMA_HandleTypeDef hdma_usart1_rx;
+extern "C" DMA_HandleTypeDef hdma_usart1_tx;
+extern "C" DMA_HandleTypeDef hdma_usart3_rx;
+extern "C" DMA_HandleTypeDef hdma_usart6_rx;
+extern "C" DMA_HandleTypeDef hdma_usart6_tx;
+extern "C" I2C_HandleTypeDef hi2c1;
 
 /* @brief Concatenates values.
  * @param a The first value.
@@ -132,7 +148,7 @@ tim_handle_t* uns::getTimerHandle(res_id_t id) {
     TIM_HandleTypeDef *htim = nullptr;
     switch (id) {
     case 1: htim = &TIMER_HANDLE(1); break;
-    case 2: htim = &TIMER_HANDLE(2); break;
+//    case 2: htim = &TIMER_HANDLE(2); break;
 //    case 3: htim = &TIMER_HANDLE(3); break;
 //    case 4: htim = &TIMER_HANDLE(4); break;
     case 5: htim = &TIMER_HANDLE(5); break;
@@ -281,29 +297,12 @@ Status uns::I2C_Slave_Receive(i2c_handle_t *hi2c, uint8_t *rxBuffer, uint32_t si
 
 // SPI
 
-namespace {
-/* @brief Converts HAL status to uns::Status.
- * @param status The HAL status.
- * @returns The status as an uns::Status.
- **/
-Status toStatus(HAL_SPI_StateTypeDef status) {
-    Status result;
-    switch(status) {
-    case HAL_SPI_STATE_RESET:   result = Status::OK;    break;
-    case HAL_SPI_STATE_READY:   result = Status::OK;    break;
-    case HAL_SPI_STATE_ERROR:   result = Status::ERROR; break;
-    default:                    result = Status::BUSY;  break;
-    }
-    return result;
-}
-} // namespace
-
 #define SPI_HANDLE(id)      CONCAT(hspi,id)     // Creates SPI handle name.
 
 spi_handle_t* uns::getSPIHandle(res_id_t id) {
     SPI_HandleTypeDef *pSPI = nullptr;
     switch (id) {
-    case 1: pSPI = &SPI_HANDLE(1); break;
+//    case 1: pSPI = &SPI_HANDLE(1); break;
 //    case 2: pSPI = &SPI_HANDLE(2); break;
 //    case 3: pSPI = &SPI_HANDLE(3); break;
     }
@@ -356,8 +355,8 @@ uart_handle_t* uns::getUARTHandle(res_id_t id) {
     case 1: pUART = &UART_HANDLE(1); break;
     case 2: pUART = &UART_HANDLE(2); break;
     case 3: pUART = &UART_HANDLE(3); break;
-//    case 4: pUART = &UART_HANDLE(4); break;
-//    case 5: pUART = &UART_HANDLE(5); break;
+    case 4: pUART = &UART_HANDLE(4); break;
+    case 5: pUART = &UART_HANDLE(5); break;
     case 6: pUART = &UART_HANDLE(6); break;
     }
     return pUART;
@@ -390,8 +389,8 @@ Status uns::UART_Transmit_IT(uart_handle_t *huart, const uint8_t *txBuffer, uint
 dma_t* uns::getDMA(res_id_t dma) {
     DMA_TypeDef *pDMA = nullptr;
     switch (dma) {
-    case 1: pDMA = DMA_INSTANCE(1); break;
-    case 2: pDMA = DMA_INSTANCE(2); break;
+//    case 1: pDMA = DMA_INSTANCE(1); break;
+//    case 2: pDMA = DMA_INSTANCE(2); break;
     }
     return pDMA;
 }
@@ -413,9 +412,6 @@ extern void uns_RadioModule_Uart_RxCpltCallback();  // Callback for RadioModule 
 extern void uns_Gyro_Uart_RxCpltCallback();         // Callback for Gyro (Arduino) UART RxCplt - called when receive finishes.
 extern void uns_Bluetooth_Uart_RxCpltCallback(uint32_t len);    // Callback for Bluetooth UART RxCplt - called when receive finishes.
 extern void uns_Bluetooth_Uart_TxCpltCallback();    // Callback for Bluetooth UART TxCplt - called when transfer finishes.extern void uns_LedPanel_Spi_TxRxCpltCallback();    // Callback for LedPanel SPI TxRxCplt - called when exchange finishes.
-extern void uns_Encoder_I2C_RxCpltCallback();       // Callback for Encoder (Nucleo) I2C RxCplt - called when receive finishes.
-extern void uns_LedPanel_Spi_TxRxCpltCallback();    // Callback for LedPanel SPI TxRxCplt - called when exchange finishes.
-extern void uns_RcRecv_Tim_IC_CaptureCallback();    // Callback for RcRecv Timer Capture - called when PWM value is captured.
 extern void uns_Dist2_EchoCallback();               // Callback for Distance sensor #2 echo.
 
 /* @brief Internal callback - called when SPI reception finishes.
@@ -436,18 +432,14 @@ extern "C" void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
  * @param hspi Pointer to the SPI handle.
  **/
 extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi == cfg::spi_LedPanel) {
-        uns_LedPanel_Spi_TxRxCpltCallback();
-    }
+
 }
 
 /* @brief Internal callback - called when I2C reception finishes.
  * @param hi2c Pointer to the I2C handle.
  **/
 extern "C" void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c) {
-    if (hi2c == cfg::i2c_Encoder) {
-        uns_Encoder_I2C_RxCpltCallback();
-    }
+
 }
 
 
@@ -485,18 +477,11 @@ extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
  * @param htim Pointer to the timer handle.
  **/
 extern "C" void uns_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-//    if (htim->Instance == cfg::tim_IT_100US) {
-//        uns_Rotary_PeriodElapsedCallback();
-//    }
+
 }
 
-extern "C" void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
- if (htim == cfg::tim_RC_Recv)
-  {
-     uns_RcRecv_Tim_IC_CaptureCallback();
-     uns::setTimerCounter(cfg::tim_RC_Recv, 0); //resets counter after input capture interrupt occurs
-  }
+extern "C" void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+
 }
 
 extern "C" void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {

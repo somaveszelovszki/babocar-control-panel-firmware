@@ -80,28 +80,22 @@
 /* USER CODE END Variables */
 osThreadId IdleTaskHandle;
 uint32_t IdleTaskBuffer[ 128 ];
-osStaticThreadDef_t IdleTaskControlBlock2;
-osThreadId LineDetectTaskHandle;
-uint32_t LineDetectTaskBuffer[ 512 ];
-osStaticThreadDef_t LineDetectTaskControlBlock;
+osStaticThreadDef_t IdleTaskControlBlock;
 osThreadId ControlTaskHandle;
 uint32_t ControlTaskBuffer[ 256 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId ProgLabyrinthTaskHandle;
-uint32_t ProgLabyrinthTaskBuffer[ 4096 ];
-osStaticThreadDef_t ProgLabyrinthTaskControlBlock;
 osThreadId ProgTrackTaskHandle;
 uint32_t ProgTrackTaskBuffer[ 512 ];
 osStaticThreadDef_t ProgTrackTaskControlBlock;
 osThreadId DebugTaskHandle;
 uint32_t DebugTaskBuffer[ 1024 ];
 osStaticThreadDef_t DebugTaskControlBlock;
+osThreadId RadioStartTaskHandle;
+uint32_t RadioStartTaskBuffer[ 128 ];
+osStaticThreadDef_t RadioStartTaskControlBlock;
 osMessageQId LogQueueHandle;
 uint8_t LogQueueBuffer[ 16 * sizeof( LogQueueItem_t ) ];
 osStaticMessageQDef_t LogQueueControlBlock;
-osMessageQId DetectedLinesQueueHandle;
-uint8_t DetectedLinesQueueBuffer[ 1 * sizeof( DetectedLinesQueueItem_t ) ];
-osStaticMessageQDef_t DetectedLinesQueueControlBlock;
 osMessageQId ControlPropsQueueHandle;
 uint8_t ControlPropsQueueBuffer[ 1 * sizeof( ControlPropsQueueItem_t ) ];
 osStaticMessageQDef_t ControlPropsQueueControlBlock;
@@ -109,18 +103,16 @@ osStaticMessageQDef_t ControlPropsQueueControlBlock;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void runDebugTask(void const *argument);
-void runLineDetectTask(void const *argument);
 void runControlTask(void const *argument);
-void runProgLabyrinthTask(void const *argument);
 void runProgTrackTask(void const *argument);
+void runRadioStartTask(void const *argument);
 /* USER CODE END FunctionPrototypes */
 
-void StartIdleTask(void const * argument);
-void StartLineDetectTask(void const * argument);
-void StartControlTask(void const * argument);
-void StartProgLabyrinthTask(void const * argument);
-void StartProgTrackTask(void const * argument);
-void StartDebugTask(void const * argument);
+void StartIdleTask(const void * argument);
+void StartControlTask(const void * argument);
+void StartProgTrackTask(const void * argument);
+void StartDebugTask(const void * argument);
+void StartRadioStartTask(const void * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -164,20 +156,12 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of IdleTask */
-  osThreadStaticDef(IdleTask, StartIdleTask, osPriorityIdle, 0, 128, IdleTaskBuffer, &IdleTaskControlBlock2);
+  osThreadStaticDef(IdleTask, StartIdleTask, osPriorityIdle, 0, 128, IdleTaskBuffer, &IdleTaskControlBlock);
   IdleTaskHandle = osThreadCreate(osThread(IdleTask), NULL);
-
-  /* definition and creation of LineDetectTask */
-  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 512, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
-  LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
 
   /* definition and creation of ControlTask */
   osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 256, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
-
-  /* definition and creation of ProgLabyrinthTask */
-  osThreadStaticDef(ProgLabyrinthTask, StartProgLabyrinthTask, osPriorityNormal, 0, 4096, ProgLabyrinthTaskBuffer, &ProgLabyrinthTaskControlBlock);
-  ProgLabyrinthTaskHandle = osThreadCreate(osThread(ProgLabyrinthTask), NULL);
 
   /* definition and creation of ProgTrackTask */
   osThreadStaticDef(ProgTrackTask, StartProgTrackTask, osPriorityNormal, 0, 512, ProgTrackTaskBuffer, &ProgTrackTaskControlBlock);
@@ -187,6 +171,10 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
+  /* definition and creation of RadioStartTask */
+  osThreadStaticDef(RadioStartTask, StartRadioStartTask, osPriorityNormal, 0, 128, RadioStartTaskBuffer, &RadioStartTaskControlBlock);
+  RadioStartTaskHandle = osThreadCreate(osThread(RadioStartTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -195,10 +183,6 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of LogQueue */
   osMessageQStaticDef(LogQueue, 16, LogQueueItem_t, LogQueueBuffer, &LogQueueControlBlock);
   LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
-
-  /* definition and creation of DetectedLinesQueue */
-  osMessageQStaticDef(DetectedLinesQueue, 1, DetectedLinesQueueItem_t, DetectedLinesQueueBuffer, &DetectedLinesQueueControlBlock);
-  DetectedLinesQueueHandle = osMessageCreate(osMessageQ(DetectedLinesQueue), NULL);
 
   /* definition and creation of ControlPropsQueue */
   osMessageQStaticDef(ControlPropsQueue, 1, ControlPropsQueueItem_t, ControlPropsQueueBuffer, &ControlPropsQueueControlBlock);
@@ -228,20 +212,6 @@ void StartIdleTask(void const * argument)
   /* USER CODE END StartIdleTask */
 }
 
-/* USER CODE BEGIN Header_StartLineDetectTask */
-/**
-* @brief Function implementing the LineDetectTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartLineDetectTask */
-void StartLineDetectTask(void const * argument)
-{
-  /* USER CODE BEGIN StartLineDetectTask */
-  //runLineDetectTask(argument);
-  /* USER CODE END StartLineDetectTask */
-}
-
 /* USER CODE BEGIN Header_StartControlTask */
 /**
 * @brief Function implementing the ControlTask thread.
@@ -254,20 +224,6 @@ void StartControlTask(void const * argument)
   /* USER CODE BEGIN StartControlTask */
   runControlTask(argument);
   /* USER CODE END StartControlTask */
-}
-
-/* USER CODE BEGIN Header_StartProgLabyrinthTask */
-/**
-* @brief Function implementing the ProgLabyrinthTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartProgLabyrinthTask */
-void StartProgLabyrinthTask(void const * argument)
-{
-  /* USER CODE BEGIN StartProgLabyrinthTask */
-  runProgLabyrinthTask(argument);
-  /* USER CODE END StartProgLabyrinthTask */
 }
 
 /* USER CODE BEGIN Header_StartProgTrackTask */
@@ -296,6 +252,20 @@ void StartDebugTask(void const * argument)
   /* USER CODE BEGIN StartDebugTask */
   runDebugTask(argument);
   /* USER CODE END StartDebugTask */
+}
+
+/* USER CODE BEGIN Header_StartRadioStartTask */
+/**
+* @brief Function implementing the RadioStartTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartRadioStartTask */
+void StartRadioStartTask(void const * argument)
+{
+  /* USER CODE BEGIN StartRadioStartTask */
+  runRadioStartTask(argument);
+  /* USER CODE END StartRadioStartTask */
 }
 
 /* Private application code --------------------------------------------------*/

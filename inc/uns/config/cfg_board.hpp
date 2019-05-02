@@ -75,7 +75,6 @@ const gpio_pin_struct   gpio_Switch2            = { uns::getGPIO(GPIO::B), uns::
 const gpio_pin_struct   gpio_Led                = { uns::getGPIO(GPIO::A), uns::getGPIOPin(5)   };      // Nucleo LED GPIO pin.
 
 queue_handle_t * const  queue_Log               = uns::getQueueHandle(QUEUE::LOG);                      // LogQueue handle.
-queue_handle_t * const  queue_DetectedLines     = uns::getQueueHandle(QUEUE::DETECTED_LINES);           // DetectedLinesQueue handle.
 queue_handle_t * const  queue_ControlProps      = uns::getQueueHandle(QUEUE::CONTROL_PROPS);            // ControlPropsQueue handle.
 
 uart_handle_t  * const  uart_Gyro               = uns::getUARTHandle(6);                                // Gyroscope (Arduino) UART instance.
