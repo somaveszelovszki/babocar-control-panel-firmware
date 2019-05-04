@@ -9,6 +9,16 @@ constexpr radian_t PI_2 = PI / 2; // Pi / 2
 constexpr radian_t PI_4 = PI / 4; // Pi / 4
 
 /**
+ * @brief Gets value.
+ * @param value The value.
+ * @returns The value.
+ */
+template <typename T>
+inline typename std::enable_if<T::is_dim_class, float32_t>::type get_value(const T& value) {
+    return value.template get<true>();
+}
+
+/**
  * @brief Gets absolute of the value.
  * @param value The value.
  * @returns The absolute of the value.

@@ -11,13 +11,11 @@
 #include <uns/util/convert.hpp>
 #include <uns/util/arrays.hpp>
 #include <uns/CarProps.hpp>
-#include <uns/PI_Controller.hpp>
+#include <uns/control/PID_Controller.hpp>
 
 #include <string.h>
 
 using namespace uns;
-
-DebugParams DEBUG_PARAMS;
 
 extern float32_t debugMotorPWM;
 
@@ -108,7 +106,7 @@ void handleRxMsg(debug::Msg& rxMsg) {
             isOk(readFloat(data, rxMsg.text.size - dataIdx, &strIdx, &v)) &&
             isOk(readFloat(data, rxMsg.text.size - dataIdx, &strIdx, &ori))) {
 
-            DEBUG_PARAMS.speed = mm_per_sec_t(v);
+            // TODO store speed
             debug::printf(debug::CONTENT_FLAG_LOG, "Speed updated: %f mm/sec", v);
             //debugMotorPWM = v;
         }
@@ -120,11 +118,7 @@ void handleRxMsg(debug::Msg& rxMsg) {
 //            isOk(readFloat(data, rxMsg.text.size - dataIdx, &strIdx, &maxIntegralRate))) {
 
         if (isOk(readFloat(data, rxMsg.text.size - dataIdx, &strIdx, &Kc))) {
-
-            if (!DEBUG_PARAMS.speedController.hasValue()) {
-                DEBUG_PARAMS.speedController = PI_Controller();
-            }
-            DEBUG_PARAMS.speedController->setKc(Kc);
+            // TODO update PI controller
             debug::printf(debug::CONTENT_FLAG_LOG, "Speed controller Kc updated: %f", Kc);
         }
     }

@@ -3,7 +3,7 @@
 #include <uns/util/units.hpp>
 #include <uns/util/algorithm.hpp>
 #include <uns/bsp/task.hpp>
-#include <uns/PI_Controller.hpp>
+#include <uns/control/PID_Controller.hpp>
 
 namespace uns {
 /* @brief Represents a main program task.
@@ -14,11 +14,6 @@ enum class ProgramTask {
     SAFETY_CAR_FOLLOW,
     OVERTAKE,
     RACE_TRACK
-};
-
-struct DebugParams {
-    optional<m_per_sec_t> speed;
-    optional<PI_Controller> speedController;
 };
 
 /* @brief This function is to be called on an error - sets error flag. Error flag can be checked with hasErrorHappened().

@@ -1,3 +1,4 @@
+#include <control/PID_Controller.hpp>
 #include <uns/task/common.hpp>
 #include <uns/config/cfg_board.hpp>
 #include <uns/util/debug.hpp>
@@ -10,14 +11,11 @@
 #include <uns/hw/DC_Motor.hpp>
 #include <uns/sensor/CarPropsSensor.hpp>
 #include <uns/bsp/task.hpp>
-#include <uns/LineController.hpp>
-#include <uns/PI_Controller.hpp>
+#include <uns/control/LineController.hpp>
 #include <uns/util/convert.hpp>
 #include <uns/ControlProps.hpp>
 
 using namespace uns;
-
-extern DebugParams DEBUG_PARAMS;
 
 float32_t debugMotorPWM = 0.0f;
 
@@ -31,7 +29,7 @@ namespace {
 constexpr float32_t MOTOR_CONTROLLER_Kc = 0.83f;
 
 constexpr millisecond_t period_SpeedController = millisecond_t(10.0f);
-PI_Controller speedController(period_SpeedController, cfg::DC_MOTOR_T_ELECTRICAL, MOTOR_CONTROLLER_Kc, -1.0f, 1.0f);
+PID_Controller<m_per_sec_t, float32_t> speedController(period_SpeedController, cfg::DC_MOTOR_T_ELECTRICAL, millisecond_t::ZERO(), MOTOR_CONTROLLER_Kc, -1.0f, 1.0f);
 
 hw::SteeringServo servo(cfg::tim_Servo, cfg::tim_chnl_Servo1, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA);
 
@@ -106,11 +104,8 @@ extern "C" void runControlTask(const void *argument) {
         }
 
         if (speedController.shouldRun()) {
-            if (DEBUG_PARAMS.speedController.hasValue()) {
-                speedController.setParams(DEBUG_PARAMS.speedController.value());
-            }
 
-            speedController.setDesired(DEBUG_PARAMS.speed.hasValue() ? DEBUG_PARAMS.speed.value() : controlProps.speed);
+            speedController.desired = controlProps.speed;
             speedController.run(car.speed());
         }
 
@@ -120,8 +115,9 @@ extern "C" void runControlTask(const void *argument) {
         }
 
         if (isOk(status = uns::queueReceive(cfg::queue_ControlProps, &controlProps))) {
-            static constexpr float32_t MAGIC = 0.7f;
-            car.steeringAngle_ = -lineController.GetControlSignal(car.speed() * MAGIC, controlProps.line.pos, controlProps.line.angle);
+            // TODO add baseline to function according to track
+            lineController.run(car.speed(), meter_t::ZERO(), controlProps.line.pos, controlProps.line.angle);
+            car.steeringAngle_ = -lineController.getOutput();
             servo.writeWheelAngle(car.steeringAngle());
         }
 

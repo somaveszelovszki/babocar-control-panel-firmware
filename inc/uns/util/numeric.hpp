@@ -138,6 +138,16 @@ inline auto pythag_square(const T& a, const T& b, const T& c) -> decltype (a * b
 // ---------------------------------------- Type-dependent functions (different implementations for unit classes) ----------------------------------------
 
 /**
+ * @brief Gets value.
+ * @param value The value.
+ * @returns The value.
+ */
+template <typename T>
+inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type get_value(const T& value) {
+    return value;
+}
+
+/**
  * @brief Gets absolute of the value.
  * @param value The value.
  * @returns The absolute of the value.
