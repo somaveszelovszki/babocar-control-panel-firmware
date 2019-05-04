@@ -1,9 +1,9 @@
 #pragma once
 
 #include <uns/util/units.hpp>
-#include <uns/util/algorithm.hpp>
 #include <uns/bsp/task.hpp>
 #include <uns/control/PID_Controller.hpp>
+#include <util/atomic.hpp>
 
 namespace uns {
 /* @brief Represents a main program task.

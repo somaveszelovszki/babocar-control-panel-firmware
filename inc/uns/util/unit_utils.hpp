@@ -1,12 +1,9 @@
 #pragma once
 
 #include <uns/util/numeric.hpp>
-#include <uns/util/units.hpp>
+#include <uns/util/constants.hpp>
 
 namespace uns {
-constexpr radian_t PI = radian_t(3.14159265358979323846);        	// Pi
-constexpr radian_t PI_2 = PI / 2; // Pi / 2
-constexpr radian_t PI_4 = PI / 4; // Pi / 4
 
 /**
  * @brief Gets value.

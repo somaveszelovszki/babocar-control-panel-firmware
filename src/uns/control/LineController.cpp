@@ -10,7 +10,7 @@ LineController::LineController(meter_t _wheelBase, meter_t _sensorWheelDist)
 
 Status LineController::run(m_per_sec_t speed, meter_t baseline, meter_t linePos, radian_t lineAngle) {
 
-    static constexpr float32_t KSI_COEFF = 0.70921985f;
+    static constexpr float32_t KSI_COEFF = SQRT_2;
     static constexpr m_per_sec_t MIN_SPEED = mm_per_sec_t(5);
 
     if (uns::abs(speed) < MIN_SPEED) {
