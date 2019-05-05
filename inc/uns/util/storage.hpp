@@ -8,36 +8,36 @@ namespace uns {
 template <typename T>
 class storage_t {
 public:
-    void construct(const T& _value) {
-        new(&buffer) T(_value);
+    void construct(const T& _value) volatile {
+        new((void*)&buffer) T(_value);
     }
 
-    void construct(T&& _value) {
-        new(&buffer) T(std::move(_value));
+    void construct(T&& _value) volatile {
+        new((void*)&buffer) T(std::move(_value));
     }
 
     template<typename ...Args>
-    void emplace(Args&&... args) {
-        new(&buffer) T(std::forward<Args>(args)...);
+    void emplace(Args&&... args) volatile {
+        new((void*)&buffer) T(std::forward<Args>(args)...);
     }
 
-    const T& value_ptr() const {
-        return reinterpret_cast<const T*>(&this->buffer);
+    const volatile T* value_ptr() volatile const {
+        return reinterpret_cast<const volatile T*>(&this->buffer);
     }
 
-    T& value_ptr() {
-        return reinterpret_cast<T*>(&this->buffer);
+    volatile T* value_ptr() volatile {
+        return reinterpret_cast<volatile T*>(&this->buffer);
     }
 
-    void destruct() {
+    void destruct() volatile {
         this->value().~T();
     }
 
-    const T& value() const {
+    const volatile T& value() const volatile {
         return *this->value_ptr();
     }
 
-    T& value() {
+    volatile T& value() volatile {
         return *this->value_ptr();
     }
 

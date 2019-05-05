@@ -48,7 +48,7 @@ const char* getStatusString(Status status);
 /**
  * @brief Defines rotation direction.
  */
-enum class RotationDir : int32_t {
+enum class Direction : int8_t {
     LEFT  = 1,
     CENTER = 0,
     RIGHT = -1
@@ -65,7 +65,7 @@ enum class BitOrder : uint8_t {
 /**
  * @brief Defines sign of a number;
  */
-enum class Sign : int32_t {
+enum class Sign : int8_t {
     POSITIVE = 1,
     NEGATIVE = -1
 };

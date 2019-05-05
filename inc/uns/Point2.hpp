@@ -97,7 +97,7 @@ template <typename T> struct Point2 {
     // @note numPoints must be at least 1
     static void bbox(const Point2<T> points[], uint32_t numPoints, bbox2<T> *pResult);
 
-    uns::Sign getAngleSign(const Vec2<T>& other, uns::RotationDir dir) const;
+    uns::Sign getAngleSign(const Vec2<T>& other, uns::Direction dir) const;
 
     bool isInside(const Point2<T>& a, const Point2<T>& b, const Point2<T>& c) const;
 
@@ -220,7 +220,7 @@ void Point2<T>::bbox(const Point2<T> points[], uint32_t numPoints, bbox2<T> *pRe
 }
 
 template<typename T>
-uns::Sign Point2<T>::getAngleSign(const Vec2<T>& other, uns::RotationDir dir) const {
+uns::Sign Point2<T>::getAngleSign(const Vec2<T>& other, uns::Direction dir) const {
     float32_t m;
     if(uns::isZero(this->X)) {
         m = static_cast<float32_t>(this->Y > 0 ? -other.X : other.X);
@@ -243,7 +243,7 @@ bool Point2<T>::isInside(const Point2<T>& a, const Point2<T>& b, const Point2<T>
     const Vec2<T> ap = *this - a, bp = *this - b, cp = *this - c,
         ab = b - a, bc = c - b, ca = a - c;
 
-    const uns::RotationDir dir = uns::RotationDir::LEFT;
+    const uns::Direction dir = uns::Direction::LEFT;
     const uns::Sign sA = ab.getAngleSign(ap, dir), sB = bc.getAngleSign(bp, dir), sC = ca.getAngleSign(cp, dir);
 
     // sum can be +-3 when all values are either POSITIVE or NEGATIVE,

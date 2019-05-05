@@ -1,12 +1,13 @@
 #include <uns/util/debug.hpp>
 #include <config/cfg_board.hpp>
-#include <stdarg.h>
-#include <string.h>
+#include <config/cfg_os.hpp>
 #include <uns/container/RingBuffer.hpp>
 #include <uns/container/Vec.hpp>
 #include <uns/util/numeric.hpp>
 #include <uns/util/convert.hpp>
 #include <uns/bsp/queue.hpp>
+#include <stdarg.h>
+#include <string.h>
 
 using namespace uns;
 

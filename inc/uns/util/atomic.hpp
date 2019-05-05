@@ -11,46 +11,37 @@ namespace uns {
 template <typename T>
 class atomic {
 public:
-    atomic(mutex_handle_t *_hmutex, const T& _value)
-        : hmutex(_hmutex) {
-        this->data.construct(_value);
-    }
-
-    atomic(mutex_handle_t *_hmutex, T&& _value)
-        : hmutex(_hmutex) {
-        this->data.construct(std::move(_value));
-    }
-
     template<typename ...Args>
     atomic(mutex_handle_t *_hmutex, Args&&... args)
         : hmutex(_hmutex) {
         this->data.emplace(std::forward<Args>(args)...);
     }
 
-    void operator=(const T& _value) {
+    void operator=(const T& _value) volatile {
         this->data.construct(_value);
     }
 
-    void operator=(T&& _value) {
+    void operator=(T&& _value) volatile {
         this->data.construct(std::move(_value));
     }
 
-    T get() const {
-        storage_t<T> copy;
-        while (!isOk(uns::mutexTake(this->hmutex, millisecond_t::ZERO()))) {}
-        copy.construct(this->data.value());
-        uns::mutexRelease(this->hmutex);
-        return copy.value();
-    }
-
-    void set(const T& _value) {
-        while (!isOk(uns::mutexTake(this->hmutex, millisecond_t::ZERO()))) {}
-        this->data.construct(_value);
+    void wait_copy(T& result) const volatile {
+        while (!isOk(uns::mutexTake(this->hmutex, millisecond_t(1)))) {}
+        result = *const_cast<T*>(this->data.value_ptr());
         uns::mutexRelease(this->hmutex);
     }
 
-    T* get_ptr_nonsafe() {
+    volatile T* wait_ptr() volatile {
+        while (!isOk(uns::mutexTake(this->hmutex, millisecond_t(1)))) {}
         return this->data.value_ptr();
+    }
+
+    volatile T* accept_ptr() volatile {
+        return isOk(uns::mutexTake_ISR(this->hmutex)) ? this->data.value_ptr() : nullptr;
+    }
+
+    void release_ptr() volatile {
+        uns::mutexRelease(this->hmutex);
     }
 
 private:

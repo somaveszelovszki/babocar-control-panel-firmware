@@ -1,139 +1,85 @@
-#include <control/PID_Controller.hpp>
-#include <uns/task/common.hpp>
+#include <uns/globals.hpp>
 #include <uns/config/cfg_board.hpp>
+#include <uns/config/cfg_os.hpp>
 #include <uns/util/debug.hpp>
-#include <uns/config/cfg_car.hpp>
-#include <uns/config/cfg_track.hpp>
-#include <uns/util/units.hpp>
-#include <uns/util/unit_utils.hpp>
-#include <uns/bsp/queue.hpp>
-#include <uns/hw/SteeringServo.hpp>
-#include <uns/hw/DC_Motor.hpp>
-#include <uns/sensor/CarPropsSensor.hpp>
+#include <uns/util/updatable.hpp>
 #include <uns/bsp/task.hpp>
+#include <uns/hw/SteeringServo.hpp>
+#include <uns/sensor/Filter.hpp>
 #include <uns/control/LineController.hpp>
-#include <uns/util/convert.hpp>
-#include <uns/ControlProps.hpp>
+#include <uns/panel/LineDetectPanel.hpp>
+#include <uns/panel/MotorPanel.hpp>
 
 using namespace uns;
 
-float32_t debugMotorPWM = 0.0f;
-
-uint32_t rcRecvInSpeed;
-
-CarProps car;
-hw::DC_Motor motor(cfg::tim_DC_Motor, cfg::tim_chnl_DC_Fwd, cfg::tim_chnl_DC_Bwd);
+panel::LineDetectPanel frontLineDetectPanel(cfg::uart_FrontLineDetectPanel);
+panel::LineDetectPanel rearLineDetectPanel(cfg::uart_RearLineDetectPanel);
 
 namespace {
 
-constexpr float32_t MOTOR_CONTROLLER_Kc = 0.83f;
+volatile atomic_updatable<LinePositions> frontLinePositions(cfg::mutex_FrontLinePos);
+volatile atomic_updatable<LinePositions> rearLinePositions(cfg::mutex_RearLinePos);
 
-constexpr millisecond_t period_SpeedController = millisecond_t(10.0f);
-PID_Controller<m_per_sec_t, float32_t> speedController(period_SpeedController, cfg::DC_MOTOR_T_ELECTRICAL, millisecond_t::ZERO(), MOTOR_CONTROLLER_Kc, -1.0f, 1.0f);
-
-hw::SteeringServo servo(cfg::tim_Servo, cfg::tim_chnl_Servo1, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA);
-
-CarPropsSensor carPropsSensor;
-
-ControlProps controlProps;
-
-BounceFilter<uint32_t, 3> rcRecvInSpeedFilter(1.2f, 200);
-
-uint8_t carOriBuffer[4];
-volatile float32_t currentCarOri = 0.0f;
-volatile angle_t diff = angle_t::ZERO();
-volatile bool carOriUpdated = false;
-
-uint8_t carSpeedBuffer[4];
+bool isFastSpeedSafe(const Line& line) {
+    static constexpr millimeter_t MAX_LINE_POS(85.0f);
+    return uns::abs(line.pos_front) <= MAX_LINE_POS && uns::abs(line.pos_rear) <= MAX_LINE_POS;
+}
 
 } // namespace
 
 extern "C" void runControlTask(const void *argument) {
 
-    Status status;
-    debug::printf(debug::CONTENT_FLAG_LOG, "Initializing CarProps sensor...");
-    if (isOk(status = carPropsSensor.initialize())) {
-        debug::printf(debug::CONTENT_FLAG_LOG, "CarProps sensor initialized.");
-    } else {
-        debug::printerr(status, "Error while initializing CarProps sensor!");
-        //uns::setErrorFlag();
-    }
-
-    uns::GPIO_WritePin(cfg::gpio_GyroReset, PinState::SET);
-    uns::nonBlockingDelay(millisecond_t(1));
-    uns::GPIO_WritePin(cfg::gpio_GyroReset, PinState::RESET);
-    uns::nonBlockingDelay(millisecond_t(100));
-    uns::GPIO_WritePin(cfg::gpio_GyroReset, PinState::SET);
-    uns::UART_Receive_DMA(cfg::uart_Gyro, carOriBuffer, 4);
-
-    uns::GPIO_WritePin(cfg::gpio_EncoderReset, PinState::SET);
-    uns::nonBlockingDelay(millisecond_t(1));
-    uns::GPIO_WritePin(cfg::gpio_EncoderReset, PinState::RESET);
-    uns::nonBlockingDelay(millisecond_t(100));
-    uns::GPIO_WritePin(cfg::gpio_EncoderReset, PinState::SET);
-    //uns::I2C_Slave_Receive_DMA(cfg::i2c_Encoder, carSpeedBuffer, 4);
-    uns::I2C_Slave_Receive_DMA(cfg::i2c_Encoder, carSpeedBuffer, 4);
-
+    Lines lines;
+    Line mainLine;
     LineController lineController(cfg::WHEEL_BASE, cfg::WHEEL_LED_DIST);
+    hw::SteeringServo steeringServo(cfg::tim_Servo, cfg::tim_chnl_Servo1, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA);
 
-    uns::nonBlockingDelay(millisecond_t(500));
-    motor.write(0.0f);
-    uns::nonBlockingDelay(millisecond_t(200));
+    while(!task::hasErrorHappened()) {
+        CarProps car;
+        globals::car.wait_copy(car);
 
-    float32_t prevCarOri = 0.0f;
+        if (frontLinePositions.is_updated() && rearLinePositions.is_updated()) {
 
-    time_t prevPropsSendTime = uns::getTime();
+            LinePositions front, rear;
+            frontLinePositions.wait_copy(front);
+            rearLinePositions.wait_copy(rear);
+            uns::calculateLines(front, rear, lines, mainLine);
 
-    while (!uns::hasErrorHappened()) {
-        if (carOriUpdated) {
-            carOriUpdated = false;
-            carPropsSensor.updateMeas(car); // updates car so that new result will include the corrections made by the other tasks
-            const angle_t d_angle = degree_t(currentCarOri - prevCarOri);
-            prevCarOri = currentCarOri;
-            if (isOk(status = carPropsSensor.run(d_angle))) {
-                car = carPropsSensor.getMeasured();
-            } else {
-                static uint32_t errCntr = 0;
-                //debug::printerr(status, "CarProps sensor read error!");
-                if (++errCntr >= 10) {
-                    //debug::printerr(status, "Multiple orientation sensor data read failures!");
-                    //uns::nonBlockingDelay(time::from<milliseconds>(10));
-                    //uns::setErrorFlag();
-                }
+            const meter_t baseline = meter_t::ZERO();   // TODO change baseline for more efficient turns
+            if (isOk(lineController.run(car.speed, baseline, mainLine))) {
+                steeringServo.writeWheelAngle(lineController.getOutput());
             }
         }
-
-        if (speedController.shouldRun()) {
-
-            speedController.desired = controlProps.speed;
-            speedController.run(car.speed());
-        }
-
-        if (uns::getTime() - prevPropsSendTime >= millisecond_t(500)) {
-            //debug::printf(debug::CONTENT_FLAG_CAR_PROPS, "%f|%f|%f|%f", car.pos().X.get<millimeters>(), car.pos().Y.get<millimeters>(), car.speed().get<mm_per_sec>(), car.orientation().get<radians>());
-            prevPropsSendTime = uns::getTime();
-        }
-
-        if (isOk(status = uns::queueReceive(cfg::queue_ControlProps, &controlProps))) {
-            // TODO add baseline to function according to track
-            lineController.run(car.speed(), meter_t::ZERO(), controlProps.line.pos, controlProps.line.angle);
-            car.steeringAngle_ = -lineController.getOutput();
-            servo.writeWheelAngle(car.steeringAngle());
-        }
-
-        //motor.write(0.2f);
-        motor.write(speedController.getOutput());
-        //motor.write(debugMotorPWM);
-
-        uns::nonBlockingDelay(millisecond_t(2));
     }
 
-    uns::deleteCurrentTask();
+    uns::taskDeleteCurrent();
 }
 
-/* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
+/* @brief Callback for motor panel UART RxCplt - called when receive finishes.
  */
-void uns_Gyro_Uart_RxCpltCallback() {
-    currentCarOri = *reinterpret_cast<float32_t*>(carOriBuffer);
-    carOriUpdated = true;
+void uns_MotorPanel_Uart_RxCpltCallback() {
+    // TODO
 }
+
+/* @brief Callback for front line detect panel UART RxCplt - called when receive finishes.
+ */
+void uns_FrontLineDetectPanel_Uart_RxCpltCallback() {
+    LinePositions *p = const_cast<LinePositions*>(frontLinePositions.accept_ptr());
+    if (p) {
+        frontLineDetectPanel.getReceivedLinePositions(*p);
+        frontLinePositions.release_ptr();
+    }
+}
+
+/* @brief Callback for rear line detect panel UART RxCplt - called when receive finishes.
+ */
+void uns_RearLineDetectPanel_Uart_RxCpltCallback() {
+    LinePositions *p = const_cast<LinePositions*>(rearLinePositions.accept_ptr());
+    if (p) {
+        rearLineDetectPanel.getReceivedLinePositions(*p);
+        rearLinePositions.release_ptr();
+    }
+}
+
+
+

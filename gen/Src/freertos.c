@@ -82,37 +82,39 @@ osThreadId IdleTaskHandle;
 uint32_t IdleTaskBuffer[ 128 ];
 osStaticThreadDef_t IdleTaskControlBlock;
 osThreadId ControlTaskHandle;
-uint32_t ControlTaskBuffer[ 256 ];
+uint32_t ControlTaskBuffer[ 512 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId ProgTrackTaskHandle;
-uint32_t ProgTrackTaskBuffer[ 512 ];
-osStaticThreadDef_t ProgTrackTaskControlBlock;
 osThreadId DebugTaskHandle;
 uint32_t DebugTaskBuffer[ 1024 ];
 osStaticThreadDef_t DebugTaskControlBlock;
-osThreadId RadioStartTaskHandle;
-uint32_t RadioStartTaskBuffer[ 128 ];
-osStaticThreadDef_t RadioStartTaskControlBlock;
+osThreadId SetupTaskHandle;
+uint32_t SetupTaskBuffer[ 128 ];
+osStaticThreadDef_t SetupTaskControlBlock;
 osMessageQId LogQueueHandle;
 uint8_t LogQueueBuffer[ 16 * sizeof( LogQueueItem_t ) ];
 osStaticMessageQDef_t LogQueueControlBlock;
-osMessageQId ControlPropsQueueHandle;
-uint8_t ControlPropsQueueBuffer[ 1 * sizeof( ControlPropsQueueItem_t ) ];
-osStaticMessageQDef_t ControlPropsQueueControlBlock;
+osMutexId TaskConfigMutexHandle;
+osStaticMutexDef_t TaskConfigMutexControlBlock;
+osMutexId CarMutexHandle;
+osStaticMutexDef_t CarMutexControlBlock;
+osMutexId TargetSpeedMutexHandle;
+osStaticMutexDef_t TargetSpeedMutexControlBlock;
+osMutexId FrontLinePositionsMutexHandle;
+osStaticMutexDef_t FrontLinePositionsMutexControlBlock;
+osMutexId RearLinePositionsMutexHandle;
+osStaticMutexDef_t RearLinePositionsMutexControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void runDebugTask(void const *argument);
-void runControlTask(void const *argument);
-void runProgTrackTask(void const *argument);
-void runRadioStartTask(void const *argument);
+void runDebugTask(const void *argument);
+void runControlTask(const void *argument);
+void runSetupTask(const void *argument);
 /* USER CODE END FunctionPrototypes */
 
-void StartIdleTask(const void * argument);
-void StartControlTask(const void * argument);
-void StartProgTrackTask(const void * argument);
-void StartDebugTask(const void * argument);
-void StartRadioStartTask(const void * argument);
+void StartIdleTask(void const * argument);
+void StartControlTask(void const * argument);
+void StartDebugTask(void const * argument);
+void StartSetupTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -142,6 +144,27 @@ void MX_FREERTOS_Init(void) {
        
   /* USER CODE END Init */
 
+  /* Create the mutex(es) */
+  /* definition and creation of TaskConfigMutex */
+  osMutexStaticDef(TaskConfigMutex, &TaskConfigMutexControlBlock);
+  TaskConfigMutexHandle = osMutexCreate(osMutex(TaskConfigMutex));
+
+  /* definition and creation of CarMutex */
+  osMutexStaticDef(CarMutex, &CarMutexControlBlock);
+  CarMutexHandle = osMutexCreate(osMutex(CarMutex));
+
+  /* definition and creation of TargetSpeedMutex */
+  osMutexStaticDef(TargetSpeedMutex, &TargetSpeedMutexControlBlock);
+  TargetSpeedMutexHandle = osMutexCreate(osMutex(TargetSpeedMutex));
+
+  /* definition and creation of FrontLinePositionsMutex */
+  osMutexStaticDef(FrontLinePositionsMutex, &FrontLinePositionsMutexControlBlock);
+  FrontLinePositionsMutexHandle = osMutexCreate(osMutex(FrontLinePositionsMutex));
+
+  /* definition and creation of RearLinePositionsMutex */
+  osMutexStaticDef(RearLinePositionsMutex, &RearLinePositionsMutexControlBlock);
+  RearLinePositionsMutexHandle = osMutexCreate(osMutex(RearLinePositionsMutex));
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -160,20 +183,16 @@ void MX_FREERTOS_Init(void) {
   IdleTaskHandle = osThreadCreate(osThread(IdleTask), NULL);
 
   /* definition and creation of ControlTask */
-  osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 256, ControlTaskBuffer, &ControlTaskControlBlock);
+  osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
-
-  /* definition and creation of ProgTrackTask */
-  osThreadStaticDef(ProgTrackTask, StartProgTrackTask, osPriorityNormal, 0, 512, ProgTrackTaskBuffer, &ProgTrackTaskControlBlock);
-  ProgTrackTaskHandle = osThreadCreate(osThread(ProgTrackTask), NULL);
 
   /* definition and creation of DebugTask */
   osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
-  /* definition and creation of RadioStartTask */
-  osThreadStaticDef(RadioStartTask, StartRadioStartTask, osPriorityNormal, 0, 128, RadioStartTaskBuffer, &RadioStartTaskControlBlock);
-  RadioStartTaskHandle = osThreadCreate(osThread(RadioStartTask), NULL);
+  /* definition and creation of SetupTask */
+  osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 128, SetupTaskBuffer, &SetupTaskControlBlock);
+  SetupTaskHandle = osThreadCreate(osThread(SetupTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -183,10 +202,6 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of LogQueue */
   osMessageQStaticDef(LogQueue, 16, LogQueueItem_t, LogQueueBuffer, &LogQueueControlBlock);
   LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
-
-  /* definition and creation of ControlPropsQueue */
-  osMessageQStaticDef(ControlPropsQueue, 1, ControlPropsQueueItem_t, ControlPropsQueueBuffer, &ControlPropsQueueControlBlock);
-  ControlPropsQueueHandle = osMessageCreate(osMessageQ(ControlPropsQueue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -226,20 +241,6 @@ void StartControlTask(void const * argument)
   /* USER CODE END StartControlTask */
 }
 
-/* USER CODE BEGIN Header_StartProgTrackTask */
-/**
-* @brief Function implementing the ProgTrackTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartProgTrackTask */
-void StartProgTrackTask(void const * argument)
-{
-  /* USER CODE BEGIN StartProgTrackTask */
-  runProgTrackTask(argument);
-  /* USER CODE END StartProgTrackTask */
-}
-
 /* USER CODE BEGIN Header_StartDebugTask */
 /**
 * @brief Function implementing the DebugTask thread.
@@ -254,18 +255,18 @@ void StartDebugTask(void const * argument)
   /* USER CODE END StartDebugTask */
 }
 
-/* USER CODE BEGIN Header_StartRadioStartTask */
+/* USER CODE BEGIN Header_StartSetupTask */
 /**
-* @brief Function implementing the RadioStartTask thread.
+* @brief Function implementing the SetupTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartRadioStartTask */
-void StartRadioStartTask(void const * argument)
+/* USER CODE END Header_StartSetupTask */
+void StartSetupTask(void const * argument)
 {
-  /* USER CODE BEGIN StartRadioStartTask */
-  runRadioStartTask(argument);
-  /* USER CODE END StartRadioStartTask */
+  /* USER CODE BEGIN StartSetupTask */
+  runSetupTask(argument);
+  /* USER CODE END StartSetupTask */
 }
 
 /* Private application code --------------------------------------------------*/

@@ -9,8 +9,7 @@ typedef void* queue_handle_t;    // Queue handle - type is OS library-dependent.
 /* @brief Queue instance ids.
  **/
 enum class QUEUE : uint8_t {
-    LOG,            // LogQueue
-    CONTROL_PROPS   // ControlPropsQueue
+    LOG // LogQueue
 };
 
 /* @brief Gets queue handle by id.

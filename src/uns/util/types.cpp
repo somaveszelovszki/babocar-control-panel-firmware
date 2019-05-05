@@ -1,10 +1,7 @@
 #include <uns/util/types.hpp>
 #include <uns/util/debug.hpp>
-#include <uns/hw/DC_Motor.hpp>
 
 using namespace uns;
-
-extern hw::DC_Motor motor;
 
 namespace uns {
 const char* getStatusString(Status status) {
@@ -36,6 +33,5 @@ const char* getStatusString(Status status) {
 } // namespace uns
 
 extern "C" void onHardFault() {
-    motor.forceStop();
     uns::debug::printerr(Status::ERROR, "Hard fault!");
 }

@@ -1,25 +1,21 @@
 #pragma once
 
-#include <uns/util/units.hpp>
+#include <uns/config/cfg_track.hpp>
+#include <uns/container/Vec.hpp>
 
 namespace uns {
 
 /* @brief Stores data of a detected line.
  **/
 struct Line {
-    static const meter_t INVALID_POS;    // Invalid line position.
-    static const radian_t INVALID_ANGLE; // Invalid line angle.
-
-    meter_t pos;        // The line position at the front sensor line (relative to car vertical middle axis).
-    radian_t angle;     // The line angle (relative to car forward angle)
+    millimeter_t pos_front; // The line position at the front sensor line (relative to car vertical middle axis).
+    millimeter_t pos_rear;  // The line position at the rear sensor line (relative to car vertical middle axis).
+    radian_t angle;         // The line angle (relative to car forward angle)
 };
 
-/* @brief Defines line placement.
- **/
-enum class LinePlacement : uint8_t {
-    CENTER  = 0,    // Center position.
-    LEFT    = 1,    // Left position.
-    RIGHT   = 2     // Right position.
-};
+typedef Vec<Line, cfg::MAX_NUM_LINES> Lines;
+typedef Vec<millimeter_t, cfg::MAX_NUM_LINES> LinePositions;
+
+void calculateLines(LinePositions front, LinePositions rear, Lines& lines, Line& mainLine);
 
 } // namespace uns

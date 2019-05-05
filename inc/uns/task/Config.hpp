@@ -1,19 +1,12 @@
 #pragma once
 
-#include <uns/util/units.hpp>
-#include <uns/bsp/task.hpp>
-#include <uns/control/PID_Controller.hpp>
-#include <util/atomic.hpp>
-
 namespace uns {
-/* @brief Represents a main program task.
- */
-enum class ProgramTask {
-    LABYRINTH,
-    LANE_CHANGE,
-    SAFETY_CAR_FOLLOW,
-    OVERTAKE,
-    RACE_TRACK
+namespace task {
+
+struct Config {
+    bool useSafetyEnableSignal;
+    bool indicatorLedsEnabled;
+    bool startSignalEnabled;
 };
 
 /* @brief This function is to be called on an error - sets error flag. Error flag can be checked with hasErrorHappened().
@@ -25,4 +18,6 @@ void setErrorFlag();
  * @returns Boolean value indicating if an error has happened.
  **/
 bool hasErrorHappened();
+
+} // namespace task
 } // namespace uns

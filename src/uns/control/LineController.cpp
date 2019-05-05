@@ -8,7 +8,7 @@ LineController::LineController(meter_t _wheelBase, meter_t _sensorWheelDist)
     : wheelBase(_wheelBase)
     , projectedWheelBase(_sensorWheelDist + _wheelBase) {}
 
-Status LineController::run(m_per_sec_t speed, meter_t baseline, meter_t linePos, radian_t lineAngle) {
+Status LineController::run(m_per_sec_t speed, meter_t baseline, const Line& line) {
 
     static constexpr float32_t KSI_COEFF = SQRT_2;
     static constexpr m_per_sec_t MIN_SPEED = mm_per_sec_t(5);
@@ -42,8 +42,8 @@ Status LineController::run(m_per_sec_t speed, meter_t baseline, meter_t linePos,
 
         // Feedback components. Baseline, position, orientation.
         float32_t ub = K_location * baseline.get();
-        float32_t up = K_location * linePos.get();
-        float32_t ud = -K_orientation * lineAngle.get();
+        float32_t up = K_location * static_cast<meter_t>(line.pos_front).get();
+        float32_t ud = -K_orientation * line.angle.get();
 
         // The wheel turn at the sensor
         const radian_t servoInFi = uns::clamp(radian_t(ub - up - ud), -uns::PI_2, uns::PI_2);

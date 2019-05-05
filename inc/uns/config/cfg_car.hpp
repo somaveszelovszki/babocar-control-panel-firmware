@@ -44,10 +44,6 @@ constexpr millimeter_t WHEEL_LED_DIST = millimeter_t(110.0f);           // Dista
 
 constexpr uint32_t ROTARY_PERIOD_MS = 10;
 
-constexpr bool USE_SAFETY_ENABLE_SIGNAL = true;
-constexpr bool INDICATOR_LEDS_ENABLED = true;
-constexpr bool START_SIGNAL_ENABLED = false;
-
 constexpr microsecond_t DC_MOTOR_T_ELECTRICAL = microsecond_t(484.0f);
 
 } // namespace cfg

@@ -1,5 +1,5 @@
-#include <uns/task/common.hpp>
 #include <config/cfg_board.hpp>
+#include <config/cfg_os.hpp>
 #include <string.h>
 #include <uns/bsp/tim.hpp>
 #include <uns/bsp/uart.hpp>
@@ -14,6 +14,7 @@
 #include <uns/control/PID_Controller.hpp>
 
 #include <string.h>
+#include <task/Config.hpp>
 
 using namespace uns;
 
@@ -28,7 +29,7 @@ RingBuffer<char, MAX_RX_BUFFER_SIZE * 8> rxBuffer;
 Vec<char, MAX_TX_BUFFER_SIZE> txBuffer;
 uint32_t contentFlags = 0xffff;     // enables all contents by default
 
-Status readInt(const char * const str, const uint32_t size, uint32_t *pIdx, int32_t *pResult) {
+Status readInt(const char *str, uint32_t size, uint32_t *pIdx, int32_t *pResult) {
     Status status;
     if ((*pIdx += uns::atoi(&str[*pIdx], pResult, size - *pIdx))) {
         *pIdx += sizeof('|');
@@ -39,7 +40,7 @@ Status readInt(const char * const str, const uint32_t size, uint32_t *pIdx, int3
     return status;
 }
 
-Status readFloat(const char * const str, const uint32_t size, uint32_t *pIdx, float32_t *pResult) {
+Status readFloat(const char *str, uint32_t size, uint32_t *pIdx, float32_t *pResult) {
     Status status;
     if ((*pIdx += uns::atof(&str[*pIdx], pResult, size - *pIdx))) {
         *pIdx += sizeof('|');
@@ -171,7 +172,7 @@ extern "C" void runDebugTask(const void *argument) {
         uns::nonBlockingDelay(millisecond_t(1));
     }
 
-    uns::deleteCurrentTask();
+    uns::taskDeleteCurrent();
 }
 
 /* @brief Callback for Bluetooth UART RxCplt - called when receive finishes.
@@ -181,14 +182,8 @@ void uns_Bluetooth_Uart_RxCpltCallback(uint32_t len) {
     uns::UART_Receive_DMA(cfg::uart_Bluetooth, reinterpret_cast<uint8_t*>(uartBluetooth_Buffer), MAX_RX_BUFFER_SIZE);
 }
 
-/* @brief Callback for Serial UART TxCplt - called when transfer finishes.
+/* @brief Callback for Serial UART RxCplt - called when receive finishes.
  */
-void uns_Serial_Uart_TxCpltCallback() {
-    // does nothing
-}
-
-/* @brief Callback for Bluetooth UART TxCplt - called when transfer finishes.
- */
-void uns_Bluetooth_Uart_TxCpltCallback() {
-    // does nothing
+void uns_Serial_Uart_RxCpltCallback() {
+    // does not handle Serial messages
 }

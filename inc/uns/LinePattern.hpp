@@ -23,14 +23,14 @@ public:
 
     Type type;          // Line pattern type.
     Sign dir;           // The pattern direction (POSITIVE means it is the same as the car direction). e.g. at a junction: POSITIVE means the car has two options to choose from (forward or exit)
-    RotationDir side;   // The side of the line the pattern is on. In case of symmetrical pattern: CENTER.
+    Direction side;   // The side of the line the pattern is on. In case of symmetrical pattern: CENTER.
     Point2<meter_t> startPos;   // The pattern start position.
     Point2<meter_t> endPos;     // The pattern end position.
 
     LinePattern()
         : type(Type::SINGLE_LINE)
         , dir(Sign::POSITIVE)
-        , side(RotationDir::CENTER)
+        , side(Direction::CENTER)
         , startPos(UNKNOWN_POS)
         , endPos(UNKNOWN_POS) {}
 };
