@@ -10,8 +10,9 @@ atomic<CarProps> targetSpeed(cfg::mutex_TargetSpeed);
 
 void setDefaultTaskConfig() {
     taskConfig.useSafetyEnableSignal = true;
-    taskConfig.indicatorLedsEnabled = true;
-    taskConfig.startSignalEnabled = false;
+    taskConfig.indicatorLedsEnabled  = true;
+    taskConfig.startSignalEnabled    = false;
+    taskConfig.lineFollowEnabled     = true;
 }
 
 }  // namespace globals

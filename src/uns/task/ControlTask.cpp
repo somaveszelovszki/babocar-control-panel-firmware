@@ -14,6 +14,7 @@ using namespace uns;
 
 panel::LineDetectPanel frontLineDetectPanel(cfg::uart_FrontLineDetectPanel);
 panel::LineDetectPanel rearLineDetectPanel(cfg::uart_RearLineDetectPanel);
+panel::MotorPanel motorPanel(cfg::uart_MotorPanel);
 
 namespace {
 
@@ -21,8 +22,10 @@ volatile atomic_updatable<LinePositions> frontLinePositions(cfg::mutex_FrontLine
 volatile atomic_updatable<LinePositions> rearLinePositions(cfg::mutex_RearLinePos);
 
 bool isFastSpeedSafe(const Line& line) {
-    static constexpr millimeter_t MAX_LINE_POS(85.0f);
-    return uns::abs(line.pos_front) <= MAX_LINE_POS && uns::abs(line.pos_rear) <= MAX_LINE_POS;
+    static constexpr millimeter_t MAX_LINE_POS = centimeter_t(8.5f);
+    static constexpr radian_t MAX_LINE_ANGLE = degree_t(8.0f);
+
+    return uns::abs(line.pos_front) <= MAX_LINE_POS && abs(line.angle) <= MAX_LINE_ANGLE;
 }
 
 } // namespace
@@ -45,11 +48,15 @@ extern "C" void runControlTask(const void *argument) {
             rearLinePositions.wait_copy(rear);
             uns::calculateLines(front, rear, lines, mainLine);
 
-            const meter_t baseline = meter_t::ZERO();   // TODO change baseline for more efficient turns
-            if (isOk(lineController.run(car.speed, baseline, mainLine))) {
-                steeringServo.writeWheelAngle(lineController.getOutput());
+            if (globals::taskConfig.lineFollowEnabled) {
+                const meter_t baseline = meter_t::ZERO();   // TODO change baseline for more efficient turns
+                if (isOk(lineController.run(car.speed, baseline, mainLine))) {
+                    steeringServo.writeWheelAngle(lineController.getOutput());
+                }
             }
         }
+
+        uns::nonBlockingDelay(millisecond_t(1));
     }
 
     uns::taskDeleteCurrent();
@@ -66,7 +73,7 @@ void uns_MotorPanel_Uart_RxCpltCallback() {
 void uns_FrontLineDetectPanel_Uart_RxCpltCallback() {
     LinePositions *p = const_cast<LinePositions*>(frontLinePositions.accept_ptr());
     if (p) {
-        frontLineDetectPanel.getReceivedLinePositions(*p);
+        frontLineDetectPanel.getLinePositions(*p);
         frontLinePositions.release_ptr();
     }
 }
@@ -76,7 +83,7 @@ void uns_FrontLineDetectPanel_Uart_RxCpltCallback() {
 void uns_RearLineDetectPanel_Uart_RxCpltCallback() {
     LinePositions *p = const_cast<LinePositions*>(rearLinePositions.accept_ptr());
     if (p) {
-        rearLineDetectPanel.getReceivedLinePositions(*p);
+        rearLineDetectPanel.getLinePositions(*p);
         rearLinePositions.release_ptr();
     }
 }

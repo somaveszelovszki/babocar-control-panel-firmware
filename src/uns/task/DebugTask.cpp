@@ -1,24 +1,19 @@
 #include <config/cfg_board.hpp>
 #include <config/cfg_os.hpp>
-#include <string.h>
+#include <uns/task/Config.hpp>
 #include <uns/bsp/tim.hpp>
 #include <uns/bsp/uart.hpp>
+#include <uns/bsp/queue.hpp>
 #include <uns/bsp/task.hpp>
 #include <uns/container/RingBuffer.hpp>
 #include <uns/container/Vec.hpp>
 #include <uns/util/debug.hpp>
-#include <uns/bsp/queue.hpp>
 #include <uns/util/convert.hpp>
 #include <uns/util/arrays.hpp>
-#include <uns/CarProps.hpp>
-#include <uns/control/PID_Controller.hpp>
 
 #include <string.h>
-#include <task/Config.hpp>
 
 using namespace uns;
-
-extern float32_t debugMotorPWM;
 
 namespace {
 
@@ -133,16 +128,12 @@ extern "C" void runDebugTask(const void *argument) {
     debug::Msg rxMsg, txMsg;
     char numBuff[STR_MAX_LEN_INT + 1];
 
-    millisecond_t rxStartTime = uns::getTime();
-
     uns::UART_Receive_DMA(cfg::uart_Bluetooth, reinterpret_cast<uint8_t*>(uartBluetooth_Buffer), MAX_RX_BUFFER_SIZE);
 
-    while (true) {
+    while (!task::hasErrorHappened()) {
         // handle incoming control messages from the monitoring app
         if (isOk(getRxMsg(rxMsg))) {
             handleRxMsg(rxMsg);
-        } else if (uns::getTime() - rxStartTime > millisecond_t(100)) {
-
         }
 
         // receives all available messages coming from the tasks and adds them to the buffer vector

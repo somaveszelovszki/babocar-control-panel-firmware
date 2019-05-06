@@ -10,9 +10,9 @@ class LineDetectPanel {
 public:
     LineDetectPanel(uart_handle_t *_huart);
 
-    void startLineSending();
+    Status start();
 
-    void getReceivedLinePositions(LinePositions& result) const;
+    void getLinePositions(LinePositions& result) const;
 
 private:
     uart_handle_t *huart;

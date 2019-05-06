@@ -11,6 +11,7 @@ using namespace uns;
 
 extern panel::LineDetectPanel frontLineDetectPanel;
 extern panel::LineDetectPanel rearLineDetectPanel;
+extern panel::MotorPanel motorPanel;
 
 namespace {
 
@@ -32,13 +33,30 @@ void waitStartSignal() {
 
 extern "C" void runSetupTask(const void *argument) {
     uns::taskSuspend(cfg::task_Control);
-    uns::blockingDelay(millisecond_t(200));     // gives time to auxiliary modules to wake up
+    uns::blockingDelay(millisecond_t(200));     // gives time to auxiliary panels to wake up
 
     globals::setDefaultTaskConfig();
+
     waitStartSignal();
 
-    frontLineDetectPanel.startLineSending();
-    rearLineDetectPanel.startLineSending();
+    debug::printlog("Starting panel initialization");
+
+    Status status;
+
+    if (!isOk(status = motorPanel.start(globals::taskConfig.useSafetyEnableSignal))) {
+        debug::printerr(status, "motorPanel.start failed");
+        task::setErrorFlag();
+    }
+
+    if (!isOk(status = frontLineDetectPanel.start())) {
+        debug::printerr(status, "frontLineDetectPanel.start failed");
+        task::setErrorFlag();
+    }
+
+    if (!isOk(status = rearLineDetectPanel.start())) {
+        debug::printerr(status, "rearLineDetectPanel.start failed");
+        task::setErrorFlag();
+    }
 
     uns::taskDeleteCurrent();
 }
