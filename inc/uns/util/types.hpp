@@ -58,8 +58,8 @@ enum class Direction : int8_t {
  * @brief Defines bit order.
  */
 enum class BitOrder : uint8_t {
-	LITTLE_ENDIAN_ = 0,
-	BIG_ENDIAN_
+	ENDIAN_LITTLE = 0,
+	ENDIAN_BIG
 };
 
 /**

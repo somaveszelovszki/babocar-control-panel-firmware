@@ -45,7 +45,7 @@ public:
     Status run(const T_meas& measured) {
         this->updateTimeDiff();
 
-        float32_t ek = uns::get_value(this->desired - measured);
+        float32_t ek = uns::valueOf(this->desired - measured);
 
         this->output = this->output + this->b0 * ek + this->b1 * this->ek1 + this->b2 * this->ek2;
         this->output = uns::clamp(this->output, this->outMin, this->outMax);

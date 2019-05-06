@@ -31,6 +31,12 @@ public:
         uns::mutexRelease(this->hmutex);
     }
 
+    void wait_set(const T& value) volatile {
+        while (!isOk(uns::mutexTake(this->hmutex, millisecond_t(1)))) {}
+        this->data.construct(value);
+        uns::mutexRelease(this->hmutex);
+    }
+
     volatile T* wait_ptr() volatile {
         while (!isOk(uns::mutexTake(this->hmutex, millisecond_t(1)))) {}
         return this->data.value_ptr();

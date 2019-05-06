@@ -11,7 +11,7 @@ namespace uns {
  * @param dest The destination array.
  **/
 template <uint32_t size, typename T>
-void copy(const T * const src, T * const dest) {
+void copy(const T *src, T *dest) {
     for (uint32_t i = 0; i < size; ++i) {
         dest[i] = src[i];
     }
@@ -24,7 +24,7 @@ void copy(const T * const src, T * const dest) {
  * @param size Size of the arrays.
  **/
 template <typename T>
-void copy(const T * const src, T * const dest, uint32_t size) {
+void copy(const T *src, T *dest, uint32_t size) {
     for (uint32_t i = 0; i < size; ++i) {
         dest[i] = src[i];
     }
@@ -39,7 +39,7 @@ void copy(const T * const src, T * const dest, uint32_t size) {
  * @returns The index of the item or -1 if the array does not contain the item.
  **/
 template <typename T>
-int32_t indexOf(const T& item, const T * const ar, uint32_t arraySize, uint32_t startIdx = 0){
+int32_t indexOf(const T& item, const T *ar, uint32_t arraySize, uint32_t startIdx = 0){
     int32_t idx = -1;
     for (int32_t i = startIdx; idx == -1 && i < static_cast<int32_t>(arraySize); ++i) {
         if (ar[i] == item) {
@@ -57,7 +57,7 @@ int32_t indexOf(const T& item, const T * const ar, uint32_t arraySize, uint32_t 
  * @returns Boolean value indicating if the array contains the item.
  **/
 template <typename T>
-bool contains(const T& item, const T * const ar, uint32_t arraySize) {
+bool contains(const T& item, const T *ar, uint32_t arraySize) {
     return indexOf(item, ar, arraySize) != -1;
 }
 
@@ -70,7 +70,7 @@ bool contains(const T& item, const T * const ar, uint32_t arraySize) {
  * @param res The result array.
  **/
 template <uint32_t size1, uint32_t size2, typename T>
-void concat(const T * const ar1, const T * const ar2, T * const res) {
+void concat(const T *ar1, const T *ar2, T *res) {
     copy<size1>(ar1, res);
     copy<size2>(ar2, &res[size1]);
 }
@@ -80,9 +80,27 @@ void concat(const T * const ar1, const T * const ar2, T * const res) {
  * @param The array.
  **/
 template <typename T>
-void reverse(T * const ar, uint32_t size) {
+void reverse(T *ar, uint32_t size) {
     for (uint32_t i = 0; i < size / 2; ++i) {
         std::swap(ar[i], ar[size - i - 1]);
     }
 }
+
+/* @brief Checks if all the elements of the array are zeros.
+ * @tparam T Type of the array.
+ * @param The array.
+ * @returns Boolean value indicating if all the elements of the array are zeros.
+ **/
+template <typename T>
+bool isZeroArray(const T *ar, uint32_t size) {
+    bool isZero = true;
+    for (uint32_t i = 0; i < size; ++i) {
+        if (ar[i] != T(0)) {
+            isZero = false;
+            break;
+        }
+    }
+    return isZero;
+}
+
 } // namespace uns

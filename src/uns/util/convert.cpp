@@ -7,22 +7,22 @@
 using namespace uns;
 
 void uns::toBytes(int16_t value, uint8_t bytes[], BitOrder order) {
-    if (order == BitOrder::LITTLE_ENDIAN_) {
+    if (order == BitOrder::ENDIAN_LITTLE) {
         bytes[0] = static_cast<uint8_t>(value);
         bytes[1] = static_cast<uint8_t>(value >> 8);
-    } else {    // BIG_ENDIAN_
+    } else {    // ENDIAN_BIG
         bytes[1] = static_cast<uint8_t>(value);
         bytes[0] = static_cast<uint8_t>(value >> 8);
     }
 }
 
 void uns::toBytes(int32_t value, uint8_t bytes[], BitOrder order) {
-    if (order == BitOrder::LITTLE_ENDIAN_) {
+    if (order == BitOrder::ENDIAN_LITTLE) {
         bytes[0] = static_cast<uint8_t>(value);
         bytes[1] = static_cast<uint8_t>(value >> 8);
         bytes[2] = static_cast<uint8_t>(value >> 16);
         bytes[3] = static_cast<uint8_t>(value >> 24);
-    } else {    // BIG_ENDIAN_
+    } else {    // ENDIAN_BIG
         bytes[3] = static_cast<uint8_t>(value);
         bytes[2] = static_cast<uint8_t>(value >> 8);
         bytes[1] = static_cast<uint8_t>(value >> 16);
@@ -38,10 +38,10 @@ void uns::toBytes(float32_t value, uint8_t bytes[], BitOrder order) {
 
 int16_t uns::toInt16(const uint8_t bytes[], BitOrder order) {
     int16_t result;
-    if (order == BitOrder::LITTLE_ENDIAN_) {
+    if (order == BitOrder::ENDIAN_LITTLE) {
         result = static_cast<int32_t>(bytes[0])
             | (static_cast<int32_t>(bytes[1]) << 8);
-    } else {    // BIG_ENDIAN_
+    } else {    // ENDIAN_BIG
         result = static_cast<int32_t>(bytes[1])
             | (static_cast<int32_t>(bytes[0]) << 8);
     }
@@ -50,12 +50,12 @@ int16_t uns::toInt16(const uint8_t bytes[], BitOrder order) {
 
 int32_t uns::toInt32(const uint8_t bytes[], BitOrder order) {
     int32_t result;
-    if (order == BitOrder::LITTLE_ENDIAN_) {
+    if (order == BitOrder::ENDIAN_LITTLE) {
         result = static_cast<int32_t>(bytes[0])
             | (static_cast<int32_t>(bytes[1]) << 8)
             | (static_cast<int32_t>(bytes[2]) << 16)
             | (static_cast<int32_t>(bytes[3]) << 24);
-    } else {    // BIG_ENDIAN_
+    } else {    // ENDIAN_BIG
         result = static_cast<int32_t>(bytes[3])
             | (static_cast<int32_t>(bytes[2]) << 8)
             | (static_cast<int32_t>(bytes[1]) << 16)

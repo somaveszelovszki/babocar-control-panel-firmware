@@ -11,7 +11,7 @@ namespace uns {
  * @returns The value.
  */
 template <typename T>
-inline typename std::enable_if<T::is_dim_class, float32_t>::type get_value(const T& value) {
+inline typename std::enable_if<T::is_dim_class, float32_t>::type valueOf(const T& value) {
     return value.template get<true>();
 }
 

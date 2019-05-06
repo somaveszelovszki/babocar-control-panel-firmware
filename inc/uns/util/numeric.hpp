@@ -143,7 +143,7 @@ inline auto pythag_square(const T& a, const T& b, const T& c) -> decltype (a * b
  * @returns The value.
  */
 template <typename T>
-inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type get_value(const T& value) {
+inline typename std::enable_if<std::is_arithmetic<T>::value, T>::type valueOf(const T& value) {
     return value;
 }
 
