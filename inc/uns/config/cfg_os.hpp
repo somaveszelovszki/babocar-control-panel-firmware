@@ -11,9 +11,7 @@ namespace cfg {
 
 queue_handle_t * const  queue_Log               = uns::getQueueHandle(QUEUE::LOG);              // LogQueue handle.
 
-mutex_handle_t * const  mutex_TaskConfig        = uns::getMutexHandle(MUTEX::TASK_CONFIG) ;     // TaskConfigMutex handle.
 mutex_handle_t * const  mutex_Car               = uns::getMutexHandle(MUTEX::CAR);              // CarMutex handle.
-mutex_handle_t * const  mutex_TargetSpeed       = uns::getMutexHandle(MUTEX::TARGET_SPEED);     // TargetSpeedMutex handle.
 mutex_handle_t * const  mutex_FrontLinePos      = uns::getMutexHandle(MUTEX::FRONT_LINE_POS);   // FrontLinePositionsMutex handle.
 mutex_handle_t * const  mutex_RearLinePos       = uns::getMutexHandle(MUTEX::REAR_LINE_POS);    // RearLinePositionsMutex handle.
 

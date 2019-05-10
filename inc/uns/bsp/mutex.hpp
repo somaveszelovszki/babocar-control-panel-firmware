@@ -9,9 +9,7 @@ typedef void mutex_handle_t;   // Mutex handle - type is OS library-dependent.
 /* @brief Mutex instance ids.
  **/
 enum class MUTEX : uint8_t {
-    TASK_CONFIG,    // TaskConfigMutex
     CAR,            // CarMutex
-    TARGET_SPEED,   // TargetSpeedMutex
     FRONT_LINE_POS, // FrontLinePositionsMutex
     REAR_LINE_POS   // RearLinePositionsMutex
 };

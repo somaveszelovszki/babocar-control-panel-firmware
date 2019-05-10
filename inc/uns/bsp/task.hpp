@@ -15,7 +15,11 @@ task_handle_t* getTaskHandle(TASK task);
 
 void taskResume(task_handle_t *hTask);
 
+void taskResumeAll();
+
 void taskSuspend(task_handle_t *hTask);
+
+void taskSuspendAll();
 
 void taskDelete(task_handle_t *hTask);
 

@@ -15,6 +15,7 @@ struct Pose {
      **/
     radian_t angle;
 };
+DEFINE_TYPEINFO(Pose);
 
 /* @brief Car properties.
  **/
@@ -28,4 +29,6 @@ struct CarProps  {
     Pose pose;          // The current pose (position and orientation) of the car.
     m_per_sec_t speed;  // The current speed of the car.
 };
+DEFINE_TYPEINFO(CarProps);
+
 } // namespace uns

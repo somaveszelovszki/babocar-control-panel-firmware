@@ -416,13 +416,17 @@ template <Dimension dim> struct mul_dim<dim, Dimension::angle>  { static constex
 template <Dimension dim> struct div_dim<dim, Dimension::angle>  { static constexpr Dimension value = dim; };
 } // namespace detail
 
-#define create_unit_instance_with_unit_prefix(dim, mul, unit)                                                           \
-typedef detail::dim_class<Dimension::dim, detail::unit_instance<Dimension::dim, Unit::mul>, true> mul ## unit ## _t;    \
-typedef detail::dim_class<Dimension::dim, detail::square_unit_instance<detail::unit_instance<Dimension::dim, Unit::mul>>, true> mul ## unit ## 2_t;
+#define create_unit_instance_with_unit_prefix(dim, mul, unit)                                                                                       \
+typedef detail::dim_class<Dimension::dim, detail::unit_instance<Dimension::dim, Unit::mul>, true> mul ## unit ## _t;                                \
+typedef detail::dim_class<Dimension::dim, detail::square_unit_instance<detail::unit_instance<Dimension::dim, Unit::mul>>, true> mul ## unit ## 2_t; \
+DEFINE_TYPEINFO(mul ## unit ## _t);                                                                                                                 \
+DEFINE_TYPEINFO(mul ## unit ## 2_t)
 
-#define create_unit_instance_without_unit_prefix(dim, mul, unit)                                                \
-typedef detail::dim_class<Dimension::dim, detail::unit_instance<Dimension::dim, Unit::mul>, true> unit ## _t;   \
-typedef detail::dim_class<Dimension::dim, detail::square_unit_instance<detail::unit_instance<Dimension::dim, Unit::mul>>, true> unit ## 2_t;
+#define create_unit_instance_without_unit_prefix(dim, mul, unit)                                                                                    \
+typedef detail::dim_class<Dimension::dim, detail::unit_instance<Dimension::dim, Unit::mul>, true> unit ## _t;                                       \
+typedef detail::dim_class<Dimension::dim, detail::square_unit_instance<detail::unit_instance<Dimension::dim, Unit::mul>>, true> unit ## 2_t;        \
+DEFINE_TYPEINFO(unit ## _t);                                                                                                                        \
+DEFINE_TYPEINFO(unit ## 2_t)
 
 #define create_unit_instances(dim, unit)                            \
 square_dimension_connections(Dimension::dim, Dimension::dim ## 2)   \
@@ -441,11 +445,13 @@ typedef detail::dim_class<Dimension::dim> dim ## _t;
 
 #define create_mul_unit_instance(unit1, unit2, unit) \
 typedef detail::dim_class<detail::mul_unit_instance<unit1 ## _t::unit_inst_t, unit2 ## _t::unit_inst_t>::dim,   \
-        detail::mul_unit_instance<unit1 ## _t::unit_inst_t, unit2 ## _t::unit_inst_t>, true> unit ## _t
+        detail::mul_unit_instance<unit1 ## _t::unit_inst_t, unit2 ## _t::unit_inst_t>, true> unit ## _t;        \
+DEFINE_TYPEINFO(unit ## _t)
 
 #define create_div_unit_instance(unit1, unit2, unit) \
 typedef detail::dim_class<detail::div_unit_instance<unit1 ## _t::unit_inst_t, unit2 ## _t::unit_inst_t>::dim,   \
-        detail::div_unit_instance<unit1 ## _t::unit_inst_t, unit2 ## _t::unit_inst_t>, true> unit ## _t
+        detail::div_unit_instance<unit1 ## _t::unit_inst_t, unit2 ## _t::unit_inst_t>, true> unit ## _t;        \
+DEFINE_TYPEINFO(unit ## _t)
 
 create_unit_instances(time, second);
 create_unit_instance_without_unit_prefix(time, _3600, hour);

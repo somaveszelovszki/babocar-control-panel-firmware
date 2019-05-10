@@ -6,14 +6,30 @@ namespace globals {
 
 Params debugParams;
 
-bool     useSafetyEnableSignal = true;
-bool     indicatorLedsEnabled  = true;
-bool     startSignalEnabled    = false;
-bool     lineFollowEnabled     = true;
-LogLevel logLevel              = LogLevel::Debug;
+#define REGISTER_GLOBAL(name) debugParams.registerParam(#name, &name)
 
-atomic<CarProps>    car(cfg::mutex_Car);
-atomic<m_per_sec_t> targetSpeed(cfg::mutex_TargetSpeed);
+bool useSafetyEnableSignal = true;
+bool indicatorLedsEnabled  = true;
+bool startSignalEnabled    = false;
+bool lineFollowEnabled     = true;
+bool targetSpeedOverride   = false;
+
+LogLevel         logLevel = LogLevel::Debug;
+m_per_sec_t      targetSpeed(0.0f);
+atomic<CarProps> car(cfg::mutex_Car);
+
+
+void initializeGlobalParams() {
+    REGISTER_GLOBAL(useSafetyEnableSignal);
+//    REGISTER_GLOBAL(indicatorLedsEnabled);
+//    REGISTER_GLOBAL(startSignalEnabled);
+//    REGISTER_GLOBAL(lineFollowEnabled);
+//    REGISTER_GLOBAL(targetSpeedOverride);
+//
+//    REGISTER_GLOBAL(logLevel);
+//    REGISTER_GLOBAL(car);
+//    REGISTER_GLOBAL(targetSpeed);
+}
 
 }  // namespace globals
 }  // namespace uns

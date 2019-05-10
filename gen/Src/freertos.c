@@ -93,12 +93,8 @@ osStaticThreadDef_t SetupTaskControlBlock;
 osMessageQId LogQueueHandle;
 uint8_t LogQueueBuffer[ 16 * sizeof( LogQueueItem_t ) ];
 osStaticMessageQDef_t LogQueueControlBlock;
-osMutexId TaskConfigMutexHandle;
-osStaticMutexDef_t TaskConfigMutexControlBlock;
 osMutexId CarMutexHandle;
 osStaticMutexDef_t CarMutexControlBlock;
-osMutexId TargetSpeedMutexHandle;
-osStaticMutexDef_t TargetSpeedMutexControlBlock;
 osMutexId FrontLinePositionsMutexHandle;
 osStaticMutexDef_t FrontLinePositionsMutexControlBlock;
 osMutexId RearLinePositionsMutexHandle;
@@ -145,17 +141,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
-  /* definition and creation of TaskConfigMutex */
-  osMutexStaticDef(TaskConfigMutex, &TaskConfigMutexControlBlock);
-  TaskConfigMutexHandle = osMutexCreate(osMutex(TaskConfigMutex));
-
   /* definition and creation of CarMutex */
   osMutexStaticDef(CarMutex, &CarMutexControlBlock);
   CarMutexHandle = osMutexCreate(osMutex(CarMutex));
-
-  /* definition and creation of TargetSpeedMutex */
-  osMutexStaticDef(TargetSpeedMutex, &TargetSpeedMutexControlBlock);
-  TargetSpeedMutexHandle = osMutexCreate(osMutex(TargetSpeedMutex));
 
   /* definition and creation of FrontLinePositionsMutex */
   osMutexStaticDef(FrontLinePositionsMutex, &FrontLinePositionsMutexControlBlock);

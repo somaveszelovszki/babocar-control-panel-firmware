@@ -10,6 +10,6 @@ template <> struct typeinfo<type> {         \
         static const char *name_ = #type;   \
         return name_;                       \
     }                                       \
-};
+}
 
 } // namespace uns

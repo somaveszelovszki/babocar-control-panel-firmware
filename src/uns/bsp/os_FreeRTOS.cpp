@@ -13,9 +13,7 @@
 
 extern "C" osMessageQId LogQueueHandle;
 
-extern "C" osMutexId    TaskConfigMutexHandle;
 extern "C" osMutexId    CarMutexHandle;
-extern "C" osMutexId    TargetSpeedMutexHandle;
 extern "C" osMutexId    FrontLinePositionsMutexHandle;
 extern "C" osMutexId    RearLinePositionsMutexHandle;
 
@@ -73,9 +71,7 @@ void exitCritical_ISR(uint32_t uxSavedInterruptStatus) {
 mutex_handle_t* getMutexHandle(MUTEX mutex) {
     mutex_handle_t *hMutex = nullptr;
     switch (mutex) {
-    case MUTEX::TASK_CONFIG:    hMutex = TaskConfigMutexHandle;         break;
     case MUTEX::CAR:            hMutex = CarMutexHandle;                break;
-    case MUTEX::TARGET_SPEED:   hMutex = TargetSpeedMutexHandle;        break;
     case MUTEX::FRONT_LINE_POS: hMutex = FrontLinePositionsMutexHandle; break;
     case MUTEX::REAR_LINE_POS:  hMutex = RearLinePositionsMutexHandle;  break;
     }
@@ -115,8 +111,16 @@ void taskResume(task_handle_t *hTask) {
     vTaskResume(static_cast<osThreadId>(hTask));
 }
 
+void taskResumeAll() {
+    xTaskResumeAll();
+}
+
 void taskSuspend(task_handle_t *hTask) {
     vTaskSuspend(static_cast<osThreadId>(hTask));
+}
+
+void taskSuspendAll() {
+    vTaskSuspendAll();
 }
 
 void taskDelete(task_handle_t *hTask) {

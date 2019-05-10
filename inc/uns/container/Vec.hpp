@@ -111,7 +111,7 @@ public:
         const uint32_t prev_size = this->size_;
         if (iter > this->begin() && iter <= this->end() && this->size() < this->capacity()) {
             this->shiftRight(iter);
-            *iter = value;
+            reinterpret_cast<storage_type*>(iter)->construct(value);
             this->size_++;
         }
         return this->size_ - prev_size;
@@ -127,7 +127,7 @@ public:
         const uint32_t prev_size = this->size_;
         if (this->size() < this->capacity()) {
             this->shiftRight(iter);
-            reinterpret_cast<storage_type>(*iter).emplace(std::forward<Args>(args)...);
+            reinterpret_cast<storage_type*>(iter)->emplace(std::forward<Args>(args)...);
             this->size_++;
         }
         return this->size_ - prev_size;
@@ -144,7 +144,7 @@ public:
         bool found = iter >= this->begin() && iter < this->end();
         if (found) {
             for(iterator it = iter; it < this->end() - 1; ++it) {
-                *it = *(it + 1);
+                *reinterpret_cast<storage_type*>(it) = *reinterpret_cast<storage_type*>(it + 1);
             }
             this->size_--;
         }
@@ -193,13 +193,13 @@ public:
 private:
     void shiftLeft(iterator until) {
         for (iterator it = this->begin(); it != until; ++it) {
-            *it = *(it + 1);
+            *reinterpret_cast<storage_type*>(it) = *reinterpret_cast<storage_type*>(it + 1);
         }
     }
 
     void shiftRight(iterator from) {
         for (iterator it = this->end(); it != from; --it) {
-            *it = *(it - 1);
+            *reinterpret_cast<storage_type*>(it) = *reinterpret_cast<storage_type*>(it - 1);
         }
     }
 

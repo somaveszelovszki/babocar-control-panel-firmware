@@ -1,14 +1,29 @@
 #pragma once
 
 #include <uns/util/types.h>
-//#include <uns/util/typeinfo.hpp>
+#include <uns/util/typeinfo.hpp>
 
 #include <type_traits>
 
 namespace uns {
 
+DEFINE_TYPEINFO(bool);
+
+DEFINE_TYPEINFO(uint8_t);
+DEFINE_TYPEINFO(uint16_t);
+DEFINE_TYPEINFO(uint32_t);
+DEFINE_TYPEINFO(uint64_t);
+
+DEFINE_TYPEINFO(int8_t);
+DEFINE_TYPEINFO(int16_t);
+DEFINE_TYPEINFO(int32_t);
+DEFINE_TYPEINFO(int64_t);
+
 typedef float float32_t;
+DEFINE_TYPEINFO(float32_t);
+
 typedef double float64_t;
+DEFINE_TYPEINFO(float64_t);
 
 /**
  * @brief Defines pin states.
@@ -17,6 +32,7 @@ enum class PinState : uint8_t {
     RESET = 0,      // Reset state.
     SET             // Set state.
 };
+DEFINE_TYPEINFO(PinState);
 
 /**
  * @brief Status for operations
@@ -31,6 +47,7 @@ enum class Status : uint32_t {
     NO_NEW_DATA,    // No new data is available.
     BUFFER_FULL     // Buffer is full.
 };
+DEFINE_TYPEINFO(Status);
 
 /**
  * @brief Checks is status is ok.
@@ -60,6 +77,7 @@ enum class LogLevel : uint8_t {
     Warning = 0x03,
     Error   = 0x04
 };
+DEFINE_TYPEINFO(LogLevel);
 
 /**
  * @brief Defines rotation direction.
@@ -69,6 +87,7 @@ enum class Direction : int8_t {
     CENTER = 0,
     RIGHT = -1
 };
+DEFINE_TYPEINFO(Direction);
 
 /**
  * @brief Defines bit order.
@@ -77,6 +96,7 @@ enum class BitOrder : uint8_t {
 	ENDIAN_LITTLE = 0,
 	ENDIAN_BIG
 };
+DEFINE_TYPEINFO(BitOrder);
 
 /**
  * @brief Defines sign of a number;
@@ -85,6 +105,7 @@ enum class Sign : int8_t {
     POSITIVE = 1,
     NEGATIVE = -1
 };
+DEFINE_TYPEINFO(Sign);
 
 template < template <typename...> class base,typename derived>
 struct is_base_of_template_impl
@@ -97,18 +118,5 @@ struct is_base_of_template_impl
 
 template < template <typename...> class base,typename derived>
 using is_base_of_template = typename is_base_of_template_impl<base,derived>::type;
-
-//DEFINE_TYPEINFO(uint8_t)
-//DEFINE_TYPEINFO(uint16_t)
-//DEFINE_TYPEINFO(uint32_t)
-//DEFINE_TYPEINFO(uint64_t)
-//
-//DEFINE_TYPEINFO(int8_t)
-//DEFINE_TYPEINFO(int16_t)
-//DEFINE_TYPEINFO(int32_t)
-//DEFINE_TYPEINFO(int64_t)
-//
-//DEFINE_TYPEINFO(float32_t)
-//DEFINE_TYPEINFO(float64_t)
 
 } // namespace uns

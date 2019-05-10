@@ -50,9 +50,17 @@ public:
         uns::mutexRelease(this->hmutex);
     }
 
+    mutex_handle_t* getMutex() {
+        return this->hmutex;
+    }
+
 private:
     mutex_handle_t * const hmutex;
     volatile_storage_t<T> data;
+};
+
+template <typename T> struct is_atomic {
+    enum { value = uns::is_base_of_template<atomic, T>::value };
 };
 
 } // namespace uns

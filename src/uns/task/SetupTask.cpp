@@ -35,6 +35,8 @@ extern "C" void runSetupTask(const void *argument) {
     uns::taskSuspend(cfg::task_Control);
     uns::blockingDelay(millisecond_t(200));     // gives time to auxiliary panels to wake up
 
+
+
     waitStartSignal();
 
     LOG_DEBUG("Starting panel initialization");

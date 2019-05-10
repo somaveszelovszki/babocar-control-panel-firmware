@@ -17,7 +17,10 @@ extern bool     lineFollowEnabled;
 extern LogLevel logLevel;
 
 extern atomic<CarProps>     car;
-extern atomic<m_per_sec_t>  targetSpeed;
+
+extern m_per_sec_t targetSpeed;
+
+void initializeGlobalParams();
 
 } // namespace globals
 } // namespace uns
