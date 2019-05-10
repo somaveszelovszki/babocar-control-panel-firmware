@@ -1,5 +1,4 @@
-#include <uns/task/Config.hpp>
-#include <uns/util/debug.hpp>
+#include <uns/task/common.hpp>
 
 namespace {
 bool _error = false;    // Indicates if an error has occurred.

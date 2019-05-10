@@ -4,6 +4,14 @@
 #include <algorithm>
 
 namespace uns {
+
+template <typename T>
+uint32_t length(const T *ar, const T& end = T(0)) {
+    uint32_t len;
+    for (len = 0; ar[len] != end; ++len) {}
+    return len;
+}
+
 /* @brief Copies elements of the source array into the destination array.
  * @tparam size Size of the arrays.
  * @tparam T Type of the elements of the arrays.

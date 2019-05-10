@@ -33,14 +33,14 @@ public:
      * @note Do not write to any elements other than this one!
      * @returns Pointer to the writable buffer.
      **/
-    T * const getWritableBuffer() {
+    T* getWritableBuffer() {
         return this->data + this->head;
     }
 
     /* @brief Gets readable buffer pointer.
      * @returns Pointer to the readable buffer.
      **/
-    const T * const getReadableBuffer() const {
+    const T* getReadableBuffer() const {
         return this->data + this->tail;
     }
 
@@ -92,7 +92,7 @@ public:
      * @param _count The number of elements to get.
      * @returns Status indicating if element has been read.
      **/
-    Status get(T * const buffer, uint32_t _count);
+    Status get(T *buffer, uint32_t _count);
 
     /* @brief Gets size of the buffer.
      * @returns The current number of elements stored in the buffer.

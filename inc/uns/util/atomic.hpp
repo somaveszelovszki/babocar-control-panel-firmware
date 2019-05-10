@@ -52,7 +52,7 @@ public:
 
 private:
     mutex_handle_t * const hmutex;
-    storage_t<T> data;
+    volatile_storage_t<T> data;
 };
 
 } // namespace uns

@@ -3,13 +3,6 @@
 namespace uns {
 namespace task {
 
-struct Config {
-    bool useSafetyEnableSignal;
-    bool indicatorLedsEnabled;
-    bool startSignalEnabled;
-    bool lineFollowEnabled;
-};
-
 /* @brief This function is to be called on an error - sets error flag. Error flag can be checked with hasErrorHappened().
  * @note Settings error flag will cause all program tasks to end!
  **/

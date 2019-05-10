@@ -1,7 +1,7 @@
 #pragma once
 
+#include <uns/container/vec.hpp>
 #include <uns/config/cfg_track.hpp>
-#include <uns/container/Vec.hpp>
 
 namespace uns {
 
@@ -13,8 +13,8 @@ struct Line {
     radian_t angle;         // The line angle (relative to car forward angle)
 };
 
-typedef Vec<Line, cfg::MAX_NUM_LINES> Lines;
-typedef Vec<millimeter_t, cfg::MAX_NUM_LINES> LinePositions;
+typedef vec<Line, cfg::MAX_NUM_LINES> Lines;
+typedef vec<millimeter_t, cfg::MAX_NUM_LINES> LinePositions;
 
 void calculateLines(LinePositions front, LinePositions rear, Lines& lines, Line& mainLine);
 

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TYPES_H_
+#define TYPES_H_
 
 #include <stdint.h>
 
@@ -17,14 +18,16 @@ typedef uint32_t res_id_t;  // Resource id type - used when referencing hardware
 
 #define LOG_MSG_MAX_SIZE    128     // Maximum size of log messages including message start character ('#'), debug code, separator (':') and message end characters ('\r\n').
 #define MAX_TX_BUFFER_SIZE  512u    // size of the log TX buffer
-#define MAX_RX_BUFFER_SIZE  64u     // size of the log RX buffer
+#define MAX_RX_BUFFER_SIZE  512u    // size of the log RX buffer
 
-#define STR_MAX_LEN_INT     11      // Maximum length of an integer string.
+#define STR_MAX_LEN_GLOBAL_NAME 32u     // Maximum length of global parameter name.
+#define STR_MAX_LEN_GLOBAL_TYPE 32u     // Maximum length of global parameter name.
+#define MAX_NUM_GLOBAL_PARAMS   128u    // Maximum number of global parameters, that can be set from monitoring app.
 
-#define uns_sizeof_DebugMsg         (4 + LOG_MSG_MAX_SIZE + 4)      // Size of a debug::Msg object.
-#define uns_sizeof_ControlProps     (4 + (4 + 4))                   // Size of a ControlProps queue item (speed + sizeof(LineData)).
+#define uns_sizeof_LogMessage   (LOG_MSG_MAX_SIZE + 4)  // Size of a debug::Log object.
+#define uns_sizeof_ControlProps (4 + (4 + 4))           // Size of a ControlProps queue item (speed + sizeof(LineData)).
 
-typedef uint8_t LogQueueItem_t[uns_sizeof_DebugMsg];                // Defines buffer type of Log queue item.
+typedef uint8_t LogQueueItem_t[uns_sizeof_LogMessage];              // Defines buffer type of Log queue item.
 typedef uint8_t ControlPropsQueueItem_t[uns_sizeof_ControlProps];   // Defines buffer type of ControlProps queue item.
 
 void onHardFault();
@@ -32,3 +35,5 @@ void onHardFault();
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+
+#endif /* TYPES_H_ */

@@ -83,7 +83,7 @@ inline bool isInRange(const T1& value, const T2& ref, float32_t relErr) {
 }
 
 /**
- * @brief Maps value from from a given range to another.
+ * @brief Scales value from from a given range to another.
  * @tparam S Numeric type of the source value and the source range boundaries.
  * @tparam R Numeric type of the result value and the result range boundaries.
  * @param value The value to map.
@@ -94,7 +94,7 @@ inline bool isInRange(const T1& value, const T2& ref, float32_t relErr) {
  * @returns The mapped value.
  */
 template <typename S, typename R>
-inline R map(const S& value, const S& fromLow, const S& fromHigh, const R& toLow, const R& toHigh) {
+inline R scale(const S& value, const S& fromLow, const S& fromHigh, const R& toLow, const R& toHigh) {
     return toLow + ((clamp(value, fromLow, fromHigh) - fromLow) * (toHigh - toLow) / (fromHigh - fromLow));
 }
 

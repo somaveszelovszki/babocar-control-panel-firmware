@@ -1,6 +1,7 @@
 #include <uns/globals.hpp>
 #include <uns/config/cfg_board.hpp>
 #include <uns/config/cfg_os.hpp>
+#include <uns/task/common.hpp>
 #include <uns/util/debug.hpp>
 #include <uns/util/updatable.hpp>
 #include <uns/bsp/task.hpp>
@@ -48,7 +49,7 @@ extern "C" void runControlTask(const void *argument) {
             rearLinePositions.wait_copy(rear);
             uns::calculateLines(front, rear, lines, mainLine);
 
-            if (globals::taskConfig.lineFollowEnabled) {
+            if (globals::lineFollowEnabled) {
                 const meter_t baseline = meter_t::ZERO();   // TODO change baseline for more efficient turns
                 if (isOk(lineController.run(car.speed, baseline, mainLine))) {
                     steeringServo.writeWheelAngle(lineController.getOutput());

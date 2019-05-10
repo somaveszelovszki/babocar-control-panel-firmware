@@ -1,123 +1,152 @@
 #pragma once
 
-#include <uns/container/Array.hpp>
+#include <uns/util/storage.hpp>
 #include <uns/util/numeric.hpp>
 
 namespace uns {
 
-template <typename T, uint32_t capacity>
-class Vec {
-private:
-    T data[capacity];
+template <typename T, uint32_t capacity_>
+class vec {
 
 public:
     typedef T* iterator;
     typedef const T* const_iterator;
 
-    uint32_t size;
-
     T& operator[](uint32_t pos) {
-        return this->data[pos];
+        return this->data_[pos].value();
     }
 
     const T& operator[](uint32_t pos) const {
-        return this->data[pos];
+        return this->data_[pos].value();
     }
 
     /* @brief Default constructor - Sets size to 0.
      **/
-    Vec() : size(0) {}
+    vec() : size_(0) {}
 
     /* @brief Copy constructor - copies elements.
      * @param other The other vector.
      **/
-    Vec(const Vec<T, capacity>& other)
-        : data(other.data)
-        , size(other.size) {}
+    vec(const vec<T, capacity_>& other)
+        : size_(0) {
+        this->append(other.begin(), other.end());
+    }
 
     /* @brief Copies data from the other vector.
      * @param other The other vector.
      * @returns This Vec.
      **/
-    Vec<T, capacity>& operator=(const Vec<T, capacity>& other) {
-        uns::copy(other.data, this->data, (this->size = other.size));
+    vec<T, capacity_>& operator=(const vec<T, capacity_>& other) {
+        this->clear();
+        this->append(other.begin(), other.end());
         return *this;
     }
 
-    /* @brief Casts vector to a C/C++ array.
-     * @returns The vector as a C/C++ array.
+    /* @brief Casts vector to a C array.
+     * @returns The vector as a C array.
      **/
-    explicit operator T * const () {
-        return static_cast<T * const>(this->data);
+    T* data() {
+        return reinterpret_cast<T*>(this->data_);
     }
 
-    /* @brief Casts vector to a C/C++ array.
-     * @returns The vector as a C/C++ array.
+    /* @brief Casts vector to a C array.
+     * @returns The vector as a C array.
      **/
-    explicit operator const T * const () const {
-        return static_cast<const T * const>(this->data);
+    T* data() const {
+        return reinterpret_cast<const T*>(this->data_);
+    }
+
+    uint32_t size() const {
+        return this->size_;
+    }
+
+    uint32_t capacity() const {
+        return capacity_;
+    }
+
+    /* @brief Appends one element to the end of the vector.
+     * @param value The element to append.
+     * @returns The number of elements that have been appended successfully.
+     **/
+    uint32_t append(const T& value) {
+        const uint32_t prev_size = this->size_;
+        if (this->size() < this->capacity()) {
+            this->data_[this->size_++].construct(value);
+        }
+        return this->size_ - prev_size;
+    }
+
+    /* @brief Emplaces one element to the end of the vector.
+     * @params args The constructor arguments.
+     * @returns The number of elements that have been emplaced successfully.
+     **/
+    template<typename ...Args>
+    uint32_t emplace_back(Args&&... args) {
+        const uint32_t prev_size = this->size_;
+        if (this->size() < this->capacity()) {
+            this->data_[this->size_++].emplace(std::forward<Args>(args)...);
+        }
+        return this->size_ - prev_size;
     }
 
     /* @brief Appends elements to the end of the vector.
      * @param _data The elements to append.
      * @param _size Number of elements to append.
-     * @returns Number of appended elements. Less than _size if vector capacity is reached.
+     * @returns The number of elements that have been appended successfully.
      **/
-    uint32_t append(const T * const _data, uint32_t _size) {
-        uint32_t num = uns::min(_size, capacity - this->size);
-        for (uint32_t i = 0; i < num; ++i) {
-            this->operator[](this->size++) = _data[i];
+    template <typename Iter>
+    uint32_t append(Iter begin_, Iter end_) {
+        const uint32_t prev_size = this->size_;
+        for (Iter it = begin_; it != end_; ++it) {
+            if (this->size() < this->capacity()) {
+                this->data_[this->size_++].construct(*it);
+            } else {
+                break;
+            }
         }
-        return num;
+        return this->size_ - prev_size;
     }
 
-    /* @brief Appends elements to the end of the vector.
-     * @param vec The elements to append.
-     * @returns Number of appended elements. Less than vec.size if vector capacity is reached.
-     **/
-    template <uint32_t capacity2>
-    uint32_t append(const Vec<T, capacity2>& vec) {
-        return this->append(vec.data, vec.size);
+    uint32_t insert(iterator iter, const T& value) {
+        const uint32_t prev_size = this->size_;
+        if (iter > this->begin() && iter <= this->end() && this->size() < this->capacity()) {
+            this->shiftRight(iter);
+            *iter = value;
+            this->size_++;
+        }
+        return this->size_ - prev_size;
     }
 
-    /* @brief Appends one element to the end of the vector.
-     * @param item The element to append.
-     * @returns Number of appended elements. 1 if element has been appended successfully, 0 otherwise.
+    /* @brief Emplaces one element at a given position of the vector.
+     * @param iter The iterator.
+     * @params args The constructor arguments.
+     * @returns The number of elements that have been emplaced succesfully.
      **/
-    uint32_t append(const T& item) {
-        return this->append(&item, 1);
+    template<typename ...Args>
+    uint32_t emplace(iterator iter, Args&&... args) {
+        const uint32_t prev_size = this->size_;
+        if (this->size() < this->capacity()) {
+            this->shiftRight(iter);
+            reinterpret_cast<storage_type>(*iter).emplace(std::forward<Args>(args)...);
+            this->size_++;
+        }
+        return this->size_ - prev_size;
     }
 
     void remove(uint32_t pos) {
         for (uint32_t i = pos; i < this->size - 1; ++i) {
-           this->data[i] = this->data[i + 1];
+           this->data_[i] = this->data_[i + 1];
         }
         this->size--;
     }
 
-    bool remove(iterator item) {
-        bool found = item >= this->begin() && item < this->end();
+    bool remove(iterator iter) {
+        bool found = iter >= this->begin() && iter < this->end();
         if (found) {
-            for(iterator it = item; it < this->end() - 1; ++it) {
+            for(iterator it = iter; it < this->end() - 1; ++it) {
                 *it = *(it + 1);
             }
-            this->size--;
-        }
-        return found;
-    }
-
-    bool remove(const T& item) {
-        bool found = false;
-        for(uint32_t i = 0; i < this->size; ++i) {
-            if (this->data[i] == item) {
-                found = true;
-            }
-            if (found && i < this->size - 1) {  // shifts elements after removed item
-                this->data[i] = this->data[i + 1];
-            }
-        }
-        if (found) {
-            this->size--;
+            this->size_--;
         }
         return found;
     }
@@ -131,27 +160,51 @@ public:
         }
         return it;
     }
+    
+    iterator find(const T& item) {
+        return const_cast<iterator>(const_cast<const vec*>(this)->find(item));
+    }
 
     /* @brief Clears vector.
      **/
     void clear() {
-        this->size = 0;
+        for (iterator it = this->begin(); it != this->end(); ++it) {
+            it->~T();
+        }
+        this->size_ = 0;
     }
 
     iterator begin() {
-        return this->data;
+        return reinterpret_cast<iterator>(this->data_);
     }
 
     const_iterator begin() const {
-        return this->data;
+        return reinterpret_cast<const_iterator>(this->data_);
     }
 
     iterator end() {
-        return &this->data[this->size];
+        return reinterpret_cast<iterator>(this->data_ + this->size_);
     }
 
     const_iterator end() const {
-        return &this->data[this->size];
+        return reinterpret_cast<const_iterator>(this->data_ + this->size_);
     }
+
+private:
+    void shiftLeft(iterator until) {
+        for (iterator it = this->begin(); it != until; ++it) {
+            *it = *(it + 1);
+        }
+    }
+
+    void shiftRight(iterator from) {
+        for (iterator it = this->end(); it != from; --it) {
+            *it = *(it - 1);
+        }
+    }
+
+    typedef storage_t<T> storage_type;
+    storage_type data_[capacity_];
+    uint32_t size_;
 };
 } // namespace uns

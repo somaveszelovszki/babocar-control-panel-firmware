@@ -16,7 +16,7 @@ struct dma_struct {
 
 /* @brief GPIO instance ids.
  **/
-enum class DMA : uint8_t {
+enum class DMA : uint8_t {      // TODO update
     BT,     // DMA for Bluetooth
     RADIO,  // DMA for Radio module
     GYRO,   // DMA for Gyroscope (Arduino) module

@@ -1,5 +1,5 @@
-#include <config/cfg_board.hpp>
-#include <config/cfg_os.hpp>
+#include <uns/config/cfg_board.hpp>
+#include <uns/config/cfg_os.hpp>
 
 #ifdef OS_FREERTOS
 

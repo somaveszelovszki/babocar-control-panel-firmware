@@ -1,4 +1,4 @@
-#include <config/cfg_board.hpp>
+#include <uns/config/cfg_board.hpp>
 
 #ifdef BSP_LIB_HAL
 
@@ -423,7 +423,7 @@ extern void uns_Serial_Uart_RxCpltCallback();                   // Callback for 
 extern void uns_RadioModule_Uart_RxCpltCallback();              // Callback for radio module UART RxCplt - called when receive finishes.
 extern void uns_FrontLineDetectPanel_Uart_RxCpltCallback();     // Callback for front line detect panel UART RxCplt - called when receive finishes.
 extern void uns_RearLineDetectPanel_Uart_RxCpltCallback();      // Callback for rear line detect panel UART RxCplt - called when receive finishes.
-extern void uns_Bluetooth_Uart_RxCpltCallback(uint32_t len);    // Callback for Bluetooth UART RxCplt - called when receive finishes.
+extern void uns_Bluetooth_Uart_RxCpltCallback();                // Callback for Bluetooth UART RxCplt - called when receive finishes.
 
 /* @brief Internal callback - called when SPI reception finishes.
  * @param hspi Pointer to the SPI handle.
@@ -474,8 +474,8 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         uns_RearLineDetectPanel_Uart_RxCpltCallback();
 
     } else if (huart == cfg::uart_Bluetooth) {
-        uint32_t bytes = MAX_RX_BUFFER_SIZE - ((DMA_HandleTypeDef*)cfg::dma_Bluetooth.handle)->Instance->NDTR;
-        uns_Bluetooth_Uart_RxCpltCallback(bytes);
+        //uint32_t bytes = MAX_RX_BUFFER_SIZE - ((DMA_HandleTypeDef*)cfg::dma_Bluetooth.handle)->Instance->NDTR;
+        uns_Bluetooth_Uart_RxCpltCallback();
         ((DMA_TypeDef*)cfg::dma_Bluetooth.instance)->HIFCR = DMA_FLAG_DMEIF1_5 | DMA_FLAG_FEIF1_5 | DMA_FLAG_HTIF1_5 | DMA_FLAG_TCIF1_5 | DMA_FLAG_TEIF1_5;    // clears DMA flags before next transfer
         ((DMA_HandleTypeDef*)cfg::dma_Bluetooth.handle)->Instance->NDTR = MAX_RX_BUFFER_SIZE; // sets number of bytes to receive
         ((DMA_HandleTypeDef*)cfg::dma_Bluetooth.handle)->Instance->CR |= DMA_SxCR_EN;         // starts DMA transfer

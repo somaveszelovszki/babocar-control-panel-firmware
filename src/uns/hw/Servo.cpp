@@ -17,7 +17,7 @@ void hw::Servo::write(radian_t _ang) {
 
     if (this->_angle != _ang) {
         this->_angle = _ang;
-        uint32_t pwm = uns::map(this->_angle.get(), 0.0f, PI.get(), PWM_DUTY_0, PWM_DUTY_PI);
+        uint32_t pwm = uns::scale(this->_angle.get(), 0.0f, PI.get(), PWM_DUTY_0, PWM_DUTY_PI);
         uns::writePWM(this->htim, this->chnl, pwm);
     }
 }

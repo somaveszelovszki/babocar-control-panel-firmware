@@ -4,16 +4,14 @@
 namespace uns {
 namespace globals {
 
-task::Config taskConfig;
-atomic<CarProps> car(cfg::mutex_Car);
-atomic<CarProps> targetSpeed(cfg::mutex_TargetSpeed);
+bool                useSafetyEnableSignal = true;
+bool                indicatorLedsEnabled  = true;
+bool                startSignalEnabled    = false;
+bool                lineFollowEnabled     = true;
+LogLevel            logLevel              = LogLevel::Debug;
 
-void setDefaultTaskConfig() {
-    taskConfig.useSafetyEnableSignal = true;
-    taskConfig.indicatorLedsEnabled  = true;
-    taskConfig.startSignalEnabled    = false;
-    taskConfig.lineFollowEnabled     = true;
-}
+atomic<CarProps>    car(cfg::mutex_Car);
+atomic<m_per_sec_t> targetSpeed(cfg::mutex_TargetSpeed);
 
 }  // namespace globals
 }  // namespace uns

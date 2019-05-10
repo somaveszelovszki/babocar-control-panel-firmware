@@ -45,6 +45,13 @@ inline bool isOk(Status status) {
  */
 const char* getStatusString(Status status);
 
+enum class LogLevel : uint8_t {
+    Debug   = 0x01,
+    Info    = 0x02,
+    Warning = 0x03,
+    Error   = 0x04
+};
+
 /**
  * @brief Defines rotation direction.
  */

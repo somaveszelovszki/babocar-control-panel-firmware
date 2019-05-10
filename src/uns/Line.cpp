@@ -5,7 +5,7 @@
 namespace uns {
 
 void removeUnmatchedPositions(LinePositions& positions, const Lines& lines, uint32_t targetSize, bool isFront) {
-    while (positions.size > targetSize) {
+    while (positions.size() > targetSize) {
 
         // Iterates through all the current front line positions, and for each of them,
         // finds the distance to the closest front line position in the previous measurement.
@@ -41,18 +41,18 @@ void removeUnmatchedPositions(LinePositions& positions, const Lines& lines, uint
 void calculateLines(LinePositions front, LinePositions rear, Lines& lines, Line& mainLine) {
     static constexpr millimeter_t EPS(2.0f);
 
-    if (!front.size || !rear.size) {
+    if (!front.size() || !rear.size()) {
         lines.clear();
         // center line is not changed
     } else {
-        removeUnmatchedPositions(front, lines, rear.size, true);
-        removeUnmatchedPositions(rear, lines, front.size, false);
+        removeUnmatchedPositions(front, lines, rear.size(), true);
+        removeUnmatchedPositions(rear, lines, front.size(), false);
 
         // now front and rear sizes are equal
 
         lines.clear();
 
-        for (uint32_t i = 0; i < front.size; ++i) {
+        for (uint32_t i = 0; i < front.size(); ++i) {
             Line line;
             line.pos_front = front[i];
             line.pos_rear = rear[i];
@@ -70,7 +70,7 @@ void calculateLines(LinePositions front, LinePositions rear, Lines& lines, Line&
             lines.append(line);
         }
 
-        switch(lines.size) {
+        switch(lines.size()) {
         case 1:
             mainLine = lines[0];
             break;

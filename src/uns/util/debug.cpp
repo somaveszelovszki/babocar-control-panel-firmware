@@ -1,137 +1,128 @@
 #include <uns/util/debug.hpp>
-#include <config/cfg_board.hpp>
-#include <config/cfg_os.hpp>
+#include <uns/config/cfg_board.hpp>
+#include <uns/config/cfg_os.hpp>
+#include <uns/config/cfg_perf.hpp>
+#include <uns/container/vec.hpp>
 #include <uns/container/RingBuffer.hpp>
-#include <uns/container/Vec.hpp>
 #include <uns/util/numeric.hpp>
 #include <uns/util/convert.hpp>
 #include <uns/bsp/queue.hpp>
-#include <stdarg.h>
-#include <string.h>
 
-using namespace uns;
+#include <cstdarg>
+#include <cstring>
 
-#define STR_LEN_FLOAT_DEC   (1 + 8)         // sign + decimal
-#define STR_LEN_FLOAT_FRAC  4               // fraction
-#define STR_FLOAT_FRAG_MUL  10000           // Multiplier of fragment: 10^4
-#define STR_LEN_FLOAT       (1 + 8 + 1 + 4) // sign + decimal + '.' + fragment
+namespace uns {
+namespace debug {
 
-#define MAX_TX_MSG_SIZE     1024u           // max size of transmit messages
+constexpr uint32_t STR_MAX_LEN_INT        = 1 + 10;         // sign + decimal
+constexpr uint32_t STR_MAX_LEN_FLOAT_DEC  = 1 + 8;          // sign + decimal
+constexpr uint32_t STR_MAX_LEN_FLOAT_FRAC = 4;              // fraction
+constexpr uint32_t STR_MAX_LEN_FLOAT      = 1 + 8 + 1 + 4;  // sign + decimal + '.' + fragment
 
-uint32_t debug::Msg::append(const char* s, uint32_t len) {
-    if (!len) {
-        len = strlen(s);
-    }
+//void Log::append(const char* s, uint32_t len) {
+//    if (!len) {
+//        len = strlen(s);
+//    }
+//    this->text.append(s, s + len);
+//}
+//
+//void Log::append(char c) {
+//    this->append(&c, 1);
+//}
 
-    return this->text.append(s, len);
-}
+#if LOGGING_ENABLED
+void printlog(LogLevel level, const char *format, va_list args, Status status) {
+    LogMessage msg;
 
-uint32_t debug::Msg::append(char c) {
-    return this->append(&c, 1);
-}
-
-#define PRINTF_ENABLED true
-
-#if PRINTF_ENABLED
-void debug::printf(uint32_t content, const char *format, va_list args, Status result) {
-    Status status = Status::OK;
-    Msg txMsg;
-    txMsg.content = content;
-
-    char numBuff[uns::max(STR_MAX_LEN_INT, STR_LEN_FLOAT) + 1];
+    // TODO handle level
+    char numBuf[uns::max(STR_MAX_LEN_INT, STR_MAX_LEN_FLOAT) + 1];
 
     uint32_t n = 0; // will store the index of the current character
 
-    while (format[n] != '\0' && isOk(status)) {
-        uint32_t prevSize = txMsg.text.size;
+    while (format[n] != '\0') {
+
         if (format[n] != '%')
-            txMsg.append(format[n]);
+            msg.append(format[n]);
         else {
             switch (format[++n]) {
             case 's':
-                txMsg.append(va_arg(args, char *));
+            {
+                const char *str = va_arg(args, char*);
+                msg.append(str, str + strlen(str));
                 break;
+            }
+
             case 'c':
-                txMsg.append(static_cast<char>(va_arg(args, int)));
+                msg.append(static_cast<char>(va_arg(args, int)));
                 break;
+
             case 'd':
-                if (uns::itoa(va_arg(args, int), numBuff, STR_MAX_LEN_INT) > 0) {
-                    txMsg.append(numBuff);
-                }
-                break;
-            case 'f':
-                if (uns::ftoa(static_cast<float32_t>(va_arg(args, double)), numBuff, STR_LEN_FLOAT_DEC, STR_LEN_FLOAT_FRAC) > 0) {
-                    txMsg.append(numBuff);
+            {
+                const uint32_t len = uns::itoa(va_arg(args, int), numBuf, STR_MAX_LEN_INT);
+                if (len > 0) {
+                    msg.append(numBuf, numBuf + strlen(numBuf));
                 }
                 break;
             }
-        }
 
-        if (prevSize == txMsg.text.size) {
-            status = Status::BUFFER_FULL;
+            case 'f':
+            {
+                const uint32_t len = uns::ftoa(static_cast<float32_t>(va_arg(args, double)), numBuf, STR_MAX_LEN_FLOAT_DEC, STR_MAX_LEN_FLOAT_FRAC);
+                if (len > 0) {
+                    msg.append(numBuf, numBuf + strlen(numBuf));
+                }
+                break;
+            }
+            default:
+                // Unsupported printf modifier
+                break;
+            }
         }
 
         ++n;
     }
 
-    if (isOk(status)) {
-        // appends result if needed (in case of error logs the result status will be appended)
-        if (!isOk(result)) {
-            if (!txMsg.append(" Result status: ") || !txMsg.append(uns::getStatusString(result))) {
-                status = Status::BUFFER_FULL;
-            }
-        }
+    // appends result if needed (in case of error logs the result status will be appended)
+    if (!isOk(status)) {
+        static const char *statusTemplate = " | Status: ";
+        static const uint32_t statusTemplateLen = strlen(statusTemplate);
 
-        if (isOk(status)) {
-            uns::queueSend(cfg::queue_Log, &txMsg);
-        }
+        const char *statusStr = uns::getStatusString(status);
+
+        msg.append(statusTemplate, statusTemplate + statusTemplateLen);
+        msg.append(statusStr, statusStr + strlen(statusStr));
+    }
+
+    if (msg.append('\0')) {
+        uns::queueSend(cfg::queue_Log, &msg);
     }
 }
 
-void debug::printf(uint32_t content, const char *format, ...) {
+void printlog(LogLevel level, const char *format, ...) {
     va_list args;
     va_start(args, format);
-    debug::printf(content, format, args);
+    printlog(level, format, args);
     va_end(args);
 }
 
-void debug::printlog(const char *format, ...) {
+void printerr(Status status, const char *format, ...) {
     va_list args;
     va_start(args, format);
-    debug::printf(CONTENT_FLAG_LOG, format, args);
+    printlog(LogLevel::Error, format, args, status);
     va_end(args);
-}
-
-void debug::printerr(Status result, const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    debug::printf(CONTENT_FLAG_ERROR, format, args, result);
-    va_end(args);
-}
-
-void debug::printACK() {
-    debug::printf(CONTENT_FLAG_ACK, "0");
 }
 
 #else
 // Empty implementation for non-debug configuration.
-void debug::printf(uint32_t content, const char * const format, va_list args, Status result) {
-    (void)content;
-    (void)format;
-    (void)args;
-    (void)result;
-}
+void printlog(LogLevel, const char*, va_list, Status) {}
 
 // Empty implementation for non-debug configuration.
-void debug::printf(uint32_t content, const char * const format, ...) {
-    (void)content;
-    (void)format;
-}
+void printlog(LogLevel, const char*, ...) {}
 
 // Empty implementation for non-debug configuration.
-void debug::printerr(Status result, const char * const format, ...) {
-    (void)result;
-    (void)format;
-}
+void printerr(Status, const char*, ...) {}
 
-#endif // PRINTF_ENABLED
+#endif // LOGGING_ENABLED
+
+} // namespace debug
+} // namesapce uns

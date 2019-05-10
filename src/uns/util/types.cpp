@@ -33,5 +33,5 @@ const char* getStatusString(Status status) {
 } // namespace uns
 
 extern "C" void onHardFault() {
-    uns::debug::printerr(Status::ERROR, "Hard fault!");
+    LOG_ERROR_WITH_STATUS(Status::ERROR, "Hard fault!");
 }

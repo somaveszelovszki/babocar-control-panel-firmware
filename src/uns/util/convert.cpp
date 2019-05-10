@@ -1,8 +1,9 @@
 #include <uns/util/convert.hpp>
 #include <uns/util/numeric.hpp>
 #include <uns/util/arrays.hpp>
-#include <string.h>
-#include <stdlib.h>
+
+#include <cstring>
+#include <cstdlib>
 
 using namespace uns;
 
