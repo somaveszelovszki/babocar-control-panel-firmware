@@ -1,6 +1,8 @@
 #pragma once
 
 #include <uns/util/types.h>
+//#include <uns/util/typeinfo.hpp>
+
 #include <type_traits>
 
 namespace uns {
@@ -45,6 +47,13 @@ inline bool isOk(Status status) {
  */
 const char* getStatusString(Status status);
 
+/** @brief Demangles type name.
+ * @param in The mangled type name.
+ * @param out The result - the demangled type name.
+ * @param size The size of the output buffer.
+ */
+void demangle(const char *in, char *out, uint32_t size);
+
 enum class LogLevel : uint8_t {
     Debug   = 0x01,
     Info    = 0x02,
@@ -88,4 +97,18 @@ struct is_base_of_template_impl
 
 template < template <typename...> class base,typename derived>
 using is_base_of_template = typename is_base_of_template_impl<base,derived>::type;
+
+//DEFINE_TYPEINFO(uint8_t)
+//DEFINE_TYPEINFO(uint16_t)
+//DEFINE_TYPEINFO(uint32_t)
+//DEFINE_TYPEINFO(uint64_t)
+//
+//DEFINE_TYPEINFO(int8_t)
+//DEFINE_TYPEINFO(int16_t)
+//DEFINE_TYPEINFO(int32_t)
+//DEFINE_TYPEINFO(int64_t)
+//
+//DEFINE_TYPEINFO(float32_t)
+//DEFINE_TYPEINFO(float64_t)
+
 } // namespace uns

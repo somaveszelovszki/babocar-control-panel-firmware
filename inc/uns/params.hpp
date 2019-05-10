@@ -2,6 +2,8 @@
 
 #include <uns/container/map.hpp>
 #include <uns/util/atomic.hpp>
+#include <uns/util/debug.hpp>
+#include <uns/util/typeinfo.hpp>
 
 #include <cstring>
 
@@ -22,14 +24,14 @@ struct Param {
 
 class Params {
     template <typename T>
-    void registerParam(const char *name, const char *type, T *value) {
+    void registerParam(const char *name, T *value) {
 
         static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
         static uint8_t id = static_cast<uint8_t>(DebugCode::Param);
 
         Param p;
-        memcpy(const_cast<char*>(p.name), name, strlen(name));
-        memcpy(const_cast<char*>(p.type), type, strlen(type));
+        strncpy(const_cast<char*>(p.name), name, STR_MAX_LEN_GLOBAL_NAME);
+        //strncpy(const_cast<char*>(p.type), uns::typeinfo<T>::name(), STR_MAX_LEN_GLOBAL_TYPE);
         p.buf = reinterpret_cast<uint8_t*>(value);
         p.size = sizeof(T);
         this->values.put(id++, p);
@@ -50,7 +52,5 @@ class Params {
 private:
     map<uint8_t, Param, MAX_NUM_GLOBAL_PARAMS> values;
 };
-
-#define DECLARE_GLOBAL
 
 } // namespace uns
