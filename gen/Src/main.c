@@ -73,7 +73,7 @@ void MX_FREERTOS_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void uns_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+void micro_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -231,7 +231,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-    uns_TIM_PeriodElapsedCallback(htim);
+    micro_TIM_PeriodElapsedCallback(htim);
   /* USER CODE END Callback 1 */
 }
 

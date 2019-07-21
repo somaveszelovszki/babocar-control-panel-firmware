@@ -78,7 +78,7 @@
 							<tool id="fr.ac6.managedbuild.tool.gnu.cross.c.linker.1306959308" name="MCU GCC Linker" superClass="fr.ac6.managedbuild.tool.gnu.cross.c.linker">
 								<option id="fr.ac6.managedbuild.tool.gnu.cross.c.linker.script.539681220" name="Linker Script (-T)" superClass="fr.ac6.managedbuild.tool.gnu.cross.c.linker.script" useByScannerDiscovery="false" value="../STM32F446RETx_FLASH.ld" valueType="string" />
 								<option id="gnu.c.link.option.libs.1591783095" name="Libraries (-l)" superClass="gnu.c.link.option.libs" useByScannerDiscovery="false" valueType="libs">
-									<listOptionValue builtIn="false" value="../../src/uns/task" />
+									<listOptionValue builtIn="false" value="../../src/micro/task" />
 								</option>
 								<option id="gnu.c.link.option.paths.293558392" name="Library search path (-L)" superClass="gnu.c.link.option.paths" useByScannerDiscovery="false" />
 								<option id="gnu.c.link.option.ldflags.560087621" name="Linker flags" superClass="gnu.c.link.option.ldflags" useByScannerDiscovery="false" value="-specs=nosys.specs -specs=nano.specs" valueType="string" />

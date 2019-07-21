@@ -26,4 +26,16 @@
 		<nature>fr.ac6.mcu.ide.core.MCUProjectNature</nature>
 		<nature>fr.ac6.mcu.ide.core.MCUSingleCoreProjectNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>micro-utils</name>
+			<type>2</type>
+			<location>/home/soma/work/catkin_ws/src/robonaut2020/micro-utils</location>
+		</link>
+		<link>
+			<name>micro-utils-src</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/micro-utils/src</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>

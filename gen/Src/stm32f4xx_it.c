@@ -37,7 +37,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN 0 */
-#include <uns/util/types.h>
+#include <micro/utils/types.h>
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
