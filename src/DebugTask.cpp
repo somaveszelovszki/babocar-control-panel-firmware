@@ -22,8 +22,6 @@ using namespace micro;
 
 namespace micro {
 
-static uart_handle_t * const uart_Debug = cfg::uart_Bluetooth;
-
 ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
 vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
 
@@ -108,7 +106,7 @@ void handleRxMsg(debug::LogMessage& rxMsg) {
 extern "C" void runDebugTask(const void *argument) {
     debug::LogMessage txLog;
 
-    UART_Receive_DMA(cfg::uart_Bluetooth, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
+    UART_Receive_DMA(cfg::uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
     while (!task::hasErrorHappened()) {
         // handle incoming control messages from the monitoring app
@@ -123,7 +121,7 @@ extern "C" void runDebugTask(const void *argument) {
         }
 
         if (txBuffer.size() > 0) {
-            while (!isOk(UART_Transmit_IT(uart_Debug, txBuffer.data(), txBuffer.size()))) {  // sends messages once UART is free
+            while (!isOk(UART_Transmit_IT(cfg::uart_Command, txBuffer.data(), txBuffer.size()))) {  // sends messages once UART is free
                 nonBlockingDelay(millisecond_t(1));
             }
 
@@ -136,15 +134,8 @@ extern "C" void runDebugTask(const void *argument) {
     taskDeleteCurrent();
 }
 
-/* @brief Callback for Bluetooth UART RxCplt - called when receive finishes.
- */
-void micro_Bluetooth_Uart_RxCpltCallback() {
-    rxBuffer.updateHead(1);
-    UART_Receive_DMA(cfg::uart_Bluetooth, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
-}
-
 /* @brief Callback for Serial UART RxCplt - called when receive finishes.
  */
-void micro_Serial_Uart_RxCpltCallback() {
+void micro_Command_Uart_RxCpltCallback() {
     // does not handle Serial messages
 }

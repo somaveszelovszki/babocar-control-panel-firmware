@@ -84,9 +84,9 @@ osStaticThreadDef_t IdleTaskControlBlock;
 osThreadId ControlTaskHandle;
 uint32_t ControlTaskBuffer[ 512 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId DebugTaskHandle;
-uint32_t DebugTaskBuffer[ 1024 ];
-osStaticThreadDef_t DebugTaskControlBlock;
+osThreadId CommandTaskHandle;
+uint32_t CommandTaskBuffer[ 1024 ];
+osStaticThreadDef_t CommandTaskControlBlock;
 osThreadId SetupTaskHandle;
 uint32_t SetupTaskBuffer[ 128 ];
 osStaticThreadDef_t SetupTaskControlBlock;
@@ -109,7 +109,7 @@ void runSetupTask(const void *argument);
 
 void StartIdleTask(void const * argument);
 void StartControlTask(void const * argument);
-void StartDebugTask(void const * argument);
+void StartCommandTask(void const * argument);
 void StartSetupTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -165,6 +165,15 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* definition and creation of LogQueue */
+  osMessageQStaticDef(LogQueue, 16, LogQueueItem_t, LogQueueBuffer, &LogQueueControlBlock);
+  LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
   /* Create the thread(s) */
   /* definition and creation of IdleTask */
   osThreadStaticDef(IdleTask, StartIdleTask, osPriorityIdle, 0, 128, IdleTaskBuffer, &IdleTaskControlBlock);
@@ -174,9 +183,9 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
-  /* definition and creation of DebugTask */
-  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
-  DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
+  /* definition and creation of CommandTask */
+  osThreadStaticDef(CommandTask, StartCommandTask, osPriorityLow, 0, 1024, CommandTaskBuffer, &CommandTaskControlBlock);
+  CommandTaskHandle = osThreadCreate(osThread(CommandTask), NULL);
 
   /* definition and creation of SetupTask */
   osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 128, SetupTaskBuffer, &SetupTaskControlBlock);
@@ -186,14 +195,6 @@ void MX_FREERTOS_Init(void) {
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
-  /* Create the queue(s) */
-  /* definition and creation of LogQueue */
-  osMessageQStaticDef(LogQueue, 16, LogQueueItem_t, LogQueueBuffer, &LogQueueControlBlock);
-  LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
 }
 
 /* USER CODE BEGIN Header_StartIdleTask */
@@ -229,18 +230,22 @@ void StartControlTask(void const * argument)
   /* USER CODE END StartControlTask */
 }
 
-/* USER CODE BEGIN Header_StartDebugTask */
+/* USER CODE BEGIN Header_StartCommandTask */
 /**
-* @brief Function implementing the DebugTask thread.
+* @brief Function implementing the CommandTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartDebugTask */
-void StartDebugTask(void const * argument)
+/* USER CODE END Header_StartCommandTask */
+void StartCommandTask(void const * argument)
 {
-  /* USER CODE BEGIN StartDebugTask */
-  runDebugTask(argument);
-  /* USER CODE END StartDebugTask */
+  /* USER CODE BEGIN StartCommandTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCommandTask */
 }
 
 /* USER CODE BEGIN Header_StartSetupTask */
