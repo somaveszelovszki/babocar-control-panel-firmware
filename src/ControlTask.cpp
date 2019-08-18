@@ -39,7 +39,7 @@ extern "C" void runControlTask(const void *argument) {
     Lines lines;
     Line mainLine;
     LineController lineController(cfg::WHEEL_BASE, cfg::WHEEL_LED_DIST);
-    hw::SteeringServo steeringServo(cfg::tim_Servo, cfg::tim_chnl_Servo1, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
+    hw::SteeringServo steeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_SteeringServo1, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
 
     while(!task::hasErrorHappened()) {
         CarProps car;
