@@ -37,8 +37,8 @@ const micro::tim_handle_t  tim_SteeringServo       = { &htim1 };
 const micro::tim_channel_t tim_chnl_SteeringServo1 = { TIM_CHANNEL_1 };
 const micro::tim_channel_t tim_chnl_SteeringServo2 = { TIM_CHANNEL_2 };
 
-const micro::uart_handle_t uart_Command              = { &huart1 };
-const micro::uart_handle_t uart_MotorPanel           = { &huart2 };
+const micro::uart_handle_t uart_MotorPanel           = { &huart1 };
+const micro::uart_handle_t uart_Command              = { &huart2 };
 const micro::uart_handle_t uart_RadioModule          = { &huart3 };
 const micro::uart_handle_t uart_FrontLineDetectPanel = { &huart4 };
 const micro::uart_handle_t uart_RearLineDetectPanel  = { &huart5 };
