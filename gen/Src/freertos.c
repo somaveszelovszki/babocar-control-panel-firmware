@@ -206,6 +206,11 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartIdleTask */
 void StartIdleTask(void const * argument)
 {
+    
+    
+    
+    
+    
 
   /* USER CODE BEGIN StartIdleTask */
   /* Infinite loop */
