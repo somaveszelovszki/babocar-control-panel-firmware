@@ -14,7 +14,6 @@ extern bool     useSafetyEnableSignal;
 extern bool     indicatorLedsEnabled;
 extern bool     startSignalEnabled;
 extern bool     lineFollowEnabled;
-extern LogLevel logLevel;
 
 extern atomic<CarProps> car;
 

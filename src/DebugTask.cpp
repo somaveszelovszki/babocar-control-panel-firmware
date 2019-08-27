@@ -6,7 +6,7 @@
 #include <micro/bsp/task.hpp>
 #include <micro/container/ring_buffer.hpp>
 #include <micro/container/span.hpp>
-#include <micro/utils/debug.hpp>
+#include <micro/utils/log.hpp>
 #include <micro/utils/convert.hpp>
 #include <micro/utils/arrays.hpp>
 #include <micro/debug/params.hpp>
@@ -18,19 +18,20 @@
 
 #include <cstring>
 
-using namespace micro;
+#define MAX_TX_BUFFER_SIZE  512u    // size of the log TX buffer
+#define MAX_RX_BUFFER_SIZE  512u    // size of the log RX buffer
 
-namespace micro {
+namespace {
 
-ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
-vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
+micro::ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
+micro::vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
 
 /* @brief Gets debug message from the buffer.
  * @param rxMsg The destination debug message.
  * @returns Status indicating operation success. Status::OK means a whole message has been received, otherwise the result is Status::NO_NEW_DATA.
  */
-Status getRxMsg(debug::LogMessage& rxMsg) {
-    Status result = Status::NO_NEW_DATA;
+micro::Status getRxMsg(micro::LogMessage& rxMsg) {
+    micro::Status result = micro::Status::NO_NEW_DATA;
 //    int32_t startIdx, endIdx, secondStartIdx;
 //
 //    if ((startIdx = indexOf(rxBuffer.indexOf(debug::MSG_START)) != -1) {
@@ -65,7 +66,7 @@ Status getRxMsg(debug::LogMessage& rxMsg) {
 /* @brief Handles received debug message.
  * @param rxMsg The received debug message.
  */
-void handleRxMsg(debug::LogMessage& rxMsg) {
+void handleRxMsg(micro::LogMessage& rxMsg) {
 //    uint32_t dataIdx = indexOf(debug::MSG_SEP, static_cast<const char * const>(rxMsg.text), LOG_MSG_MAX_SIZE) + sizeof(debug::MSG_SEP);
 //    const char * const data = &rxMsg.data[dataIdx];
 //    if (rxMsg.content | debug::CONTENT_FLAG_SET_CONTENT) {
@@ -104,34 +105,34 @@ void handleRxMsg(debug::LogMessage& rxMsg) {
 } // namespace
 
 extern "C" void runDebugTask(const void *argument) {
-    debug::LogMessage txLog;
+    micro::LogMessage txLog;
 
     UART_Receive_DMA(cfg::uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
-    while (!task::hasErrorHappened()) {
+    while (!micro::task::hasErrorHappened()) {
         // handle incoming control messages from the monitoring app
 //        if (isOk(getRxMsg(rxMsg))) {
 //            handleRxMsg(rxMsg);
 //        }
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        while(txBuffer.size() + LOG_MSG_MAX_SIZE <= MAX_TX_BUFFER_SIZE && isOk(queueReceive(cfg::queue_Log, &txLog))) {
-            txBuffer.append(static_cast<uint8_t>(DebugCode::Log));
-            txBuffer.append(txLog.begin(), txLog.end());
+        while(txBuffer.size() + LOG_MSG_MAX_SIZE <= MAX_TX_BUFFER_SIZE && micro::isOk(micro::queueReceive(cfg::queue_Log, &txLog))) {
+            txBuffer.append(static_cast<uint8_t>(micro::DebugCode::Log));
+            txBuffer.append(txLog.text.begin(), txLog.text.end());
         }
 
         if (txBuffer.size() > 0) {
             while (!isOk(UART_Transmit_IT(cfg::uart_Command, txBuffer.data(), txBuffer.size()))) {  // sends messages once UART is free
-                nonBlockingDelay(millisecond_t(1));
+                micro::nonBlockingDelay(micro::millisecond_t(1));
             }
 
             txBuffer.clear();
         }
 
-        nonBlockingDelay(millisecond_t(1));
+        micro::nonBlockingDelay(micro::millisecond_t(1));
     }
 
-    taskDeleteCurrent();
+    micro::taskDeleteCurrent();
 }
 
 /* @brief Callback for Serial UART RxCplt - called when receive finishes.

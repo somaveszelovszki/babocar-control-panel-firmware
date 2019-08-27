@@ -1,5 +1,5 @@
 #include <micro/bsp/tim.hpp>
-#include <micro/utils/debug.hpp>
+#include <micro/utils/log.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
 #include <micro/panel/MotorPanel.hpp>
 #include <micro/task/common.hpp>
@@ -38,26 +38,22 @@ extern "C" void runSetupTask(const void *argument) {
     taskSuspend(cfg::task_Control);
     blockingDelay(millisecond_t(200));     // gives time to auxiliary panels to wake up
 
-
-
     waitStartSignal();
 
     LOG_DEBUG("Starting panel initialization");
 
-    Status status;
-
-    if (!isOk(status = motorPanel.start(globals::useSafetyEnableSignal))) {
-        LOG_ERROR_WITH_STATUS(status, "motorPanel.start failed");
+    if (!isOk(motorPanel.start(globals::useSafetyEnableSignal))) {
+        LOG_ERROR("motorPanel.start failed");
         task::setErrorFlag();
     }
 
-    if (!isOk(status = frontLineDetectPanel.start())) {
-        LOG_ERROR_WITH_STATUS(status, "frontLineDetectPanel.start failed");
+    if (!isOk(frontLineDetectPanel.start())) {
+        LOG_ERROR("frontLineDetectPanel.start failed");
         task::setErrorFlag();
     }
 
-    if (!isOk(status = rearLineDetectPanel.start())) {
-        LOG_ERROR_WITH_STATUS(status, "rearLineDetectPanel.start failed");
+    if (!isOk(rearLineDetectPanel.start())) {
+        LOG_ERROR("rearLineDetectPanel.start failed");
         task::setErrorFlag();
     }
 

@@ -56,7 +56,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
-#include <micro/utils/types.h>
+#include <queue_sizes.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

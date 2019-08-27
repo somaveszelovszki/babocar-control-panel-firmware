@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=/home/soma/work/catkin_ws/src/robonaut2020/car/gen/Inc
+HeaderPath=/home/soma/work/catkin_ws/src/robonaut2020/car-stm32/gen/Inc
 HeaderFiles=gpio.h;FreeRTOSConfig.h;usart.h;stm32f4xx_it.h;stm32f4xx_hal_conf.h;main.h;spi.h;tim.h;adc.h;i2c.h;dma.h;
-SourcePath=/home/soma/work/catkin_ws/src/robonaut2020/car/gen/Src
+SourcePath=/home/soma/work/catkin_ws/src/robonaut2020/car-stm32/gen/Src
 SourceFiles=gpio.c;freertos.c;usart.c;stm32f4xx_it.c;stm32f4xx_hal_msp.c;stm32f4xx_hal_timebase_TIM.c;main.c;spi.c;tim.c;adc.c;i2c.c;dma.c;stm32f4xx_hal_timebase_tim.c;
 
 [PreviousLibFiles]

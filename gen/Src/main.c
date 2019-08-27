@@ -29,7 +29,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <micro/utils/debug.hpp>
+#include <queue_sizes.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,7 +51,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-extern osMessageQId LogQueueHandle;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,7 +107,7 @@ int main(void)
   MX_UART5_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  log_init(&LogQueueHandle);
+
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */

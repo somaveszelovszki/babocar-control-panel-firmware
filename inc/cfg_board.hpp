@@ -13,8 +13,8 @@ namespace cfg {
 extern const micro::tim_handle_t tim_System;
 
 extern const micro::tim_handle_t  tim_SteeringServo;
-extern const micro::tim_channel_t tim_chnl_SteeringServo1;
-extern const micro::tim_channel_t tim_chnl_SteeringServo2;
+extern const micro::tim_channel_t tim_chnl_FrontServo;
+extern const micro::tim_channel_t tim_chnl_RearServo;
 
 extern const micro::uart_handle_t uart_Command;
 extern const micro::uart_handle_t uart_MotorPanel;

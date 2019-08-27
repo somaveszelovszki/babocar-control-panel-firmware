@@ -1,5 +1,5 @@
 #include <micro/task/common.hpp>
-#include <micro/utils/debug.hpp>
+#include <micro/utils/log.hpp>
 #include <micro/utils/updatable.hpp>
 #include <micro/bsp/task.hpp>
 #include <micro/hw/SteeringServo.hpp>
@@ -39,7 +39,8 @@ extern "C" void runControlTask(const void *argument) {
     Lines lines;
     Line mainLine;
     LineController lineController(cfg::WHEEL_BASE, cfg::WHEEL_LED_DIST);
-    hw::SteeringServo steeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_SteeringServo1, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
+    hw::SteeringServo frontSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_FrontServo, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
+    hw::SteeringServo rearSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_RearServo, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
 
     while(!task::hasErrorHappened()) {
         CarProps car;
@@ -55,7 +56,7 @@ extern "C" void runControlTask(const void *argument) {
             if (globals::lineFollowEnabled) {
                 const meter_t baseline = meter_t::ZERO();   // TODO change baseline for more efficient turns
                 if (isOk(lineController.run(car.speed, baseline, mainLine))) {
-                    steeringServo.writeWheelAngle(lineController.getOutput());
+                    frontSteeringServo.writeWheelAngle(lineController.getOutput());
                 }
             }
         }

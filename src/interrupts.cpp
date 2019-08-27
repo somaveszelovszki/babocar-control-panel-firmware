@@ -45,6 +45,8 @@ extern "C" void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c) {
 
 }
 
+// TODO already defined in DebugTask
+#define MAX_RX_BUFFER_SIZE  512u    // size of the log RX buffer
 
 /* @brief Internal callback - called when UAR receive finishes.
  * @param huart Pointer to the UART handle.
