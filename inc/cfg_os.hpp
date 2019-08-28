@@ -14,7 +14,7 @@ extern const micro::mutex_handle_t mutex_RearLinePos;
 
 extern const micro::task_handle_t task_Idle;
 extern const micro::task_handle_t task_Control;
-extern const micro::task_handle_t task_Command;
+extern const micro::task_handle_t task_Debug;
 extern const micro::task_handle_t task_Setup;
 
 } // namespace cfg

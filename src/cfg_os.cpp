@@ -5,7 +5,7 @@
 
 extern "C" osThreadId IdleTaskHandle;
 extern "C" osThreadId ControlTaskHandle;
-extern "C" osThreadId CommandTaskHandle;
+extern "C" osThreadId DebugTaskHandle;
 extern "C" osThreadId SetupTaskHandle;
 extern "C" osMessageQId LogQueueHandle;
 extern "C" osMutexId CarMutexHandle;
@@ -22,7 +22,7 @@ const micro::mutex_handle_t mutex_RearLinePos  = { RearLinePositionsMutexHandle 
 
 const micro::task_handle_t task_Idle    = { IdleTaskHandle };
 const micro::task_handle_t task_Control = { ControlTaskHandle };
-const micro::task_handle_t task_Command = { CommandTaskHandle };
+const micro::task_handle_t task_Debug   = { DebugTaskHandle };
 const micro::task_handle_t task_Setup   = { SetupTaskHandle };
 
 }

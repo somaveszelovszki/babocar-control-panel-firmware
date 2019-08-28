@@ -23,6 +23,10 @@
 
 namespace {
 
+enum class DebugCode {
+    Log
+};
+
 micro::ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
 micro::vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
 
@@ -117,8 +121,8 @@ extern "C" void runDebugTask(const void *argument) {
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
         while(txBuffer.size() + LOG_MSG_MAX_SIZE <= MAX_TX_BUFFER_SIZE && micro::isOk(micro::queueReceive(cfg::queue_Log, &txLog))) {
-            txBuffer.append(static_cast<uint8_t>(micro::DebugCode::Log));
-            txBuffer.append(txLog.text.begin(), txLog.text.end());
+            txBuffer.append(static_cast<uint8_t>(DebugCode::Log));
+            txBuffer.append(txLog.text, txLog.text + strlen(txLog.text));
         }
 
         if (txBuffer.size() > 0) {

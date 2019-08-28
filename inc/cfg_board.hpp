@@ -29,5 +29,3 @@ extern const micro::dma_struct dma_FrontLineDetectPanel;
 extern const micro::dma_struct dma_RearLineDetectPanel;
 
 } // namespace cfg
-
-

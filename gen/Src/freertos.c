@@ -84,9 +84,9 @@ osStaticThreadDef_t IdleTaskControlBlock;
 osThreadId ControlTaskHandle;
 uint32_t ControlTaskBuffer[ 512 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId CommandTaskHandle;
-uint32_t CommandTaskBuffer[ 1024 ];
-osStaticThreadDef_t CommandTaskControlBlock;
+osThreadId DebugTaskHandle;
+uint32_t DebugTaskBuffer[ 1024 ];
+osStaticThreadDef_t DebugTaskControlBlock;
 osThreadId SetupTaskHandle;
 uint32_t SetupTaskBuffer[ 128 ];
 osStaticThreadDef_t SetupTaskControlBlock;
@@ -109,7 +109,7 @@ void runSetupTask(const void *argument);
 
 void StartIdleTask(void const * argument);
 void StartControlTask(void const * argument);
-void StartCommandTask(void const * argument);
+void StartDebugTask(void const * argument);
 void StartSetupTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -183,9 +183,9 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
-  /* definition and creation of CommandTask */
-  osThreadStaticDef(CommandTask, StartCommandTask, osPriorityLow, 0, 1024, CommandTaskBuffer, &CommandTaskControlBlock);
-  CommandTaskHandle = osThreadCreate(osThread(CommandTask), NULL);
+  /* definition and creation of DebugTask */
+  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
+  DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
   /* definition and creation of SetupTask */
   osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 128, SetupTaskBuffer, &SetupTaskControlBlock);
@@ -235,22 +235,19 @@ void StartControlTask(void const * argument)
   /* USER CODE END StartControlTask */
 }
 
-/* USER CODE BEGIN Header_StartCommandTask */
+/* USER CODE BEGIN Header_StartDebugTask */
 /**
-* @brief Function implementing the CommandTask thread.
+* @brief Function implementing the DebugTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartCommandTask */
-void StartCommandTask(void const * argument)
+/* USER CODE END Header_StartDebugTask */
+void StartDebugTask(void const * argument)
 {
-  /* USER CODE BEGIN StartCommandTask */
+  /* USER CODE BEGIN StartDebugTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartCommandTask */
+  runDebugTask(argument);
+  /* USER CODE END StartDebugTask */
 }
 
 /* USER CODE BEGIN Header_StartSetupTask */
