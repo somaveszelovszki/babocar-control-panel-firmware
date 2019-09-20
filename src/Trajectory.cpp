@@ -5,9 +5,9 @@
 //using namespace micro;
 //
 //void Trajectory::updateRadiuses() {
-//    float32_t angle = pCar->steeringAngle.get<radians>();
+//    float angle = pCar->steeringAngle.get<radians>();
 //    if (!(isNoSteering = (abs(angle) <= 0.05f))) {
-//        float32_t tanAngle = micro::tan(pCar->steeringAngle);
+//        float tanAngle = micro::tan(pCar->steeringAngle);
 //
 //        int32_t steerMul = static_cast<int32_t>(pCar->getSteeringDir());
 //

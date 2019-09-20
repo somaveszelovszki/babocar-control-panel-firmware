@@ -80,7 +80,7 @@
 //         * @param targetDiff Distance of section points. @note If using this difference results in more section points than the maximum, will not be used!
 //         * @param maxPointsNum Maximum number of section points (0 means no limit) - 0 by default.
 //         **/
-//        void setSection(const point2f *pStartPoint, const point2f *pEndPoint, float32_t targetDiff, uint8_t maxPointsNum = 0);
+//        void setSection(const point2f *pStartPoint, const point2f *pEndPoint, float targetDiff, uint8_t maxPointsNum = 0);
 //
 //        /* @brief Checks if there still exists a point in the section that has not been acquired.
 ////         * @returns Boolean value indicating if there still exists a point in the section that has not been acquired.
@@ -133,7 +133,7 @@
 //     * @param targetDiff Distance of section points. @note If using this difference results in more section points than the maximum, will not be used!
 //     * @param maxPointsNum Maximum number of section points.
 //     **/
-//    void setSection(const point2f *pStartPoint, const point2f *pEndPoint, float32_t targetDiff, uint8_t maxPointsNum) {
+//    void setSection(const point2f *pStartPoint, const point2f *pEndPoint, float targetDiff, uint8_t maxPointsNum) {
 //        sectionPointCalculator.setSection(pStartPoint, pEndPoint, targetDiff, maxPointsNum);
 //    }
 //
@@ -167,8 +167,8 @@
 //     * @returns The checked grid index.
 //     **/
 //    template <typename T>
-//    static T toRealIdx(float32_t idx, uint8_t gridResRate = 1) {
-//        float32_t _idx = idx * gridResRate, _max = ENV_GRID_AXIS_NUM_POINTS * gridResRate;
+//    static T toRealIdx(float idx, uint8_t gridResRate = 1) {
+//        float _idx = idx * gridResRate, _max = ENV_GRID_AXIS_NUM_POINTS * gridResRate;
 //        return static_cast<T>((idx < 0.0f || _idx >= _max) ? -1 : _idx);
 //    }
 //

@@ -10,10 +10,13 @@ namespace globals {
 
 extern Params debugParams;
 
-extern bool     useSafetyEnableSignal;
-extern bool     indicatorLedsEnabled;
-extern bool     startSignalEnabled;
-extern bool     lineFollowEnabled;
+extern bool useSafetyEnableSignal;
+extern bool indicatorLedsEnabled;
+extern bool startSignalEnabled;
+extern bool lineFollowEnabled;
+
+extern microsecond_t motorController_Ti;
+extern float         motorController_Kc;
 
 extern atomic<CarProps> car;
 

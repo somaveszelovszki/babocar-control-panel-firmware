@@ -1,7 +1,9 @@
 #include <micro/bsp/tim.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
+#include <micro/panel/LineDetectPanelData.h>
 #include <micro/panel/MotorPanel.hpp>
+#include <micro/panel/MotorPanelData.h>
 #include <micro/task/common.hpp>
 
 #include <cfg_board.hpp>
@@ -21,7 +23,27 @@ namespace {
 uint8_t startCounterBuffer[1];
 volatile char startCounter = '6';   // start counter will count back from 5 to 0
 
-void waitStartSignal() {
+void waitPanels(void) {
+    millisecond_t lastRecvTime = millisecond_t(0);
+    do {
+        nonBlockingDelay(millisecond_t(10));
+        motorPanel.getLastValue(&lastRecvTime);
+    } while(isZero(lastRecvTime));
+
+    lastRecvTime = millisecond_t(0);
+    do {
+        nonBlockingDelay(millisecond_t(10));
+        frontLineDetectPanel.getLastValue(&lastRecvTime);
+    } while(isZero(lastRecvTime));
+
+    lastRecvTime = millisecond_t(0);
+    do {
+        nonBlockingDelay(millisecond_t(10));
+        rearLineDetectPanel.getLastValue(&lastRecvTime);
+    } while(isZero(lastRecvTime));
+}
+
+void waitStartSignal(void) {
     UART_Receive_DMA(cfg::uart_RadioModule, startCounterBuffer, 1);
 
     while(globals::startSignalEnabled && startCounter != '0') {
@@ -35,28 +57,33 @@ void waitStartSignal() {
 } // namespace
 
 extern "C" void runSetupTask(const void *argument) {
-    taskSuspend(cfg::task_Control);
-    blockingDelay(millisecond_t(200));     // gives time to auxiliary panels to wake up
 
-    waitStartSignal();
+    taskSuspend(cfg::task_Control); // suspends ControlTask so that it cannot run until initialization finishes
+
+    nonBlockingDelay(millisecond_t(200));     // gives time to auxiliary panels to wake up
 
     LOG_DEBUG("Starting panel initialization");
 
-    if (!isOk(motorPanel.start(globals::useSafetyEnableSignal))) {
-        LOG_ERROR("motorPanel.start failed");
-        task::setErrorFlag();
-    }
+    motorPanelDataIn_t motorPanelStartData;
+    motorPanelStartData.targetSpeed_mmps = 0;
+    motorPanelStartData.controller_Ti_us = globals::motorController_Ti.get();
+    motorPanelStartData.controller_Kc    = globals::motorController_Kc;
+    motorPanelStartData.flags            = globals::useSafetyEnableSignal ? MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL : 0x00;
 
-    if (!isOk(frontLineDetectPanel.start())) {
-        LOG_ERROR("frontLineDetectPanel.start failed");
-        task::setErrorFlag();
-    }
+    lineDetectPanelDataIn_t frontLineDetectPanelStartData;
+    frontLineDetectPanelStartData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
 
-    if (!isOk(rearLineDetectPanel.start())) {
-        LOG_ERROR("rearLineDetectPanel.start failed");
-        task::setErrorFlag();
-    }
+    lineDetectPanelDataIn_t rearLineDetectPanelStartData;
+    rearLineDetectPanelStartData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
 
+    motorPanel.start(motorPanelStartData);
+    frontLineDetectPanel.start(frontLineDetectPanelStartData);
+    rearLineDetectPanel.start(rearLineDetectPanelStartData);
+
+    waitPanels();
+    waitStartSignal();
+
+    taskResumeAll();
     taskDeleteCurrent();
 }
 

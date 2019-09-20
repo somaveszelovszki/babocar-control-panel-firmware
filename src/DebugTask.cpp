@@ -80,7 +80,7 @@ void handleRxMsg(micro::LogMessage& rxMsg) {
 //    uint32_t strIdx = 0;
 //
 //    if (rxMsg.content & debug::CONTENT_FLAG_CAR_PROPS) {
-//        float32_t posX, posY, v, ori;
+//        float posX, posY, v, ori;
 //        if (isOk(readFloat(data, rxMsg.text.size() - dataIdx, &strIdx, &posX)) &&
 //            isOk(readFloat(data, rxMsg.text.size() - dataIdx, &strIdx, &posY)) &&
 //            isOk(readFloat(data, rxMsg.text.size() - dataIdx, &strIdx, &v)) &&
@@ -91,7 +91,7 @@ void handleRxMsg(micro::LogMessage& rxMsg) {
 //            //debugMotorPWM = v;
 //        }
 //    } else if (rxMsg.content & debug::CONTENT_FLAG_CONTROLLER) {
-//        float32_t Kc;
+//        float Kc;
 ////        if (isOk(readFloat(data, rxMsg.text.size() - dataIdx, &strIdx, &Kc)) &&
 ////            isOk(readFloat(data, rxMsg.text.size() - dataIdx, &strIdx, &Ki)) &&
 ////            isOk(readFloat(data, rxMsg.text.size() - dataIdx, &strIdx, &Kd)) &&

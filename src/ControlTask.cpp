@@ -7,6 +7,7 @@
 #include <micro/control/LineController.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
 #include <micro/panel/MotorPanel.hpp>
+#include <micro/utils/Line.hpp>
 
 #include <cfg_board.hpp>
 #include <cfg_os.hpp>
@@ -32,17 +33,28 @@ bool isFastSpeedSafe(const Line& line) {
     return abs(line.pos_front) <= MAX_LINE_POS && abs(line.angle) <= MAX_LINE_ANGLE;
 }
 
+void getLinesFromPanel(const LineDetectPanel& panel, volatile atomic_updatable<LinePositions>& positions) {
+    LinePositions *p = const_cast<LinePositions*>(positions.accept_ptr());
+    if (p) {
+        lineDetectPanelDataOut_t dataIn = panel.getLastValue();
+        p->clear();
+        for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
+            p->append(millimeter_t(dataIn.lines.values[i].pos_mm));
+        }
+        positions.release_ptr();
+    }
+}
+
 } // namespace
 
 extern "C" void runControlTask(const void *argument) {
 
     Lines lines;
     Line mainLine;
-    LineController lineController(cfg::WHEEL_BASE, cfg::WHEEL_LED_DIST);
-    hw::SteeringServo frontSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_FrontServo, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
-    hw::SteeringServo rearSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_RearServo, cfg::SERVO_MID, cfg::WHEEL_MAX_DELTA, cfg::SERVO_WHEEL_TR);
+    hw::SteeringServo frontSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_FrontServo, cfg::SERVO_MID_FRONT, cfg::WHEEL_MAX_DELTA_FRONT, cfg::SERVO_WHEEL_TR_FRONT);
+    hw::SteeringServo rearSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_RearServo, cfg::SERVO_MID_REAR, cfg::WHEEL_MAX_DELTA_REAR, cfg::SERVO_WHEEL_TR_REAR);
 
-    while(!task::hasErrorHappened()) {
+    while(true) {
         CarProps car;
         globals::car.wait_copy(car);
 
@@ -54,10 +66,7 @@ extern "C" void runControlTask(const void *argument) {
             calculateLines(front, rear, lines, mainLine);
 
             if (globals::lineFollowEnabled) {
-                const meter_t baseline = meter_t::ZERO();   // TODO change baseline for more efficient turns
-                if (isOk(lineController.run(car.speed, baseline, mainLine))) {
-                    frontSteeringServo.writeWheelAngle(lineController.getOutput());
-                }
+
             }
         }
 
@@ -76,21 +85,13 @@ void micro_MotorPanel_Uart_RxCpltCallback() {
 /* @brief Callback for front line detect panel UART RxCplt - called when receive finishes.
  */
 void micro_FrontLineDetectPanel_Uart_RxCpltCallback() {
-    LinePositions *p = const_cast<LinePositions*>(frontLinePositions.accept_ptr());
-    if (p) {
-        frontLineDetectPanel.getLinePositions(*p);
-        frontLinePositions.release_ptr();
-    }
+    getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
 }
 
 /* @brief Callback for rear line detect panel UART RxCplt - called when receive finishes.
  */
 void micro_RearLineDetectPanel_Uart_RxCpltCallback() {
-    LinePositions *p = const_cast<LinePositions*>(rearLinePositions.accept_ptr());
-    if (p) {
-        rearLineDetectPanel.getLinePositions(*p);
-        rearLinePositions.release_ptr();
-    }
+    getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
 }
 
 
