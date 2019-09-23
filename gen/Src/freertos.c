@@ -56,7 +56,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
-#include <queue_sizes.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,7 +91,7 @@ osThreadId SetupTaskHandle;
 uint32_t SetupTaskBuffer[ 128 ];
 osStaticThreadDef_t SetupTaskControlBlock;
 osMessageQId LogQueueHandle;
-uint8_t LogQueueBuffer[ 16 * sizeof( LogQueueItem_t ) ];
+uint8_t LogQueueBuffer[ 16 * 128 ];
 osStaticMessageQDef_t LogQueueControlBlock;
 osMutexId CarMutexHandle;
 osStaticMutexDef_t CarMutexControlBlock;
@@ -167,7 +167,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* definition and creation of LogQueue */
-  osMessageQStaticDef(LogQueue, 16, LogQueueItem_t, LogQueueBuffer, &LogQueueControlBlock);
+  osMessageQStaticDef(LogQueue, 16, 128, LogQueueBuffer, &LogQueueControlBlock);
   LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
