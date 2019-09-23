@@ -51,4 +51,10 @@ constexpr micro::microsecond_t DC_MOTOR_T_ELECTRICAL = micro::microsecond_t(484.
 constexpr micro::microsecond_t DC_MOTOR_CONTROLLER_DEFAULT_Ti = DC_MOTOR_T_ELECTRICAL;
 constexpr float                DC_MOTOR_CONTROLLER_DEFAULT_Kc = 1.0f;
 
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P = 1.0f;
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D = 1.0f;
+
+constexpr float REAR_LINE_CONTROLLER_DEFAULT_P  = 1.0f;
+constexpr float REAR_LINE_CONTROLLER_DEFAULT_D  = 1.0f;
+
 } // namespace cfg
