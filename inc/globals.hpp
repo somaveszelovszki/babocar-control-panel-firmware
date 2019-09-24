@@ -1,6 +1,5 @@
 #pragma once
 
-#include <micro/utils/atomic.hpp>
 #include <micro/utils/units.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/debug/params.hpp>
@@ -20,7 +19,7 @@ extern float frontLineController_P;
 extern float frontLineController_D;
 extern float rearLineController_P;
 extern float rearLineController_D;
-extern atomic<CarProps> car;
+extern CarProps car;
 extern m_per_sec_t targetSpeed;
 
 void initializeGlobalParams();

@@ -20,7 +20,7 @@ float frontLineController_D      = cfg::FRONT_LINE_CONTROLLER_DEFAULT_D;
 float rearLineController_P       = cfg::REAR_LINE_CONTROLLER_DEFAULT_P;
 float rearLineController_D       = cfg::REAR_LINE_CONTROLLER_DEFAULT_D;
 m_per_sec_t targetSpeed          = m_per_sec_t(0);
-atomic<CarProps> car             = atomic<CarProps>(cfg::mutex_Car);
+CarProps car                     = CarProps();
 
 void initializeGlobalParams() {
     REGISTER_GLOBAL(useSafetyEnableSignal);

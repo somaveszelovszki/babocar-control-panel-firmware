@@ -1,4 +1,5 @@
 #include <cfg_board.hpp>
+#include <micro/utils/timer.hpp>
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"
@@ -85,7 +86,8 @@ extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
  * @param htim Pointer to the timer handle.
  **/
 extern "C" void micro_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-
+    // TODO
+    micro::Timer::updateAll();
 }
 
 extern "C" void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
