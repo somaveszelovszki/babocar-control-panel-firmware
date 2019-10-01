@@ -19,8 +19,8 @@ extern float frontLineController_P;
 extern float frontLineController_D;
 extern float rearLineController_P;
 extern float rearLineController_D;
-extern CarProps car;
 extern m_per_sec_t targetSpeed;
+extern CarProps car;
 
 void initializeGlobalParams();
 
