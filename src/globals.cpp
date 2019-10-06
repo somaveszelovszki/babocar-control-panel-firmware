@@ -1,5 +1,4 @@
 #include <globals.hpp>
-#include <cfg_os.hpp>
 #include <cfg_car.hpp>
 
 namespace micro {

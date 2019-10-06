@@ -4,45 +4,15 @@
   * File Name          : freertos.c
   * Description        : Code for freertos applications
   ******************************************************************************
-  * This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
+  * @attention
   *
-  * Copyright (c) 2018 STMicroelectronics International N.V. 
-  * All rights reserved.
+  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * Redistribution and use in source and binary forms, with or without 
-  * modification, are permitted, provided that the following conditions are met:
-  *
-  * 1. Redistribution of source code must retain the above copyright notice, 
-  *    this list of conditions and the following disclaimer.
-  * 2. Redistributions in binary form must reproduce the above copyright notice,
-  *    this list of conditions and the following disclaimer in the documentation
-  *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other 
-  *    contributors to this software may be used to endorse or promote products 
-  *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this 
-  *    software, must execute solely and exclusively on microcontroller or
-  *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under 
-  *    this license is void and will automatically terminate your rights under 
-  *    this license. 
-  *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
-  * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
-  * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
   *
   ******************************************************************************
   */
@@ -78,39 +48,26 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId IdleTaskHandle;
-uint32_t IdleTaskBuffer[ 128 ];
-osStaticThreadDef_t IdleTaskControlBlock;
-osThreadId ControlTaskHandle;
-uint32_t ControlTaskBuffer[ 512 ];
-osStaticThreadDef_t ControlTaskControlBlock;
+osThreadId SetupTaskHandle;
+uint32_t SetupTaskBuffer[ 1024 ];
+osStaticThreadDef_t SetupTaskControlBlock;
 osThreadId DebugTaskHandle;
 uint32_t DebugTaskBuffer[ 1024 ];
 osStaticThreadDef_t DebugTaskControlBlock;
-osThreadId SetupTaskHandle;
-uint32_t SetupTaskBuffer[ 128 ];
-osStaticThreadDef_t SetupTaskControlBlock;
-osMessageQId LogQueueHandle;
-uint8_t LogQueueBuffer[ 16 * 128 ];
-osStaticMessageQDef_t LogQueueControlBlock;
-osMutexId CarMutexHandle;
-osStaticMutexDef_t CarMutexControlBlock;
-osMutexId FrontLinePositionsMutexHandle;
-osStaticMutexDef_t FrontLinePositionsMutexControlBlock;
-osMutexId RearLinePositionsMutexHandle;
-osStaticMutexDef_t RearLinePositionsMutexControlBlock;
+osThreadId ControlTaskHandle;
+uint32_t ControlTaskBuffer[ 1024 ];
+osStaticThreadDef_t ControlTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+void runSetupTask(const void *argument);
 void runDebugTask(const void *argument);
 void runControlTask(const void *argument);
-void runSetupTask(const void *argument);
 /* USER CODE END FunctionPrototypes */
 
-void StartIdleTask(void const * argument);
-void StartControlTask(void const * argument);
-void StartDebugTask(void const * argument);
 void StartSetupTask(void const * argument);
+void StartDebugTask(void const * argument);
+void StartControlTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -140,19 +97,6 @@ void MX_FREERTOS_Init(void) {
        
   /* USER CODE END Init */
 
-  /* Create the mutex(es) */
-  /* definition and creation of CarMutex */
-  osMutexStaticDef(CarMutex, &CarMutexControlBlock);
-  CarMutexHandle = osMutexCreate(osMutex(CarMutex));
-
-  /* definition and creation of FrontLinePositionsMutex */
-  osMutexStaticDef(FrontLinePositionsMutex, &FrontLinePositionsMutexControlBlock);
-  FrontLinePositionsMutexHandle = osMutexCreate(osMutex(FrontLinePositionsMutex));
-
-  /* definition and creation of RearLinePositionsMutex */
-  osMutexStaticDef(RearLinePositionsMutex, &RearLinePositionsMutexControlBlock);
-  RearLinePositionsMutexHandle = osMutexCreate(osMutex(RearLinePositionsMutex));
-
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -165,31 +109,22 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
-  /* Create the queue(s) */
-  /* definition and creation of LogQueue */
-  osMessageQStaticDef(LogQueue, 16, 128, LogQueueBuffer, &LogQueueControlBlock);
-  LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
-
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of IdleTask */
-  osThreadStaticDef(IdleTask, StartIdleTask, osPriorityIdle, 0, 128, IdleTaskBuffer, &IdleTaskControlBlock);
-  IdleTaskHandle = osThreadCreate(osThread(IdleTask), NULL);
-
-  /* definition and creation of ControlTask */
-  osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
-  ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
+  /* definition and creation of SetupTask */
+  osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 1024, SetupTaskBuffer, &SetupTaskControlBlock);
+  SetupTaskHandle = osThreadCreate(osThread(SetupTask), NULL);
 
   /* definition and creation of DebugTask */
   osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
-  /* definition and creation of SetupTask */
-  osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 128, SetupTaskBuffer, &SetupTaskControlBlock);
-  SetupTaskHandle = osThreadCreate(osThread(SetupTask), NULL);
+  /* definition and creation of ControlTask */
+  osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 1024, ControlTaskBuffer, &ControlTaskControlBlock);
+  ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -197,28 +132,37 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_StartIdleTask */
+/* USER CODE BEGIN Header_StartSetupTask */
 /**
-  * @brief  Function implementing the IdleTask thread.
+  * @brief  Function implementing the SetupTask thread.
   * @param  argument: Not used 
   * @retval None
   */
-/* USER CODE END Header_StartIdleTask */
-void StartIdleTask(void const * argument)
+/* USER CODE END Header_StartSetupTask */
+void StartSetupTask(void const * argument)
 {
     
     
     
     
-    
 
-  /* USER CODE BEGIN StartIdleTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartIdleTask */
+  /* USER CODE BEGIN StartSetupTask */
+  runSetupTask(argument);
+  /* USER CODE END StartSetupTask */
+}
+
+/* USER CODE BEGIN Header_StartDebugTask */
+/**
+* @brief Function implementing the DebugTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDebugTask */
+void StartDebugTask(void const * argument)
+{
+  /* USER CODE BEGIN StartDebugTask */
+  runDebugTask(argument);
+  /* USER CODE END StartDebugTask */
 }
 
 /* USER CODE BEGIN Header_StartControlTask */
@@ -233,35 +177,6 @@ void StartControlTask(void const * argument)
   /* USER CODE BEGIN StartControlTask */
   runControlTask(argument);
   /* USER CODE END StartControlTask */
-}
-
-/* USER CODE BEGIN Header_StartDebugTask */
-/**
-* @brief Function implementing the DebugTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartDebugTask */
-void StartDebugTask(void const * argument)
-{
-  /* USER CODE BEGIN StartDebugTask */
-  /* Infinite loop */
-  runDebugTask(argument);
-  /* USER CODE END StartDebugTask */
-}
-
-/* USER CODE BEGIN Header_StartSetupTask */
-/**
-* @brief Function implementing the SetupTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartSetupTask */
-void StartSetupTask(void const * argument)
-{
-  /* USER CODE BEGIN StartSetupTask */
-  runSetupTask(argument);
-  /* USER CODE END StartSetupTask */
 }
 
 /* Private application code --------------------------------------------------*/

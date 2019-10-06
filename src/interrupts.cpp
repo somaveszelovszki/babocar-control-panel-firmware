@@ -13,6 +13,7 @@
 // INTERRUPT CALLBACKS - Must be defined in a task's source file!
 
 extern void micro_Command_Uart_RxCpltCallback();                  // Callback for command UART RxCplt - called when receive finishes.
+extern void micro_Command_Uart_TxCpltCallback();                  // Callback for command UART TxCplt - called when transmit finishes.
 extern void micro_MotorPanel_Uart_RxCpltCallback();               // Callback for motor panel UART RxCplt - called when receive finishes.
 extern void micro_RadioModule_Uart_RxCpltCallback();              // Callback for radio module UART RxCplt - called when receive finishes.
 extern void micro_FrontLineDetectPanel_Uart_RxCpltCallback();     // Callback for front line detect panel UART RxCplt - called when receive finishes.
@@ -53,33 +54,36 @@ extern "C" void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c) {
  * @param huart Pointer to the UART handle.
  **/
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == cfg::uart_MotorPanel.ptr) {
+    if (huart == uart_MotorPanel) {
         micro_MotorPanel_Uart_RxCpltCallback();
 
-    } else if (huart == cfg::uart_Command.ptr) {
-        //uint32_t bytes = MAX_RX_BUFFER_SIZE - ((DMA_HandleTypeDef*)cfg::dma_Bluetooth.handle)->Instance->NDTR;
+    } else if (huart == uart_Command) {
+        //uint32_t bytes = MAX_RX_BUFFER_SIZE - ((DMA_HandleTypeDef*)dma_Bluetooth.handle)->Instance->NDTR;
         micro_Command_Uart_RxCpltCallback();
-        ((DMA_TypeDef*)cfg::dma_Command.instance.ptr)->HIFCR = DMA_FLAG_DMEIF1_5 | DMA_FLAG_FEIF1_5 | DMA_FLAG_HTIF1_5 | DMA_FLAG_TCIF1_5 | DMA_FLAG_TEIF1_5;    // clears DMA flags before next transfer
-        ((DMA_HandleTypeDef*)cfg::dma_Command.handle.ptr)->Instance->NDTR = MAX_RX_BUFFER_SIZE; // sets number of bytes to receive
-        ((DMA_HandleTypeDef*)cfg::dma_Command.handle.ptr)->Instance->CR |= DMA_SxCR_EN;         // starts DMA transfer
+        dmaBase_Command->HIFCR = DMA_FLAG_DMEIF1_5 | DMA_FLAG_FEIF1_5 | DMA_FLAG_HTIF1_5 | DMA_FLAG_TCIF1_5 | DMA_FLAG_TEIF1_5;    // clears DMA flags before next transfer
+        dma_Command->Instance->NDTR = MAX_RX_BUFFER_SIZE; // sets number of bytes to receive
+        dma_Command->Instance->CR |= DMA_SxCR_EN;         // starts DMA transfer
 
-    } else if (huart == cfg::uart_MotorPanel.ptr) {
+    } else if (huart == uart_MotorPanel) {
         micro_MotorPanel_Uart_RxCpltCallback();
 
-    } else if (huart == cfg::uart_RadioModule.ptr) {
+    } else if (huart == uart_RadioModule) {
         micro_RadioModule_Uart_RxCpltCallback();
 
-    } else if (huart == cfg::uart_FrontLineDetectPanel.ptr) {
+    } else if (huart == uart_FrontLineDetectPanel) {
         micro_FrontLineDetectPanel_Uart_RxCpltCallback();
 
-    } else if (huart == cfg::uart_RearLineDetectPanel.ptr) {
+    } else if (huart == uart_RearLineDetectPanel) {
         micro_RearLineDetectPanel_Uart_RxCpltCallback();
 
     }
 }
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart == uart_Command) {
+        micro_Command_Uart_TxCpltCallback();
 
+    }
 }
 
 /* @brief Callback function for timer period elapsed event.

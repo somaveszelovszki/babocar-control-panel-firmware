@@ -12,24 +12,20 @@
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
-#include <cfg_os.hpp>
 #include <cfg_car.hpp>
 
 #include <globals.hpp>
 
 using namespace micro;
 
-LineDetectPanel frontLineDetectPanel(cfg::uart_FrontLineDetectPanel);
-LineDetectPanel rearLineDetectPanel(cfg::uart_RearLineDetectPanel);
-MotorPanel motorPanel(cfg::uart_MotorPanel);
+LineDetectPanel frontLineDetectPanel(uart_FrontLineDetectPanel);
+LineDetectPanel rearLineDetectPanel(uart_RearLineDetectPanel);
+MotorPanel motorPanel(uart_MotorPanel);
 
 namespace {
 
 Timer motorPanelSendTimer;
 Timer lineDetectPanelsSendTimer;
-
-volatile atomic_updatable<LinePositions> frontLinePositions(cfg::mutex_FrontLinePos);
-volatile atomic_updatable<LinePositions> rearLinePositions(cfg::mutex_RearLinePos);
 
 bool isFastSpeedSafe(const Line& line) {
     static constexpr millimeter_t MAX_LINE_POS = centimeter_t(8.5f);
@@ -38,15 +34,11 @@ bool isFastSpeedSafe(const Line& line) {
     return abs(line.pos_front) <= MAX_LINE_POS && abs(line.angle) <= MAX_LINE_ANGLE;
 }
 
-void getLinesFromPanel(const LineDetectPanel& panel, volatile atomic_updatable<LinePositions>& positions) {
-    LinePositions *p = const_cast<LinePositions*>(positions.accept_ptr());
-    if (p) {
-        lineDetectPanelDataOut_t dataIn = panel.getLastValue();
-        p->clear();
-        for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
-            p->append(millimeter_t(dataIn.lines.values[i].pos_mm));
-        }
-        positions.release_ptr();
+void getLinesFromPanel(const LineDetectPanel& panel, LinePositions& positions) {
+    lineDetectPanelDataOut_t dataIn = panel.getLastValue();
+    positions.clear();
+    for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
+        positions.append(millimeter_t(dataIn.lines.values[i].pos_mm));
     }
 }
 
@@ -54,15 +46,18 @@ void getLinesFromPanel(const LineDetectPanel& panel, volatile atomic_updatable<L
 
 extern "C" void runControlTask(const void *argument) {
 
+    while(1) { vTaskDelay(1); }
+
     Lines lines;
     Line mainLine;
-    hw::SteeringServo frontSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_FrontServo, cfg::SERVO_MID_FRONT, cfg::WHEEL_MAX_DELTA_FRONT, cfg::SERVO_WHEEL_TR_FRONT);
-    hw::SteeringServo rearSteeringServo(cfg::tim_SteeringServo, cfg::tim_chnl_RearServo, cfg::SERVO_MID_REAR, cfg::WHEEL_MAX_DELTA_REAR, cfg::SERVO_WHEEL_TR_REAR);
+
+    hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::SERVO_MID_FRONT, cfg::WHEEL_MAX_DELTA_FRONT, cfg::SERVO_WHEEL_TR_FRONT);
+    hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::SERVO_MID_REAR, cfg::WHEEL_MAX_DELTA_REAR, cfg::SERVO_WHEEL_TR_REAR);
 
     motorPanelSendTimer.start(millisecond_t(10));
     lineDetectPanelsSendTimer.start(millisecond_t(100));
 
-    while(true) {
+    while (true) {
         motorPanelDataOut_t motorPanelData = motorPanel.getLastValue();
 
         enterCritical();
@@ -89,22 +84,25 @@ extern "C" void runControlTask(const void *argument) {
             rearLineDetectPanel.send(dataRear);
         }
 
-        if (frontLinePositions.is_updated() && rearLinePositions.is_updated()) {
+        LinePositions frontLinePositions;
+        LinePositions rearLinePositions;
 
-            LinePositions front, rear;
-            frontLinePositions.wait_copy(front);
-            rearLinePositions.wait_copy(rear);
-            calculateLines(front, rear, lines, mainLine);
+        taskENTER_CRITICAL();
+        getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
+        getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
+        taskEXIT_CRITICAL();
 
-            if (globals::lineFollowEnabled) {
+        // passes line positions by value to prevent race condition
+        calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
 
-            }
+        if (globals::lineFollowEnabled) {
+
         }
 
-        nonBlockingDelay(millisecond_t(1));
+        vTaskDelay(1);
     }
 
-    taskDeleteCurrent();
+    vTaskDelete(nullptr);
 }
 
 /* @brief Callback for motor panel UART RxCplt - called when receive finishes.
@@ -117,14 +115,12 @@ void micro_MotorPanel_Uart_RxCpltCallback() {
  */
 void micro_FrontLineDetectPanel_Uart_RxCpltCallback() {
     frontLineDetectPanel.onDataReceived();
-    getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
 }
 
 /* @brief Callback for rear line detect panel UART RxCplt - called when receive finishes.
  */
 void micro_RearLineDetectPanel_Uart_RxCpltCallback() {
     rearLineDetectPanel.onDataReceived();
-    getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
 }
 
 

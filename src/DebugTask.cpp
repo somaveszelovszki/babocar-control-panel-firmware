@@ -1,9 +1,6 @@
 #include <micro/task/common.hpp>
 #include <micro/container/vec.hpp>
 #include <micro/bsp/tim.hpp>
-#include <micro/bsp/uart.hpp>
-#include <micro/bsp/queue.hpp>
-#include <micro/bsp/task.hpp>
 #include <micro/container/ring_buffer.hpp>
 #include <micro/container/span.hpp>
 #include <micro/utils/log.hpp>
@@ -12,9 +9,10 @@
 #include <micro/debug/params.hpp>
 
 #include <cfg_board.hpp>
-#include <cfg_os.hpp>
-
 #include <globals.hpp>
+
+#include <FreeRTOS.h>
+#include <queue.h>
 
 #include <cstring>
 
@@ -23,43 +21,52 @@
 
 using namespace micro;
 
-namespace {
+#define LOG_QUEUE_LENGTH 16
+QueueHandle_t logQueue;
+static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
+static StaticQueue_t logQueueBuffer;
 
-enum class DebugCode {
-    Log
-};
+static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
+static vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
 
-ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
-vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
-
-} // namespace
+volatile bool uartOccupied = false;
 
 extern "C" void runDebugTask(const void *argument) {
     char txLog[LOG_MSG_MAX_SIZE];
 
-    UART_Receive_DMA(cfg::uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
+    logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
 
-    while (!task::hasErrorHappened()) {
+    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
+
+    while (true) {
         // handle incoming control messages from the monitoring app
 //        if (isOk(getRxMsg(rxMsg))) {
 //            handleRxMsg(rxMsg);
 //        }
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        if(micro::isOk(micro::queueReceive(cfg::queue_Log, &txLog))) {
-            while (!isOk(UART_Transmit_IT(cfg::uart_Command, reinterpret_cast<const uint8_t*>(txLog), strlen(txLog)))) {  // sends messages once UART is free
-                micro::nonBlockingDelay(micro::millisecond_t(1));
-            }
+        if(!uartOccupied && xQueueReceive(logQueue, txLog, 0)) {
+            HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog));
+            uartOccupied = true;
+//            while (HAL_OK != HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog))) {  // sends messages once UART is free
+//                vTaskDelay(1);
+//            }
         }
 
-        micro::nonBlockingDelay(micro::millisecond_t(1));
+        vTaskDelay(1);
     }
 
-    taskDeleteCurrent();
+    vTaskDelete(nullptr);
 }
 
 /* @brief Callback for Serial UART RxCplt - called when receive finishes.
  */
 void micro_Command_Uart_RxCpltCallback() {
     // does not handle Serial messages
+}
+
+/* @brief Callback for Serial UART TxCplt - called when transmit finishes.
+ */
+void micro_Command_Uart_TxCpltCallback() {
+    uartOccupied = false;
 }
