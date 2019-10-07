@@ -14,14 +14,22 @@
 
 using namespace micro;
 
+extern osThreadId ControlTaskHandle;
+extern osThreadId SensorTaskHandle;
+
+#define LOG_QUEUE_LENGTH 16
+extern QueueHandle_t logQueue;
+static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
+static StaticQueue_t logQueueBuffer;
+
 extern LineDetectPanel frontLineDetectPanel;
 extern LineDetectPanel rearLineDetectPanel;
 extern MotorPanel motorPanel;
+extern hw::MPU9250 gyro;
 
 namespace {
 
-uint8_t startCounterBuffer[1];
-volatile char startCounter = '6';   // start counter will count back from 5 to 0
+char startCounter = '6';   // start counter will count back from 5 to 0
 
 void waitPanels(void) {
     millisecond_t lastRecvTime = millisecond_t(0);
@@ -44,7 +52,7 @@ void waitPanels(void) {
 }
 
 void waitStartSignal(void) {
-    HAL_UART_Receive_DMA(uart_RadioModule, startCounterBuffer, 1);
+    HAL_UART_Receive_DMA(uart_RadioModule, reinterpret_cast<uint8_t*>(&startCounter), 1);
 
     while(globals::startSignalEnabled && startCounter != '0') {
         LOG_DEBUG("Seconds until start: %c", startCounter);
@@ -58,34 +66,39 @@ void waitStartSignal(void) {
 
 extern "C" void runSetupTask(const void *argument) {
 
-    //vTaskSuspend(task_Control); // suspends ControlTask so that it cannot run until initialization finishes
+    logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
 
+    LOG_DEBUG("SetupTask running...");
 
+    //vTaskSuspend(ControlTaskHandle);
+    //vTaskSuspend(SensorTaskHandle);
 
     vTaskDelay(200);     // gives time to auxiliary panels to wake up
 
-    LOG_DEBUG("Starting panel initialization");
+    LOG_DEBUG("Starting initialization...");
 
-    motorPanelDataIn_t motorPanelStartData;
-    motorPanelStartData.targetSpeed_mmps = 0;
-    motorPanelStartData.controller_Ti_us = globals::motorController_Ti.get();
-    motorPanelStartData.controller_Kc    = globals::motorController_Kc;
-    motorPanelStartData.flags            = globals::useSafetyEnableSignal ? MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL : 0x00;
+    gyro.initialize();
 
-    lineDetectPanelDataIn_t frontLineDetectPanelStartData;
-    frontLineDetectPanelStartData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
+    while(1) {vTaskDelay(1);}
 
-    lineDetectPanelDataIn_t rearLineDetectPanelStartData;
-    rearLineDetectPanelStartData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
-
-    hw::testGyro();
-
-    motorPanel.start(motorPanelStartData);
-    frontLineDetectPanel.start(frontLineDetectPanelStartData);
-    rearLineDetectPanel.start(rearLineDetectPanelStartData);
-
-    waitPanels();
-    waitStartSignal();
+//    motorPanelDataIn_t motorPanelStartData;
+//    motorPanelStartData.targetSpeed_mmps = 0;
+//    motorPanelStartData.controller_Ti_us = globals::motorController_Ti.get();
+//    motorPanelStartData.controller_Kc    = globals::motorController_Kc;
+//    motorPanelStartData.flags            = globals::useSafetyEnableSignal ? MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL : 0x00;
+//
+//    lineDetectPanelDataIn_t frontLineDetectPanelStartData;
+//    frontLineDetectPanelStartData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
+//
+//    lineDetectPanelDataIn_t rearLineDetectPanelStartData;
+//    rearLineDetectPanelStartData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
+//
+//    motorPanel.start(motorPanelStartData);
+//    frontLineDetectPanel.start(frontLineDetectPanelStartData);
+//    rearLineDetectPanel.start(rearLineDetectPanelStartData);
+//
+//    waitPanels();
+//    waitStartSignal();
 
     //xTaskResumeAll();
     vTaskDelete(nullptr);
@@ -94,8 +107,5 @@ extern "C" void runSetupTask(const void *argument) {
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
 void micro_RadioModule_Uart_RxCpltCallback() {
-    const uint8_t cntr = static_cast<uint8_t>(startCounterBuffer[0]);
-    if (cntr == startCounter - 1) {
-        startCounter = cntr;
-    }
+    // does nothing - data is already in the counter value
 }

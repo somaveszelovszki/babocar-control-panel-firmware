@@ -21,10 +21,7 @@
 
 using namespace micro;
 
-#define LOG_QUEUE_LENGTH 16
 QueueHandle_t logQueue;
-static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
-static StaticQueue_t logQueueBuffer;
 
 static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
 static vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
@@ -33,8 +30,6 @@ volatile bool uartOccupied = false;
 
 extern "C" void runDebugTask(const void *argument) {
     char txLog[LOG_MSG_MAX_SIZE];
-
-    logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
@@ -52,8 +47,6 @@ extern "C" void runDebugTask(const void *argument) {
 //                vTaskDelay(1);
 //            }
         }
-
-        vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);
