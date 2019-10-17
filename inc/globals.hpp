@@ -5,10 +5,17 @@
 #include <micro/debug/params.hpp>
 
 namespace micro {
+
+enum class ProgramState {
+    Labyrinth,
+    RaceTrack
+};
+
 namespace globals {
 
 extern Params debugParams;
 
+extern ProgramState programState;
 extern bool useSafetyEnableSignal;
 extern bool indicatorLedsEnabled;
 extern bool startSignalEnabled;
