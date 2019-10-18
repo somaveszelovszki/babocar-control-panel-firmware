@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <cfg_board.h>
 #include "main.h"
 #include "cmsis_os.h"
 #include "dma.h"
@@ -29,7 +30,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <micro/utils/time_init.h>
+#include <cfg_board.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -107,7 +109,7 @@ int main(void)
   MX_UART5_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
+  micro_time_init(tim_System);
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -201,7 +203,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-    micro_TIM_PeriodElapsedCallback(htim);
+  micro_TIM_PeriodElapsedCallback(htim);
   /* USER CODE END Callback 1 */
 }
 

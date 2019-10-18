@@ -1,19 +1,19 @@
+#include <cfg_board.h>
 #include <micro/task/common.hpp>
 #include <micro/utils/units.hpp>
+#include <micro/utils/time.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
-#include <micro/bsp/uart.hpp>
-#include <micro/bsp/task.hpp>
-#include <micro/bsp/it.hpp>
 
-#include <cfg_board.hpp>
-#include <cfg_os.hpp>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 
 #include <globals.hpp>
 #include <LinePattern.hpp>
 #include <LabyrinthGraph.hpp>
+
+#include <stm32f4xx_hal.h>
+#include <stm32f4xx_hal_uart.h>
 
 using namespace micro;
 
@@ -316,9 +316,9 @@ Direction onJuntionDetected(const LinePattern& linePattern, const CarProps& car)
         LOG_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
 
         point2m prevCarPos = globals::car.pose.pos;
-        micro::enterCritical();
+        taskENTER_CRITICAL();
         globals::car.pose.pos += (junc->pos - junctionPos);
-        micro::exitCritical();
+        taskEXIT_CRITICAL();
         LOG_DEBUG("Car pos update: (%d, %d) -> (%d, %d)",
             (int32_t)static_cast<centimeter_t>(prevCarPos.X).get(), (int32_t)static_cast<centimeter_t>(prevCarPos.Y).get(),
             (int32_t)static_cast<centimeter_t>(globals::car.pose.pos.X).get(), (int32_t)static_cast<centimeter_t>(globals::car.pose.pos.Y).get());
@@ -414,14 +414,14 @@ Direction onJuntionDetected(const LinePattern& linePattern, const CarProps& car)
 }
 
 void waitStartSignal(void) {
-    UART_Receive_DMA(cfg::uart_RadioModule, startCounterBuffer, 1);
+    HAL_UART_Receive_DMA(uart_RadioModule, startCounterBuffer, 1);
 
     while(globals::startSignalEnabled && startCounter != '0') {
         LOG_DEBUG("Seconds until start: %c", startCounter);
-        nonBlockingDelay(millisecond_t(50));
+        vTaskDelay(50);
     }
 
-    UART_Stop_DMA(cfg::uart_RadioModule);
+    HAL_UART_DMAStop(uart_RadioModule);
 }
 
 } // namespace
@@ -429,15 +429,15 @@ void waitStartSignal(void) {
 extern "C" void runProgLabyrinthTask(void const *argument) {
     Status status;
 
-    micro::enterCritical();
+    taskENTER_CRITICAL();
     // TODO send speed to ControlTask
-    micro::exitCritical();
+    taskEXIT_CRITICAL();
 
     waitStartSignal();
 
     LOG_DEBUG("Started!");
 
-    endTime = micro::getTime() + second_t(20);
+    endTime = getTime() + second_t(20);
 
     // initializes start segment
     currentSeg = getNew(segments);
@@ -595,10 +595,10 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
         }
 
-        micro::nonBlockingDelay(millisecond_t(2));
+        vTaskDelay(2);
     }
 
-    taskDeleteCurrent();
+    vTaskDelete(nullptr);
 }
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */

@@ -1,3 +1,4 @@
+#include <cfg_board.h>
 #include <micro/utils/log.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
 #include <micro/panel/LineDetectPanelData.h>
@@ -5,7 +6,6 @@
 #include <micro/panel/MotorPanelData.h>
 #include <micro/task/common.hpp>
 
-#include <cfg_board.hpp>
 #include <cfg_car.hpp>
 
 #include <globals.hpp>
@@ -102,10 +102,4 @@ extern "C" void runSetupTask(const void *argument) {
 
     //xTaskResumeAll();
     vTaskDelete(nullptr);
-}
-
-/* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
- */
-void micro_RadioModule_Uart_RxCpltCallback() {
-    // does nothing - data is already in the counter value
 }

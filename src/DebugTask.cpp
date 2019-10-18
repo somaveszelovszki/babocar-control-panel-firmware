@@ -1,6 +1,6 @@
+#include <cfg_board.h>
 #include <micro/task/common.hpp>
 #include <micro/container/vec.hpp>
-#include <micro/bsp/tim.hpp>
 #include <micro/container/ring_buffer.hpp>
 #include <micro/container/span.hpp>
 #include <micro/utils/log.hpp>
@@ -8,7 +8,6 @@
 #include <micro/utils/arrays.hpp>
 #include <micro/debug/params.hpp>
 
-#include <cfg_board.hpp>
 #include <globals.hpp>
 
 #include <FreeRTOS.h>
@@ -47,6 +46,7 @@ extern "C" void runDebugTask(const void *argument) {
 //                vTaskDelay(1);
 //            }
         }
+        vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);

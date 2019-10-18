@@ -1,4 +1,9 @@
-#pragma once
+#ifndef CFG_BOARD_H
+#define CFG_BOARD_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"
@@ -9,28 +14,28 @@
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_usart.h"
 
-extern "C" TIM_HandleTypeDef  htim1;
-extern "C" TIM_HandleTypeDef  htim2;
-extern "C" TIM_HandleTypeDef  htim3;
-extern "C" UART_HandleTypeDef huart1;
-extern "C" UART_HandleTypeDef huart2;
-extern "C" UART_HandleTypeDef huart3;
-extern "C" UART_HandleTypeDef huart4;
-extern "C" UART_HandleTypeDef huart5;
-extern "C" UART_HandleTypeDef huart6;
-extern "C" DMA_HandleTypeDef  hdma_usart1_rx;
-extern "C" DMA_HandleTypeDef  hdma_usart1_tx;
-extern "C" DMA_HandleTypeDef  hdma_usart2_rx;
-extern "C" DMA_HandleTypeDef  hdma_usart2_tx;
-extern "C" DMA_HandleTypeDef  hdma_usart3_rx;
-extern "C" DMA_HandleTypeDef  hdma_usart3_tx;
-extern "C" DMA_HandleTypeDef  hdma_uart4_rx;
-extern "C" DMA_HandleTypeDef  hdma_uart4_tx;
-extern "C" DMA_HandleTypeDef  hdma_uart5_rx;
-extern "C" DMA_HandleTypeDef  hdma_uart5_tx;
-extern "C" DMA_HandleTypeDef  hdma_usart6_rx;
-extern "C" DMA_HandleTypeDef  hdma_usart6_tx;
-extern "C" I2C_HandleTypeDef  hi2c1;
+extern TIM_HandleTypeDef  htim1;
+extern TIM_HandleTypeDef  htim2;
+extern TIM_HandleTypeDef  htim3;
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart3;
+extern UART_HandleTypeDef huart4;
+extern UART_HandleTypeDef huart5;
+extern UART_HandleTypeDef huart6;
+extern DMA_HandleTypeDef  hdma_usart1_rx;
+extern DMA_HandleTypeDef  hdma_usart1_tx;
+extern DMA_HandleTypeDef  hdma_usart2_rx;
+extern DMA_HandleTypeDef  hdma_usart2_tx;
+extern DMA_HandleTypeDef  hdma_usart3_rx;
+extern DMA_HandleTypeDef  hdma_usart3_tx;
+extern DMA_HandleTypeDef  hdma_uart4_rx;
+extern DMA_HandleTypeDef  hdma_uart4_tx;
+extern DMA_HandleTypeDef  hdma_uart5_rx;
+extern DMA_HandleTypeDef  hdma_uart5_tx;
+extern DMA_HandleTypeDef  hdma_usart6_rx;
+extern DMA_HandleTypeDef  hdma_usart6_tx;
+extern I2C_HandleTypeDef  hi2c1;
 
 #define tim_System (&htim2)
 
@@ -67,3 +72,9 @@ extern "C" I2C_HandleTypeDef  hi2c1;
 
 #define gpio_Led                     GPIOA
 #define gpioPin_Led                  GPIO_PIN_5
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // CFG_BOARD_H

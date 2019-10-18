@@ -54,34 +54,53 @@ osStaticThreadDef_t SetupTaskControlBlock;
 osThreadId DebugTaskHandle;
 uint32_t DebugTaskBuffer[ 1024 ];
 osStaticThreadDef_t DebugTaskControlBlock;
+<<<<<<< HEAD
 osThreadId ControlTaskHandle;
 uint32_t ControlTaskBuffer[ 1024 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId ProgLabyrinthTaHandle;
+=======
+osThreadId ProgLabyrinthTaskHandle;
 uint32_t ProgLabyrinthTaskBuffer[ 1024 ];
 osStaticThreadDef_t ProgLabyrinthTaskControlBlock;
-osThreadId ProgRaceTrackTaHandle;
+osThreadId ProgRaceTrackTaskHandle;
 uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
 osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
 osMessageQId LogQueueHandle;
 uint8_t LogQueueBuffer[ 16 * 128 ];
 osStaticMessageQDef_t LogQueueControlBlock;
 osMessageQId ControlQueueHandle;
-uint8_t ControlQueueBuffer[ 1 * 8 ];
+uint8_t ControlQueueBuffer[ 1 * 16 ];
 osStaticMessageQDef_t ControlQueueControlBlock;
+osMutexId CarMutexHandle;
+osStaticMutexDef_t CarMutexControlBlock;
+osMutexId FrontLinePositionsMutexHandle;
+osStaticMutexDef_t FrontLinePositionsMutexControlBlock;
+osMutexId RearLinePositionsMutexHandle;
+osStaticMutexDef_t RearLinePositionsMutexControlBlock;
+>>>>>>> Program tasks from old implementation added
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void runSetupTask(const void *argument);
 void runDebugTask(const void *argument);
 void runControlTask(const void *argument);
+<<<<<<< HEAD
 /* USER CODE END FunctionPrototypes */
 
 void StartSetupTask(void const * argument);
 void StartDebugTask(void const * argument);
 void StartControlTask(void const * argument);
+=======
+void runProgLabyrinthTask(const void *argument);
+void runProgRaceTrackTask(const void *argument);
+/* USER CODE END FunctionPrototypes */
+
+void StartIdleTask(void const * argument);
+void StartControlTask(void const * argument);
+void StartDebugTask(void const * argument);
 void StartProgLabyrinthTask(void const * argument);
 void StartProgRaceTrackTask(void const * argument);
+>>>>>>> Program tasks from old implementation added
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -123,15 +142,18 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+<<<<<<< HEAD
+=======
   /* Create the queue(s) */
   /* definition and creation of LogQueue */
   osMessageQStaticDef(LogQueue, 16, 128, LogQueueBuffer, &LogQueueControlBlock);
   LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
 
   /* definition and creation of ControlQueue */
-  osMessageQStaticDef(ControlQueue, 1, 8, ControlQueueBuffer, &ControlQueueControlBlock);
+  osMessageQStaticDef(ControlQueue, 1, 16, ControlQueueBuffer, &ControlQueueControlBlock);
   ControlQueueHandle = osMessageCreate(osMessageQ(ControlQueue), NULL);
 
+>>>>>>> Program tasks from old implementation added
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -145,17 +167,19 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
+<<<<<<< HEAD
   /* definition and creation of ControlTask */
   osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 1024, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
+=======
+  /* definition and creation of ProgLabyrinthTask */
+  osThreadStaticDef(ProgLabyrinthTask, StartProgLabyrinthTask, osPriorityNormal, 0, 1024, ProgLabyrinthTaskBuffer, &ProgLabyrinthTaskControlBlock);
+  ProgLabyrinthTaskHandle = osThreadCreate(osThread(ProgLabyrinthTask), NULL);
 
-  /* definition and creation of ProgLabyrinthTa */
-  osThreadStaticDef(ProgLabyrinthTa, StartProgLabyrinthTask, osPriorityNormal, 0, 1024, ProgLabyrinthTaskBuffer, &ProgLabyrinthTaskControlBlock);
-  ProgLabyrinthTaHandle = osThreadCreate(osThread(ProgLabyrinthTa), NULL);
-
-  /* definition and creation of ProgRaceTrackTa */
-  osThreadStaticDef(ProgRaceTrackTa, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
-  ProgRaceTrackTaHandle = osThreadCreate(osThread(ProgRaceTrackTa), NULL);
+  /* definition and creation of ProgRaceTrackTask */
+  osThreadStaticDef(ProgRaceTrackTask, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
+  ProgRaceTrackTaskHandle = osThreadCreate(osThread(ProgRaceTrackTask), NULL);
+>>>>>>> Program tasks from old implementation added
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -176,8 +200,20 @@ void StartSetupTask(void const * argument)
     
     
     
+<<<<<<< HEAD
+=======
     
     
+
+  /* USER CODE BEGIN StartIdleTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartIdleTask */
+}
+>>>>>>> Program tasks from old implementation added
 
   /* USER CODE BEGIN StartSetupTask */
   runSetupTask(argument);
@@ -198,6 +234,7 @@ void StartDebugTask(void const * argument)
   /* USER CODE END StartDebugTask */
 }
 
+<<<<<<< HEAD
 /* USER CODE BEGIN Header_StartControlTask */
 /**
 * @brief Function implementing the ControlTask thread.
@@ -210,11 +247,10 @@ void StartControlTask(void const * argument)
   /* USER CODE BEGIN StartControlTask */
   runControlTask(argument);
   /* USER CODE END StartControlTask */
-}
-
+=======
 /* USER CODE BEGIN Header_StartProgLabyrinthTask */
 /**
-* @brief Function implementing the ProgLabyrinthTa thread.
+* @brief Function implementing the ProgLabyrinthTask thread.
 * @param argument: Not used
 * @retval None
 */
@@ -222,17 +258,13 @@ void StartControlTask(void const * argument)
 void StartProgLabyrinthTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgLabyrinthTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runProgLabyrinthTask(argument);
   /* USER CODE END StartProgLabyrinthTask */
 }
 
 /* USER CODE BEGIN Header_StartProgRaceTrackTask */
 /**
-* @brief Function implementing the ProgRaceTrackTa thread.
+* @brief Function implementing the ProgRaceTrackTask thread.
 * @param argument: Not used
 * @retval None
 */
@@ -240,12 +272,9 @@ void StartProgLabyrinthTask(void const * argument)
 void StartProgRaceTrackTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgRaceTrackTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runProgRaceTrackTask(argument);
   /* USER CODE END StartProgRaceTrackTask */
+>>>>>>> Program tasks from old implementation added
 }
 
 /* Private application code --------------------------------------------------*/

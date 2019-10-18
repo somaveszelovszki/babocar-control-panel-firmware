@@ -1,4 +1,4 @@
-#include <cfg_board.hpp>
+#include <cfg_board.h>
 #include <micro/utils/timer.hpp>
 
 #include "stm32f4xx_hal.h"

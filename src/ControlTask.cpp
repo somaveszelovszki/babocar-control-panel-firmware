@@ -1,8 +1,7 @@
+#include <cfg_board.h>
 #include <micro/task/common.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/updatable.hpp>
-#include <micro/bsp/task.hpp>
-#include <micro/bsp/it.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/control/LineController.hpp>
@@ -11,7 +10,6 @@
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.hpp>
 #include <cfg_car.hpp>
 
 #include <globals.hpp>
@@ -60,10 +58,10 @@ extern "C" void runControlTask(const void *argument) {
     while (true) {
         motorPanelDataOut_t motorPanelData = motorPanel.getLastValue();
 
-        enterCritical();
+        taskENTER_CRITICAL();
         globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
         CarProps car = globals::car;
-        exitCritical();
+        taskEXIT_CRITICAL();
 
         if (motorPanelSendTimer.checkTimeout()) {
             motorPanelDataIn_t data;
