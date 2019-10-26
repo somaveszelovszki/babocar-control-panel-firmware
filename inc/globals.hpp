@@ -3,13 +3,9 @@
 #include <micro/utils/units.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/debug/params.hpp>
+#include <ProgramState.hpp>
 
 namespace micro {
-
-enum class ProgramState {
-    Labyrinth,
-    RaceTrack
-};
 
 namespace globals {
 
@@ -26,7 +22,6 @@ extern float frontLineController_P;
 extern float frontLineController_D;
 extern float rearLineController_P;
 extern float rearLineController_D;
-extern m_per_sec_t targetSpeed;
 extern CarProps car;
 
 void initializeGlobalParams();

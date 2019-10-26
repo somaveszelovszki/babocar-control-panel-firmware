@@ -6,6 +6,7 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/convert.hpp>
 #include <micro/utils/arrays.hpp>
+#include <micro/utils/time.hpp>
 #include <micro/debug/params.hpp>
 
 #include <globals.hpp>
@@ -20,7 +21,10 @@
 
 using namespace micro;
 
+#define LOG_QUEUE_LENGTH 16
 QueueHandle_t logQueue;
+static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
+static StaticQueue_t logQueueBuffer;
 
 static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
 static vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
@@ -28,7 +32,12 @@ static vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
 volatile bool uartOccupied = false;
 
 extern "C" void runDebugTask(const void *argument) {
+    logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
+
+    vTaskDelay(5); // gives time to other tasks to initialize their queues
+
     char txLog[LOG_MSG_MAX_SIZE];
+    millisecond_t lastLedBlinkTime = getTime();
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
@@ -46,6 +55,12 @@ extern "C" void runDebugTask(const void *argument) {
 //                vTaskDelay(1);
 //            }
         }
+
+        if (getTime() - lastLedBlinkTime > millisecond_t(500)) {
+            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+            lastLedBlinkTime = getTime();
+        }
+
         vTaskDelay(1);
     }
 

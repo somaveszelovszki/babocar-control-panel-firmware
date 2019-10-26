@@ -8,6 +8,7 @@ Params debugParams;
 
 #define REGISTER_GLOBAL(name) debugParams.registerParam(#name, &name)
 
+ProgramState programState        = ProgramState(ProgramState::ActiveModule::Labyrinth, 0);
 bool useSafetyEnableSignal       = true;
 bool indicatorLedsEnabled        = true;
 bool startSignalEnabled          = false;
@@ -18,7 +19,6 @@ float frontLineController_P      = cfg::FRONT_LINE_CONTROLLER_DEFAULT_P;
 float frontLineController_D      = cfg::FRONT_LINE_CONTROLLER_DEFAULT_D;
 float rearLineController_P       = cfg::REAR_LINE_CONTROLLER_DEFAULT_P;
 float rearLineController_D       = cfg::REAR_LINE_CONTROLLER_DEFAULT_D;
-m_per_sec_t targetSpeed          = m_per_sec_t(0);
 CarProps car                     = CarProps();
 
 void initializeGlobalParams() {
@@ -32,7 +32,6 @@ void initializeGlobalParams() {
     REGISTER_GLOBAL(frontLineController_D);
     REGISTER_GLOBAL(rearLineController_P);
     REGISTER_GLOBAL(rearLineController_D);
-    REGISTER_GLOBAL(targetSpeed);
     REGISTER_GLOBAL(car);
 }
 

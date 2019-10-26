@@ -24,8 +24,25 @@ namespace {
 
 extern "C" void runProgRaceTrackTask(const void *argument) {
 
+    vTaskDelay(5); // gives time to other tasks to initialize their queues
+
     while(true) {
-        vTaskDelay(1);
+        switch(globals::programState.activeModule()) {
+        case ProgramState::ActiveModule::RaceTrack:
+
+            switch(globals::programState.subCntr()) {
+            default:
+                LOG_ERROR("Invalid program state counter: [%u]", globals::programState.subCntr());
+                globals::programState.set(ProgramState::ActiveModule::INVALID, 0);
+                break;
+            }
+
+            vTaskDelay(1);
+            break;
+        default:
+            vTaskDelay(100);
+            break;
+        }
     }
 
     vTaskDelete(nullptr);

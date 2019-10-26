@@ -19,7 +19,6 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include <cfg_board.h>
 #include "main.h"
 #include "cmsis_os.h"
 #include "dma.h"

@@ -2,13 +2,14 @@
 
 #include <micro/utils/types.hpp>
 
-namespace cfg {
+namespace micro {
 
 class ProgramState {
 public:
     enum class ActiveModule {
         Labyrinth = 0,
-        RaceTrack = 1
+        RaceTrack = 1,
+        INVALID   = 2
     };
 
     ProgramState(ActiveModule module, uint8_t subCntr)
@@ -33,6 +34,4 @@ private:
     uint8_t subCntr_;
 };
 
-
-
-} // namespace cfg
+} // namespace micro

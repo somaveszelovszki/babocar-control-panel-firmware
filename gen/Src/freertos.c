@@ -48,9 +48,9 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId SetupTaskHandle;
-uint32_t SetupTaskBuffer[ 1024 ];
-osStaticThreadDef_t SetupTaskControlBlock;
+osThreadId SensorTaskHandle;
+uint32_t SensorTaskBuffer[ 1024 ];
+osStaticThreadDef_t SensorTaskControlBlock;
 osThreadId DebugTaskHandle;
 uint32_t DebugTaskBuffer[ 1024 ];
 osStaticThreadDef_t DebugTaskControlBlock;
@@ -63,21 +63,17 @@ osStaticThreadDef_t ProgLabyrinthTaskControlBlock;
 osThreadId ProgRaceTrackTaHandle;
 uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
 osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
-osMessageQId LogQueueHandle;
-uint8_t LogQueueBuffer[ 16 * 128 ];
-osStaticMessageQDef_t LogQueueControlBlock;
-osMessageQId ControlQueueHandle;
-uint8_t ControlQueueBuffer[ 1 * 8 ];
-osStaticMessageQDef_t ControlQueueControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void runSetupTask(const void *argument);
+void runSensorTask(const void *argument);
 void runDebugTask(const void *argument);
 void runControlTask(const void *argument);
+void runProgLabyrinthTask(const void *argument);
+void runProgRaceTrackTask(const void *argument);
 /* USER CODE END FunctionPrototypes */
 
-void StartSetupTask(void const * argument);
+void StartSensorTask(void const * argument);
 void StartDebugTask(void const * argument);
 void StartControlTask(void const * argument);
 void StartProgLabyrinthTask(void const * argument);
@@ -123,23 +119,14 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
-  /* Create the queue(s) */
-  /* definition and creation of LogQueue */
-  osMessageQStaticDef(LogQueue, 16, 128, LogQueueBuffer, &LogQueueControlBlock);
-  LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
-
-  /* definition and creation of ControlQueue */
-  osMessageQStaticDef(ControlQueue, 1, 8, ControlQueueBuffer, &ControlQueueControlBlock);
-  ControlQueueHandle = osMessageCreate(osMessageQ(ControlQueue), NULL);
-
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of SetupTask */
-  osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 1024, SetupTaskBuffer, &SetupTaskControlBlock);
-  SetupTaskHandle = osThreadCreate(osThread(SetupTask), NULL);
+  /* definition and creation of SensorTask */
+  osThreadStaticDef(SensorTask, StartSensorTask, osPriorityNormal, 0, 1024, SensorTaskBuffer, &SensorTaskControlBlock);
+  SensorTaskHandle = osThreadCreate(osThread(SensorTask), NULL);
 
   /* definition and creation of DebugTask */
   osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
@@ -163,14 +150,14 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_StartSetupTask */
+/* USER CODE BEGIN Header_StartSensorTask */
 /**
-  * @brief  Function implementing the SetupTask thread.
+  * @brief  Function implementing the SensorTask thread.
   * @param  argument: Not used 
   * @retval None
   */
-/* USER CODE END Header_StartSetupTask */
-void StartSetupTask(void const * argument)
+/* USER CODE END Header_StartSensorTask */
+void StartSensorTask(void const * argument)
 {
     
     
@@ -179,9 +166,9 @@ void StartSetupTask(void const * argument)
     
     
 
-  /* USER CODE BEGIN StartSetupTask */
-  runSetupTask(argument);
-  /* USER CODE END StartSetupTask */
+  /* USER CODE BEGIN StartSensorTask */
+  runSensorTask(argument);
+  /* USER CODE END StartSensorTask */
 }
 
 /* USER CODE BEGIN Header_StartDebugTask */
@@ -222,11 +209,7 @@ void StartControlTask(void const * argument)
 void StartProgLabyrinthTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgLabyrinthTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runProgLabyrinthTask(argument);
   /* USER CODE END StartProgLabyrinthTask */
 }
 
@@ -240,11 +223,7 @@ void StartProgLabyrinthTask(void const * argument)
 void StartProgRaceTrackTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgRaceTrackTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runProgRaceTrackTask(argument);
   /* USER CODE END StartProgRaceTrackTask */
 }
 

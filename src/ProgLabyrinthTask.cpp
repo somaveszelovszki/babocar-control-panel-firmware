@@ -15,6 +15,9 @@
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_uart.h>
 
+#include <FreeRTOS.h>
+#include <task.h>
+
 using namespace micro;
 
 namespace {
@@ -427,7 +430,10 @@ void waitStartSignal(void) {
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
-    Status status;
+
+    vTaskDelay(5); // gives time to other tasks to initialize their queues
+
+    while(true) { vTaskDelay(100); }
 
     taskENTER_CRITICAL();
     // TODO send speed to ControlTask
@@ -462,9 +468,9 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     bool laneChangeHandled = false;
 
     while (true) {
-        switch (globals::programState) {
-            case ProgramState::Labyrinth:
-//            {
+        switch (globals::programState.activeModule()) {
+            case ProgramState::ActiveModule::Labyrinth:
+//            { // TODO switch (globals::programState.subCntr())
 //                if (linesLocal.hasValue()) {
 //                    controlPropsLocal.line = linesLocal->centerLine;
 //
@@ -589,13 +595,14 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 //
 //                    prevLines = linesLocal.value();
 //                }
+//
+//                vTaskDelay(2);
 //                break;
 //            }
             default:
+                vTaskDelay(100);
                 break;
         }
-
-        vTaskDelay(2);
     }
 
     vTaskDelete(nullptr);
