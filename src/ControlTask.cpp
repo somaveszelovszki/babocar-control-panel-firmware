@@ -66,6 +66,7 @@ extern "C" void runControlTask(const void *argument) {
     while (true) {
         if (motorPanel.hasNewValue()) {
             motorPanelDataOut_t motorPanelData = motorPanel.acquireLastValue();
+            globals::car.distance = millimeter_t(motorPanelData.distance_mm);
             globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
             //LOG_DEBUG("speed: %f m/s", globals::car.speed.get());
         }

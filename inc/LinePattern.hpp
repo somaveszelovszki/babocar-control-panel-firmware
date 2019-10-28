@@ -16,7 +16,8 @@ public:
         ACCELERATE  = 1,    // 1 solid line in the middle, 2 dashed lines on both sides
         BRAKE       = 2,    // 1 solid line in the middle, 2 solid lines on both sides
         LANE_CHANGE = 3,    // 1 solid line in the middle, 1 dashed line on one (UNKNOWN!) side (dash and space lengths decreasing)
-        JUNCTION    = 4     // Labyrinth junction
+        JUNCTION    = 4,    // Labyrinth junction
+        DEAD_END    = 5     // Labyrinth dead-end
     };
 
     Type type;        // Line pattern type.
@@ -44,10 +45,17 @@ public:
         , isCurrentPatternValidated(true)
         , isPatternChangeCheckNeeded(false) {}
 
-    void update(meter_t currentDist, const Lines& lines);
+    void update(meter_t currentDist, const LinePositions& front, const LinePositions& rear, const Lines& lines);
+
+    LinePattern getPattern(void) const {
+        return this->isCurrentPatternValidated ? this->currentPattern : this->prevPattern;
+    }
+
 private:
     struct StampedLines {
         meter_t distance;
+        LinePositions front;
+        LinePositions rear;
         Lines lines;
     };
 
@@ -55,7 +63,7 @@ private:
 
     meter_t distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const;
 
-    bool isPatternValid(LinePattern::Type patternType, const Lines& lines, meter_t currentDist);
+    bool isPatternValid(LinePattern::Type patternType, const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist);
 
     static constexpr uint8_t PREV_MEAS_SIZE = 100;
 

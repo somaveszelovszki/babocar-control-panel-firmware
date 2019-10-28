@@ -9,15 +9,23 @@
 #include <micro/task/common.hpp>
 #include <micro/sensor/Filter.hpp>
 
+#include <DetectedLines.hpp>
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
 using namespace micro;
 
+#define DETECTED_LINES_QUEUE_LENGTH 1
+QueueHandle_t detectedLinesQueue;
+static uint8_t detectedLinesQueueStorageBuffer[DETECTED_LINES_QUEUE_LENGTH * sizeof(DetectedLines)];
+static StaticQueue_t detectedLinesQueueBuffer;
+
 namespace {
 
 LineDetectPanel frontLineDetectPanel(uart_FrontLineDetectPanel);
 LineDetectPanel rearLineDetectPanel(uart_RearLineDetectPanel);
+LinePatternCalculator linePatternCalc;
+
 hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 
 Timer lineDetectPanelsSendTimer;
@@ -37,7 +45,7 @@ void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions) {
 } // namespace
 
 extern "C" void runSensorTask(const void *argument) {
-    //LOG_DEBUG("SensorTask running...");
+    detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
     vTaskDelay(5); // gives time to other tasks to initialize their queues
 
@@ -46,45 +54,46 @@ extern "C" void runSensorTask(const void *argument) {
 
     LowPassFilter<degree_t, 5> gyroAngleFilter;
 
-//    lineDetectPanelDataIn_t frontLineDetectPanelData;
-//    fillLineDetectPanelData(frontLineDetectPanelData);
-//    frontLineDetectPanel.start(frontLineDetectPanelData);
-//
-//    lineDetectPanelDataIn_t rearLineDetectPanelData;
-//    fillLineDetectPanelData(rearLineDetectPanelData);
-//    rearLineDetectPanel.start(rearLineDetectPanelData);
+    lineDetectPanelDataIn_t frontLineDetectPanelData;
+    fillLineDetectPanelData(frontLineDetectPanelData);
+    frontLineDetectPanel.start(frontLineDetectPanelData);
+
+    lineDetectPanelDataIn_t rearLineDetectPanelData;
+    fillLineDetectPanelData(rearLineDetectPanelData);
+    rearLineDetectPanel.start(rearLineDetectPanelData);
 
     gyro.initialize();
 
-//    frontLineDetectPanel.waitStart();
-//    rearLineDetectPanel.waitStart();
-//    lineDetectPanelsSendTimer.start(millisecond_t(100));
+    frontLineDetectPanel.waitStart();
+    rearLineDetectPanel.waitStart();
+    lineDetectPanelsSendTimer.start(millisecond_t(100));
 
     while (true) {
-
-//        if (lineDetectPanelsSendTimer.checkTimeout()) {
-//            fillLineDetectPanelData(frontLineDetectPanelData);
-//            frontLineDetectPanel.send(frontLineDetectPanelData);
-//
-//            fillLineDetectPanelData(rearLineDetectPanelData);
-//            rearLineDetectPanel.send(rearLineDetectPanelData);
-//        }
-//
-//        LinePositions frontLinePositions;
-//        LinePositions rearLinePositions;
-//
-//        if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {
-//            getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
-//            getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
-//        }
-//
-//        // passes line positions by value to prevent race condition
-//        calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
 
         const point3<gauss_t> mag = gyro.readMagData();
         if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
             globals::car.pose.angle = normalize360(gyroAngleFilter.update(atan2(mag.Y, mag.X)));
             LOG_DEBUG("orientation: %f deg", static_cast<degree_t>(globals::car.pose.angle).get());
+        }
+
+        if (lineDetectPanelsSendTimer.checkTimeout()) {
+            fillLineDetectPanelData(frontLineDetectPanelData);
+            frontLineDetectPanel.send(frontLineDetectPanelData);
+
+            fillLineDetectPanelData(rearLineDetectPanelData);
+            rearLineDetectPanel.send(rearLineDetectPanelData);
+        }
+
+        if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {
+            LinePositions frontLinePositions, rearLinePositions;
+
+            getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
+            getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
+
+            calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
+            linePatternCalc.update(globals::car.distance, frontLinePositions, rearLinePositions, lines);
+            const DetectedLines detectedLines = { lines, mainLine, linePatternCalc.getPattern() };
+            xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }
 
         vTaskDelay(1);

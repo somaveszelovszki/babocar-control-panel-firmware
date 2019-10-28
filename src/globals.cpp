@@ -20,6 +20,8 @@ float frontLineController_D      = cfg::FRONT_LINE_CONTROLLER_DEFAULT_D;
 float rearLineController_P       = cfg::REAR_LINE_CONTROLLER_DEFAULT_P;
 float rearLineController_D       = cfg::REAR_LINE_CONTROLLER_DEFAULT_D;
 CarProps car                     = CarProps();
+m_per_sec_t targetSpeedOverride  = m_per_sec_t(0.0f);
+bool targetSpeedOverrideActive   = false;
 
 void initializeGlobalParams() {
     REGISTER_GLOBAL(useSafetyEnableSignal);
@@ -33,6 +35,8 @@ void initializeGlobalParams() {
     REGISTER_GLOBAL(rearLineController_P);
     REGISTER_GLOBAL(rearLineController_D);
     REGISTER_GLOBAL(car);
+    REGISTER_GLOBAL(targetSpeedOverride);
+    REGISTER_GLOBAL(targetSpeedOverrideActive);
 }
 
 }  // namespace globals

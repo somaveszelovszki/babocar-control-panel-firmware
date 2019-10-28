@@ -23,6 +23,8 @@ extern float frontLineController_D;
 extern float rearLineController_P;
 extern float rearLineController_D;
 extern CarProps car;
+extern m_per_sec_t targetSpeedOverride;
+extern bool targetSpeedOverrideActive;
 
 void initializeGlobalParams();
 
