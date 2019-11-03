@@ -36,6 +36,7 @@ extern DMA_HandleTypeDef  hdma_uart5_tx;
 extern DMA_HandleTypeDef  hdma_usart6_rx;
 extern DMA_HandleTypeDef  hdma_usart6_tx;
 extern I2C_HandleTypeDef  hi2c1;
+extern I2C_HandleTypeDef  hi2c2;
 
 #define tim_System (&htim2)
 
@@ -69,6 +70,7 @@ extern I2C_HandleTypeDef  hi2c1;
 #define dma_FrontLineDetectPanel     (&hdma_usart6_rx)
 
 #define i2c_Gyro                     (&hi2c1)
+#define i2c_Dist                     (&hi2c2)
 
 #define gpio_Led                     GPIOA
 #define gpioPin_Led                  GPIO_PIN_5
