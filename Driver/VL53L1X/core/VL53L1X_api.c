@@ -63,6 +63,11 @@
  */
 
 #include "VL53L1X_api.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 #include <string.h>
 
 #if 0
@@ -848,3 +853,8 @@ VL53L1X_ERROR VL53L1X_StartTemperatureUpdate(uint16_t dev)
 	status = VL53L1_WrByte(dev, 0x0B, 0); /* start VHV from the previous temperature */
 	return status;
 }
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
