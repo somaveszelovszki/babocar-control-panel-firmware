@@ -63,8 +63,8 @@ extern "C" void runDebugTask(const void *argument) {
 //        }
 
         if (rxBuffer.size() > 0) {
-            const char *inCmd = rxBuffer.getReadableBuffer();
-            debugParams.deserializeAll(in);
+            const uint8_t (*inCmd)[MAX_RX_BUFFER_SIZE] = rxBuffer.getReadableBuffer();
+            debugParams.deserializeAll(reinterpret_cast<const char*>(*inCmd));
             rxBuffer.updateTail(1);
         }
 
