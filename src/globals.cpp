@@ -1,12 +1,9 @@
 #include <globals.hpp>
 #include <cfg_car.hpp>
+#include <micro/debug/params.hpp>
 
 namespace micro {
 namespace globals {
-
-Params debugParams;
-
-#define REGISTER_GLOBAL(name) debugParams.registerParam(#name, &name)
 
 ProgramState programState        = ProgramState(ProgramState::ActiveModule::Labyrinth, 0);
 bool useSafetyEnableSignal       = true;
@@ -23,7 +20,14 @@ CarProps car                     = CarProps();
 m_per_sec_t targetSpeedOverride  = m_per_sec_t(0.0f);
 bool targetSpeedOverrideActive   = false;
 
-void initializeGlobalParams() {
+bool isControlTaskInitialized    = false;
+bool isDebugTaskInitialized      = false;
+bool isSensorTaskInitialized     = false;
+
+void initializeGlobalParams(Params& params) {
+
+#define REGISTER_GLOBAL(name) params.registerParam(#name, &name)
+
     REGISTER_GLOBAL(useSafetyEnableSignal);
     REGISTER_GLOBAL(indicatorLedsEnabled);
     REGISTER_GLOBAL(startSignalEnabled);
@@ -37,6 +41,8 @@ void initializeGlobalParams() {
     REGISTER_GLOBAL(car);
     REGISTER_GLOBAL(targetSpeedOverride);
     REGISTER_GLOBAL(targetSpeedOverrideActive);
+
+#undef REGISTER_GLOBAL
 }
 
 }  // namespace globals

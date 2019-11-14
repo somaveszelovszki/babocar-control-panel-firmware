@@ -2,14 +2,13 @@
 
 #include <micro/utils/units.hpp>
 #include <micro/utils/CarProps.hpp>
-#include <micro/debug/params.hpp>
 #include <ProgramState.hpp>
 
 namespace micro {
 
-namespace globals {
+class Params;
 
-extern Params debugParams;
+namespace globals {
 
 extern ProgramState programState;
 extern bool useSafetyEnableSignal;
@@ -26,7 +25,11 @@ extern CarProps car;
 extern m_per_sec_t targetSpeedOverride;
 extern bool targetSpeedOverrideActive;
 
-void initializeGlobalParams();
+extern bool isControlTaskInitialized;
+extern bool isDebugTaskInitialized;
+extern bool isSensorTaskInitialized;
+
+void initializeGlobalParams(Params& params);
 
 } // namespace globals
 } // namespace micro

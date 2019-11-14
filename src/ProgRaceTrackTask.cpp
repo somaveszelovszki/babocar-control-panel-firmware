@@ -42,8 +42,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             if (xQueuePeek(detectedLinesQueue, &detectedLines, 0)) {
 
                 controlData.baseline = detectedLines.mainLine;
-                controlData.baselineOffset = millimeter_t(0);
-                controlData.baselineAngle = radian_t(0);
 
                 if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                     if (LinePattern::SINGLE_LINE == prevDetectedLines.pattern.type) {

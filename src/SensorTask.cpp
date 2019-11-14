@@ -14,7 +14,13 @@
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
+#include <FreeRTOS.h>
+#include <queue.h>
+
 using namespace micro;
+
+#include "ControlData.hpp"
+extern QueueHandle_t controlQueue;
 
 #define DETECTED_LINES_QUEUE_LENGTH 1
 QueueHandle_t detectedLinesQueue;
@@ -33,7 +39,8 @@ hw::VL53L1X_DistanceSensor frontDistSensor(i2c_Dist, 0x52);
 Timer lineDetectPanelsSendTimer;
 
 void fillLineDetectPanelData(lineDetectPanelDataIn_t& panelData) {
-    panelData.flags = globals::indicatorLedsEnabled ? LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED : 0x00;
+    panelData.flags = 0x00;
+    if (globals::indicatorLedsEnabled) panelData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
 }
 
 void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions) {
@@ -72,6 +79,8 @@ extern "C" void runSensorTask(const void *argument) {
     //rearLineDetectPanel.waitStart();
     lineDetectPanelsSendTimer.start(millisecond_t(100));
 
+    globals::isSensorTaskInitialized = true;
+
     while (true) {
 
         const point3<gauss_t> mag = gyro.readMagData();
@@ -108,6 +117,12 @@ extern "C" void runSensorTask(const void *argument) {
             linePatternCalc.update(globals::car.distance, frontLinePositions, rearLinePositions, lines);
             const DetectedLines detectedLines = { lines, mainLine, linePatternCalc.getPattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
+
+            // TODO do not set control from here!
+            ControlData controlData;
+            controlData.baseline = mainLine;
+            controlData.speed = m_per_sec_t(0);
+            xQueueOverwrite(controlQueue, &controlData);
         }
 
 //        if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {

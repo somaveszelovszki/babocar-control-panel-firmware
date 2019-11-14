@@ -9,8 +9,6 @@ namespace micro {
 struct ControlData {
     m_per_sec_t speed;
     Line baseline;
-    millimeter_t baselineOffset;
-    radian_t baselineAngle;
 };
 
 } // namespace micro

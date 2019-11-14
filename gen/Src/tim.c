@@ -149,7 +149,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
     /* TIM1 clock enable */
     __HAL_RCC_TIM1_CLK_ENABLE();
   /* USER CODE BEGIN TIM1_MspInit 1 */
-
+    HAL_TIM_Base_Start(&htim1);
   /* USER CODE END TIM1_MspInit 1 */
   }
   else if(tim_baseHandle->Instance==TIM3)
@@ -186,7 +186,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN TIM1_MspPostInit 1 */
-
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
   /* USER CODE END TIM1_MspPostInit 1 */
   }
   else if(timHandle->Instance==TIM3)

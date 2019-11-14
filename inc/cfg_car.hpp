@@ -4,7 +4,7 @@
 
 namespace cfg {
 
-constexpr micro::millimeter_t CAR_PIVOT_DIST_FRONT_REAR = micro::millimeter_t(200);      // Distance between front and rear pivots.
+constexpr micro::millimeter_t CAR_PIVOT_DIST_FRONT_REAR = micro::millimeter_t(273);      // Distance between front and rear pivots.
 constexpr micro::millimeter_t CAR_PIVOT_DIST_MID        = CAR_PIVOT_DIST_FRONT_REAR / 2; // Distance between pivot and car middle.
 constexpr micro::millimeter_t CAR_PIVOT_LENGTH_FRONT    = micro::millimeter_t(250);      // Length of front pivot (wheel to wheel).
 constexpr micro::millimeter_t CAR_PIVOT_LENGTH_REAR     = micro::millimeter_t(250);      // Length of front pivot (wheel to wheel).
@@ -33,13 +33,13 @@ constexpr micro::millimeter_t MAX_POS_OPTO_REAR = DIST_BTW_OPTOS * NUM_OPTO_REAR
 
 constexpr micro::millimeter_t DIST_BTW_OPTO_ROWS = micro::millimeter_t(121); // Distance between the two line detector optical sensor rows.
 
-constexpr micro::radian_t SERVO_MID_FRONT       = micro::degree_t(74.0f); // Front servo middle position angle.
-constexpr micro::radian_t WHEEL_MAX_DELTA_FRONT = micro::degree_t(25.0f); // Front wheel max delta angle.
-constexpr float           SERVO_WHEEL_TR_FRONT  = 25.0f / 55.0f;          // Front servo-to-wheel transfer rate.
+constexpr micro::radian_t SERVO_MID_FRONT       = micro::degree_t(103.0f); // Front servo middle position angle.
+constexpr micro::radian_t WHEEL_MAX_DELTA_FRONT = micro::degree_t(20.0f);  // Front wheel max delta angle.
+constexpr float           SERVO_WHEEL_TR_FRONT  = 16.5f / 40.0f;           // Front servo-to-wheel transfer rate.
 
-constexpr micro::radian_t SERVO_MID_REAR        = micro::degree_t(74.0f); // Rear servo middle position angle.
-constexpr micro::radian_t WHEEL_MAX_DELTA_REAR  = micro::degree_t(25.0f); // Rear wheel max delta angle.
-constexpr float           SERVO_WHEEL_TR_REAR   = 25.0f / 55.0f;          // Rear servo-to-wheel transfer rate.
+constexpr micro::radian_t SERVO_MID_REAR        = micro::degree_t(98.0f); // Rear servo middle position angle.
+constexpr micro::radian_t WHEEL_MAX_DELTA_REAR  = micro::degree_t(20.0f); // Rear wheel max delta angle.
+constexpr float           SERVO_WHEEL_TR_REAR   = 16.5f / 40.0f;          // Rear servo-to-wheel transfer rate.
 
 constexpr micro::millimeter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(110.0f); // Distance between front sensors and front wheels.
 constexpr micro::millimeter_t OPTO_SENSOR_REAR_WHEEL_DIST  = micro::millimeter_t(110.0f); // Distance between front sensors and front wheels.
@@ -51,8 +51,8 @@ constexpr micro::microsecond_t DC_MOTOR_T_ELECTRICAL = micro::microsecond_t(484.
 constexpr micro::microsecond_t DC_MOTOR_CONTROLLER_DEFAULT_Ti = DC_MOTOR_T_ELECTRICAL;
 constexpr float                DC_MOTOR_CONTROLLER_DEFAULT_Kc = 1.0f;
 
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P = 1.0f;
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D = 1.0f;
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P = 2.0f;
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D = 0.0f;
 
 constexpr float REAR_LINE_CONTROLLER_DEFAULT_P  = 1.0f;
 constexpr float REAR_LINE_CONTROLLER_DEFAULT_D  = 1.0f;

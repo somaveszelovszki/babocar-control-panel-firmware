@@ -58,7 +58,7 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         micro_MotorPanel_Uart_RxCpltCallback();
 
     } else if (huart == uart_Command) {
-        //uint32_t bytes = MAX_RX_BUFFER_SIZE - ((DMA_HandleTypeDef*)dma_Bluetooth.handle)->Instance->NDTR;
+        // uint32_t bytes = MAX_RX_BUFFER_SIZE - dma_Command->Instance->NDTR;
         micro_Command_Uart_RxCpltCallback();
         dmaBase_Command->HIFCR = DMA_FLAG_DMEIF1_5 | DMA_FLAG_FEIF1_5 | DMA_FLAG_HTIF1_5 | DMA_FLAG_TCIF1_5 | DMA_FLAG_TEIF1_5;    // clears DMA flags before next transfer
         dma_Command->Instance->NDTR = MAX_RX_BUFFER_SIZE; // sets number of bytes to receive
