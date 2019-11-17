@@ -30,7 +30,7 @@ constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.0f);
 
 extern "C" void runProgRaceTrackTask(const void *argument) {
 
-    vTaskDelay(5); // gives time to other tasks to initialize their queues
+    vTaskDelay(10); // gives time to other tasks to wake up
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;

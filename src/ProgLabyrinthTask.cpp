@@ -431,7 +431,7 @@ void waitStartSignal(void) {
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
 
-    vTaskDelay(5); // gives time to other tasks to initialize their queues
+    vTaskDelay(100); // gives time to other tasks and panels to wake up
 
     while(true) { vTaskDelay(100); }
 

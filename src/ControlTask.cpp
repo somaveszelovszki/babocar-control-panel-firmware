@@ -41,10 +41,10 @@ bool isFastSpeedSafe(const Line& line) {
     return abs(line.pos_front) <= MAX_LINE_POS && abs(line.angle) <= MAX_LINE_ANGLE;
 }
 
-void fillMotorPanelData(m_per_sec_t targetSpeed, motorPanelDataIn_t& panelData) {
+void fillMotorPanelData(motorPanelDataIn_t& panelData, m_per_sec_t targetSpeed) {
+    panelData.controller_Kc    = globals::motorController_Kc;
     panelData.targetSpeed_mmps = static_cast<int16_t>(static_cast<mm_per_sec_t>(targetSpeed).get());
     panelData.controller_Ti_us = static_cast<microsecond_t>(globals::motorController_Ti).get();
-    panelData.controller_Kc    = globals::motorController_Kc;
 
     panelData.flags = 0x00;
     if (globals::useSafetyEnableSignal) panelData.flags |= MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL;
@@ -55,18 +55,13 @@ void fillMotorPanelData(m_per_sec_t targetSpeed, motorPanelDataIn_t& panelData) 
 extern "C" void runControlTask(const void *argument) {
     controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
 
-    vTaskDelay(5); // gives time to other tasks to initialize their queues
+    vTaskDelay(10); // gives time to other tasks to wake up
 
     frontSteeringServo.positionMiddle();
     rearSteeringServo.positionMiddle();
 
-    globals::isControlTaskInitialized = true;
-
-    motorPanelDataIn_t motorPanelData;
-    fillMotorPanelData(m_per_sec_t(0), motorPanelData);
-    motorPanel.start(motorPanelData);
-    motorPanel.waitStart();
-    motorPanelSendTimer.start(millisecond_t(5));
+    motorPanel.start();
+    motorPanelSendTimer.start(millisecond_t(20));
 
     ControlData controlData;
     millisecond_t lastControlDataRecvTime = millisecond_t::ZERO();
@@ -74,13 +69,16 @@ extern "C" void runControlTask(const void *argument) {
     PD_Controller lineController(globals::frontLineController_P, globals::frontLineController_D,
             static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA_FRONT).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA_FRONT).get());
 
+    globals::isControlTaskInitialized = true;
+
     while (true) {
         if (motorPanel.hasNewValue()) {
             motorPanelDataOut_t motorPanelData = motorPanel.acquireLastValue();
             globals::car.distance = millimeter_t(motorPanelData.distance_mm);
             globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
+            const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
 
-            LOG_DEBUG("speed: %f m/s", globals::car.speed.get());
+            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s", globals::car.speed.get(), currentTargetSpeed.get());
         }
 
         // if no control data is received for a given period, stops motor for safety reasons
@@ -100,10 +98,8 @@ extern "C" void runControlTask(const void *argument) {
 
         if (motorPanelSendTimer.checkTimeout()) {
             motorPanelDataIn_t data;
-            data.targetSpeed_mmps = static_cast<int16_t>(static_cast<mm_per_sec_t>(controlData.speed).get());
-            data.controller_Ti_us = globals::motorController_Ti.get();
-            data.controller_Kc    = globals::motorController_Kc;
-            data.flags            = globals::useSafetyEnableSignal ? MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL : 0x00;
+            //fillMotorPanelData(data, controlData.speed);
+            fillMotorPanelData(data, m_per_sec_t(0.35f)); // 35% PWM - for now!
             motorPanel.send(data);
         }
 

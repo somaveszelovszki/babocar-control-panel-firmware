@@ -45,7 +45,7 @@ extern "C" void runDebugTask(const void *argument) {
     logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
     globals::initializeGlobalParams(debugParams);
 
-    vTaskDelay(5); // gives time to other tasks to initialize their queues
+    vTaskDelay(10); // gives time to other tasks to wake up
 
     char txLog[LOG_MSG_MAX_SIZE];
     char debugParamsStr[LOG_MSG_MAX_SIZE];
@@ -54,6 +54,7 @@ extern "C" void runDebugTask(const void *argument) {
 
     debugParamsSendTimer.start(millisecond_t(100));
     ledBlinkTimer.start(millisecond_t(250));
+
     globals::isDebugTaskInitialized = true;
 
     while (true) {

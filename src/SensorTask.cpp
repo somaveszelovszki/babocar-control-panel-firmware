@@ -56,7 +56,7 @@ void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions) {
 extern "C" void runSensorTask(const void *argument) {
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
-    vTaskDelay(5); // gives time to other tasks to initialize their queues
+    vTaskDelay(10); // gives time to other tasks to wake up
 
     frontDistSensor.initialize();
 
@@ -65,18 +65,12 @@ extern "C" void runSensorTask(const void *argument) {
 
     LowPassFilter<degree_t, 5> gyroAngleFilter;
 
-    lineDetectPanelDataIn_t frontLineDetectPanelData;
-    fillLineDetectPanelData(frontLineDetectPanelData);
-    frontLineDetectPanel.start(frontLineDetectPanelData);
+    frontLineDetectPanel.start();
 
-//    lineDetectPanelDataIn_t rearLineDetectPanelData;
-//    fillLineDetectPanelData(rearLineDetectPanelData);
 //    rearLineDetectPanel.start(rearLineDetectPanelData);
 
     gyro.initialize();
 
-    frontLineDetectPanel.waitStart();
-    //rearLineDetectPanel.waitStart();
     lineDetectPanelsSendTimer.start(millisecond_t(100));
 
     globals::isSensorTaskInitialized = true;
@@ -95,6 +89,7 @@ extern "C" void runSensorTask(const void *argument) {
         }
 
         if (lineDetectPanelsSendTimer.checkTimeout()) {
+            lineDetectPanelDataIn_t frontLineDetectPanelData;
             fillLineDetectPanelData(frontLineDetectPanelData);
             frontLineDetectPanel.send(frontLineDetectPanelData);
 
