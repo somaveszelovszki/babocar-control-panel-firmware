@@ -55,7 +55,7 @@ void fillMotorPanelData(motorPanelDataIn_t& panelData, m_per_sec_t targetSpeed) 
 extern "C" void runControlTask(const void *argument) {
     controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
 
-    vTaskDelay(10); // gives time to other tasks to wake up
+    vTaskDelay(300); // gives time to other tasks to wake up
 
     frontSteeringServo.positionMiddle();
     rearSteeringServo.positionMiddle();
@@ -78,7 +78,10 @@ extern "C" void runControlTask(const void *argument) {
             globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
             const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
 
-            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s", globals::car.speed.get(), currentTargetSpeed.get());
+            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tpos: %fmm",
+                globals::car.speed.get(),
+                currentTargetSpeed.get(),
+                static_cast<millimeter_t>(globals::car.distance).get());
         }
 
         // if no control data is received for a given period, stops motor for safety reasons

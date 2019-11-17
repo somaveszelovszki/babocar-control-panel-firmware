@@ -56,7 +56,7 @@ void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions) {
 extern "C" void runSensorTask(const void *argument) {
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
-    vTaskDelay(10); // gives time to other tasks to wake up
+    vTaskDelay(300); // gives time to other tasks to wake up
 
     frontDistSensor.initialize();
 
