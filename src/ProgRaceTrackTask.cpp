@@ -12,6 +12,7 @@
 
 #include <DetectedLines.hpp>
 #include <ControlData.hpp>
+#include <DistancesData.hpp>
 #include <cfg_car.hpp>
 
 #include <globals.hpp>
@@ -21,50 +22,81 @@ using namespace micro;
 extern QueueHandle_t detectedLinesQueue;
 extern QueueHandle_t controlQueue;
 
+#define DISTANCES_QUEUE_LENGTH 1
+QueueHandle_t distancesQueue;
+static uint8_t distancesQueueStorageBuffer[DISTANCES_QUEUE_LENGTH * sizeof(DistancesData)];
+static StaticQueue_t distancesQueueBuffer;
+
 namespace {
+
+enum {
+    ProgSubCntr_FollowSafetyCar = 0,
+    ProgSubCntr_Overtake        = 1,
+    ProgSubCntr_ReachSafetyCar  = 2,
+    ProgSubCntr_Race            = 3
+};
 
 constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.5f);
 constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.0f);
 
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.6f);
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.2f);
+
+struct Overtake {
+    Pose startPose;
+
+};
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(const void *argument) {
+    distancesQueue = xQueueCreateStatic(DISTANCES_QUEUE_LENGTH, sizeof(DistancesData), distancesQueueStorageBuffer, &distancesQueueBuffer);
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
+    DistancesData distances;
 
-    while(true) {
+    bool isFastSection = false;
+
+    while (true) {
         switch(globals::programState.activeModule()) {
         case ProgramState::ActiveModule::RaceTrack:
         {
-            if (xQueuePeek(detectedLinesQueue, &detectedLines, 0)) {
+            controlData.baseline = detectedLines.mainLine;
+            xQueuePeek(detectedLinesQueue, &detectedLines, 0);
+            xQueuePeek(distancesQueue, &distances, 0);
 
-                controlData.baseline = detectedLines.mainLine;
-
-                if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
-                    if (LinePattern::SINGLE_LINE == prevDetectedLines.pattern.type) {
-                        if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
-                            controlData.speed = speed_FAST;
-                        } else if (LinePattern::BRAKE == detectedLines.pattern.type) {
-                            controlData.speed = speed_SLOW;
-                        }
-                    }
+            if (detectedLines.pattern.type != prevDetectedLines.pattern.type && LinePattern::SINGLE_LINE == prevDetectedLines.pattern.type) {
+                if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
+                    isFastSection = true;
+                } else if (LinePattern::BRAKE == detectedLines.pattern.type) {
+                    isFastSection = false;
                 }
-
-                xQueueOverwrite(controlQueue, &controlData);
-
-                prevDetectedLines = detectedLines;
             }
 
-            switch(globals::programState.subCntr()) {
-            case 0: break; // TODO
+            switch (globals::programState.subCntr()) {
+            case ProgSubCntr_FollowSafetyCar:
+                controlData.speed = map(distances.front.get(), meter_t(0.2f).get(), meter_t(0.7f).get(), m_per_sec_t(0),
+                    isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+                break;
+            case ProgSubCntr_Overtake:
+                break;
+            case ProgSubCntr_ReachSafetyCar:
+                break;
+            case ProgSubCntr_Race:
+                controlData.speed = isFastSection ? speed_FAST : speed_SLOW;
+                break;
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", globals::programState.subCntr());
                 globals::programState.set(ProgramState::ActiveModule::INVALID, 0);
                 break;
             }
+
+            xQueueOverwrite(controlQueue, &controlData);
+
+            prevDetectedLines = detectedLines;
 
             vTaskDelay(1);
             break;

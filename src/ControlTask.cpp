@@ -55,7 +55,7 @@ void fillMotorPanelData(motorPanelDataIn_t& panelData, m_per_sec_t targetSpeed) 
 extern "C" void runControlTask(const void *argument) {
     controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
 
-    vTaskDelay(300); // gives time to other tasks to wake up
+    vTaskDelay(10); // gives time to other tasks to wake up
 
     frontSteeringServo.positionMiddle();
     rearSteeringServo.positionMiddle();
@@ -64,7 +64,7 @@ extern "C" void runControlTask(const void *argument) {
     motorPanelSendTimer.start(millisecond_t(20));
 
     ControlData controlData;
-    millisecond_t lastControlDataRecvTime = millisecond_t::ZERO();
+    millisecond_t lastControlDataRecvTime = millisecond_t::zero();
 
     PD_Controller lineController(globals::frontLineController_P, globals::frontLineController_D,
             static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA_FRONT).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA_FRONT).get());
@@ -96,13 +96,14 @@ extern "C" void runControlTask(const void *argument) {
             }
 
         } else if (micro::getTime() - lastControlDataRecvTime > millisecond_t(20)) {
-            controlData.speed = m_per_sec_t::ZERO();
+            controlData.speed = m_per_sec_t::zero();
         }
 
         if (motorPanelSendTimer.checkTimeout()) {
             motorPanelDataIn_t data;
             //fillMotorPanelData(data, controlData.speed);
-            fillMotorPanelData(data, m_per_sec_t(0.35f)); // 35% PWM - for now!
+            fillMotorPanelData(data, m_per_sec_t(0.20)); // 35% PWM - for now!
+            //fillMotorPanelData(data, globals::targetSpeedOverride);
             motorPanel.send(data);
         }
 

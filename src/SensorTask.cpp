@@ -10,6 +10,8 @@
 #include <micro/task/common.hpp>
 #include <micro/sensor/Filter.hpp>
 
+#include <ControlData.hpp>
+#include <DistancesData.hpp>
 #include <DetectedLines.hpp>
 #include <cfg_car.hpp>
 #include <globals.hpp>
@@ -19,8 +21,8 @@
 
 using namespace micro;
 
-#include "ControlData.hpp"
 extern QueueHandle_t controlQueue;
+extern QueueHandle_t distancesQueue;
 
 #define DETECTED_LINES_QUEUE_LENGTH 1
 QueueHandle_t detectedLinesQueue;
@@ -83,9 +85,10 @@ extern "C" void runSensorTask(const void *argument) {
             //LOG_DEBUG("orientation: %f deg", static_cast<degree_t>(globals::car.pose.angle).get());
         }
 
-        meter_t distance;
-        if (isOk(frontDistSensor.readDistance(distance))) {
-            //LOG_DEBUG("front distance: %u mm", static_cast<uint32_t>(static_cast<millimeter_t>(distance).get()));
+        DistancesData distances;
+        if (isOk(frontDistSensor.readDistance(distances.front))) {
+            xQueueOverwrite(distancesQueue, &distances);
+            LOG_DEBUG("front distance: %u cm", static_cast<uint32_t>(static_cast<centimeter_t>(distances.front).get()));
         }
 
         if (lineDetectPanelsSendTimer.checkTimeout()) {

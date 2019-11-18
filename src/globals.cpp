@@ -38,7 +38,7 @@ void initializeGlobalParams(Params& params) {
     REGISTER_GLOBAL(frontLineController_D);
     REGISTER_GLOBAL(rearLineController_P);
     REGISTER_GLOBAL(rearLineController_D);
-    REGISTER_GLOBAL(car);
+    //REGISTER_GLOBAL(car);
     REGISTER_GLOBAL(targetSpeedOverride);
     REGISTER_GLOBAL(targetSpeedOverrideActive);
 

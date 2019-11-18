@@ -119,14 +119,14 @@ void switchToSegment(Segment *seg, Junction *junc) {
 
 Junction* findExistingJunction(const point2m& pos, radian_t orientation, Sign patternDir) {
     Junction *result = nullptr;
-    meter_t minDist = meter_t::ZERO();
+    meter_t minDist = meter_t::zero();
     static constexpr radian_t EPS = degree_t(20.0f);
 
     for(Junction& j : junctions) {
         const meter_t dist = pos.distance(j.pos);
 
         const radian_t centerOri = micro::round90(patternDir == Sign::POSITIVE ? orientation : orientation + micro::PI);
-        if ((minDist == meter_t::ZERO() || dist < minDist) && micro::eqWithOverflow360(j.getCenterOrientation().value(), centerOri, EPS)) {
+        if ((minDist == meter_t::zero() || dist < minDist) && micro::eqWithOverflow360(j.getCenterOrientation().value(), centerOri, EPS)) {
             result = &j;
             minDist = dist;
         }
@@ -237,7 +237,7 @@ Direction onJuntionDetected(const LinePattern& linePattern, const CarProps& car)
         junctionPos = car.pose.pos;
     } else {
         const point2m carPos = car.pose.pos;
-        if (carOri == radian_t::ZERO()) {
+        if (carOri == radian_t::zero()) {
             junctionPos = { carPos.X - cfg::MIN_JUNCTION_LENGTH, carPos.Y };
         } else if (carOri == micro::PI_2) {
             junctionPos = { carPos.X, carPos.Y - cfg::MIN_JUNCTION_LENGTH };
@@ -545,7 +545,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 //                                        lastJunc->setOrientation(currentSeg, micro::round90(carLocal.orientation() + micro::PI));
 //                                        LOG_DEBUG("Line: (%d, %d) %ddeg", (int32_t)carLocal.pos_.X.get<centimeters>(), (int32_t)carLocal.pos_.Y.get<centimeters>(), (int32_t)carLocal.orientation_.get<degrees>());
 //
-//                                    } else if (micro::isMultipleOf90(*lineOri, radian_t::ZERO())) {
+//                                    } else if (micro::isMultipleOf90(*lineOri, radian_t::zero())) {
 //
 //                                        const radian_t prevCarOri = car_.orientation();
 //                                        //car.orientation_ = *lineOri;

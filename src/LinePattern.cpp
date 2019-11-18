@@ -113,7 +113,7 @@ void LinePatternCalculator::changePattern(LinePattern newPattern) {
 }
 
 meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const {
-    meter_t dist = meter_t::ZERO();
+    meter_t dist = meter_t::zero();
     uint8_t i = this->currentMeasIdx;
 
     do {

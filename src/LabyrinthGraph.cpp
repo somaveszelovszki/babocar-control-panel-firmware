@@ -131,21 +131,21 @@ Segment* Junction::getSegment(radian_t orientation) const {
     const SegmentOrientation& ori2 = this->segOrientations[2];
     Segment *result = nullptr;
 
-    radian_t min_ = radian_t::ZERO();
+    radian_t min_ = radian_t::zero();
 
-    if (ori0.value.hasValue() && (min_ == radian_t::ZERO() || abs(*ori0.value - orientation) < min_)) {
+    if (ori0.value.hasValue() && (min_ == radian_t::zero() || abs(*ori0.value - orientation) < min_)) {
         min_ = abs(*ori0.value - orientation);
         result = ori0.seg;
         LOG_DEBUG("getSegment: min: %f degrees -> %c", static_cast<degree_t>(min_).get(), result ? result->name : 'X');
     }
 
-    if (ori1.value.hasValue() && (min_ == radian_t::ZERO() || abs(*ori1.value - orientation) < min_)) {
+    if (ori1.value.hasValue() && (min_ == radian_t::zero() || abs(*ori1.value - orientation) < min_)) {
         min_ = abs(*ori1.value - orientation);
         result = ori1.seg;
         LOG_DEBUG("getSegment: min: %f degrees -> %c", static_cast<degree_t>(min_).get(), result ? result->name : 'X');
    }
 
-    if (ori2.value.hasValue() && (min_ == radian_t::ZERO() || abs(*ori2.value - orientation) < min_)) {
+    if (ori2.value.hasValue() && (min_ == radian_t::zero() || abs(*ori2.value - orientation) < min_)) {
         abs(*ori2.value - orientation);
         result = ori2.seg;
         LOG_DEBUG("getSegment: min: %f degrees -> %c", static_cast<degree_t>(min_).get(), result ? result->name : 'X');
