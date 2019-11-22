@@ -129,6 +129,9 @@ meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t
 }
 
 bool LinePatternCalculator::isPatternValid(LinePattern::Type patternType, const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
+
+    (void)rear;
+
     bool valid = false;
 
     switch (patternType) {

@@ -78,9 +78,10 @@ extern "C" void runControlTask(const void *argument) {
             globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
             const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
 
-            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tpos: %fmm",
+            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tisMotorEnabled:%s\tpos: %fmm",
                 globals::car.speed.get(),
                 currentTargetSpeed.get(),
+                motorPanelData.isMotorEnabled ? "true" : "false",
                 static_cast<millimeter_t>(globals::car.distance).get());
         }
 
@@ -101,8 +102,8 @@ extern "C" void runControlTask(const void *argument) {
 
         if (motorPanelSendTimer.checkTimeout()) {
             motorPanelDataIn_t data;
-            //fillMotorPanelData(data, controlData.speed);
-            fillMotorPanelData(data, m_per_sec_t(0.20)); // 35% PWM - for now!
+            fillMotorPanelData(data, controlData.speed);
+            //fillMotorPanelData(data, m_per_sec_t(1.0f));
             //fillMotorPanelData(data, globals::targetSpeedOverride);
             motorPanel.send(data);
         }

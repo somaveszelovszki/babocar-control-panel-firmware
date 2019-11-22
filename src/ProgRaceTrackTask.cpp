@@ -36,8 +36,8 @@ enum {
     ProgSubCntr_Race            = 3
 };
 
-constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.5f);
-constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.0f);
+constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.0f);
+constexpr m_per_sec_t speed_SLOW = m_per_sec_t(0.7f);
 
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.6f);
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.2f);

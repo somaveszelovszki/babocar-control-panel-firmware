@@ -100,40 +100,18 @@ extern "C" void runSensorTask(const void *argument) {
             //rearLineDetectPanel.send(rearLineDetectPanelData);
         }
 
-        if (frontLineDetectPanel.hasNewValue()) {
+        if (frontLineDetectPanel.hasNewValue()/* && rearLineDetectPanel.hasNewValue() */) {
             LinePositions frontLinePositions, rearLinePositions;
 
             getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
             //getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
 
             //calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
-
-            mainLine.pos_front = frontLinePositions.size() > 1 ? frontLinePositions[1] : frontLinePositions[0];
-
-            LOG_DEBUG("front line: %d mm", static_cast<int32_t>(static_cast<millimeter_t>(mainLine.pos_front).get()));
-
+            calculateLines(frontLinePositions, lines, mainLine);
             linePatternCalc.update(globals::car.distance, frontLinePositions, rearLinePositions, lines);
             const DetectedLines detectedLines = { lines, mainLine, linePatternCalc.getPattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
-
-            // TODO do not set control from here!
-            ControlData controlData;
-            controlData.baseline = mainLine;
-            controlData.speed = m_per_sec_t(0);
-            xQueueOverwrite(controlQueue, &controlData);
         }
-
-//        if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {
-//            LinePositions frontLinePositions, rearLinePositions;
-//
-//            getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
-//            getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
-//
-//            calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
-//            linePatternCalc.update(globals::car.distance, frontLinePositions, rearLinePositions, lines);
-//            const DetectedLines detectedLines = { lines, mainLine, linePatternCalc.getPattern() };
-//            xQueueOverwrite(detectedLinesQueue, &detectedLines);
-//        }
 
         vTaskDelay(1);
     }
