@@ -1,5 +1,6 @@
 #include <LinePattern.hpp>
 #include <globals.hpp>
+#include <micro/utils/log.hpp>
 
 namespace micro {
 
@@ -8,108 +9,125 @@ static constexpr meter_t ACCELERATE_SPACE_LENGTH     = centimeter_t(8);
 static constexpr meter_t ACCELERATE_VALIDITY_LENGTH  = centimeter_t(16);
 static constexpr meter_t ACCELERATE_PATTERN_LENGTH   = centimeter_t(72);
 
-static constexpr meter_t VALIDITY_LENGTH_SINGLE_LINE = centimeter_t(20);
+static constexpr meter_t SINGLE_LINE_VALIDITY_LENGTH = centimeter_t(10);
 
 static constexpr meter_t BRAKE_VALIDITY_LENGTH       = centimeter_t(20);
 static constexpr meter_t BRAKE_PATTERN_LENGTH        = centimeter_t(300);
 
-void LinePatternCalculator::update(meter_t currentDist, const LinePositions& front, const LinePositions& rear, const Lines& lines) {
-    this->prevMeas[currentMeasIdx] = { currentDist, front, rear, lines };
+static constexpr meter_t LANE_CHANGE_VALIDITY_LENGTH = centimeter_t(20);
+static constexpr meter_t JUNCTION_VALIDITY_LENGTH    = centimeter_t(20);
+static constexpr meter_t DEAD_END_VALIDITY_LENGTH    = centimeter_t(20);
 
-    switch(this->currentPattern.type) {
+static const meter_t VALIDITY_LENGTHS[] = {
+    SINGLE_LINE_VALIDITY_LENGTH,
+    ACCELERATE_VALIDITY_LENGTH,
+    BRAKE_VALIDITY_LENGTH,
+    LANE_CHANGE_VALIDITY_LENGTH,
+    JUNCTION_VALIDITY_LENGTH,
+    DEAD_END_VALIDITY_LENGTH
+};
 
-    case LinePattern::SINGLE_LINE:
-    {
-        switch(globals::programState.activeModule()) {
+void LinePatternCalculator::update(const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
+    this->prevMeas[this->currentMeasIdx = (this->currentMeasIdx + 1) % PREV_MEAS_SIZE] = { currentDist, front, rear, lines };
 
-        case ProgramState::ActiveModule::Labyrinth:
+    if (this->isPatternChangeCheckActive) {
+        for (vec<LinePattern, MAX_NUM_POSSIBLE_PATTERNS>::iterator it = this->possiblePatterns.begin(); it != this->possiblePatterns.end();) {
+
+            if (this->isPatternValid(*it, front, rear, lines, currentDist)) {
+                if (abs(currentDist - it->startDist) >= VALIDITY_LENGTHS[static_cast<uint8_t>(it->type)]) {
+                    this->changePattern(*it);
+                }
+                ++it;
+            } else {
+                it = this->possiblePatterns.erase(it);
+
+                if (!this->possiblePatterns.size()) {
+                    this->isPatternChangeCheckActive = false;
+                    LOG_DEBUG("All possible patterns are invalid, steps back to previous pattern");
+                }
+            }
+        }
+    } else {
+        LinePattern& current = this->currentPattern();
+
+        switch(current.type) {
+
+        case LinePattern::SINGLE_LINE:
+        {
+            switch(globals::programState.activeModule()) {
+
+            case ProgramState::ActiveModule::Labyrinth:
+            {
+                break;
+            }
+
+            case ProgramState::ActiveModule::RaceTrack:
+            {
+                if (3 == front.size()) {
+                    this->startPatternChangeCheck({
+                        { LinePattern::ACCELERATE, Sign::POSITIVE, Direction::CENTER, currentDist },
+                        { LinePattern::BRAKE, Sign::POSITIVE, Direction::CENTER, currentDist }
+                    });
+                }
+                break;
+            }
+
+            default:
+                break;
+            }
+
+            break;
+        }
+
+        case LinePattern::ACCELERATE:
+        {
+            if (!this->isPatternValid(current, front, rear, lines, currentDist)) {
+                this->startPatternChangeCheck({
+                    { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
+                });
+            }
+            break;
+        }
+
+        case LinePattern::BRAKE:
+        {
+            if (!this->isPatternValid(current, front, rear, lines, currentDist)) {
+                this->startPatternChangeCheck({
+                    { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
+                });
+            }
+            break;
+        }
+
+        case LinePattern::LANE_CHANGE:
         {
             break;
         }
 
-        case ProgramState::ActiveModule::RaceTrack:
+        case LinePattern::JUNCTION:
         {
-            if (front.size() == 3) {
-                this->isPatternChangeCheckNeeded = true;
-            }
+            break;
+        }
 
-            if (this->isPatternChangeCheckNeeded) {
-                if (this->isPatternValid(LinePattern::ACCELERATE, front, rear, lines, currentDist)) {
-                    this->changePattern({ LinePattern::ACCELERATE, Sign::POSITIVE, Direction::CENTER, currentDist });
-                } else if (this->isPatternValid(LinePattern::BRAKE, front, rear, lines, currentDist)) {
-                    this->changePattern({ LinePattern::BRAKE, Sign::POSITIVE, Direction::CENTER, currentDist });
-                }
-            }
+        case LinePattern::DEAD_END:
+        {
             break;
         }
 
         default:
             break;
         }
-
-        break;
     }
-
-    case LinePattern::ACCELERATE:
-    {
-        if (this->isCurrentPatternValidated) {
-            if (abs(currentDist - this->currentPattern.startDist) >= ACCELERATE_PATTERN_LENGTH + centimeter_t(5)) {
-                this->changePattern({ LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist });
-            }
-        } else if (this->isPatternValid(LinePattern::ACCELERATE, front, rear, lines, currentDist)) {
-            if (abs(currentDist - this->currentPattern.startDist) >= ACCELERATE_VALIDITY_LENGTH) {
-                this->isCurrentPatternValidated = true;
-            }
-        } else {
-            this->changePattern({ LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist });
-        }
-        break;
-    }
-
-    case LinePattern::BRAKE:
-    {
-        if (this->isCurrentPatternValidated) {
-            if (abs(currentDist - this->currentPattern.startDist) >= BRAKE_PATTERN_LENGTH + centimeter_t(5)) {
-                this->changePattern({ LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist });
-            }
-        } else if (!this->isPatternValid(LinePattern::BRAKE, front, rear, lines, currentDist)) {
-            this->changePattern({ LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist });
-        } else if (abs(currentDist - this->currentPattern.startDist) >= BRAKE_VALIDITY_LENGTH) {
-            this->isCurrentPatternValidated = true;
-        }
-        break;
-    }
-
-    case LinePattern::LANE_CHANGE:
-    {
-        break;
-    }
-
-    case LinePattern::JUNCTION:
-    {
-        break;
-    }
-
-    case LinePattern::DEAD_END:
-    {
-        break;
-    }
-
-    default:
-        break;
-    }
-
-    currentMeasIdx = (currentMeasIdx + 1) % PREV_MEAS_SIZE;
 }
 
-void LinePatternCalculator::changePattern(LinePattern newPattern) {
-    if (this->isCurrentPatternValidated) {
-        this->prevPrevPattern = this->prevPattern;
-        this->prevPattern = this->currentPattern;
-    }
-    this->currentPattern = newPattern;
-    this->isCurrentPatternValidated = false;
-    this->isPatternChangeCheckNeeded = false;
+void LinePatternCalculator::changePattern(const LinePattern& newPattern) {
+    this->prevPatterns[this->currentPatternIdx = (this->currentPatternIdx + 1) % PREV_PATTERNS_SIZE] = newPattern;
+    this->isPatternChangeCheckActive = false;
+    this->possiblePatterns.clear();
+
+    LOG_DEBUG("Pattern changed from %d to %d",
+            static_cast<int32_t>(this->prevPattern(1).type),
+            static_cast<int32_t>(this->currentPattern().type));
 }
 
 meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const {
@@ -128,20 +146,30 @@ meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t
     return dist;
 }
 
-bool LinePatternCalculator::isPatternValid(LinePattern::Type patternType, const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
+bool LinePatternCalculator::isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
 
     (void)rear;
 
     bool valid = false;
 
-    switch (patternType) {
+    switch (pattern.type) {
     case LinePattern::SINGLE_LINE:
         valid = 1 == front.size();
         break;
 
     case LinePattern::ACCELERATE:
-        valid = (3 == front.size() && this->distanceSinceNumLinesIs(3, currentDist) < ACCELERATE_SECTION_LENGTH + centimeter_t(4)) ||
-                (1 == front.size() && this->distanceSinceNumLinesIs(1, currentDist) < ACCELERATE_SPACE_LENGTH + centimeter_t(4));
+        switch(front.size()) {
+        case 1:
+            valid = currentDist - pattern.startDist >= ACCELERATE_SECTION_LENGTH - centimeter_t(3) &&
+                this->distanceSinceNumLinesIs(1, currentDist) < ACCELERATE_SPACE_LENGTH + centimeter_t(3);
+            break;
+        case 2:
+            valid = true; // entering or leaving a triple-line (don't care)
+            break;
+        case 3:
+            valid = this->distanceSinceNumLinesIs(3, currentDist) < ACCELERATE_SECTION_LENGTH + centimeter_t(3);
+            break;
+        }
         break;
 
     case LinePattern::BRAKE:
@@ -168,5 +196,9 @@ bool LinePatternCalculator::isPatternValid(LinePattern::Type patternType, const 
     return valid;
 }
 
+void LinePatternCalculator::startPatternChangeCheck(const std::initializer_list<LinePattern>& possiblePatterns) {
+    this->possiblePatterns = possiblePatterns;
+    this->isPatternChangeCheckActive = true;
+}
 
 } // namespace micro

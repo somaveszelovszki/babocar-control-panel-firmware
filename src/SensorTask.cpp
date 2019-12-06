@@ -3,6 +3,7 @@
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
+#include <micro/panel/LineDetectPanelData.h>
 #include <micro/panel/MotorPanel.hpp>
 #include <micro/panel/MotorPanelData.h>
 #include <micro/hw/MPU9250_Gyroscope.hpp>
@@ -21,7 +22,6 @@
 
 using namespace micro;
 
-extern QueueHandle_t controlQueue;
 extern QueueHandle_t distancesQueue;
 
 #define DETECTED_LINES_QUEUE_LENGTH 1
@@ -88,7 +88,7 @@ extern "C" void runSensorTask(const void *argument) {
         DistancesData distances;
         if (isOk(frontDistSensor.readDistance(distances.front))) {
             xQueueOverwrite(distancesQueue, &distances);
-            LOG_DEBUG("front distance: %u cm", static_cast<uint32_t>(static_cast<centimeter_t>(distances.front).get()));
+            //LOG_DEBUG("front distance: %u cm", static_cast<uint32_t>(static_cast<centimeter_t>(distances.front).get()));
         }
 
         if (lineDetectPanelsSendTimer.checkTimeout()) {
@@ -108,7 +108,7 @@ extern "C" void runSensorTask(const void *argument) {
 
             //calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
             calculateLines(frontLinePositions, lines, mainLine);
-            linePatternCalc.update(globals::car.distance, frontLinePositions, rearLinePositions, lines);
+            linePatternCalc.update(frontLinePositions, rearLinePositions, lines, globals::car.distance);
             const DetectedLines detectedLines = { lines, mainLine, linePatternCalc.getPattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }

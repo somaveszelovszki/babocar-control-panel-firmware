@@ -65,7 +65,7 @@ extern "C" void runDebugTask(const void *argument) {
 
         if (rxBuffer.size() > 0) {
             const uint8_t (*inCmd)[MAX_RX_BUFFER_SIZE] = rxBuffer.getReadableBuffer();
-            debugParams.deserializeAll(reinterpret_cast<const char*>(*inCmd));
+            debugParams.deserializeAll(reinterpret_cast<const char*>(*inCmd + 3));
             rxBuffer.updateTail(1);
         }
 
@@ -78,7 +78,7 @@ extern "C" void runDebugTask(const void *argument) {
                 debugParamsStr[len++] = '\0';
             }
 
-            xQueueSend(logQueue, debugParamsStr, 1);
+            //xQueueSend(logQueue, debugParamsStr, 1);
         }
 
         // receives all available messages coming from the tasks and adds them to the buffer vector

@@ -17,13 +17,15 @@ extern bool startSignalEnabled;
 extern bool lineFollowEnabled;
 extern microsecond_t motorController_Ti;
 extern float motorController_Kc;
-extern float frontLineController_P;
-extern float frontLineController_D;
+extern float frontLineController_P_1mps;
+extern float frontLineController_D_1mps;
 extern float rearLineController_P;
 extern float rearLineController_D;
 extern CarProps car;
 extern m_per_sec_t targetSpeedOverride;
 extern bool targetSpeedOverrideActive;
+extern bool frontDistServoEnabled;
+extern float frontDistServoAngleWheelTf;
 
 extern bool isControlTaskInitialized;
 extern bool isDebugTaskInitialized;

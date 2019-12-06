@@ -36,11 +36,11 @@ enum {
     ProgSubCntr_Race            = 3
 };
 
-constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.0f);
-constexpr m_per_sec_t speed_SLOW = m_per_sec_t(0.7f);
+constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.8f);
+constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.8f);
 
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.6f);
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.2f);
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.8f);
 
 struct Overtake {
     Pose startPose;
@@ -78,7 +78,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
             switch (globals::programState.subCntr()) {
             case ProgSubCntr_FollowSafetyCar:
-                controlData.speed = map(distances.front.get(), meter_t(0.2f).get(), meter_t(0.7f).get(), m_per_sec_t(0),
+                controlData.speed = map(distances.front.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
                     isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
                 break;
             case ProgSubCntr_Overtake:

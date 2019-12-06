@@ -29,10 +29,13 @@ namespace {
 
 MotorPanel motorPanel(uart_MotorPanel);
 
-hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::SERVO_MID_FRONT, cfg::WHEEL_MAX_DELTA_FRONT, cfg::SERVO_WHEEL_TR_FRONT);
-hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::SERVO_MID_REAR, cfg::WHEEL_MAX_DELTA_REAR, cfg::SERVO_WHEEL_TR_REAR);
+hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA, cfg::FRONT_SERVO_WHEEL_TR);
+hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA, cfg::REAR_SERVO_WHEEL_TR);
+
+hw::Servo frontDistServo(tim_ServoX, tim_chnl_ServoX1, cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
 
 static Timer motorPanelSendTimer;
+static Timer frontDistServoUpdateTimer;
 
 bool isFastSpeedSafe(const Line& line) {
     static constexpr millimeter_t MAX_LINE_POS = centimeter_t(8.5f);
@@ -57,17 +60,19 @@ extern "C" void runControlTask(const void *argument) {
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
-    frontSteeringServo.positionMiddle();
-    rearSteeringServo.positionMiddle();
+    frontSteeringServo.writeWheelAngle(radian_t::zero());
+    rearSteeringServo.writeWheelAngle(radian_t::zero());
+    frontDistServo.write(radian_t::zero());
 
     motorPanel.start();
     motorPanelSendTimer.start(millisecond_t(20));
+    frontDistServoUpdateTimer.start(millisecond_t(20));
 
     ControlData controlData;
     millisecond_t lastControlDataRecvTime = millisecond_t::zero();
 
-    PD_Controller lineController(globals::frontLineController_P, globals::frontLineController_D,
-            static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA_FRONT).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA_FRONT).get());
+    PD_Controller lineController(globals::frontLineController_P_1mps, globals::frontLineController_D_1mps,
+            static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
     globals::isControlTaskInitialized = true;
 
@@ -78,11 +83,11 @@ extern "C" void runControlTask(const void *argument) {
             globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
             const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
 
-            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tisMotorEnabled:%s\tpos: %fmm",
-                globals::car.speed.get(),
-                currentTargetSpeed.get(),
-                motorPanelData.isMotorEnabled ? "true" : "false",
-                static_cast<millimeter_t>(globals::car.distance).get());
+//            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tisMotorEnabled:%s\tpos: %fmm",
+//                globals::car.speed.get(),
+//                currentTargetSpeed.get(),
+//                motorPanelData.isMotorEnabled ? "true" : "false",
+//                static_cast<millimeter_t>(globals::car.distance).get());
         }
 
         // if no control data is received for a given period, stops motor for safety reasons
@@ -90,7 +95,9 @@ extern "C" void runControlTask(const void *argument) {
             lastControlDataRecvTime = micro::getTime();
 
             if (globals::lineFollowEnabled) {
-                lineController.setParams(globals::frontLineController_P, globals::frontLineController_D);
+                const float speed = abs(globals::car.speed.get());
+                const float multiplier = speed > 0.1f ? clamp(1.0f / speed, 0.15f, 1.0f) : 1.0f;
+                lineController.setParams(globals::frontLineController_P_1mps * multiplier, globals::frontLineController_D_1mps);
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos_front).get());
                 frontSteeringServo.writeWheelAngle(degree_t(lineController.getOutput()));
                 rearSteeringServo.writeWheelAngle(degree_t(-lineController.getOutput()));
@@ -106,6 +113,10 @@ extern "C" void runControlTask(const void *argument) {
             //fillMotorPanelData(data, m_per_sec_t(1.0f));
             //fillMotorPanelData(data, globals::targetSpeedOverride);
             motorPanel.send(data);
+        }
+
+        if (frontDistServoUpdateTimer.checkTimeout()) {
+            frontDistServo.write(frontSteeringServo.wheelAngle() * globals::frontDistServoAngleWheelTf);
         }
 
         vTaskDelay(1);
