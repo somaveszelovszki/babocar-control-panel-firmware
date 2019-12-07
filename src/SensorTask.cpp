@@ -45,11 +45,11 @@ void fillLineDetectPanelData(lineDetectPanelDataIn_t& panelData) {
     if (globals::indicatorLedsEnabled) panelData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
 }
 
-void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions) {
+void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions, bool mirror = false) {
     lineDetectPanelDataOut_t dataIn = panel.acquireLastValue();
     positions.clear();
     for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
-        positions.append(millimeter_t(dataIn.lines.values[i].pos_mm));
+        positions.append(millimeter_t(dataIn.lines.values[i].pos_mm) * (mirror ? -1 : 1));
     }
 }
 
@@ -104,7 +104,7 @@ extern "C" void runSensorTask(const void *argument) {
             LinePositions frontLinePositions, rearLinePositions;
 
             getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
-            getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
+            getLinesFromPanel(rearLineDetectPanel, rearLinePositions, true);
 
             calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
             linePatternCalc.update(frontLinePositions, rearLinePositions, lines, globals::car.distance);
