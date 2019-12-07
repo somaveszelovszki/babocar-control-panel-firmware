@@ -68,8 +68,7 @@ extern "C" void runSensorTask(const void *argument) {
     LowPassFilter<degree_t, 5> gyroAngleFilter;
 
     frontLineDetectPanel.start();
-
-//    rearLineDetectPanel.start(rearLineDetectPanelData);
+    rearLineDetectPanel.start();
 
     gyro.initialize();
 
@@ -96,18 +95,18 @@ extern "C" void runSensorTask(const void *argument) {
             fillLineDetectPanelData(frontLineDetectPanelData);
             frontLineDetectPanel.send(frontLineDetectPanelData);
 
-            //fillLineDetectPanelData(rearLineDetectPanelData);
-            //rearLineDetectPanel.send(rearLineDetectPanelData);
+            lineDetectPanelDataIn_t rearLineDetectPanelData;
+            fillLineDetectPanelData(rearLineDetectPanelData);
+            rearLineDetectPanel.send(rearLineDetectPanelData);
         }
 
         if (frontLineDetectPanel.hasNewValue()/* && rearLineDetectPanel.hasNewValue() */) {
             LinePositions frontLinePositions, rearLinePositions;
 
             getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
-            //getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
+            getLinesFromPanel(rearLineDetectPanel, rearLinePositions);
 
-            //calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
-            calculateLines(frontLinePositions, lines, mainLine);
+            calculateLines(frontLinePositions, rearLinePositions, lines, mainLine);
             linePatternCalc.update(frontLinePositions, rearLinePositions, lines, globals::car.distance);
             const DetectedLines detectedLines = { lines, mainLine, linePatternCalc.getPattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
