@@ -12,12 +12,14 @@ public:
     /* @brief Defines line pattern type.
      **/
     enum Type {
-        SINGLE_LINE = 0,    // 1 solid 1.9mm wide line.
-        ACCELERATE  = 1,    // 1 solid line in the middle, 2 dashed lines on both sides
-        BRAKE       = 2,    // 1 solid line in the middle, 2 solid lines on both sides
-        LANE_CHANGE = 3,    // 1 solid line in the middle, 1 dashed line on one (UNKNOWN!) side (dash and space lengths decreasing)
-        JUNCTION    = 4,    // Labyrinth junction
-        DEAD_END    = 5     // Labyrinth dead-end
+        NONE        = 0, ///< No lines detected
+        SINGLE_LINE = 1, ///< 1 solid 1.9mm wide line.
+        ACCELERATE  = 2, ///< 1 solid line in the middle, 2 dashed lines on both sides
+        BRAKE       = 3, ///< 1 solid line in the middle, 2 solid lines on both sides
+        LANE_CHANGE = 4, ///< 1 solid line in the middle, 1 dashed line on one (UNKNOWN!) side (dash and space lengths decreasing)
+        JUNCTION    = 5, ///< Labyrinth junction
+        DEAD_END    = 6, ///< Labyrinth dead-end
+
     };
 
     Type type;        // Line pattern type.
@@ -26,7 +28,7 @@ public:
     meter_t startDist;
 
     LinePattern()
-        : type(Type::SINGLE_LINE)
+        : type(Type::NONE)
         , dir(Sign::POSITIVE)
         , side(Direction::CENTER)
         , startDist(0) {}
@@ -41,9 +43,11 @@ public:
 class LinePatternCalculator {
 public:
     LinePatternCalculator(void)
-        : currentMeasIdx(PREV_MEAS_SIZE)
-        , currentPatternIdx(PREV_PATTERNS_SIZE)
-        , isPatternChangeCheckActive(false) {}
+        : currentMeasIdx(PREV_MEAS_SIZE - 1)
+        , currentPatternIdx(0)
+        , isPatternChangeCheckActive(false) {
+        this->prevPatterns[currentPatternIdx] = { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) };
+    }
 
     void update(const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist);
 
@@ -57,10 +61,10 @@ public:
 
 private:
     struct StampedLines {
-        meter_t distance;
         LinePositions front;
         LinePositions rear;
         Lines lines;
+        meter_t distance;
     };
 
     LinePattern& currentPattern() {

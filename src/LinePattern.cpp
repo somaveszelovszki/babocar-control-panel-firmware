@@ -4,12 +4,14 @@
 
 namespace micro {
 
+static constexpr meter_t NONE_VALIDITY_LENGTH        = centimeter_t(10);
+
+static constexpr meter_t SINGLE_LINE_VALIDITY_LENGTH = centimeter_t(10);
+
 static constexpr meter_t ACCELERATE_SECTION_LENGTH   = centimeter_t(8);
 static constexpr meter_t ACCELERATE_SPACE_LENGTH     = centimeter_t(8);
 static constexpr meter_t ACCELERATE_VALIDITY_LENGTH  = centimeter_t(16);
 static constexpr meter_t ACCELERATE_PATTERN_LENGTH   = centimeter_t(72);
-
-static constexpr meter_t SINGLE_LINE_VALIDITY_LENGTH = centimeter_t(10);
 
 static constexpr meter_t BRAKE_VALIDITY_LENGTH       = centimeter_t(20);
 static constexpr meter_t BRAKE_PATTERN_LENGTH        = centimeter_t(300);
@@ -19,6 +21,7 @@ static constexpr meter_t JUNCTION_VALIDITY_LENGTH    = centimeter_t(20);
 static constexpr meter_t DEAD_END_VALIDITY_LENGTH    = centimeter_t(20);
 
 static const meter_t VALIDITY_LENGTHS[] = {
+    NONE_VALIDITY_LENGTH,
     SINGLE_LINE_VALIDITY_LENGTH,
     ACCELERATE_VALIDITY_LENGTH,
     BRAKE_VALIDITY_LENGTH,
@@ -28,7 +31,7 @@ static const meter_t VALIDITY_LENGTHS[] = {
 };
 
 void LinePatternCalculator::update(const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
-    this->prevMeas[this->currentMeasIdx = (this->currentMeasIdx + 1) % PREV_MEAS_SIZE] = { currentDist, front, rear, lines };
+    this->prevMeas[this->currentMeasIdx = (this->currentMeasIdx + 1) % PREV_MEAS_SIZE] = { front, rear, lines, currentDist };
 
     if (this->isPatternChangeCheckActive) {
         for (vec<LinePattern, MAX_NUM_POSSIBLE_PATTERNS>::iterator it = this->possiblePatterns.begin(); it != this->possiblePatterns.end();) {
@@ -36,6 +39,7 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
             if (this->isPatternValid(*it, front, rear, lines, currentDist)) {
                 if (abs(currentDist - it->startDist) >= VALIDITY_LENGTHS[static_cast<uint8_t>(it->type)]) {
                     this->changePattern(*it);
+                    break;
                 }
                 ++it;
             } else {
@@ -51,6 +55,34 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
         LinePattern& current = this->currentPattern();
 
         switch(current.type) {
+
+        case LinePattern::NONE:
+        {
+            switch(globals::programState.activeModule()) {
+
+            case ProgramState::ActiveModule::Labyrinth:
+            {
+                break;
+            }
+
+            case ProgramState::ActiveModule::RaceTrack:
+            {
+                if (0 != front.size()) {
+                    this->startPatternChangeCheck({
+                        { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist },
+                        { LinePattern::ACCELERATE, Sign::POSITIVE, Direction::CENTER, currentDist },
+                        { LinePattern::BRAKE, Sign::POSITIVE, Direction::CENTER, currentDist }
+                    });
+                }
+                break;
+            }
+
+            default:
+                break;
+            }
+
+            break;
+        }
 
         case LinePattern::SINGLE_LINE:
         {
@@ -153,6 +185,11 @@ bool LinePatternCalculator::isPatternValid(const LinePattern& pattern, const Lin
     bool valid = false;
 
     switch (pattern.type) {
+
+    case LinePattern::NONE:
+        valid = 0 == front.size();
+        break;
+
     case LinePattern::SINGLE_LINE:
         valid = 1 == front.size();
         break;
