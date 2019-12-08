@@ -5,7 +5,7 @@
 namespace micro {
 namespace globals {
 
-ProgramState programState        = ProgramState(ProgramState::ActiveModule::RaceTrack, 0);
+ProgramState programState        = ProgramState(ProgramState::ActiveModule::RaceTrack, 3);
 bool useSafetyEnableSignal       = true;
 bool indicatorLedsEnabled        = true;
 bool startSignalEnabled          = false;

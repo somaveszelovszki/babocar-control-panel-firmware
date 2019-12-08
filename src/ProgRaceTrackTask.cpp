@@ -36,11 +36,11 @@ enum {
     ProgSubCntr_Race            = 3
 };
 
-constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.8f);
-constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.8f);
+constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.5f);
+constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.0f);
 
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.8f);
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.4f);
 
 struct Overtake {
     Pose startPose;
@@ -68,7 +68,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
-            if (detectedLines.pattern.type != prevDetectedLines.pattern.type && LinePattern::SINGLE_LINE == prevDetectedLines.pattern.type) {
+            if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                 if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
                     isFastSection = true;
                 } else if (LinePattern::BRAKE == detectedLines.pattern.type) {
