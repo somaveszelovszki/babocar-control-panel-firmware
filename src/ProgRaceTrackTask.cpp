@@ -65,6 +65,8 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
         case ProgramState::ActiveModule::RaceTrack:
         {
             controlData.baseline = detectedLines.mainLine;
+            controlData.angle = degree_t(0);
+            controlData.offset = millimeter_t(0);
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 

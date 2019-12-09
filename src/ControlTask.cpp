@@ -65,6 +65,7 @@ extern "C" void runControlTask(const void *argument) {
     frontDistServo.write(radian_t::zero());
 
     motorPanel.start();
+    motorPanel.waitResponse();
     motorPanelSendTimer.start(millisecond_t(20));
     frontDistServoUpdateTimer.start(millisecond_t(20));
 
@@ -98,9 +99,10 @@ extern "C" void runControlTask(const void *argument) {
                 const float speed = abs(globals::car.speed.get());
                 const float multiplier = speed > 0.1f ? clamp(1.0f / speed, 0.15f, 1.0f) : 1.0f;
                 lineController.setParams(globals::frontLineController_P_1mps * multiplier, globals::frontLineController_D_1mps);
-                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos_front).get());
-                frontSteeringServo.writeWheelAngle(degree_t(lineController.getOutput()));
-                rearSteeringServo.writeWheelAngle(degree_t(-lineController.getOutput()));
+
+                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos_front - controlData.offset).get());
+                frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
+                rearSteeringServo.writeWheelAngle(controlData.angle + degree_t(-lineController.getOutput()));
             }
 
         } else if (micro::getTime() - lastControlDataRecvTime > millisecond_t(20)) {

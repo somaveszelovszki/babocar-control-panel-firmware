@@ -51,6 +51,7 @@ void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions, bool mi
     for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
         positions.append(millimeter_t(dataIn.lines.values[i].pos_mm) * (mirror ? -1 : 1));
     }
+    positions.removeDuplicates();
 }
 
 void testLinePattern() {
@@ -660,26 +661,142 @@ void testLinePattern() {
     }
 }
 
+void testLineCalculation() {
+    Line mainLine;
+
+    // 0->1 on front panel
+    Lines lines = {};
+    LinePositions front = { millimeter_t(0) };
+    LinePositions rear = {};
+    calculateLines(front, rear, lines, mainLine);
+
+    // 0->1 on rear panel
+    lines = {};
+    front = {};
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 0->1 on both panels
+    lines = {};
+    front = { millimeter_t(0) };
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 1->0 on front panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) } };
+    front = {};
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 1->0 on rear panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) } };
+    front = { millimeter_t(0) };
+    rear = {};
+    calculateLines(front, rear, lines, mainLine);
+
+    // 1->0 on both panels
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) } };
+    front = {};
+    rear = {};
+    calculateLines(front, rear, lines, mainLine);
+
+    // 1->2 on front panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) } };
+    front = { millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 1->2 on rear panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) } };
+    front = { millimeter_t(0) };
+    rear = { millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 2->1 on front panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(0) };
+    rear = { millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 2->1 on rear panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 2->3 on front panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(-40), millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 2->3 on rear panel
+    lines = { { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(-40), millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 3->2 on front panel
+    lines = { { millimeter_t(-40), millimeter_t(-40), radian_t(0) }, { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(-40), millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 3->2 on rear panel
+    lines = { { millimeter_t(-40), millimeter_t(-40), radian_t(0) }, { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(-40), millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 3->1 on front panel
+    lines = { { millimeter_t(-40), millimeter_t(-40), radian_t(0) }, { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(0) };
+    rear = { millimeter_t(-40), millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 3->1 on rear panel
+    lines = { { millimeter_t(-40), millimeter_t(-40), radian_t(0) }, { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(-40), millimeter_t(0), millimeter_t(40) };
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 3->1 on front panel, 3->2 on rear panel
+    lines = { { millimeter_t(-40), millimeter_t(-40), radian_t(0) }, { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(0) };
+    rear = { millimeter_t(0), millimeter_t(40) };
+    calculateLines(front, rear, lines, mainLine);
+
+    // 3->2 on front panel, 3->1 on rear panel
+    lines = { { millimeter_t(-40), millimeter_t(-40), radian_t(0) }, { millimeter_t(0), millimeter_t(0), radian_t(0) }, { millimeter_t(40), millimeter_t(40), radian_t(0) } };
+    front = { millimeter_t(-40), millimeter_t(0) };
+    rear = { millimeter_t(0) };
+    calculateLines(front, rear, lines, mainLine);
+}
+
 } // namespace
 
 extern "C" void runSensorTask(const void *argument) {
+
+    lineDetectPanelDataIn_t frontLineDetectPanelData, rearLineDetectPanelData;
+    Lines lines;
+    Line mainLine;
+    LowPassFilter<degree_t, 5> gyroAngleFilter;
+
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
     vTaskDelay(300); // gives time to other tasks to wake up
 
     frontDistSensor.initialize();
 
-    Lines lines;
-    Line mainLine;
-
-    LowPassFilter<degree_t, 5> gyroAngleFilter;
+    gyro.initialize();
 
     frontLineDetectPanel.start();
     rearLineDetectPanel.start();
 
-    gyro.initialize();
+    frontLineDetectPanel.waitResponse();
+    rearLineDetectPanel.waitResponse();
 
-    lineDetectPanelsSendTimer.start(millisecond_t(100));
+    lineDetectPanelsSendTimer.start(millisecond_t(400));
 
     globals::isSensorTaskInitialized = true;
 
@@ -698,16 +815,14 @@ extern "C" void runSensorTask(const void *argument) {
         }
 
         if (lineDetectPanelsSendTimer.checkTimeout()) {
-            lineDetectPanelDataIn_t frontLineDetectPanelData;
             fillLineDetectPanelData(frontLineDetectPanelData);
             frontLineDetectPanel.send(frontLineDetectPanelData);
 
-            lineDetectPanelDataIn_t rearLineDetectPanelData;
             fillLineDetectPanelData(rearLineDetectPanelData);
             rearLineDetectPanel.send(rearLineDetectPanelData);
         }
 
-        if (frontLineDetectPanel.hasNewValue()/* && rearLineDetectPanel.hasNewValue() */) {
+        if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {
             LinePositions frontLinePositions, rearLinePositions;
 
             getLinesFromPanel(frontLineDetectPanel, frontLinePositions);

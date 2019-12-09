@@ -34,11 +34,11 @@ constexpr micro::millimeter_t MAX_POS_OPTO_REAR = DIST_BTW_OPTOS * NUM_OPTO_REAR
 constexpr micro::millimeter_t DIST_BTW_OPTO_ROWS = micro::centimeter_t(21.3f);   // Distance between the two line detector optical sensor rows.
 
 constexpr micro::radian_t FRONT_SERVO_OFFSET          = micro::degree_t(103.0f); // Front servo middle position angle.
-constexpr micro::radian_t FRONT_SERVO_WHEEL_MAX_DELTA = micro::degree_t(20.0f);  // Front wheel max delta angle.
+constexpr micro::radian_t FRONT_SERVO_WHEEL_MAX_DELTA = micro::degree_t(23.0f);  // Front wheel max delta angle.
 constexpr float           FRONT_SERVO_WHEEL_TR        = 16.5f / 40.0f;           // Front servo-to-wheel transfer rate.
 
 constexpr micro::radian_t REAR_SERVO_OFFSET           = micro::degree_t(98.0f);  // Rear servo middle position angle.
-constexpr micro::radian_t REAR_SERVO_WHEEL_MAX_DELTA  = micro::degree_t(20.0f);  // Rear wheel max delta angle.
+constexpr micro::radian_t REAR_SERVO_WHEEL_MAX_DELTA  = micro::degree_t(23.0f);  // Rear wheel max delta angle.
 constexpr float           REAR_SERVO_WHEEL_TR         = 16.5f / 40.0f;           // Rear servo-to-wheel transfer rate.
 
 constexpr micro::radian_t DIST_SERVO_OFFSET           = micro::degree_t(100.0f); // Front distance sensor servo servo middle position angle.
