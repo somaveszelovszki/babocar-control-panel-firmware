@@ -2,6 +2,7 @@
 
 #include <micro/utils/Line.hpp>
 #include <micro/utils/point2.hpp>
+#include <micro/container/infinite_buffer.hpp>
 
 namespace micro {
 
@@ -43,49 +44,37 @@ public:
 class LinePatternCalculator {
 public:
     LinePatternCalculator(void)
-        : currentMeasIdx(PREV_MEAS_SIZE - 1)
-        , currentPatternIdx(0)
-        , isPatternChangeCheckActive(false) {
-        this->prevPatterns[currentPatternIdx] = { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) };
+        : isPatternChangeCheckActive(false) {
+        this->prevPatterns.push_back({ LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) });
     }
 
-    void update(const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist);
+    void update(const LinePositions& front, const LinePositions& rear, meter_t currentDist);
 
-    const LinePattern& getPattern() const {
-        return this->prevPatterns[this->currentPatternIdx];
-    }
-
-    const LinePattern& prevPattern(uint16_t step) const {
-        return this->prevPatterns[(this->currentPatternIdx + PREV_PATTERNS_SIZE - step) % PREV_PATTERNS_SIZE];
+    const LinePattern& pattern() const {
+        return const_cast<LinePatternCalculator*>(this)->currentPattern();
     }
 
 private:
     struct StampedLines {
         LinePositions front;
         LinePositions rear;
-        Lines lines;
         meter_t distance;
     };
 
     LinePattern& currentPattern() {
-        return this->prevPatterns[this->currentPatternIdx];
+        return this->prevPatterns.peek_back(0);
     }
 
     void changePattern(const LinePattern& newPattern);
 
     meter_t distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const;
 
-    bool isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist);
+    bool isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t currentDist);
 
     void startPatternChangeCheck(const std::initializer_list<LinePattern>& possiblePatterns);
 
-    static constexpr uint8_t PREV_MEAS_SIZE = 100;
-    StampedLines prevMeas[PREV_MEAS_SIZE];
-    uint8_t currentMeasIdx;
-
-    static constexpr uint16_t PREV_PATTERNS_SIZE = 1000;
-    LinePattern prevPatterns[PREV_PATTERNS_SIZE];
-    uint16_t currentPatternIdx;
+    infinite_buffer<StampedLines, 500> prevMeas;
+    infinite_buffer<LinePattern, 200> prevPatterns;
 
     bool isPatternChangeCheckActive;
     static constexpr uint32_t MAX_NUM_POSSIBLE_PATTERNS = 10;

@@ -30,13 +30,13 @@ static const meter_t VALIDITY_LENGTHS[] = {
     DEAD_END_VALIDITY_LENGTH
 };
 
-void LinePatternCalculator::update(const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
-    this->prevMeas[this->currentMeasIdx = (this->currentMeasIdx + 1) % PREV_MEAS_SIZE] = { front, rear, lines, currentDist };
+void LinePatternCalculator::update(const LinePositions& front, const LinePositions& rear, meter_t currentDist) {
+    this->prevMeas.push_back({ front, rear, currentDist });
 
     if (this->isPatternChangeCheckActive) {
         for (vec<LinePattern, MAX_NUM_POSSIBLE_PATTERNS>::iterator it = this->possiblePatterns.begin(); it != this->possiblePatterns.end();) {
 
-            if (this->isPatternValid(*it, front, rear, lines, currentDist)) {
+            if (this->isPatternValid(*it, front, rear, currentDist)) {
                 if (abs(currentDist - it->startDist) >= VALIDITY_LENGTHS[static_cast<uint8_t>(it->type)]) {
                     this->changePattern(*it);
                     break;
@@ -113,7 +113,7 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
 
         case LinePattern::ACCELERATE:
         {
-            if (!this->isPatternValid(current, front, rear, lines, currentDist)) {
+            if (!this->isPatternValid(current, front, rear, currentDist)) {
                 this->startPatternChangeCheck({
                     { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
                 });
@@ -123,7 +123,7 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
 
         case LinePattern::BRAKE:
         {
-            if (!this->isPatternValid(current, front, rear, lines, currentDist)) {
+            if (!this->isPatternValid(current, front, rear, currentDist)) {
                 this->startPatternChangeCheck({
                     { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
                 });
@@ -153,32 +153,30 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
 }
 
 void LinePatternCalculator::changePattern(const LinePattern& newPattern) {
-    this->prevPatterns[this->currentPatternIdx = (this->currentPatternIdx + 1) % PREV_PATTERNS_SIZE] = newPattern;
+    this->prevPatterns.push_back(newPattern);
     this->isPatternChangeCheckActive = false;
     this->possiblePatterns.clear();
 
     LOG_DEBUG("Pattern changed from %d to %d",
-            static_cast<int32_t>(this->prevPattern(1).type),
+            static_cast<int32_t>(this->prevPatterns.peek_back(1).type),
             static_cast<int32_t>(this->currentPattern().type));
 }
 
 meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const {
     meter_t dist = meter_t::zero();
-    uint8_t i = this->currentMeasIdx;
 
-    do {
-        const StampedLines& l = this->prevMeas[i];
+    for (uint32_t i = 0; i < this->prevMeas.capacity(); ++i) {
+        const StampedLines& l = this->prevMeas.peek_back(i);
         if (l.front.size() != numLines) {
             break;
         }
         dist = currentDist - l.distance;
-
-    } while ((i = i > 0 ? i - 1 : PREV_MEAS_SIZE - 1) != this->currentMeasIdx);
+    }
 
     return dist;
 }
 
-bool LinePatternCalculator::isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, const Lines& lines, meter_t currentDist) {
+bool LinePatternCalculator::isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t currentDist) {
 
     (void)rear;
 

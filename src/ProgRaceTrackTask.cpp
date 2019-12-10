@@ -36,8 +36,15 @@ enum {
     ProgSubCntr_Race            = 3
 };
 
-constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.5f);
-constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.0f);
+//constexpr m_per_sec_t speed_FAST = m_per_sec_t(2.5f);
+//constexpr m_per_sec_t speed_FAST_UNSAFE = m_per_sec_t(1.8f);
+//constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.8f);
+//constexpr m_per_sec_t speed_SLOW_UNSAFE = m_per_sec_t(1.2f);
+
+constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.3f);
+constexpr m_per_sec_t speed_FAST_UNSAFE = m_per_sec_t(1.3f);
+constexpr m_per_sec_t speed_SLOW = m_per_sec_t(0.9f);
+constexpr m_per_sec_t speed_SLOW_UNSAFE = m_per_sec_t(0.9f);
 
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.4f);
@@ -47,6 +54,17 @@ struct Overtake {
 
 };
 
+bool isSafe(const Line& line) {
+
+    static millisecond_t unsafeSectionStartTime = millisecond_t(0);
+
+    if (abs(line.angular_velocity) > deg_per_sec_t(15)) {
+        unsafeSectionStartTime = getTime();
+    }
+
+    return getTime() - unsafeSectionStartTime > millisecond_t(1000);
+}
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(const void *argument) {
@@ -55,26 +73,33 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
     vTaskDelay(10); // gives time to other tasks to wake up
 
     DetectedLines prevDetectedLines, detectedLines;
+    Line mainLine;
     ControlData controlData;
     DistancesData distances;
 
     bool isFastSection = false;
 
+    meter_t sectionStartDist = globals::car.distance;
+
     while (true) {
         switch(globals::programState.activeModule()) {
         case ProgramState::ActiveModule::RaceTrack:
         {
-            controlData.baseline = detectedLines.mainLine;
+            controlData.baseline = mainLine;
             controlData.angle = degree_t(0);
             controlData.offset = millimeter_t(0);
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
+            mainLine = LineCalculator::getMainLine(detectedLines.lines, mainLine);
+
             if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                 if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
                     isFastSection = true;
+                    sectionStartDist = globals::car.distance;
                 } else if (LinePattern::BRAKE == detectedLines.pattern.type) {
                     isFastSection = false;
+                    sectionStartDist = globals::car.distance;
                 }
             }
 
@@ -88,6 +113,11 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgSubCntr_ReachSafetyCar:
                 break;
             case ProgSubCntr_Race:
+                if (isFastSection) {
+                    controlData.speed = isSafe(mainLine) ? speed_FAST : speed_FAST_UNSAFE;
+                } else { // slow section
+
+                }
                 controlData.speed = isFastSection ? speed_FAST : speed_SLOW;
                 break;
             default:
@@ -97,7 +127,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             }
 
             xQueueOverwrite(controlQueue, &controlData);
-
             prevDetectedLines = detectedLines;
 
             vTaskDelay(1);

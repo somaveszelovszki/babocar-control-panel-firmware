@@ -6,7 +6,6 @@ namespace micro {
 
 struct DetectedLines {
     Lines lines;
-    Line mainLine;
     LinePattern pattern;
 };
 

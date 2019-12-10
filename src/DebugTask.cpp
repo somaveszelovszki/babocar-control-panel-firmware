@@ -20,13 +20,14 @@
 
 using namespace micro;
 
-#define LOG_QUEUE_LENGTH 16
+#define DEBUG_PARAMS_STR_MAX_SIZE 512
+
+#define LOG_QUEUE_LENGTH 8
 QueueHandle_t logQueue;
 static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
 static StaticQueue_t logQueueBuffer;
 
 static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
-static vec<uint8_t, MAX_TX_BUFFER_SIZE> txBuffer;
 
 static Params debugParams;
 static Timer debugParamsSendTimer;
@@ -48,7 +49,7 @@ extern "C" void runDebugTask(const void *argument) {
     vTaskDelay(10); // gives time to other tasks to wake up
 
     char txLog[LOG_MSG_MAX_SIZE];
-    char debugParamsStr[LOG_MSG_MAX_SIZE];
+    char debugParamsStr[DEBUG_PARAMS_STR_MAX_SIZE];
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
@@ -71,23 +72,20 @@ extern "C" void runDebugTask(const void *argument) {
 
         if (debugParamsSendTimer.checkTimeout()) {
             strncpy(debugParamsStr, "[P]", 3);
-            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, LOG_MSG_MAX_SIZE - 3);
-            if (len < LOG_MSG_MAX_SIZE - 2) {
-                debugParamsStr[len++] = '\r';
-                debugParamsStr[len++] = '\n';
-                debugParamsStr[len++] = '\0';
-            }
+            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, DEBUG_PARAMS_STR_MAX_SIZE - 6);
+            debugParamsStr[len++] = '\r';
+            debugParamsStr[len++] = '\n';
+            debugParamsStr[len++] = '\0';
 
-            //xQueueSend(logQueue, debugParamsStr, 1);
+            while (uartOccupied) {}
+            HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(debugParamsStr), len);
+            uartOccupied = true;
         }
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        if(!uartOccupied && xQueueReceive(logQueue, txLog, 0)) {
+        if(!uartOccupied && xQueueReceive(logQueue, txLog, 1)) {
             HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog));
             uartOccupied = true;
-//            while (HAL_OK != HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog))) {  // sends messages once UART is free
-//                vTaskDelay(1);
-//            }
         }
 
         ledBlinkTimer.setPeriod(millisecond_t(areAllTasksInitialized() ? 500 : 250));
@@ -105,6 +103,7 @@ extern "C" void runDebugTask(const void *argument) {
  */
 void micro_Command_Uart_RxCpltCallback() {
     rxBuffer.updateHead(1);
+    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 }
 
 /* @brief Callback for Serial UART TxCplt - called when transmit finishes.
