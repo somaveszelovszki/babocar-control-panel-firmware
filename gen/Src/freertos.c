@@ -48,9 +48,9 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId SensorTaskHandle;
-uint32_t SensorTaskBuffer[ 1024 ];
-osStaticThreadDef_t SensorTaskControlBlock;
+osThreadId DistSensorTaskHandle;
+uint32_t DistSensorTaskBuffer[ 1024 ];
+osStaticThreadDef_t DistSensorTaskControlBlock;
 osThreadId DebugTaskHandle;
 uint32_t DebugTaskBuffer[ 1024 ];
 osStaticThreadDef_t DebugTaskControlBlock;
@@ -63,21 +63,31 @@ osStaticThreadDef_t ProgLabyrinthTaskControlBlock;
 osThreadId ProgRaceTrackTaHandle;
 uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
 osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
+osThreadId GyroTaskHandle;
+uint32_t GyroTaskBuffer[ 256 ];
+osStaticThreadDef_t GyroTaskControlBlock;
+osThreadId LineDetectTaskHandle;
+uint32_t LineDetectTaskBuffer[ 1024 ];
+osStaticThreadDef_t LineDetectTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void runSensorTask(const void *argument);
+void runDistSensorTask(const void *argument);
+void runGyroTask(const void *argument);
+void runLineDetectTask(const void *argument);
 void runDebugTask(const void *argument);
 void runControlTask(const void *argument);
 void runProgLabyrinthTask(const void *argument);
 void runProgRaceTrackTask(const void *argument);
 /* USER CODE END FunctionPrototypes */
 
-void StartSensorTask(void const * argument);
+void StartDistSensorTask(void const * argument);
 void StartDebugTask(void const * argument);
 void StartControlTask(void const * argument);
 void StartProgLabyrinthTask(void const * argument);
 void StartProgRaceTrackTask(void const * argument);
+void StartGyroTask(void const * argument);
+void StartLineDetectTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -124,16 +134,16 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of SensorTask */
-  osThreadStaticDef(SensorTask, StartSensorTask, osPriorityNormal, 0, 1024, SensorTaskBuffer, &SensorTaskControlBlock);
-  SensorTaskHandle = osThreadCreate(osThread(SensorTask), NULL);
+  /* definition and creation of DistSensorTask */
+  osThreadStaticDef(DistSensorTask, StartDistSensorTask, osPriorityNormal, 0, 1024, DistSensorTaskBuffer, &DistSensorTaskControlBlock);
+  DistSensorTaskHandle = osThreadCreate(osThread(DistSensorTask), NULL);
 
   /* definition and creation of DebugTask */
   osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
   /* definition and creation of ControlTask */
-  osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 1024, ControlTaskBuffer, &ControlTaskControlBlock);
+  osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 1024, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
   /* definition and creation of ProgLabyrinthTa */
@@ -144,31 +154,32 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(ProgRaceTrackTa, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
   ProgRaceTrackTaHandle = osThreadCreate(osThread(ProgRaceTrackTa), NULL);
 
+  /* definition and creation of GyroTask */
+  osThreadStaticDef(GyroTask, StartGyroTask, osPriorityNormal, 0, 256, GyroTaskBuffer, &GyroTaskControlBlock);
+  GyroTaskHandle = osThreadCreate(osThread(GyroTask), NULL);
+
+  /* definition and creation of LineDetectTask */
+  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 1024, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
+  LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
 }
 
-/* USER CODE BEGIN Header_StartSensorTask */
+/* USER CODE BEGIN Header_StartDistSensorTask */
 /**
-  * @brief  Function implementing the SensorTask thread.
+  * @brief  Function implementing the DistSensorTask thread.
   * @param  argument: Not used 
   * @retval None
   */
-/* USER CODE END Header_StartSensorTask */
-void StartSensorTask(void const * argument)
+/* USER CODE END Header_StartDistSensorTask */
+void StartDistSensorTask(void const * argument)
 {
-    
-    
-    
-    
-    
-    
-
-  /* USER CODE BEGIN StartSensorTask */
-  runSensorTask(argument);
-  /* USER CODE END StartSensorTask */
+  /* USER CODE BEGIN StartDistSensorTask */
+  runDistSensorTask(argument);
+  /* USER CODE END StartDistSensorTask */
 }
 
 /* USER CODE BEGIN Header_StartDebugTask */
@@ -225,6 +236,34 @@ void StartProgRaceTrackTask(void const * argument)
   /* USER CODE BEGIN StartProgRaceTrackTask */
   runProgRaceTrackTask(argument);
   /* USER CODE END StartProgRaceTrackTask */
+}
+
+/* USER CODE BEGIN Header_StartGyroTask */
+/**
+* @brief Function implementing the GyroTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartGyroTask */
+void StartGyroTask(void const * argument)
+{
+  /* USER CODE BEGIN StartGyroTask */
+  runGyroTask(argument);
+  /* USER CODE END StartGyroTask */
+}
+
+/* USER CODE BEGIN Header_StartLineDetectTask */
+/**
+* @brief Function implementing the LineDetectTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartLineDetectTask */
+void StartLineDetectTask(void const * argument)
+{
+  /* USER CODE BEGIN StartLineDetectTask */
+  runLineDetectTask(argument);
+  /* USER CODE END StartLineDetectTask */
 }
 
 /* Private application code --------------------------------------------------*/

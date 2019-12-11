@@ -4,10 +4,6 @@
 #include <micro/utils/timer.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
 #include <micro/panel/LineDetectPanelData.h>
-#include <micro/panel/MotorPanel.hpp>
-#include <micro/panel/MotorPanelData.h>
-#include <micro/hw/MPU9250_Gyroscope.hpp>
-#include <micro/hw/VL53L1X_DistanceSensor.hpp>
 #include <micro/task/common.hpp>
 #include <micro/sensor/Filter.hpp>
 
@@ -19,59 +15,60 @@
 
 #include <FreeRTOS.h>
 #include <queue.h>
+#include <task.h>
 
 using namespace micro;
-
-extern QueueHandle_t distancesQueue;
 
 #define DETECTED_LINES_QUEUE_LENGTH 1
 QueueHandle_t detectedLinesQueue;
 static uint8_t detectedLinesQueueStorageBuffer[DETECTED_LINES_QUEUE_LENGTH * sizeof(DetectedLines)];
 static StaticQueue_t detectedLinesQueueBuffer;
 
-namespace {
+static LineDetectPanel frontLineDetectPanel(uart_FrontLineDetectPanel);
+static lineDetectPanelDataIn_t frontLineDetectPanelData;
 
-LineDetectPanel frontLineDetectPanel(uart_FrontLineDetectPanel);
-lineDetectPanelDataIn_t frontLineDetectPanelData;
+static LineDetectPanel rearLineDetectPanel(uart_RearLineDetectPanel);
+static lineDetectPanelDataIn_t rearLineDetectPanelData;
 
-LineDetectPanel rearLineDetectPanel(uart_RearLineDetectPanel);
-lineDetectPanelDataIn_t rearLineDetectPanelData;
+static LineCalculator lineCalc;
+static LinePatternCalculator linePatternCalc;
 
-LineCalculator lineCalc;
-LinePatternCalculator linePatternCalc;
+static Timer lineDetectPanelsSendTimer;
 
-hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
-LowPassFilter<degree_t, 5> gyroAngleFilter;
+static Line mainLine;
 
-hw::VL53L1X_DistanceSensor frontDistSensor(i2c_Dist, 0x52);
-
-Timer lineDetectPanelsSendTimer;
-
-void fillLineDetectPanelData(lineDetectPanelDataIn_t& panelData) {
+static void fillLineDetectPanelData(lineDetectPanelDataIn_t& panelData) {
     panelData.flags = 0x00;
     if (globals::indicatorLedsEnabled) panelData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
 }
 
-void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions, bool mirror = false) {
+static void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions, bool mirror = false) {
     lineDetectPanelDataOut_t dataIn = panel.acquireLastValue();
     positions.clear();
     for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
         positions.append(millimeter_t(dataIn.lines.values[i].pos_mm) * (mirror ? -1 : 1));
     }
+
+//    const char *PANEL = mirror ? "r" : "f";
+//
+//    if (positions.size() == 0) {
+//        LOG_DEBUG("%s: none", PANEL);
+//    } else if (positions.size() == 1) {
+//        LOG_DEBUG("%s: %f", PANEL, positions[0].get());
+//    } else if (positions.size() == 2) {
+//        LOG_DEBUG("%s: %f, %f", PANEL, positions[0].get(), positions[1].get());
+//    } else if (positions.size() == 3) {
+//        LOG_DEBUG("%s: %f, %f, %f", PANEL, positions[0].get(), positions[1].get(), positions[2].get());
+//    }
+
     positions.removeDuplicates();
 }
 
-} // namespace
-
-extern "C" void runSensorTask(const void *argument) {
+extern "C" void runLineDetectTask(const void *argument) {
 
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
     vTaskDelay(300); // gives time to other tasks to wake up
-
-    frontDistSensor.initialize();
-
-    gyro.initialize();
 
     frontLineDetectPanel.start();
     rearLineDetectPanel.start();
@@ -81,21 +78,10 @@ extern "C" void runSensorTask(const void *argument) {
 
     lineDetectPanelsSendTimer.start(millisecond_t(400));
 
-    globals::isSensorTaskInitialized = true;
+    globals::isLineDetectInitialized = true;
+    LOG_DEBUG("Line detect task initialized");
 
     while (true) {
-
-        const point3<gauss_t> mag = gyro.readMagData();
-        if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
-            globals::car.pose.angle = normalize360(gyroAngleFilter.update(atan2(mag.Y, mag.X)));
-            //LOG_DEBUG("orientation: %f deg", static_cast<degree_t>(globals::car.pose.angle).get());
-        }
-
-        DistancesData distances;
-        if (isOk(frontDistSensor.readDistance(distances.front))) {
-            xQueueOverwrite(distancesQueue, &distances);
-            //LOG_DEBUG("front distance: %u cm", static_cast<uint32_t>(static_cast<centimeter_t>(distances.front).get()));
-        }
 
         if (lineDetectPanelsSendTimer.checkTimeout()) {
             fillLineDetectPanelData(frontLineDetectPanelData);
@@ -108,17 +94,20 @@ extern "C" void runSensorTask(const void *argument) {
         if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {
             LinePositions frontLinePositions, rearLinePositions;
 
-            getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
             getLinesFromPanel(rearLineDetectPanel, rearLinePositions, true);
+            getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
 
             lineCalc.update(frontLinePositions, rearLinePositions);
-
-            const Lines lines = lineCalc.lines();
-
-            LOG_DEBUG("(%f, %f) %f deg\t\t%f deg/s", mainLine.pos_front.get(), mainLine.pos_rear.get(), static_cast<degree_t>(mainLine.angle).get(), static_cast<deg_per_sec_t>(mainLine.angular_velocity).get());
+//            LineCalculator::updateMainLine(lineCalc.lines(), mainLine);
+//
+//            LOG_DEBUG("(%f, %f) %f deg\t\t%f deg/s",
+//                    mainLine.pos_front.get(),
+//                    mainLine.pos_rear.get(),
+//                    static_cast<degree_t>(mainLine.angle).get(),
+//                    static_cast<deg_per_sec_t>(mainLine.angular_velocity).get());
 
             linePatternCalc.update(frontLinePositions, rearLinePositions, globals::car.distance);
-            const DetectedLines detectedLines = { lines, linePatternCalc.pattern() };
+            const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }
 

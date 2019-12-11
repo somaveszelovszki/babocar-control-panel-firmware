@@ -12,34 +12,35 @@
 
 #include <FreeRTOS.h>
 #include <queue.h>
+#include <task.h>
 
 #include <cstring>
 
-#define MAX_TX_BUFFER_SIZE  1024    // size of the log TX buffer
-#define MAX_RX_BUFFER_SIZE  1024    // size of the log RX buffer
-
 using namespace micro;
 
-#define DEBUG_PARAMS_STR_MAX_SIZE 512
+#define MAX_RX_BUFFER_SIZE          1024
+#define DEBUG_PARAMS_STR_MAX_SIZE   1024
 
-#define LOG_QUEUE_LENGTH 8
+#define LOG_QUEUE_LENGTH 16
 QueueHandle_t logQueue;
 static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
 static StaticQueue_t logQueueBuffer;
 
 static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 3> rxBuffer;
+static char txLog[LOG_MSG_MAX_SIZE];
+static char debugParamsStr[DEBUG_PARAMS_STR_MAX_SIZE];
 
 static Params debugParams;
 static Timer debugParamsSendTimer;
 
 static Timer ledBlinkTimer;
 
-volatile bool uartOccupied = false;
-
 static bool areAllTasksInitialized(void) {
     return globals::isControlTaskInitialized &&
            globals::isDebugTaskInitialized &&
-           globals::isSensorTaskInitialized;
+           globals::isDistSensorTaskInitialized &&
+           globals::isGyroTaskInitialized &&
+           globals::isLineDetectInitialized;
 }
 
 extern "C" void runDebugTask(const void *argument) {
@@ -48,22 +49,15 @@ extern "C" void runDebugTask(const void *argument) {
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
-    char txLog[LOG_MSG_MAX_SIZE];
-    char debugParamsStr[DEBUG_PARAMS_STR_MAX_SIZE];
-
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
-    debugParamsSendTimer.start(millisecond_t(100));
+    debugParamsSendTimer.start(millisecond_t(250));
     ledBlinkTimer.start(millisecond_t(250));
 
     globals::isDebugTaskInitialized = true;
+    LOG_DEBUG("Debug task initialized");
 
     while (true) {
-        // handle incoming control messages from the monitoring app
-//        if (isOk(getRxMsg(rxMsg))) {
-//            handleRxMsg(rxMsg);
-//        }
-
         if (rxBuffer.size() > 0) {
             const uint8_t (*inCmd)[MAX_RX_BUFFER_SIZE] = rxBuffer.getReadableBuffer();
             debugParams.deserializeAll(reinterpret_cast<const char*>(*inCmd + 3));
@@ -77,15 +71,12 @@ extern "C" void runDebugTask(const void *argument) {
             debugParamsStr[len++] = '\n';
             debugParamsStr[len++] = '\0';
 
-            while (uartOccupied) {}
-            HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(debugParamsStr), len);
-            uartOccupied = true;
+            //while (HAL_OK != HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(debugParamsStr), len)) {}
         }
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        if(!uartOccupied && xQueueReceive(logQueue, txLog, 1)) {
-            HAL_UART_Transmit_IT(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog));
-            uartOccupied = true;
+        if(xQueueReceive(logQueue, txLog, 1)) {
+            while (HAL_OK != HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog))) {}
         }
 
         ledBlinkTimer.setPeriod(millisecond_t(areAllTasksInitialized() ? 500 : 250));
@@ -108,6 +99,4 @@ void micro_Command_Uart_RxCpltCallback() {
 
 /* @brief Callback for Serial UART TxCplt - called when transmit finishes.
  */
-void micro_Command_Uart_TxCpltCallback() {
-    uartOccupied = false;
-}
+void micro_Command_Uart_TxCpltCallback() {}

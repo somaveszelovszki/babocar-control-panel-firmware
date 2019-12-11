@@ -37,13 +37,6 @@ hw::Servo frontDistServo(tim_ServoX, tim_chnl_ServoX1, cfg::DIST_SERVO_OFFSET, c
 static Timer motorPanelSendTimer;
 static Timer frontDistServoUpdateTimer;
 
-bool isFastSpeedSafe(const Line& line) {
-    static constexpr millimeter_t MAX_LINE_POS = centimeter_t(8.5f);
-    static constexpr radian_t MAX_LINE_ANGLE = degree_t(8.0f);
-
-    return abs(line.pos_front) <= MAX_LINE_POS && abs(line.angle) <= MAX_LINE_ANGLE;
-}
-
 void fillMotorPanelData(motorPanelDataIn_t& panelData, m_per_sec_t targetSpeed) {
     panelData.controller_Kc    = globals::motorController_Kc;
     panelData.targetSpeed_mmps = static_cast<int16_t>(static_cast<mm_per_sec_t>(targetSpeed).get());

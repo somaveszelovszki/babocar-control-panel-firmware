@@ -91,7 +91,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
-            mainLine = LineCalculator::getMainLine(detectedLines.lines, mainLine);
+            LineCalculator::updateMainLine(detectedLines.lines, mainLine);
 
             if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                 if (LinePattern::ACCELERATE == detectedLines.pattern.type) {

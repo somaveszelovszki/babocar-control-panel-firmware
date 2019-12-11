@@ -24,7 +24,9 @@ float frontDistServoAngleWheelTf = 3.0f;
 
 bool isControlTaskInitialized    = false;
 bool isDebugTaskInitialized      = false;
-bool isSensorTaskInitialized     = false;
+bool isDistSensorTaskInitialized = false;
+bool isGyroTaskInitialized       = false;
+bool isLineDetectInitialized     = false;
 
 void initializeGlobalParams(Params& params) {
 

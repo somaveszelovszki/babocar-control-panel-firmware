@@ -29,7 +29,9 @@ extern float frontDistServoAngleWheelTf;
 
 extern bool isControlTaskInitialized;
 extern bool isDebugTaskInitialized;
-extern bool isSensorTaskInitialized;
+extern bool isDistSensorTaskInitialized;
+extern bool isGyroTaskInitialized;
+extern bool isLineDetectInitialized;
 
 void initializeGlobalParams(Params& params);
 
