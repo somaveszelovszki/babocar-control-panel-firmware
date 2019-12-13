@@ -79,8 +79,11 @@ extern "C" void runDebugTask(const void *argument) {
 
         if (!uartOccupied && debugParamsSendTimer.checkTimeout()) {
             strncpy(debugParamsStr, "[P]", 3);
-            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, DEBUG_PARAMS_STR_MAX_SIZE - 4);
+            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, DEBUG_PARAMS_STR_MAX_SIZE - (3 + 4));
             debugParamsStr[len++] = '$';
+            debugParamsStr[len++] = '\r';
+            debugParamsStr[len++] = '\n';
+            debugParamsStr[len++] = '\0';
 
             HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(debugParamsStr), len);
             uartOccupied = true;
