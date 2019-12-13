@@ -71,10 +71,10 @@ extern "C" void runLineDetectTask(const void *argument) {
     vTaskDelay(300); // gives time to other tasks to wake up
 
     frontLineDetectPanel.start();
-    rearLineDetectPanel.start();
+    //rearLineDetectPanel.start();
 
     frontLineDetectPanel.waitResponse();
-    rearLineDetectPanel.waitResponse();
+    //rearLineDetectPanel.waitResponse();
 
     lineDetectPanelsSendTimer.start(millisecond_t(400));
 
@@ -91,13 +91,14 @@ extern "C" void runLineDetectTask(const void *argument) {
             rearLineDetectPanel.send(rearLineDetectPanelData);
         }
 
-        if (frontLineDetectPanel.hasNewValue() && rearLineDetectPanel.hasNewValue()) {
+        if (frontLineDetectPanel.hasNewValue()) {// && rearLineDetectPanel.hasNewValue()) {
             LinePositions frontLinePositions, rearLinePositions;
 
-            getLinesFromPanel(rearLineDetectPanel, rearLinePositions, true);
             getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
+            //getLinesFromPanel(rearLineDetectPanel, rearLinePositions, true);
 
-            lineCalc.update(frontLinePositions, rearLinePositions);
+            //lineCalc.update(frontLinePositions, rearLinePositions);
+            lineCalc.update(frontLinePositions);
 //            LineCalculator::updateMainLine(lineCalc.lines(), mainLine);
 //
 //            LOG_DEBUG("(%f, %f) %f deg\t\t%f deg/s",

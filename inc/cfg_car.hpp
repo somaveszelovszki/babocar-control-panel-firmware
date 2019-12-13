@@ -44,8 +44,7 @@ constexpr float           REAR_SERVO_WHEEL_TR         = 16.5f / 40.0f;          
 constexpr micro::radian_t DIST_SERVO_OFFSET           = micro::degree_t(100.0f); // Front distance sensor servo servo middle position angle.
 constexpr micro::radian_t DIST_SERVO_MAX_DELTA        = micro::degree_t(45.0f);  // Front distance sensor servo max delta angle.
 
-constexpr micro::millimeter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(110.0f); // Distance between front sensors and front wheels.
-constexpr micro::millimeter_t OPTO_SENSOR_REAR_WHEEL_DIST  = micro::millimeter_t(110.0f); // Distance between front sensors and front wheels.
+constexpr micro::millimeter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(107.0f); // Distance between front sensors and front wheels.
 
 constexpr uint32_t ROTARY_PERIOD_MS = 10;
 
@@ -54,8 +53,11 @@ constexpr micro::microsecond_t DC_MOTOR_T_ELECTRICAL = micro::microsecond_t(484.
 constexpr micro::microsecond_t DC_MOTOR_CONTROLLER_DEFAULT_Ti = DC_MOTOR_T_ELECTRICAL;
 constexpr float                DC_MOTOR_CONTROLLER_DEFAULT_Kc = 1.0f;
 
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P = 2.0f;
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D = 1700.0f;
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P_slow = 2.0f;
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D_slow = 1700.0f;
+
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P_fast = 0.1f;
+constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D_fast = 100.0f;
 
 constexpr float REAR_LINE_CONTROLLER_DEFAULT_P  = 1.0f;
 constexpr float REAR_LINE_CONTROLLER_DEFAULT_D  = 1.0f;

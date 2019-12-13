@@ -65,8 +65,10 @@ extern "C" void runControlTask(const void *argument) {
     ControlData controlData;
     millisecond_t lastControlDataRecvTime = millisecond_t::zero();
 
-    PD_Controller lineController(globals::frontLineController_P_1mps, globals::frontLineController_D_1mps,
-            static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
+    PD_Controller lineController(globals::frontLineController_P_slow, globals::frontLineController_D_slow,
+        static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
+
+    //LineController2 lineController2(cfg::CAR_PIVOT_DIST_MID, cfg::OPTO_SENSOR_FRONT_WHEEL_DIST);
 
     globals::isControlTaskInitialized = true;
 
@@ -89,9 +91,16 @@ extern "C" void runControlTask(const void *argument) {
             lastControlDataRecvTime = micro::getTime();
 
             if (globals::lineFollowEnabled) {
-                const float speed = abs(globals::car.speed.get());
-                const float multiplier = speed > 0.1f ? clamp(1.0f / speed, 0.15f, 1.0f) : 1.0f;
-                lineController.setParams(globals::frontLineController_P_1mps * multiplier, globals::frontLineController_D_1mps);
+
+                if (abs(globals::car.speed) > m_per_sec_t(2.0)) {
+                    lineController.setParams(globals::frontLineController_P_fast, globals::frontLineController_D_fast);
+                } else {
+                    lineController.setParams(globals::frontLineController_P_slow, globals::frontLineController_D_slow);
+                }
+
+//                const radian_t steerAngle = lineController2.GetControlSignal(globals::car.speed, controlData.baseline);
+//                frontSteeringServo.writeWheelAngle(steerAngle);
+//                rearSteeringServo.writeWheelAngle(-steerAngle);
 
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos_front - controlData.offset).get());
                 frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
@@ -104,7 +113,15 @@ extern "C" void runControlTask(const void *argument) {
 
         if (motorPanelSendTimer.checkTimeout()) {
             motorPanelDataIn_t data;
-            fillMotorPanelData(data, controlData.speed);
+
+            m_per_sec_t targetSpeed = m_per_sec_t(0);
+            if (globals::targetSpeedOverrideActive) {
+                targetSpeed = globals::targetSpeedOverride;
+            } else {
+                targetSpeed = controlData.speed;
+            }
+
+            fillMotorPanelData(data, targetSpeed);
             //fillMotorPanelData(data, m_per_sec_t(1.0f));
             //fillMotorPanelData(data, globals::targetSpeedOverride);
             motorPanel.send(data);

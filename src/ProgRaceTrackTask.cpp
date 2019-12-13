@@ -36,16 +36,6 @@ enum {
     ProgSubCntr_Race            = 3
 };
 
-//constexpr m_per_sec_t speed_FAST = m_per_sec_t(2.5f);
-//constexpr m_per_sec_t speed_FAST_UNSAFE = m_per_sec_t(1.8f);
-//constexpr m_per_sec_t speed_SLOW = m_per_sec_t(1.8f);
-//constexpr m_per_sec_t speed_SLOW_UNSAFE = m_per_sec_t(1.2f);
-
-constexpr m_per_sec_t speed_FAST = m_per_sec_t(1.3f);
-constexpr m_per_sec_t speed_FAST_UNSAFE = m_per_sec_t(1.3f);
-constexpr m_per_sec_t speed_SLOW = m_per_sec_t(0.9f);
-constexpr m_per_sec_t speed_SLOW_UNSAFE = m_per_sec_t(0.9f);
-
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.4f);
 
@@ -79,19 +69,20 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
     bool isFastSection = false;
 
-    meter_t sectionStartDist = globals::car.distance;
+    meter_t sectionStartDist = meter_t(0);
 
     while (true) {
         switch(globals::programState.activeModule()) {
         case ProgramState::ActiveModule::RaceTrack:
         {
-            controlData.baseline = mainLine;
-            controlData.angle = degree_t(0);
-            controlData.offset = millimeter_t(0);
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
             LineCalculator::updateMainLine(detectedLines.lines, mainLine);
+
+            controlData.baseline = mainLine;
+            controlData.angle = degree_t(0);
+            controlData.offset = millimeter_t(0);
 
             if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                 if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
@@ -113,12 +104,11 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgSubCntr_ReachSafetyCar:
                 break;
             case ProgSubCntr_Race:
-                if (isFastSection) {
-                    controlData.speed = isSafe(mainLine) ? speed_FAST : speed_FAST_UNSAFE;
+                if (isFastSection || globals::car.distance - sectionStartDist < globals::slowSectionStartOffset) {
+                    controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
                 } else { // slow section
-
+                    controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
                 }
-                controlData.speed = isFastSection ? speed_FAST : speed_SLOW;
                 break;
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", globals::programState.subCntr());
