@@ -55,15 +55,15 @@ extern I2C_HandleTypeDef  hi2c2;
 #define uart_RearLineDetectPanel     (&huart5)
 #define uart_FrontLineDetectPanel    (&huart6)
 
-#define dmaBase_Command              DMA2
 #define dmaBase_MotorPanel           DMA1
+#define dmaBase_Command              DMA2
 #define dmaBase_RadioModule          DMA1
 #define dmaBase_UartX1               DMA1
 #define dmaBase_RearLineDetectPanel  DMA1
 #define dmaBase_FrontLineDetectPanel DMA1
 
-#define dma_Command                  (&hdma_usart1_rx)
-#define dma_MotorPanel               (&hdma_usart2_rx)
+#define dma_MotorPanel               (&hdma_usart1_rx)
+#define dma_Command                  (&hdma_usart2_rx)
 #define dma_RadioModule              (&hdma_usart3_rx)
 #define dma_UartX1                   (&hdma_uart4_rx)
 #define dma_RearLineDetectPanel      (&hdma_uart5_rx)
@@ -74,6 +74,8 @@ extern I2C_HandleTypeDef  hi2c2;
 
 #define gpio_Led                     GPIOA
 #define gpioPin_Led                  GPIO_PIN_5
+
+#define MAX_RX_BUFFER_SIZE           1024
 
 #ifdef __cplusplus
 }

@@ -12,12 +12,12 @@
 
 // INTERRUPT CALLBACKS - Must be defined in a task's source file!
 
-extern void micro_Command_Uart_RxCpltCallback();                  // Callback for command UART RxCplt - called when receive finishes.
-extern void micro_Command_Uart_TxCpltCallback();                  // Callback for command UART TxCplt - called when transmit finishes.
-extern void micro_MotorPanel_Uart_RxCpltCallback();               // Callback for motor panel UART RxCplt - called when receive finishes.
-extern void micro_RadioModule_Uart_RxCpltCallback();              // Callback for radio module UART RxCplt - called when receive finishes.
-extern void micro_FrontLineDetectPanel_Uart_RxCpltCallback();     // Callback for front line detect panel UART RxCplt - called when receive finishes.
-extern void micro_RearLineDetectPanel_Uart_RxCpltCallback();      // Callback for rear line detect panel UART RxCplt - called when receive finishes.
+extern void micro_Command_Uart_RxCpltCallback(const uint32_t size); // Callback for command UART RxCplt - called when receive finishes.
+extern void micro_Command_Uart_TxCpltCallback();                    // Callback for command UART TxCplt - called when transmit finishes.
+extern void micro_MotorPanel_Uart_RxCpltCallback();                 // Callback for motor panel UART RxCplt - called when receive finishes.
+extern void micro_RadioModule_Uart_RxCpltCallback();                // Callback for radio module UART RxCplt - called when receive finishes.
+extern void micro_FrontLineDetectPanel_Uart_RxCpltCallback();       // Callback for front line detect panel UART RxCplt - called when receive finishes.
+extern void micro_RearLineDetectPanel_Uart_RxCpltCallback();        // Callback for rear line detect panel UART RxCplt - called when receive finishes.
 
 /* @brief Internal callback - called when SPI reception finishes.
  * @param hspi Pointer to the SPI handle.
@@ -47,9 +47,6 @@ extern "C" void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c) {
 
 }
 
-// TODO already defined in DebugTask
-#define MAX_RX_BUFFER_SIZE  512u    // size of the log RX buffer
-
 /* @brief Internal callback - called when UAR receive finishes.
  * @param huart Pointer to the UART handle.
  **/
@@ -58,11 +55,7 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         micro_MotorPanel_Uart_RxCpltCallback();
 
     } else if (huart == uart_Command) {
-        // uint32_t bytes = MAX_RX_BUFFER_SIZE - dma_Command->Instance->NDTR;
-        micro_Command_Uart_RxCpltCallback();
-        dmaBase_Command->HIFCR = DMA_FLAG_DMEIF1_5 | DMA_FLAG_FEIF1_5 | DMA_FLAG_HTIF1_5 | DMA_FLAG_TCIF1_5 | DMA_FLAG_TEIF1_5;    // clears DMA flags before next transfer
-        dma_Command->Instance->NDTR = MAX_RX_BUFFER_SIZE; // sets number of bytes to receive
-        dma_Command->Instance->CR |= DMA_SxCR_EN;         // starts DMA transfer
+        micro_Command_Uart_RxCpltCallback(MAX_RX_BUFFER_SIZE - dma_Command->Instance->NDTR);
 
     } else if (huart == uart_MotorPanel) {
         micro_MotorPanel_Uart_RxCpltCallback();

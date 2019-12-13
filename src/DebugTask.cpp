@@ -18,8 +18,7 @@
 
 using namespace micro;
 
-#define MAX_RX_BUFFER_SIZE          1024
-#define DEBUG_PARAMS_STR_MAX_SIZE   1024
+#define DEBUG_PARAMS_STR_MAX_SIZE MAX_RX_BUFFER_SIZE
 
 #define LOG_QUEUE_LENGTH 16
 QueueHandle_t logQueue;
@@ -108,8 +107,11 @@ extern "C" void runDebugTask(const void *argument) {
 
 /* @brief Callback for Serial UART RxCplt - called when receive finishes.
  */
-void micro_Command_Uart_RxCpltCallback() {
-    rxBuffer.updateHead(1);
+void micro_Command_Uart_RxCpltCallback(const uint32_t size) {
+    if (size > 0) {
+        rxBuffer.updateHead(1);
+    }
+
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 }
 
