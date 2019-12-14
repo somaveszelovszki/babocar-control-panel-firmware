@@ -6,7 +6,6 @@
 #include <micro/utils/updatable.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/sensor/Filter.hpp>
-#include <micro/control/LineController.hpp>
 #include <micro/control/PD_Controller.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
 #include <micro/panel/MotorPanel.hpp>
@@ -77,8 +76,7 @@ extern "C" void runControlTask(const void *argument) {
             motorPanelDataOut_t motorPanelData = motorPanel.acquireLastValue();
             globals::car.distance = millimeter_t(motorPanelData.distance_mm);
             globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
-            const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
-
+//            const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
 //            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tisMotorEnabled:%s\tpos: %fmm",
 //                globals::car.speed.get(),
 //                currentTargetSpeed.get(),
