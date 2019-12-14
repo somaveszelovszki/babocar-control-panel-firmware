@@ -4,7 +4,6 @@
 #include <micro/utils/updatable.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/sensor/Filter.hpp>
-#include <micro/control/LineController.hpp>
 #include <micro/panel/LineDetectPanel.hpp>
 #include <micro/panel/MotorPanel.hpp>
 #include <micro/utils/Line.hpp>
@@ -104,7 +103,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgSubCntr_ReachSafetyCar:
                 break;
             case ProgSubCntr_Race:
-                if (isFastSection || globals::car.distance - sectionStartDist < globals::slowSectionStartOffset) {
+                if (isFastSection || (sectionStartDist != meter_t(0) && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
                     controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
                 } else { // slow section
                     controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
