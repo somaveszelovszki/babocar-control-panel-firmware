@@ -45,21 +45,10 @@ static void fillLineDetectPanelData(lineDetectPanelDataIn_t& panelData) {
 static void getLinesFromPanel(LineDetectPanel& panel, LinePositions& positions, bool mirror = false) {
     lineDetectPanelDataOut_t dataIn = panel.acquireLastValue();
     positions.clear();
+
     for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
         positions.append(millimeter_t(dataIn.lines.values[i].pos_mm) * (mirror ? -1 : 1));
     }
-
-//    const char *PANEL = mirror ? "r" : "f";
-//
-//    if (positions.size() == 0) {
-//        LOG_DEBUG("%s: none", PANEL);
-//    } else if (positions.size() == 1) {
-//        LOG_DEBUG("%s: %f", PANEL, positions[0].get());
-//    } else if (positions.size() == 2) {
-//        LOG_DEBUG("%s: %f, %f", PANEL, positions[0].get(), positions[1].get());
-//    } else if (positions.size() == 3) {
-//        LOG_DEBUG("%s: %f, %f, %f", PANEL, positions[0].get(), positions[1].get(), positions[2].get());
-//    }
 
     positions.removeDuplicates();
 }
@@ -71,15 +60,18 @@ extern "C" void runLineDetectTask(const void *argument) {
     vTaskDelay(300); // gives time to other tasks to wake up
 
     frontLineDetectPanel.start();
-    //rearLineDetectPanel.start();
+    rearLineDetectPanel.start();
 
     frontLineDetectPanel.waitResponse();
-    //rearLineDetectPanel.waitResponse();
+    rearLineDetectPanel.waitResponse();
 
     lineDetectPanelsSendTimer.start(millisecond_t(400));
 
     globals::isLineDetectInitialized = true;
     LOG_DEBUG("Line detect task initialized");
+
+    LinePositions frontLinePositions, rearLinePositions;
+    bool newFrontLines = false, newRearLines = false;
 
     while (true) {
 
@@ -91,14 +83,19 @@ extern "C" void runLineDetectTask(const void *argument) {
             rearLineDetectPanel.send(rearLineDetectPanelData);
         }
 
-        if (frontLineDetectPanel.hasNewValue()) {// && rearLineDetectPanel.hasNewValue()) {
-            LinePositions frontLinePositions, rearLinePositions;
-
+        if (frontLineDetectPanel.hasNewValue()) {
             getLinesFromPanel(frontLineDetectPanel, frontLinePositions);
-            //getLinesFromPanel(rearLineDetectPanel, rearLinePositions, true);
+            newFrontLines = true;
+        }
 
-            //lineCalc.update(frontLinePositions, rearLinePositions);
-            lineCalc.update(frontLinePositions);
+        if (rearLineDetectPanel.hasNewValue()) {
+            getLinesFromPanel(rearLineDetectPanel, rearLinePositions, true);
+            newRearLines = true;
+        }
+
+        if (newFrontLines && newRearLines) {
+            lineCalc.update(frontLinePositions, rearLinePositions);
+            //lineCalc.update(frontLinePositions);
 //            LineCalculator::updateMainLine(lineCalc.lines(), mainLine);
 //
 //            LOG_DEBUG("(%f, %f) %f deg\t\t%f deg/s",
@@ -110,6 +107,8 @@ extern "C" void runLineDetectTask(const void *argument) {
             linePatternCalc.update(frontLinePositions, rearLinePositions, globals::car.distance);
             const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
+
+            newFrontLines = newRearLines = false;
         }
 
         vTaskDelay(1);
