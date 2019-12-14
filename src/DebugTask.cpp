@@ -71,7 +71,7 @@ extern "C" void runDebugTask(const void *argument) {
 
             rxBuffer.updateTail(1);
 
-            if (!strcmp(inCmd, "[P]")) {
+            if (!strncmp(inCmd, "[P]", 3)) {
                 debugParams.deserializeAll(&inCmd[3]);
             }
         }

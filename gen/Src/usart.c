@@ -189,7 +189,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     hdma_uart4_rx.Init.MemInc = DMA_MINC_ENABLE;
     hdma_uart4_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     hdma_uart4_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_uart4_rx.Init.Mode = DMA_CIRCULAR;
+    hdma_uart4_rx.Init.Mode = DMA_NORMAL;
     hdma_uart4_rx.Init.Priority = DMA_PRIORITY_LOW;
     hdma_uart4_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
     if (HAL_DMA_Init(&hdma_uart4_rx) != HAL_OK)
@@ -221,7 +221,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(UART4_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(UART4_IRQn);
   /* USER CODE BEGIN UART4_MspInit 1 */
-
+    __HAL_UART_ENABLE_IT(&huart4, UART_IT_IDLE);        // enables idle line interrupt
+    __HAL_DMA_ENABLE_IT(&hdma_uart4_rx, DMA_IT_TC);    // enables DMA TxCplt interrupt
   /* USER CODE END UART4_MspInit 1 */
   }
   else if(uartHandle->Instance==UART5)
@@ -429,8 +430,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
   /* USER CODE BEGIN USART2_MspInit 1 */
-    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);        // enables idle line interrupt
-    __HAL_DMA_ENABLE_IT(&hdma_usart2_rx, DMA_IT_TC);    // enables DMA TxCplt interrupt
+//    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);        // enables idle line interrupt
+//    __HAL_DMA_ENABLE_IT(&hdma_usart2_rx, DMA_IT_TC);    // enables DMA TxCplt interrupt
   /* USER CODE END USART2_MspInit 1 */
   }
   else if(uartHandle->Instance==USART3)
