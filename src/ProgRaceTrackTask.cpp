@@ -29,9 +29,9 @@ static StaticQueue_t distancesQueueBuffer;
 namespace {
 
 enum {
-    ProgSubCntr_FollowSafetyCar = 0,
-    ProgSubCntr_Overtake        = 1,
-    ProgSubCntr_ReachSafetyCar  = 2,
+    ProgSubCntr_ReachSafetyCar  = 0,
+    ProgSubCntr_FollowSafetyCar = 1,
+    ProgSubCntr_Overtake        = 2,
     ProgSubCntr_Race            = 3
 };
 
@@ -69,6 +69,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
     bool isFastSection = false;
 
     meter_t sectionStartDist = meter_t(0);
+    meter_t lastDistWithActiveSafetyCar = meter_t(0);
 
     while (true) {
         switch(globals::programState.activeModule()) {
@@ -94,14 +95,35 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             }
 
             switch (globals::programState.subCntr()) {
+            case ProgSubCntr_ReachSafetyCar:
+                controlData.speed = m_per_sec_t(0.75f);
+
+                if (distances.front < centimeter_t(50)) {
+                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_FollowSafetyCar);
+                }
+                break;
+
             case ProgSubCntr_FollowSafetyCar:
                 controlData.speed = map(distances.front.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
                     isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+
+                if (distances.front < meter_t(1.5f)) {
+                    lastDistWithActiveSafetyCar = globals::car.distance;
+                }
+
+                // when the safety car leaves the track (after a curve, before the fast signs),
+                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
+                    isFastSection &&
+                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
+
+                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_Race);
+                }
+
                 break;
+
             case ProgSubCntr_Overtake:
                 break;
-            case ProgSubCntr_ReachSafetyCar:
-                break;
+
             case ProgSubCntr_Race:
                 if (isFastSection || (sectionStartDist != meter_t(0) && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
                     controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
@@ -109,6 +131,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                     controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
                 }
                 break;
+
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", globals::programState.subCntr());
                 globals::programState.set(ProgramState::ActiveModule::INVALID, 0);
