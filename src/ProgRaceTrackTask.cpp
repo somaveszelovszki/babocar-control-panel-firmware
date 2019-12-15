@@ -47,7 +47,7 @@ bool isSafe(const Line& line) {
 
     static millisecond_t unsafeSectionStartTime = millisecond_t(0);
 
-    if (abs(line.angular_velocity) > deg_per_sec_t(15)) {
+    if (abs(line.angular_velocity) > deg_per_sec_t(30)) {
         unsafeSectionStartTime = getTime();
     }
 
@@ -59,7 +59,7 @@ bool isSafe(const Line& line) {
 extern "C" void runProgRaceTrackTask(const void *argument) {
     distancesQueue = xQueueCreateStatic(DISTANCES_QUEUE_LENGTH, sizeof(DistancesData), distancesQueueStorageBuffer, &distancesQueueBuffer);
 
-    vTaskDelay(10); // gives time to other tasks to wake up
+    vTaskDelay(500); // gives time to other tasks to wake up
 
     DetectedLines prevDetectedLines, detectedLines;
     Line mainLine;
@@ -68,8 +68,9 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
     bool isFastSection = false;
 
-    meter_t sectionStartDist = meter_t(0);
-    meter_t lastDistWithActiveSafetyCar = meter_t(0);
+    meter_t startDist = globals::car.distance;
+    meter_t sectionStartDist = startDist;
+    meter_t lastDistWithActiveSafetyCar = startDist;
 
     while (true) {
         switch(globals::programState.activeModule()) {
@@ -98,7 +99,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgSubCntr_ReachSafetyCar:
                 controlData.speed = m_per_sec_t(0.75f);
 
-                if (distances.front < centimeter_t(50)) {
+                if (distances.front < centimeter_t(60)) {
                     globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_FollowSafetyCar);
                 }
                 break;
@@ -107,17 +108,17 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 controlData.speed = map(distances.front.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
                     isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 
-                if (distances.front < meter_t(1.5f)) {
-                    lastDistWithActiveSafetyCar = globals::car.distance;
-                }
-
-                // when the safety car leaves the track (after a curve, before the fast signs),
-                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
-                    isFastSection &&
-                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
-
-                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_Race);
-                }
+//                if (distances.front < meter_t(1.5f)) {
+//                    lastDistWithActiveSafetyCar = globals::car.distance;
+//                }
+//
+//                // when the safety car leaves the track (after a curve, before the fast signs),
+//                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
+//                    isFastSection &&
+//                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
+//
+//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_Race);
+//                }
 
                 break;
 
@@ -125,10 +126,12 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 break;
 
             case ProgSubCntr_Race:
-                if (isFastSection || (sectionStartDist != meter_t(0) && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
-                    controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
+                if (isFastSection || (sectionStartDist != startDist && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
+                    controlData.speed = globals::speed_FAST;
+                    //controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
                 } else { // slow section
-                    controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
+                    controlData.speed = globals::speed_SLOW;
+                    //controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
                 }
                 break;
 
