@@ -27,12 +27,19 @@ extern "C" void runDistSensorTask(const void *argument) {
     globals::isDistSensorTaskInitialized = true;
     LOG_DEBUG("Distance sensor task initialized");
 
+    LowPassFilter<meter_t, 3> frontDistFilter;
     DistancesData distances;
 
     while (true) {
         if (isOk(frontDistSensor.readDistance(distances.front))) {
+
+            distances.front = frontDistFilter.update(distances.front);
+            if (distances.front > centimeter_t(200)) {
+                distances.front = meter_t::infinity();
+            }
+
             xQueueOverwrite(distancesQueue, &distances);
-            vTaskDelay(16);
+            vTaskDelay(16); // front distance sensor provides a new value in every 20ms
         } else {
             vTaskDelay(2);
         }
