@@ -73,6 +73,19 @@ extern "C" void runDebugTask(const void *argument) {
 
             if (!strncmp(inCmd, "[P]", 3)) {
                 debugParams.deserializeAll(&inCmd[3]);
+
+                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+                vTaskDelay(100);
+                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+                vTaskDelay(100);
+                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+                vTaskDelay(100);
+                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+                vTaskDelay(100);
+                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+                vTaskDelay(100);
+                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+                vTaskDelay(100);
             }
         }
 

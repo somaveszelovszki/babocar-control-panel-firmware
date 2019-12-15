@@ -315,10 +315,10 @@ void USART2_IRQHandler(void)
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-//  if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE)) {
-//      __HAL_UART_CLEAR_IDLEFLAG(&huart2);
-//      hdma_usart2_rx.Instance->CR &= ~DMA_SxCR_EN;  // disabling DMA will force transfer complete interrupt if enabled
-//  }
+  if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE)) {
+      __HAL_UART_CLEAR_IDLEFLAG(&huart2);
+      hdma_usart2_rx.Instance->CR &= ~DMA_SxCR_EN;  // disabling DMA will force transfer complete interrupt if enabled
+  }
   /* USER CODE END USART2_IRQn 1 */
 }
 
