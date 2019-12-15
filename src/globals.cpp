@@ -25,7 +25,7 @@ m_per_sec_t speed_FAST           = m_per_sec_t(3.5f);
 m_per_sec_t speed_FAST_UNSAFE    = speed_FAST * 0.8;
 m_per_sec_t speed_SLOW           = m_per_sec_t(1.8f);
 m_per_sec_t speed_SLOW_UNSAFE    = speed_SLOW * 0.7;
-meter_t slowSectionStartOffset   = meter_t(2);
+meter_t slowSectionStartOffset   = meter_t(1.6);
 
 bool isControlTaskInitialized    = false;
 bool isDebugTaskInitialized      = false;
@@ -37,10 +37,6 @@ void registerGlobalParams(Params& params) {
 
 #define REGISTER_GLOBAL(name) params.registerParam(#name, &name)
 
-    REGISTER_GLOBAL(useSafetyEnableSignal);
-    REGISTER_GLOBAL(indicatorLedsEnabled);
-    REGISTER_GLOBAL(startSignalEnabled);
-    REGISTER_GLOBAL(lineFollowEnabled);
     REGISTER_GLOBAL(motorCtrl_Ti);
     REGISTER_GLOBAL(motorCtrl_Kc);
     REGISTER_GLOBAL(frontLineCtrl_P_slow);
