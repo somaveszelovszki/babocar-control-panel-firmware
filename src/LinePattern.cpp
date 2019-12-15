@@ -95,8 +95,9 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
 
             case ProgramState::ActiveModule::RaceTrack:
             {
-                if (3 == front.size()) {
+                if (!this->isPatternValid(current, front, rear, currentDist)) {
                     this->startPatternChangeCheck({
+                        { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, currentDist },
                         { LinePattern::ACCELERATE, Sign::POSITIVE, Direction::CENTER, currentDist },
                         { LinePattern::BRAKE, Sign::POSITIVE, Direction::CENTER, currentDist }
                     });
@@ -115,6 +116,7 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
         {
             if (!this->isPatternValid(current, front, rear, currentDist)) {
                 this->startPatternChangeCheck({
+                    { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, currentDist },
                     { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
                 });
             }
@@ -125,6 +127,7 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
         {
             if (!this->isPatternValid(current, front, rear, currentDist)) {
                 this->startPatternChangeCheck({
+                    { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, currentDist },
                     { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
                 });
             }
