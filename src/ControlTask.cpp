@@ -28,10 +28,10 @@ namespace {
 
 MotorPanel motorPanel(uart_MotorPanel);
 
-hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA, cfg::FRONT_SERVO_WHEEL_TR);
-hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA, cfg::REAR_SERVO_WHEEL_TR);
+hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180, cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA, cfg::FRONT_SERVO_WHEEL_TR);
+hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::REAR_SERVO_PWM_0, cfg::REAR_SERVO_PWM_180, cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA, cfg::REAR_SERVO_WHEEL_TR);
 
-hw::Servo frontDistServo(tim_ServoX, tim_chnl_ServoX1, cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
+hw::Servo frontDistServo(tim_ServoX, tim_chnl_ServoX1, cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180, cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
 
 static Timer motorPanelSendTimer;
 static Timer frontDistServoUpdateTimer;
@@ -90,7 +90,7 @@ extern "C" void runControlTask(const void *argument) {
 
             if (globals::lineFollowEnabled) {
 
-                if (abs(globals::car.speed) > m_per_sec_t(2.0)) {
+                if (abs(globals::car.speed) > m_per_sec_t(2.2)) {
                     lineController.setParams(globals::frontLineCtrl_P_fast, globals::frontLineCtrl_D_fast);
                 } else {
                     lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);

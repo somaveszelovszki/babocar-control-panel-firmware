@@ -21,11 +21,11 @@ float rearLineCtrl_D             = cfg::REAR_LINE_CONTROLLER_DEFAULT_D;
 CarProps car                     = CarProps();
 bool distServoEnabled            = true;
 float distServoTransferRate      = 3.0f;
-m_per_sec_t speed_FAST           = m_per_sec_t(3.5f);
+m_per_sec_t speed_FAST           = m_per_sec_t(3.1f);
 m_per_sec_t speed_FAST_UNSAFE    = speed_FAST * 0.8;
-m_per_sec_t speed_SLOW           = m_per_sec_t(1.8f);
+m_per_sec_t speed_SLOW           = m_per_sec_t(2.0f);
 m_per_sec_t speed_SLOW_UNSAFE    = speed_SLOW * 0.7;
-meter_t slowSectionStartOffset   = meter_t(1.6);
+meter_t slowSectionStartOffset   = meter_t(1.2);
 
 bool isControlTaskInitialized    = false;
 bool isDebugTaskInitialized      = false;

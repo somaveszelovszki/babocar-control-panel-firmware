@@ -63,10 +63,11 @@ extern "C" void runDebugTask(const void *argument) {
         if (rxBuffer.size() > 0) {
             const char * const rxData = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
 
-            for (uint32_t i = 0; i < MAX_RX_BUFFER_SIZE; ++i) {
-                const char c = rxData[i];
+            uint32_t len = 0;
+            for (; len < MAX_RX_BUFFER_SIZE; ++len) {
+                const char c = rxData[len];
                 if ('$' == c) break;
-                inCmd[i] = c;
+                inCmd[len] = c;
             }
 
             rxBuffer.updateTail(1);

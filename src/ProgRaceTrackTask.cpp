@@ -54,6 +54,11 @@ bool isSafe(const Line& line) {
     return getTime() - unsafeSectionStartTime > millisecond_t(1000);
 }
 
+m_per_sec_t calcSafetyCarSpeed(meter_t frontDist, bool isFastSection) {
+    return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
+        isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+}
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(const void *argument) {
@@ -99,14 +104,17 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgSubCntr_ReachSafetyCar:
                 controlData.speed = m_per_sec_t(0.75f);
 
-                if (distances.front < centimeter_t(60)) {
+                if (calcSafetyCarSpeed(distances.front, false) < controlData.speed) {
                     globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_FollowSafetyCar);
                 }
+
+//                if (distances.front < centimeter_t(60)) {
+//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_FollowSafetyCar);
+//                }
                 break;
 
             case ProgSubCntr_FollowSafetyCar:
-                controlData.speed = map(distances.front.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
-                    isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+                controlData.speed = calcSafetyCarSpeed(distances.front, isFastSection);
 
 //                if (distances.front < meter_t(1.5f)) {
 //                    lastDistWithActiveSafetyCar = globals::car.distance;
@@ -127,7 +135,14 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
             case ProgSubCntr_Race:
                 if (isFastSection || (sectionStartDist != startDist && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
-                    controlData.speed = globals::speed_FAST;
+                    if (!isFastSection && detectedLines.pattern.type == LinePattern::SINGLE_LINE) {
+
+                        controlData.speed = globals::speed_SLOW;
+                    } else if (abs(controlData.baseline.pos) < centimeter_t(2)) {
+                        controlData.speed = globals::speed_FAST;
+                    } else {
+                        controlData.speed = globals::speed_SLOW;
+                    }
                     //controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
                 } else { // slow section
                     controlData.speed = globals::speed_SLOW;

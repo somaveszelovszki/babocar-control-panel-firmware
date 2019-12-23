@@ -27,7 +27,7 @@ extern "C" void runDistSensorTask(const void *argument) {
     globals::isDistSensorTaskInitialized = true;
     LOG_DEBUG("Distance sensor task initialized");
 
-    LowPassFilter<meter_t, 3> frontDistFilter;
+    LowPassFilter<meter_t, 10> frontDistFilter;
     DistancesData distances;
 
     while (true) {
