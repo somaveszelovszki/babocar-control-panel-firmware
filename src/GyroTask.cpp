@@ -1,5 +1,6 @@
 #include <cfg_board.h>
 #include <micro/utils/log.hpp>
+#include <micro/utils/time.hpp>
 #include <micro/hw/MPU9250_Gyroscope.hpp>
 #include <micro/task/common.hpp>
 #include <micro/sensor/Filter.hpp>
@@ -24,11 +25,24 @@ extern "C" void runGyroTask(const void *argument) {
     globals::isGyroTaskInitialized = true;
     LOG_DEBUG("Gyro task initialized");
 
+    microsecond_t prevCarPoseUpdateTime = micro::getExactTime();
+
     while (true) {
         const point3<gauss_t> mag = gyro.readMagData();
         if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
-            globals::car.pose.angle = normalize360(gyroAngleFilter.update(atan2(mag.Y, mag.X)));
+            const microsecond_t now      = micro::getExactTime();
+            const microsecond_t timeDiff = now - prevCarPoseUpdateTime;
+            const radian_t newAngle = normalize360(gyroAngleFilter.update(atan2(mag.Y, mag.X)));
+
+            vTaskSuspendAll();
+            globals::car.pose.angle = avg(newAngle, globals::car.pose.angle);
+            globals::car.pose.pos.X += globals::car.speed * timeDiff * cos(globals::car.pose.angle);
+            globals::car.pose.pos.Y += globals::car.speed * timeDiff * sin(globals::car.pose.angle);
+            globals::car.pose.angle = newAngle;
             // TODO handle ~180deg bug
+            xTaskResumeAll();
+
+            prevCarPoseUpdateTime = now;
         }
 
         vTaskDelay(5);
