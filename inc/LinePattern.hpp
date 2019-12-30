@@ -18,9 +18,10 @@ public:
         ACCELERATE  = 2, ///< 1 solid line in the middle, 2 dashed lines on both sides
         BRAKE       = 3, ///< 1 solid line in the middle, 2 solid lines on both sides
         LANE_CHANGE = 4, ///< 1 solid line in the middle, 1 dashed line on one (UNKNOWN!) side (dash and space lengths decreasing)
-        JUNCTION    = 5, ///< Labyrinth junction
-        DEAD_END    = 6, ///< Labyrinth dead-end
-
+        JUNCTION_1  = 5, ///< Labyrinth junction of 1 segment
+        JUNCTION_2  = 6, ///< Labyrinth junction of 2 segments
+        JUNCTION_3  = 7, ///< Labyrinth junction of 3 segments
+        DEAD_END    = 8  ///< Labyrinth dead-end
     };
 
     Type type;        // Line pattern type.
@@ -39,6 +40,14 @@ public:
         , dir(dir)
         , side(side)
         , startDist(startDist) {}
+
+    bool operator==(const LinePattern& other) {
+        return this->type == other.type && this->dir == other.dir && this->side == other.side;
+    }
+
+    bool operator!=(const LinePattern& other) {
+        return !(*this == other);
+    }
 };
 
 class LinePatternCalculator {

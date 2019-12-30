@@ -1,12 +1,16 @@
 #pragma once
 
 #include "Graph.hpp"
+
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/algorithm.hpp>
+#include <micro/container/sorted_map.hpp>
 
 #include "cfg_track.hpp"
+
+#include <algorithm>
 
 namespace micro {
 
@@ -15,85 +19,60 @@ struct Segment;
 
 /* @brief Labyrinth segment connection.
  */
-struct Connection : public Edge {
+struct Connection : public Edge<Segment> {
     Connection()
-        : junction(nullptr)
-        , dir(Direction::CENTER) {}
+        : Edge()
+        , junction(nullptr) {}
 
-    Connection(Segment *centerNode_, Segment *curveNode_, Junction *junction_, Direction dir_);
+    Connection(Segment *seg1, Segment *seg2, Junction *junction)
+        : Edge(seg1, seg2)
+        , junction(junction) {}
 
-    void updateNodes();
+    Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
-    Junction *junction;     // The junction.
-    Direction dir;    // The connection direction (CENTER -> CURVE node steering direction)
+    Junction *junction; // The junction.
 };
 
-/* @brief Labyrinth junction (crossroads).
+/* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    struct SegmentOrientation {
-        Segment *seg;
-        bool isCenter;
-//
-//        // Indicates segment position in junction - used for determining floating segments.
-//        // Every junction has 3 segments connected to each other in a Y shape.
-//        // The bottom segment is the CENTER segment, the upper segments are the LEFT and RIGHT segments.
-//        // Given a connection type and a side, the given segment can be obtained.
-//        // e.g. if the current connection type is FORWARD and the pattern side is LEFT, then the car is coming from the top left segment of the Y.
-//        Direction pos;
+    typedef micro::unsorted_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map_type;
+    typedef micro::unsorted_map<radian_t, side_segment_map_type, 2> segment_map_type;
 
-        optional<radian_t> value;
-    };
+    Junction() : idx(-1) {}
 
-    Junction() : idx(-1) {
-//        this->segOrientations[0].pos = Direction::CENTER;
-//        this->segOrientations[1].pos = Direction::LEFT;
-//        this->segOrientations[2].pos = Direction::RIGHT;
-        this->segOrientations[0].seg = this->segOrientations[1].seg = this->segOrientations[2].seg = nullptr;
-    }
+    Status addSegment(Segment *seg, radian_t orientation, Direction dir);
 
-    Status setOrientation(Segment *seg, radian_t orientation);
-
-    Status addSegment(Segment *seg);
-
-    Status setCenterSegment(Segment *seg);
-
-//    Status setSegmentPos(Segment *seg, Direction segmentPos);
-
-    Status getOrientation(Segment *seg, optional<radian_t>& result) const;
-
-//    Status getOrientation(Direction pos, optional<radian_t>& result) const;
-
-//    Segment* getSegment(Connection::Type type, Direction side) const;
-
-//    Segment* getSegment(Direction segmentPos) const;
-
-    Segment* getSegment(radian_t orientation) const;
+    Segment* getSegment(radian_t orientation, Direction dir);
 
     Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
     bool isConnected(Segment *seg) const;
 
-    optional<radian_t> getCenterOrientation() const;
+    std::pair<radian_t, Direction> getSegmentInfo(const Segment *seg);
 
     int32_t idx;
     point2<meter_t> pos; // Junction position - relative to car start position.
-    SegmentOrientation segOrientations[3];  // Segments orientations at the junction - used for compensating car orientation sensor drift.
+    segment_map_type segments;
 
-//    static Direction getSegmentPos(Connection::Type type, Direction side);
+    segment_map_type::const_iterator getSideSegments(radian_t orientation) const {
+        return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const segment_map_type::entry_type& entry) {
+            return micro::eqWithOverflow360(orientation, entry.first, PI_4);
+        });
+    }
+
+    segment_map_type::iterator getSideSegments(radian_t orientation) {
+        return const_cast<segment_map_type::iterator>(const_cast<const Junction*>(this)->getSideSegments(orientation));
+    }
 };
 
 /* @brief Labyrinth segment.
  */
-struct Segment : public Node {
-    Segment() : name('_') {}
-
-
-    /* @brief Gets fastest route to the other segment.
-     * @param dest The destination segment.
-     * @param result The result route.
-     */
-    void getFastestRoute(const Segment& dest, vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS>& result);
+struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
+    Segment()
+        : name('_')
+        , length(0)
+        , isDeadEnd(false) {}
 
     bool isFloating() const;
 
@@ -101,6 +80,7 @@ struct Segment : public Node {
 
     char name;
     meter_t length;  // The segment length.
+    bool isDeadEnd;
 };
 
 } // namespace uns

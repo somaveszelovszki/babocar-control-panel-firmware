@@ -1,27 +1,31 @@
-#include <cfg_board.h>
 #include <micro/task/common.hpp>
 #include <micro/utils/units.hpp>
 #include <micro/utils/time.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
 
-#include <cfg_car.hpp>
-#include <cfg_track.hpp>
-
-#include <globals.hpp>
 #include <LinePattern.hpp>
 #include <LabyrinthGraph.hpp>
+#include <DetectedLines.hpp>
+#include <ControlData.hpp>
+#include <cfg_board.h>
+#include <cfg_car.hpp>
+#include <cfg_track.hpp>
+#include <globals.hpp>
 
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_uart.h>
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <queue.h>
 
 using namespace micro;
 
+extern QueueHandle_t detectedLinesQueue;
+extern QueueHandle_t controlQueue;
+
 namespace {
-constexpr centimeter_t MIN_JUNCTION_POS_ACCURACY(100);
 constexpr degree_t MERGE_VIRTUAL_LINE_ANGLE(30.0f);
 
 uint8_t startCounterBuffer[1];
@@ -31,16 +35,11 @@ vec<Segment, 5 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segme
 vec<Junction, 5 * cfg::MAX_NUM_LAB_SEGMENTS> junctions;             // The junctions - at most the number of segments.
 vec<Connection, 5 * cfg::MAX_NUM_LAB_SEGMENTS * 2> connections;     // The connections - 2 times the number of junctions.
 
-vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> floatingSegments;
 Segment *currentSeg = nullptr;
 Junction *lastJunc = nullptr;
 
 Segment *laneChangeSeg = nullptr;
 Junction *lastJuncBeforeLaneChange = nullptr;
-
-bool onStartSeg = true; // indicates if car is on the start segment (needed for floating segment handling)
-bool firstSingleLineAfterJunction = false;
-bool nextJuncIsLastBeforeLaneChange = false;
 
 meter_t lineFollowDirStartDist;
 
@@ -58,38 +57,20 @@ struct Route {
 
     void append(Connection *c) {
         this->connections.append(c);
-        this->lastSeg = reinterpret_cast<Segment*>(c->node1 == this->lastSeg ? c->node2 : c->node1);
+        this->lastSeg = c->node1 == this->lastSeg ? c->node2 : c->node1;
     }
 
-    Segment* nextSegment(Direction *pSteeringDir) {
-
+    Segment* nextSegment() {
         if (this->connections.size()) {
             Connection *c = this->connections[0];
-            if (!c) {
-                LOG_DEBUG("E: Route connection is NULL");
-                *pSteeringDir = Direction::CENTER;
-            } else if (!c->node1 || !c->node2) {
-                LOG_DEBUG("E: Route connection node NULL");
-                *pSteeringDir = Direction::CENTER;
-            } else {
-                if (c->node1 == this->startSeg) {
-                    *pSteeringDir = c->dir;
-                    this->startSeg = reinterpret_cast<Segment*>(c->node2);
-
-                } else {    // startSeg = c.node2 -> direction needs to be inverted
-                    *pSteeringDir = c->dir == Direction::LEFT ? Direction::RIGHT : Direction::LEFT;
-                    this->startSeg = reinterpret_cast<Segment*>(c->node1);
-                }
-
-                this->connections.erase(this->connections.begin());
-            }
+            this->startSeg = c->node1 == this->startSeg ? c->node2 : c->node1;
+            this->connections.erase(this->connections.begin());
         }
-
         return this->startSeg;
     }
 
     Junction* lastJunction() const {
-        Junction *last = this->connections.size() ? this->connections[this->connections.size() - 1]->junction : nullptr;
+        Junction *last = this->connections.size() > 0 ? this->connections[this->connections.size() - 1]->junction : nullptr;
         return last;
     }
 
@@ -103,42 +84,37 @@ Route plannedRoute;  // Planned route, when there is a given destination - e.g. 
 
 template <typename T, uint32_t N>
 T* getNew(vec<T, N>& vec) {
-    vec.append(T());
-    return vec.back();
+    T *elem = nullptr;
+    if (vec.append(T())) {
+        elem = vec.back();
+    } else {
+        LOG_ERROR("Pool empty, cannot get new element");
+    }
+    return elem;
 }
 
-void switchToSegment(Segment *seg, Junction *junc) {
-    LOG_DEBUG("Next: %c", seg->name);
-    if (seg) {
-        currentSeg = seg;
-    }
-    if (junc) {
-        lastJunc = junc;
-    }
-}
+Junction* findExistingJunction(const point2m& pos) {
+    constexpr meter_t MIN_JUNCTION_POS_ACCURACY = centimeter_t(50);
 
-Junction* findExistingJunction(const point2m& pos, radian_t orientation, Sign patternDir) {
     Junction *result = nullptr;
-    meter_t minDist = meter_t::zero();
-    static constexpr radian_t EPS = degree_t(20.0f);
+    meter_t minDist = meter_t::infinity();
 
     for(Junction& j : junctions) {
         const meter_t dist = pos.distance(j.pos);
 
-        const radian_t centerOri = micro::round90(patternDir == Sign::POSITIVE ? orientation : orientation + micro::PI);
-        if ((minDist == meter_t::zero() || dist < minDist) && micro::eqWithOverflow360(j.getCenterOrientation().value(), centerOri, EPS)) {
+        if (dist < minDist) {
             result = &j;
             minDist = dist;
         }
     }
 
-    LOG_DEBUG("pos: %d, %d", (int32_t)static_cast<centimeter_t>(pos.X).get(), (int32_t)static_cast<centimeter_t>(pos.Y).get());
-    if (result) {
-        LOG_DEBUG("#%d:  %d, %d", result->idx, (int32_t)static_cast<centimeter_t>(result->pos.X).get(), (int32_t)static_cast<centimeter_t>(result->pos.Y).get());
-    }
-
     if (minDist > MIN_JUNCTION_POS_ACCURACY) {  // result is further from the current position than the max, this junction is a new one
         result = nullptr;
+    }
+
+    LOG_DEBUG("pos: %d, %d", (int32_t)static_cast<centimeter_t>(pos.X).get(), (int32_t)static_cast<centimeter_t>(pos.Y).get());
+    if (result) {
+        LOG_DEBUG("found #%d:  %d, %d", result->idx, (int32_t)static_cast<centimeter_t>(result->pos.X).get(), (int32_t)static_cast<centimeter_t>(result->pos.Y).get());
     }
 
     return result;
@@ -163,12 +139,10 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastJuncBefore
 
             if (currentRoute->lastSeg) {
                 for (uint32_t i = 0; i < currentRoute->lastSeg->edges.size(); ++i) {
-                    Connection *c = reinterpret_cast<Connection*>(currentRoute->lastSeg->edges[i]);
+                    Connection *c = currentRoute->lastSeg->edges[i];
 
                     if (c) {
-                        if (c->junction != _lastJunc &&    // does not permit going through the last junction again (going backwards)
-                            !((c->node1 == currentSeg || c->node2 == currentSeg) && c->junction == lastJunc)) { // prevents circular routes
-
+                        if (c->junction != _lastJunc) {    // does not permit going through the last junction again (going backwards)
                             if (routes.size() >= MAX_NUM_ROUTES) {
                                 LOG_DEBUG("E: routes.size() >= MAX_NUM_ROUTES");
                                 break;
@@ -198,220 +172,236 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastJuncBefore
     return !!shortestRoute;
 }
 
+vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> getFloatingSegments() {
+    vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> floatingSegments;
+    for (Segment& seg : segments) {
+        if (seg.isFloating()) {
+            floatingSegments.append(&seg);
+        }
+    }
+    return floatingSegments;
+}
+
 bool createNewRoute() {
     bool success = false;
     plannedRoute.reset();
 
+    vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> floatingSegments = getFloatingSegments();
+
     if (floatingSegments.size()) {    // if there are still floating segments in the graph, chooses the closest one as destination
         Route route;
-        for (const Segment *seg : floatingSegments) {
+        for (Segment *seg : floatingSegments) {
             if ((success |= getRoute(route, seg)) && (!plannedRoute.connections.size() || (plannedRoute.connections.size() > route.connections.size()))) {
                 plannedRoute = route;
             }
         }
-    } else if (laneChangeSeg && lastJuncBeforeLaneChange){    // there no floating segments in the graph, so the new destination will be the segment where the lane change must happen
+    } else if (laneChangeSeg && lastJuncBeforeLaneChange){ // no floating segments in the graph, new destination will be the lane change segment
         success = getRoute(plannedRoute, laneChangeSeg, lastJuncBeforeLaneChange);
     }
 
     return success;
 }
 
-Direction generateRandomDirection() {
-    Direction dir = static_cast<int32_t>(static_cast<millimeter_t>(globals::car.pose.pos.Y).get()) % 2 ? Direction::LEFT : Direction::RIGHT;
-    return dir;
+Segment* createNewSegment() {
+    Segment *seg = getNew(segments);
+    if (seg) {
+        seg->name = 'A' + static_cast<char>(segments.size() - 1);
+        seg->length = meter_t(0);
+        seg->isDeadEnd = false;
+    }
+    return seg;
 }
 
-Direction onJuntionDetected(const LinePattern& linePattern, const CarProps& car) {
+void addSegments(Junction * const junc, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
-    static constexpr radian_t PATTERN_DELTA_ORI_DEAD_BAND = degree_t(3.0f);
-    const bool isCurrentSegCenter = linePattern.dir == Sign::POSITIVE;
+    junc->addSegment(currentSeg, bwdOri, inSegmentDir);
 
-    // current orientation must be a multiple of 90 degrees (track rules)
-    //const radian_t prevCarOri = car.orientation();
-    const radian_t carOri = micro::round90(car.pose.angle);
-    //car.orientation_ = carOri;
-    //LOG_DEBUG("Junction! pos: %f, %f | Car ori update: %f -> %f", car.pos().X.get<centimeters>(), car.pos().Y.get<centimeters>(), prevCarOri.get<degrees>(), car.orientation().get<degrees>());
-
-    point2m junctionPos;
-    if (isCurrentSegCenter) {
-        junctionPos = car.pose.pos;
-    } else {
-        const point2m carPos = car.pose.pos;
-        if (carOri == radian_t::zero()) {
-            junctionPos = { carPos.X - cfg::MIN_JUNCTION_LENGTH, carPos.Y };
-        } else if (carOri == micro::PI_2) {
-            junctionPos = { carPos.X, carPos.Y - cfg::MIN_JUNCTION_LENGTH };
-        } else if (carOri == micro::PI) {
-            junctionPos = { carPos.X + cfg::MIN_JUNCTION_LENGTH, carPos.Y };
-        } else if (carOri == 3 * micro::PI_2) {
-            junctionPos = { carPos.X, carPos.Y + cfg::MIN_JUNCTION_LENGTH };
+    switch (numInSegments) {
+    case 2:
+        junc->addSegment(createNewSegment(), bwdOri, inSegmentDir == Direction::LEFT ? Direction::RIGHT : Direction::LEFT);
+        break;
+    case 3:
+        switch (inSegmentDir) {
+        case Direction::LEFT:
+            junc->addSegment(createNewSegment(), bwdOri, Direction::CENTER);
+            junc->addSegment(createNewSegment(), bwdOri, Direction::RIGHT);
+            break;
+        case Direction::CENTER:
+            junc->addSegment(createNewSegment(), bwdOri, Direction::LEFT);
+            junc->addSegment(createNewSegment(), bwdOri, Direction::RIGHT);
+            break;
+        case Direction::RIGHT:
+            junc->addSegment(createNewSegment(), bwdOri, Direction::CENTER);
+            junc->addSegment(createNewSegment(), bwdOri, Direction::LEFT);
+            break;
         }
+        break;
     }
 
-    Junction *junc = findExistingJunction(junctionPos, car.pose.angle, linePattern.dir);
-    Segment *nextSeg;
-    Direction steeringDir;    // Type of the junction (STRAIGHT or CURVE) where car should continue its route
+    switch (numOutSegments) {
+    case 1:
+        junc->addSegment(createNewSegment(), fwdOri, Direction::CENTER);
+        break;
+    case 2:
+        junc->addSegment(createNewSegment(), fwdOri, Direction::LEFT);
+        junc->addSegment(createNewSegment(), fwdOri, Direction::RIGHT);
+        break;
+    case 3:
+        junc->addSegment(createNewSegment(), fwdOri, Direction::LEFT);
+        junc->addSegment(createNewSegment(), fwdOri, Direction::CENTER);
+        junc->addSegment(createNewSegment(), fwdOri, Direction::RIGHT);
+        break;
+    }
+}
 
-    bool keepSegFloating = onStartSeg;  // will be used later when current segment is removed from the list of floating segments (startSeg will not be removed)
-    onStartSeg = false;
+void addConnection(Connection * const conn, Segment * const seg1, Segment * const seg2) {
+    conn->node1 = seg1;
+    conn->node2 = seg2;
+    seg1->edges.append(conn);
+    seg2->edges.append(conn);
+}
 
-    if (!junc) {    // new junction found - creates 2 new segments and adds connections
-        LOG_DEBUG("New junction | currentSeg: %c", currentSeg->name);
-        junc = getNew(junctions);
+Junction* onNewJunction(const point2m& pos, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+    LOG_DEBUG("New junction | currentSeg: %c", currentSeg->name);
+    Junction * const junc = getNew(junctions);
+    if (junc) {
         junc->idx = junctions.size();
-        junc->pos = junctionPos;
+        junc->pos = pos;
+        addSegments(junc, fwdOri, bwdOri, numInSegments, inSegmentDir, numOutSegments);
 
-        Segment *seg1 = getNew(segments), *seg2 = getNew(segments);
-        seg1->name = 'A' + static_cast<char>(segments.size() - 2);
-        seg2->name = seg1->name + static_cast<char>(1);
+        Junction::segment_map_type::iterator inSegments  = junc->getSideSegments(bwdOri);
+        Junction::segment_map_type::iterator outSegments = junc->getSideSegments(fwdOri);
 
-        junc->addSegment(currentSeg);
-        junc->addSegment(seg1);
-        junc->addSegment(seg2);
-        junc->setOrientation(currentSeg, car.pose.angle);
-
-        Connection *conn1 = getNew(connections);
-        Connection *conn2 = getNew(connections);
-        conn1->junction = junc;
-        conn2->junction = junc;
-
-        if (isCurrentSegCenter) {
-            junc->setCenterSegment(currentSeg);
-            conn1->node1 = conn2->node1 = currentSeg;  // node1 is the center segment
-
-            conn1->node2 = seg1;
-            conn1->dir = Direction::LEFT;
-
-            conn2->node2 = seg2;
-            conn2->dir = Direction::RIGHT;
-
-        } else {
-            junc->setCenterSegment(seg1);
-            conn1->node1 = conn2->node1 = seg1;  // seg1 is the center segment
-
-            conn1->node2 = currentSeg;
-            conn1->dir = linePattern.side;   // If negative pattern is to the LEFT, it means currentSeg->seg1 is a RIGHT change. Center seg is seg1: seg1->currentSeg is a LEFT change. Same for RIGHT.
-
-            conn2->node2 = seg2;
-            conn2->dir = linePattern.side == Direction::LEFT ? Direction::RIGHT : Direction::LEFT; // LEFT negative pattern -> seg1->currentSeg: LEFT change (see above) -> seg1->seg2: RIGHT change
-        }
-
-        conn1->updateNodes();
-        conn2->updateNodes();
-        floatingSegments.append(seg1);
-        floatingSegments.append(seg2);
-
-        LOG_DEBUG("New segments: %c %c", seg1->name, seg2->name);
-        LOG_DEBUG("CENTER: %c", isCurrentSegCenter ? currentSeg->name : seg1->name);
-
-        if (isCurrentSegCenter) {
-            steeringDir = generateRandomDirection();
-            nextSeg = (steeringDir == Direction::LEFT) ? seg1 : seg2;
-        } else {
-            steeringDir = (linePattern.side == Direction::LEFT) ? Direction::RIGHT : Direction::LEFT;
-            nextSeg = seg1;
+        for (Junction::side_segment_map_type::iterator in = inSegments->second.begin(); in != inSegments->second.end(); ++in) {
+            for (Junction::side_segment_map_type::iterator out = outSegments->second.begin(); out != outSegments->second.end(); ++out) {
+                Connection *conn = getNew(connections);
+                conn->junction = junc;
+                addConnection(conn, in->second, out->second);
+            }
         }
 
         endTime += second_t(10);
 
-    } else {    // arrived at a previously found junction - the floating segment of the junction (if there is one) must be merged with the current segment, if the current segment is floating as well
+    } else {
+        LOG_ERROR("Junction pool empty");
+    }
 
-        LOG_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
+    return junc;
+}
 
-        point2m prevCarPos = globals::car.pose.pos;
-        taskENTER_CRITICAL();
-        globals::car.pose.pos += (junc->pos - junctionPos);
-        taskEXIT_CRITICAL();
-        LOG_DEBUG("Car pos update: (%d, %d) -> (%d, %d)",
-            (int32_t)static_cast<centimeter_t>(prevCarPos.X).get(), (int32_t)static_cast<centimeter_t>(prevCarPos.Y).get(),
-            (int32_t)static_cast<centimeter_t>(globals::car.pose.pos.X).get(), (int32_t)static_cast<centimeter_t>(globals::car.pose.pos.Y).get());
+Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
+    Status result = Status::INVALID_DATA;
 
-        Segment *junctionSeg = junc->getSegment(globals::car.pose.angle);
+    if (oldSeg != newSeg) {
+        if (newSeg->isFloating()) {
+            LOG_DEBUG("New segment floating (OK)");
 
-        if (junctionSeg) {
-            LOG_DEBUG("junctionSeg: %c", junctionSeg->name);
-
-            if (junctionSeg != currentSeg) {
-                if (floatingSegments.find(junctionSeg) != floatingSegments.end()) {
-                    LOG_DEBUG("junctionSeg floating (OK)");
-
-                    // if both segments are floating, merges them
-                    if (floatingSegments.find(currentSeg) != floatingSegments.end()) {
-                        // adds all the connections of this segment to the previously defined floating segment (updates segment pointers)
-                        for (Edge *e : currentSeg->edges) {
-                            if (e) {
-                                Connection *c = reinterpret_cast<Connection*>(e);
-                                if (c->node1 == currentSeg) {
-                                    c->node1 = junctionSeg;
-                                } else {
-                                    c->node2 = junctionSeg;
-                                }
-
-                                junctionSeg->edges.append(c);
-                                c->junction->updateSegment(currentSeg, junctionSeg);
-                            }
-                        }
-
-                        LOG_DEBUG("Merge: %c -> %c", currentSeg->name, junctionSeg->name);
-
-                        floatingSegments.erase(junctionSeg);
-                    }
-                } else {
-                    // junction segment not floating - probably an error has happened
-                    // sets current segment to the new one, and creates new route
-
-                    LOG_DEBUG("junctionSeg not floating (NOT OK)");
-                    keepSegFloating = true;
-                    plannedRoute.reset();
+            // if both segments are floating, merges them
+            if (oldSeg->isFloating()) {
+                // adds all the connections of this segment to the previously defined floating segment (updates segment pointers)
+                for (Connection *c : oldSeg->edges) {
+                    c->updateSegment(oldSeg, newSeg);
+                    newSeg->edges.append(c);
+                    c->junction->updateSegment(oldSeg, newSeg);
                 }
 
-                currentSeg = junctionSeg;
-            }
-
-            // If there is no planned route, creates a new route.
-            // The destination of the route will be the closest floating segment.
-            // If there are no floating segments, it means the labyrinth has been completed. In this case the destination will be the segment where the lane-change must happen.
-            if (!plannedRoute.connections.size() && !createNewRoute()) {
-                LOG_DEBUG("createNewRoute failed -> RANDOM");
-                steeringDir = Direction::CENTER;
-
+                result = Status::OK;
+                LOG_DEBUG("Merged: %c -> %c", oldSeg->name, newSeg->name);
             } else {
-                if (plannedRoute.lastSeg) {
-                    LOG_DEBUG("Route dest: %c", plannedRoute.lastSeg->name);
-                    nextSeg = plannedRoute.nextSegment(&steeringDir);
-
-                    if (!nextSeg || steeringDir == Direction::CENTER) {
-                        LOG_DEBUG("nextSegment error -> RANDOM");
-                        steeringDir = Direction::CENTER;
-                    }
-
-                } else {
-                    LOG_DEBUG("Route dest: NULL -> RANDOM");
-                    steeringDir = Direction::CENTER;
-                }
+                LOG_ERROR("Old segment not floating (NOT OK)");
             }
         } else {
-            LOG_DEBUG("junctionSeg not found");
-            steeringDir = Direction::CENTER;
+            LOG_ERROR("New segment not floating (NOT OK)");
+        }
+    }
+
+    return result;
+}
+
+Segment* onExistingJunction(Junction *junc, const point2m& pos, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+
+    Segment * const junctionSeg = junc->getSegment(bwdOri, inSegmentDir);
+    Segment *nextSeg = nullptr;
+
+    LOG_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
+
+    vTaskSuspendAll();
+    globals::car.pose.pos += (junc->pos - pos);
+    xTaskResumeAll();
+
+    LOG_DEBUG("Car pos updated: (%f, %f)", static_cast<centimeter_t>(globals::car.pose.pos.X).get(), static_cast<centimeter_t>(globals::car.pose.pos.Y).get());
+
+    if (junctionSeg) {
+        LOG_DEBUG("junctionSeg: %c", junctionSeg->name);
+
+        if (!isOk(mergeSegments(currentSeg, junctionSeg))) {
+            plannedRoute.reset();
         }
 
+        currentSeg = junctionSeg;
 
+        // If there is no planned route, creates a new route.
+        // The destination of the route will be the closest floating segment.
+        // If there are no floating segments, it means the labyrinth has been completed.
+        // In this case the destination will be the lane change segment.
+        if (plannedRoute.connections.size() || createNewRoute()) {
+            if (plannedRoute.lastSeg) {
+                LOG_DEBUG("Route dest: %c", plannedRoute.lastSeg->name);
+                nextSeg = plannedRoute.nextSegment();
+
+                if (nextSeg == currentSeg) {
+                    nextSeg = nullptr;
+                    LOG_ERROR("nextSegment() error");
+                }
+            } else {
+                LOG_ERROR("Route dest: NULL");
+            }
+        } else {
+            LOG_ERROR("createNewRoute() failed");
+        }
+    } else {
+        LOG_ERROR("Junction segment with orientation [%fdeg] and direction [%s] not found", static_cast<degree_t>(bwdOri).get(), to_string(inSegmentDir));
     }
 
-    // does not remove start segment from the floating segment list, because it is not finished when the car reaches the first junction
-    // also, does not remove current segment if it has not been merged with another one (due to some measurement errors)
-    if (!keepSegFloating) {
-        floatingSegments.erase(currentSeg);
+    return nextSeg;
+}
+
+Direction onJunctionDetected(const point2m& pos, radian_t angle, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+
+    Junction *junc = findExistingJunction(pos);
+    Segment *nextSeg = nullptr;
+    Direction steeringDir = Direction::CENTER; // Type of the junction (STRAIGHT or CURVE) where car should continue its route
+
+    const radian_t fwdOri = angle;
+    const radian_t bwdOri = micro::normalize360(angle + PI);
+
+    if (!junc) { // new junction found - creates new segments and adds connections
+        junc = onNewJunction(pos, fwdOri, bwdOri, numInSegments, inSegmentDir, numOutSegments);
+    } else { // arrived at a previously found junction - the corresponding floating segment of the junction (if there is one) must be merged with the current segment
+        nextSeg = onExistingJunction(junc, pos, fwdOri, bwdOri, numInSegments, inSegmentDir, numOutSegments);
     }
 
-    if (steeringDir == Direction::CENTER) {
-        nextSeg = currentSeg;
-        steeringDir = generateRandomDirection();
-        plannedRoute.reset();
+    if (!nextSeg) {
+        Junction::segment_map_type::iterator outSegments = junc->getSideSegments(fwdOri);
+        Segment **pNextSeg = outSegments->second.get(Direction::RIGHT);
+        if (!pNextSeg) {
+            pNextSeg = outSegments->second.get(Direction::CENTER);
+        }
+
+        if (pNextSeg) {
+            nextSeg = *pNextSeg;
+        }
     }
 
-    switchToSegment(nextSeg, junc);
-    firstSingleLineAfterJunction = true;
+    if (junc && nextSeg) {
+        LOG_DEBUG("Next: %c", nextSeg->name);
+        steeringDir = junc->getSegmentInfo(nextSeg).second;
+        currentSeg = nextSeg;
+        lastJunc = junc;
+
+    } else {
+        LOG_ERROR("No junction or next segment found");
+    }
 
     return steeringDir;
 }
@@ -427,182 +417,106 @@ void waitStartSignal(void) {
     HAL_UART_DMAStop(uart_RadioModule);
 }
 
+enum {
+    ProgSubCntr_WaitStartSignal   = 0,
+    ProgSubCntr_NavigateLabyrinth = 1
+};
+
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
 
     vTaskDelay(100); // gives time to other tasks and panels to wake up
 
-    while(true) { vTaskDelay(100); }
+    DetectedLines prevDetectedLines, detectedLines;
+    Line mainLine;
+    ControlData controlData;
 
-    taskENTER_CRITICAL();
-    // TODO send speed to ControlTask
-    taskEXIT_CRITICAL();
-
-    waitStartSignal();
-
-    LOG_DEBUG("Started!");
-
-    endTime = getTime() + second_t(20);
-
-    // initializes start segment
-    currentSeg = getNew(segments);
-    currentSeg->name = 'A';
-    floatingSegments.append(currentSeg);
-    onStartSeg = true;
-
-    constexpr radian_t angle_LIMIT_SPEED_FAST = degree_t(3.0f);
-    constexpr meter_t d_line_pos_LIMIT_SPEED_FAST = centimeter_t(0.5f);
-    constexpr m_per_sec_t speed_SINGLE(1.1f), speed_SINGLE_FAST(1.1f), speed_JUNCTION(1.1f);
-
-    radian_t laneChangeOrientation;  // desired orientation for car during lane change
-    Line laneChangeLine;            // line to follow in order to reach lane change orientation
-
-    enum class JunctionHandling {
-        NEW,
-        DELAYED,
-        DONE
-    };
-    JunctionHandling juncHandling = JunctionHandling::NEW;
-
-    bool laneChangeHandled = false;
+    uint8_t numInSegments;
+    Direction inSegmentDir;
+    point2m inJunctionPos;
 
     while (true) {
         switch (globals::programState.activeModule()) {
             case ProgramState::ActiveModule::Labyrinth:
-//            { // TODO switch (globals::programState.subCntr())
-//                if (linesLocal.hasValue()) {
-//                    controlPropsLocal.line = linesLocal->centerLine;
-//
-//                    if (linesLocal->pattern.type == LinePattern::Type::JUNCTION || (linesLocal->leftLine.hasValue() && linesLocal->rightLine.hasValue())) {
-//                        controlPropsLocal.speed = speed_JUNCTION;
-//                    } else {
-//                        static constexpr radian_t ORI_EPS(degrees(), 2.0f);
-//                        if ((micro::isMultipleOf90(car_.orientation(), ORI_EPS) && abs(linesLocal->centerLine.angle) < angle_LIMIT_SPEED_FAST) ||
-//                                (abs(prevLines.centerLine.pos - linesLocal->centerLine.pos) < d_line_pos_LIMIT_SPEED_FAST)) {
-//                            controlPropsLocal.speed = speed_SINGLE_FAST;
-//                        } else {
-//                            controlPropsLocal.speed = speed_SINGLE;
-//                        }
-//                    }
-//
-//                    micro::enterCritical();
-//                    controlProps = controlPropsLocal;
-//                    micro::exitCritical();
-//
-//                    if (linesLocal->pattern.type == LinePattern::Type::JUNCTION) {
-//
-//                        static constexpr meter_t MIN_JUNCTION_DIST(centimeters(), 80);   // prevents re-detection
-//
-//                        if ((!lastJunc || carLocal.pos().distance(lastJunc->pos) > MIN_JUNCTION_DIST) && !firstSingleLineAfterJunction) {
-//
-//                            if (linesLocal->pattern.dir == Sign::NEGATIVE || abs(carLocal.distance() - linesLocal->pattern.startDist) > cfg::MIN_JUNCTION_LENGTH) {
-//                                if (juncHandling == JunctionHandling::NEW) {
-//                                    if (linesLocal->pattern.dir == Sign::POSITIVE) { // POSITIVE junctions are handled immediately, NEGATIVE junctions will be handled at the first SINGLE line (other end of junction)
-//                                        lineFollowDir = onJuntionDetected(linesLocal.value(), carLocal);
-//                                        lineFollowDirStartDist = carLocal.distance();
-//                                        LOG_DEBUG("Keep %s", lineFollowDir == Direction::LEFT ? "LEFT" : "RIGHT");
-//
-//                                        if (nextJuncIsLastBeforeLaneChange) {
-//                                            lastJuncBeforeLaneChange = lastJunc;
-//                                            nextJuncIsLastBeforeLaneChange = false;
-//                                        }
-//                                        juncHandling = JunctionHandling::DONE;
-//                                    } else {
-//                                        juncHandling = JunctionHandling::DELAYED;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    } else {
-//
-//                        if (juncHandling == JunctionHandling::DELAYED) {  // handles previous NEGATIVE junction (need to be handled after car has passed it for better localization)
-//                            onJuntionDetected(prevLines, carLocal);   // does not set lineFollowDir (NEGATIVE junction -> direction is obvious)
-//                        }
-//
-//                        juncHandling = JunctionHandling::NEW;
-//
-//                        static constexpr meter_t LINE_FOLLOW_FORCE_DISABLE_MAX_LINE_DIST(centimeters(), 2.0f);
-//                        static constexpr meter_t LINE_FOLLOW_FORCE_MIN_DIST(centimeters(), 50);
-//                        if (lineFollowDir.hasValue() &&
-//                                abs(linesLocal->centerLine.pos) < LINE_FOLLOW_FORCE_DISABLE_MAX_LINE_DIST &&
-//                                carLocal.distance() - lineFollowDirStartDist > LINE_FOLLOW_FORCE_MIN_DIST) {
-//                            lineFollowDir.reset();  // disables forced line follow after car has found it
-//                            LOG_DEBUG("Forced line follow disabled");
-//                        }
-//
-//                        if (linesLocal->pattern.type == LinePattern::Type::SINGLE_LINE) {
-//
-//                            if (firstSingleLineAfterJunction) {
-//                                LOG_DEBUG("firstSingleLineAfterJunction");
-//                                optional<radian_t> lineOri;
-//                                if (isOk(lastJunc->getOrientation(currentSeg, lineOri))) {
-//                                    if (!lineOri.hasValue()) {
-//
-//                                        // CENTER segment's orientation is always a multiple of 90 degrees (track rules)
-//                                        //car.orientation_ = micro::round90(car.orientation());
-//
-//                                        lastJunc->setOrientation(currentSeg, micro::round90(carLocal.orientation() + micro::PI));
-//                                        LOG_DEBUG("Line: (%d, %d) %ddeg", (int32_t)carLocal.pos_.X.get<centimeters>(), (int32_t)carLocal.pos_.Y.get<centimeters>(), (int32_t)carLocal.orientation_.get<degrees>());
-//
-//                                    } else if (micro::isMultipleOf90(*lineOri, radian_t::zero())) {
-//
-//                                        const radian_t prevCarOri = car_.orientation();
-//                                        //car.orientation_ = *lineOri;
-//                                        //LOG_DEBUG("Car ori update: %f -> %f", prevCarOri.get<degrees>(), carLocal.orientation().get<degrees>());
-//                                    }
-//                                }
-//
-//                                firstSingleLineAfterJunction = false;
-//                            }
-//
-//                        } else if (linesLocal->pattern.type == LinePattern::Type::LANE_CHANGE) {
-//
-//                            bool change = false;
-//                            if (!laneChangeSeg || !lastJuncBeforeLaneChange) {   // if this is the first time we are at this section, we need to save it
-//                                laneChangeSeg = currentSeg;
-//                                if (linesLocal->pattern.dir == Sign::POSITIVE) {
-//                                    lastJuncBeforeLaneChange = lastJunc;
-//
-//                                    if (segments.size() >= 10 && carLocal.distance() - startDist > meter_t::from<meters>(80)) {
-//                                        change = true;
-//                                    }
-//
-//                                } else {
-//                                    nextJuncIsLastBeforeLaneChange = true;
-//                                }
-//
-//                            } else {
-//                                // if our destination was this segment (the lane change segment), then the car has finished the labyrinth, it needs to change lanes
-//                                if (!plannedRoute.connections.size() && plannedRoute.lastSeg == currentSeg) {
-//                                    change = true;
-//                                }
-//                            }
-//
-//                            if (change && false) {
-//                                LOG_DEBUG("LaneChange started");
-//
-//                                micro::enterCritical();
-//                                carLocal.orientation_ = car_.orientation_ = micro::PI_2;  // TODO currently lane change only works when initial orientation is 90 degrees. This ruins the map, but lane change happens after the labyrinth
-//                                micro::exitCritical();
-//
-//                                micro::changeLane(Direction::RIGHT, cfg::LANE_CHANGE_LINE_DIST, carLocal.orientation(), speed_t::from<m_per_sec>(0.5f));
-//                                LOG_DEBUG("LaneChange over");
-//                                PROGRAM_TASK = ProgramTask::SAFETY_CAR_FOLLOW;
-//                            }
-//                        }
-//                    }
-//
-//                    prevLines = linesLocal.value();
-//                }
-//
-//                vTaskDelay(2);
-//                break;
-//            }
+                switch (globals::programState.subCntr()) {
+                case ProgSubCntr_WaitStartSignal:
+                    waitStartSignal();
+                    currentSeg = createNewSegment();
+                    endTime = getTime() + second_t(20);
+                    globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgSubCntr_NavigateLabyrinth);
+                    break;
+
+                case ProgSubCntr_NavigateLabyrinth:
+                    xQueuePeek(detectedLinesQueue, &detectedLines, 0);
+                    LineCalculator::updateMainLine(detectedLines.lines, mainLine);
+
+                    if (detectedLines.pattern != prevDetectedLines.pattern &&
+                        (LinePattern::JUNCTION_1 == detectedLines.pattern.type ||
+                         LinePattern::JUNCTION_2 == detectedLines.pattern.type ||
+                         LinePattern::JUNCTION_3 == detectedLines.pattern.type)) {
+
+                        const uint8_t numSegments = LinePattern::JUNCTION_1 == detectedLines.pattern.type ? 1 :
+                            LinePattern::JUNCTION_2 == detectedLines.pattern.type ? 2 : 3;
+
+                        if (Sign::POSITIVE == detectedLines.pattern.dir) {
+                            numInSegments = numSegments;
+                            inJunctionPos = globals::car.pose.pos;
+
+                            // Line pattern direction indicates on which side of the current line the OTHER lines are,
+                            // so if the current line is the leftmost line of three lines, pattern direction will be RIGHT.
+                            // Segment direction is a junction indicates which side the car should steer in order to follow a segment,
+                            // when leaving a junction.
+                            // Currently the car is entering a junction, therefore if the current line is the leftmost,
+                            // the car will need to steer to the right when leaving the junction.
+                            // So the segment direction is the same as the line pattern direction (in this example, RIGHT).
+                            inSegmentDir = detectedLines.pattern.side;
+
+                        } else if (Sign::NEGATIVE == detectedLines.pattern.dir) {
+                            const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
+                            const Direction steeringDir = onJunctionDetected(junctionPos, globals::car.pose.angle, numInSegments, inSegmentDir, numSegments);
+
+                            // updates the main line (if an error occurs, does not change the default line)
+                            switch (steeringDir) {
+                            case Direction::LEFT:
+                                if (detectedLines.lines.size() >= 2) {
+                                    mainLine = detectedLines.lines[0];
+                                }
+                                break;
+                            case Direction::CENTER:
+                                if (detectedLines.lines.size() == 1) {
+                                    mainLine = detectedLines.lines[0];
+                                } else if (detectedLines.lines.size() == 3) {
+                                    mainLine = detectedLines.lines[1];
+                                }
+                                break;
+                            case Direction::RIGHT:
+                                if (detectedLines.lines.size() >= 2) {
+                                    mainLine = *detectedLines.lines.back();
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    controlData.baseline = mainLine;
+                    controlData.angle = degree_t(0);
+                    controlData.offset = millimeter_t(0);
+                    controlData.speed = m_per_sec_t(1.0f);
+
+                    xQueueOverwrite(controlQueue, &controlData);
+
+                    prevDetectedLines = detectedLines;
+                    break;
+                }
+                break;
+
             default:
                 vTaskDelay(100);
                 break;
         }
+
+        vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);

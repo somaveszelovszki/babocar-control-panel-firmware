@@ -1,4 +1,3 @@
-#include <cfg_board.h>
 #include <micro/task/common.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/updatable.hpp>
@@ -12,9 +11,13 @@
 #include <DetectedLines.hpp>
 #include <ControlData.hpp>
 #include <DistancesData.hpp>
+#include <cfg_board.h>
 #include <cfg_car.hpp>
-
 #include <globals.hpp>
+
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
 
 using namespace micro;
 
@@ -83,12 +86,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
         {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
-
             LineCalculator::updateMainLine(detectedLines.lines, mainLine);
-
-            controlData.baseline = mainLine;
-            controlData.angle = degree_t(0);
-            controlData.offset = millimeter_t(0);
 
             if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                 if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
@@ -155,6 +153,10 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 globals::programState.set(ProgramState::ActiveModule::INVALID, 0);
                 break;
             }
+
+            controlData.baseline = mainLine;
+            controlData.angle = degree_t(0);
+            controlData.offset = millimeter_t(0);
 
             xQueueOverwrite(controlQueue, &controlData);
             prevDetectedLines = detectedLines;

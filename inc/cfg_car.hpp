@@ -31,7 +31,9 @@ constexpr micro::millimeter_t MAX_POS_OPTO_FRONT = DIST_BTW_OPTOS * NUM_OPTO_FRO
 // Rightmost sensor's position: MAX_POS_OPTO_REAR
 constexpr micro::millimeter_t MAX_POS_OPTO_REAR = DIST_BTW_OPTOS * NUM_OPTO_REAR / 2;
 
-constexpr micro::millimeter_t DIST_BTW_OPTO_ROWS = micro::centimeter_t(21.3f);   // Distance between the two line detector optical sensor rows.
+constexpr micro::millimeter_t CAR_MIDDLE_FRONT_OPTO_DIST = micro::centimeter_t(30.0f);   // Distance between car middle point and the front optical sensor row.
+constexpr micro::millimeter_t CAR_MIDDLE_REAR_OPTO_DIST  = micro::centimeter_t(10.0f);   // Distance between car middle point and the rear optical sensor row.
+constexpr micro::millimeter_t CAR_FRONT_REAR_OPTO_DIST   = CAR_MIDDLE_FRONT_OPTO_DIST - CAR_MIDDLE_REAR_OPTO_DIST;
 
 constexpr uint32_t        FRONT_SERVO_PWM_0           = 1000;                    // Front servo PWM for 0 degrees.
 constexpr uint32_t        FRONT_SERVO_PWM_180         = 2000;                    // Front servo PWM for 180 degrees.

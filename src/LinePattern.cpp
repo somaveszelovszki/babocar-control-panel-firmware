@@ -139,7 +139,17 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
             break;
         }
 
-        case LinePattern::JUNCTION:
+        case LinePattern::JUNCTION_1:
+        {
+            break;
+        }
+
+        case LinePattern::JUNCTION_2:
+        {
+            break;
+        }
+
+        case LinePattern::JUNCTION_3:
         {
             break;
         }
@@ -218,7 +228,11 @@ bool LinePatternCalculator::isPatternValid(const LinePattern& pattern, const Lin
         valid = false;
         break;
 
-    case LinePattern::JUNCTION:
+    case LinePattern::JUNCTION_2:
+        valid = false;
+        break;
+
+    case LinePattern::JUNCTION_3:
         valid = false;
         break;
 
