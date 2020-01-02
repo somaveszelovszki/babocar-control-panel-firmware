@@ -36,14 +36,18 @@ vec<Junction, 5 * cfg::MAX_NUM_LAB_SEGMENTS> junctions;             // The junct
 vec<Connection, 5 * cfg::MAX_NUM_LAB_SEGMENTS * 2> connections;     // The connections - 2 times the number of junctions.
 
 Segment *currentSeg = nullptr;
-Junction *lastJunc = nullptr;
+
+static struct {
+    Connection *connection = nullptr;
+    radian_t orientation   = radian_t(0);
+    Direction direction    = Direction::CENTER;
+} lastManeuver;
 
 Segment *laneChangeSeg = nullptr;
-Junction *lastJuncBeforeLaneChange = nullptr;
 
 meter_t lineFollowDirStartDist;
 
-time_t endTime;
+millisecond_t endTime;
 
 struct Route {
     static constexpr uint32_t MAX_LENGTH = cfg::MAX_NUM_LAB_SEGMENTS * 2;
@@ -57,21 +61,20 @@ struct Route {
 
     void append(Connection *c) {
         this->connections.append(c);
-        this->lastSeg = c->node1 == this->lastSeg ? c->node2 : c->node1;
+        this->lastSeg = c->getOtherSegment(this->lastSeg);
     }
 
     Segment* nextSegment() {
         if (this->connections.size()) {
             Connection *c = this->connections[0];
-            this->startSeg = c->node1 == this->startSeg ? c->node2 : c->node1;
+            this->startSeg = c->getOtherSegment(this->startSeg);
             this->connections.erase(this->connections.begin());
         }
         return this->startSeg;
     }
 
-    Junction* lastJunction() const {
-        Junction *last = this->connections.size() > 0 ? this->connections[this->connections.size() - 1]->junction : nullptr;
-        return last;
+    Connection* lastConnection() const {
+        return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
     }
 
     void reset() {
@@ -80,10 +83,12 @@ struct Route {
     }
 };
 
+static constexpr uint32_t MAX_NUM_ROUTES = 64;
+vec<Route, MAX_NUM_ROUTES> routes;
 Route plannedRoute;  // Planned route, when there is a given destination - e.g. given floating segment or the segment where the lane-change will happen
 
 template <typename T, uint32_t N>
-T* getNew(vec<T, N>& vec) {
+static T* getNew(vec<T, N>& vec) {
     T *elem = nullptr;
     if (vec.append(T())) {
         elem = vec.back();
@@ -93,7 +98,7 @@ T* getNew(vec<T, N>& vec) {
     return elem;
 }
 
-Junction* findExistingJunction(const point2m& pos) {
+static Junction* findExistingJunction(const point2m& pos) {
     constexpr meter_t MIN_JUNCTION_POS_ACCURACY = centimeter_t(50);
 
     Junction *result = nullptr;
@@ -120,10 +125,8 @@ Junction* findExistingJunction(const point2m& pos) {
     return result;
 }
 
-bool getRoute(Route& result, const Segment *dest, const Junction *lastJuncBeforeDest = nullptr) {
-    static constexpr uint32_t MAX_NUM_ROUTES = 64;
-
-    vec<Route, MAX_NUM_ROUTES> routes;
+static bool getRoute(Route& result, const Segment *dest) {
+    routes.clear();
     Route * const initialRoute = getNew(routes);
     initialRoute->startSeg = initialRoute->lastSeg = currentSeg;
     uint8_t depth = 0;
@@ -132,31 +135,25 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastJuncBefore
     do {
         while (routes.size() > 0 && !shortestRoute) {
             Route *currentRoute = &routes[0];
-            const Junction *_lastJunc = currentRoute->lastJunction();
-            if (!_lastJunc) {
-                _lastJunc = lastJunc;
+            const Connection *_lastConn = currentRoute->lastConnection();
+            if (!_lastConn) {
+                _lastConn = lastManeuver.connection;
             }
 
-            if (currentRoute->lastSeg) {
-                for (uint32_t i = 0; i < currentRoute->lastSeg->edges.size(); ++i) {
-                    Connection *c = currentRoute->lastSeg->edges[i];
+            for (Connection *c : currentRoute->lastSeg->edges) {
+                if (c != _lastConn) { // does not permit going backwards
+                    if (routes.size() >= MAX_NUM_ROUTES) {
+                        LOG_ERROR("routes.size() >= MAX_NUM_ROUTES");
+                        break;
+                    }
+                    Route *newRoute = getNew(routes);
+                    *newRoute = *currentRoute;
+                    newRoute->append(c);
 
-                    if (c) {
-                        if (c->junction != _lastJunc) {    // does not permit going through the last junction again (going backwards)
-                            if (routes.size() >= MAX_NUM_ROUTES) {
-                                LOG_DEBUG("E: routes.size() >= MAX_NUM_ROUTES");
-                                break;
-                            }
-                            Route *newRoute = getNew(routes);
-                            *newRoute = *currentRoute;
-                            newRoute->append(c);
-
-                            // if we reached the destination through the desired last junction, the shortest route has been found
-                            if (newRoute->lastSeg == dest && (!lastJuncBeforeDest || c->junction == lastJuncBeforeDest)) {
-                                shortestRoute = newRoute;
-                                break;
-                            }
-                        }
+                    // if we reached the destination, the shortest route has been found
+                    if (newRoute->lastSeg == dest) {
+                        shortestRoute = newRoute;
+                        break;
                     }
                 }
             }
@@ -172,17 +169,17 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastJuncBefore
     return !!shortestRoute;
 }
 
-vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> getFloatingSegments() {
+static vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> getFloatingSegments() {
     vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> floatingSegments;
     for (Segment& seg : segments) {
-        if (seg.isFloating()) {
+        if (seg.isActive && seg.isFloating()) {
             floatingSegments.append(&seg);
         }
     }
     return floatingSegments;
 }
 
-bool createNewRoute() {
+static bool getRoute() {
     bool success = false;
     plannedRoute.reset();
 
@@ -195,24 +192,25 @@ bool createNewRoute() {
                 plannedRoute = route;
             }
         }
-    } else if (laneChangeSeg && lastJuncBeforeLaneChange){ // no floating segments in the graph, new destination will be the lane change segment
-        success = getRoute(plannedRoute, laneChangeSeg, lastJuncBeforeLaneChange);
+    } else if (laneChangeSeg){ // no floating segments in the graph, new destination will be the lane change segment
+        success = getRoute(plannedRoute, laneChangeSeg);
     }
 
     return success;
 }
 
-Segment* createNewSegment() {
+static Segment* createNewSegment() {
     Segment *seg = getNew(segments);
     if (seg) {
-        seg->name = 'A' + static_cast<char>(segments.size() - 1);
-        seg->length = meter_t(0);
+        seg->name      = 'A' + static_cast<char>(segments.size() - 1);
+        seg->length    = meter_t(0);
         seg->isDeadEnd = false;
+        seg->isActive  = true;
     }
     return seg;
 }
 
-void addSegments(Junction * const junc, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+static void addSegments(Junction * const junc, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
     junc->addSegment(currentSeg, bwdOri, inSegmentDir);
 
@@ -254,14 +252,24 @@ void addSegments(Junction * const junc, radian_t fwdOri, radian_t bwdOri, uint8_
     }
 }
 
-void addConnection(Connection * const conn, Segment * const seg1, Segment * const seg2) {
+static void addConnection(Connection * const conn, Segment * const seg1, Segment * const seg2) {
     conn->node1 = seg1;
     conn->node2 = seg2;
     seg1->edges.append(conn);
     seg2->edges.append(conn);
 }
 
-Junction* onNewJunction(const point2m& pos, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+static vec<Connection*, 2> getConnections(Segment *seg1, Segment *seg2) {
+    vec<Connection*, 2> connections;
+    for (Connection *c : seg1->edges) {
+        if (c->getOtherSegment(seg1) == seg2) {
+            connections.append(c);
+        }
+    }
+    return connections;
+}
+
+static Junction* onNewJunction(const point2m& pos, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
     LOG_DEBUG("New junction | currentSeg: %c", currentSeg->name);
     Junction * const junc = getNew(junctions);
     if (junc) {
@@ -269,11 +277,11 @@ Junction* onNewJunction(const point2m& pos, radian_t fwdOri, radian_t bwdOri, ui
         junc->pos = pos;
         addSegments(junc, fwdOri, bwdOri, numInSegments, inSegmentDir, numOutSegments);
 
-        Junction::segment_map_type::iterator inSegments  = junc->getSideSegments(bwdOri);
-        Junction::segment_map_type::iterator outSegments = junc->getSideSegments(fwdOri);
+        Junction::segment_map::iterator inSegments  = junc->getSideSegments(bwdOri);
+        Junction::segment_map::iterator outSegments = junc->getSideSegments(fwdOri);
 
-        for (Junction::side_segment_map_type::iterator in = inSegments->second.begin(); in != inSegments->second.end(); ++in) {
-            for (Junction::side_segment_map_type::iterator out = outSegments->second.begin(); out != outSegments->second.end(); ++out) {
+        for (Junction::side_segment_map::iterator in = inSegments->second.begin(); in != inSegments->second.end(); ++in) {
+            for (Junction::side_segment_map::iterator out = outSegments->second.begin(); out != outSegments->second.end(); ++out) {
                 Connection *conn = getNew(connections);
                 conn->junction = junc;
                 addConnection(conn, in->second, out->second);
@@ -289,7 +297,7 @@ Junction* onNewJunction(const point2m& pos, radian_t fwdOri, radian_t bwdOri, ui
     return junc;
 }
 
-Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
+static Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
     Status result = Status::INVALID_DATA;
 
     if (oldSeg != newSeg) {
@@ -305,6 +313,7 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
                     c->junction->updateSegment(oldSeg, newSeg);
                 }
 
+                oldSeg->isActive = false;
                 result = Status::OK;
                 LOG_DEBUG("Merged: %c -> %c", oldSeg->name, newSeg->name);
             } else {
@@ -318,7 +327,7 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
     return result;
 }
 
-Segment* onExistingJunction(Junction *junc, const point2m& pos, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+static Segment* onExistingJunction(Junction *junc, const point2m& pos, radian_t fwdOri, radian_t bwdOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
     Segment * const junctionSeg = junc->getSegment(bwdOri, inSegmentDir);
     Segment *nextSeg = nullptr;
@@ -334,7 +343,7 @@ Segment* onExistingJunction(Junction *junc, const point2m& pos, radian_t fwdOri,
     if (junctionSeg) {
         LOG_DEBUG("junctionSeg: %c", junctionSeg->name);
 
-        if (!isOk(mergeSegments(currentSeg, junctionSeg))) {
+        if (currentSeg != junctionSeg && !isOk(mergeSegments(currentSeg, junctionSeg))) {
             plannedRoute.reset();
         }
 
@@ -344,7 +353,7 @@ Segment* onExistingJunction(Junction *junc, const point2m& pos, radian_t fwdOri,
         // The destination of the route will be the closest floating segment.
         // If there are no floating segments, it means the labyrinth has been completed.
         // In this case the destination will be the lane change segment.
-        if (plannedRoute.connections.size() || createNewRoute()) {
+        if (plannedRoute.connections.size() || getRoute()) {
             if (plannedRoute.lastSeg) {
                 LOG_DEBUG("Route dest: %c", plannedRoute.lastSeg->name);
                 nextSeg = plannedRoute.nextSegment();
@@ -366,13 +375,13 @@ Segment* onExistingJunction(Junction *junc, const point2m& pos, radian_t fwdOri,
     return nextSeg;
 }
 
-Direction onJunctionDetected(const point2m& pos, radian_t angle, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+static Direction onJunctionDetected(const point2m& pos, radian_t angle, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
     Junction *junc = findExistingJunction(pos);
     Segment *nextSeg = nullptr;
     Direction steeringDir = Direction::CENTER; // Type of the junction (STRAIGHT or CURVE) where car should continue its route
 
-    const radian_t fwdOri = angle;
+    const radian_t fwdOri = micro::normalize360(angle);
     const radian_t bwdOri = micro::normalize360(angle + PI);
 
     if (!junc) { // new junction found - creates new segments and adds connections
@@ -382,7 +391,7 @@ Direction onJunctionDetected(const point2m& pos, radian_t angle, uint8_t numInSe
     }
 
     if (!nextSeg) {
-        Junction::segment_map_type::iterator outSegments = junc->getSideSegments(fwdOri);
+        Junction::segment_map::iterator outSegments = junc->getSideSegments(fwdOri);
         Segment **pNextSeg = outSegments->second.get(Direction::RIGHT);
         if (!pNextSeg) {
             pNextSeg = outSegments->second.get(Direction::CENTER);
@@ -395,9 +404,23 @@ Direction onJunctionDetected(const point2m& pos, radian_t angle, uint8_t numInSe
 
     if (junc && nextSeg) {
         LOG_DEBUG("Next: %c", nextSeg->name);
-        steeringDir = junc->getSegmentInfo(nextSeg).second;
-        currentSeg = nextSeg;
-        lastJunc = junc;
+
+        const vec<Connection*, 2> connections = getConnections(currentSeg, nextSeg);
+        if (connections.size()) {
+
+            const Junction::segment_info info = junc->getSegmentInfo(fwdOri, nextSeg);
+            if (info.size()) {
+                lastManeuver.connection = connections[0];
+                lastManeuver.orientation = info[0].first;
+                lastManeuver.direction = steeringDir = info[0].second;
+                currentSeg = nextSeg;
+            } else {
+                LOG_ERROR("No info found for segment '%c' in junction %d", nextSeg->name, junc->idx);
+            }
+
+        } else {
+            LOG_ERROR("No connection found for segments '%c' and '%c'", currentSeg->name, nextSeg->name);
+        }
 
     } else {
         LOG_ERROR("No junction or next segment found");
@@ -406,20 +429,125 @@ Direction onJunctionDetected(const point2m& pos, radian_t angle, uint8_t numInSe
     return steeringDir;
 }
 
-void waitStartSignal(void) {
-    HAL_UART_Receive_DMA(uart_RadioModule, startCounterBuffer, 1);
-
-    while(globals::startSignalEnabled && startCounter != '0') {
-        LOG_DEBUG("Seconds until start: %c", startCounter);
-        vTaskDelay(50);
-    }
-
-    HAL_UART_DMAStop(uart_RadioModule);
-}
-
 enum {
     ProgSubCntr_WaitStartSignal   = 0,
     ProgSubCntr_NavigateLabyrinth = 1
+};
+
+struct TestCase {
+    Pose pose;
+    LinePattern pattern;
+};
+
+static const TestCase testCase1[] = {
+    { { { meter_t(0), meter_t(0) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 1
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 2
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_3,  Sign::NEGATIVE, Direction::RIGHT  } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 3
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 1
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 4
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // LANE_CHANGE
+    { { { meter_t(-2), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::LANE_CHANGE, Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(-1), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 4
+    { { { meter_t(0), meter_t(-2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(-2) }, PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(-2) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 1
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 2
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_3,  Sign::NEGATIVE, Direction::RIGHT  } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 3
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 1
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 4
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // LANE_CHANGE
+    { { { meter_t(-2), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::LANE_CHANGE, Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(-1), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 4
+    { { { meter_t(0), meter_t(-2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(-2) }, PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(-2) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 1
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(2) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 3
+    { { { meter_t(0), meter_t(5) }, PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(5) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(5) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 2
+    { { { meter_t(3), meter_t(4) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::RIGHT  } },
+    { { { meter_t(3), meter_t(4) }, -PI_2 }, { LinePattern::Type::JUNCTION_3,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(3), meter_t(4) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 2
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_3,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::LEFT   } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 3
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(5) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 1
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // 4
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(0), meter_t(-2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+
+    // LANE_CHANGE
+    { { { meter_t(-2), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::LANE_CHANGE, Sign::POSITIVE, Direction::RIGHT  } },
+    { { { meter_t(-1), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::NONE,        Sign::NEUTRAL,  Direction::CENTER } }
 };
 
 } // namespace
@@ -435,21 +563,47 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     uint8_t numInSegments;
     Direction inSegmentDir;
     point2m inJunctionPos;
+    bool startSignalRecvStarted = false;
+    char prevStartCounter = startCounter;
+
+    const TestCase *testCase = testCase1;
+    const uint32_t numTestCasePoints = ARRAY_SIZE(testCase1);
+    uint32_t testCasePointIdx = 0;
+
+    currentSeg = createNewSegment();
+    endTime = getTime() + second_t(20);
 
     while (true) {
         switch (globals::programState.activeModule()) {
             case ProgramState::ActiveModule::Labyrinth:
                 switch (globals::programState.subCntr()) {
                 case ProgSubCntr_WaitStartSignal:
-                    waitStartSignal();
-                    currentSeg = createNewSegment();
-                    endTime = getTime() + second_t(20);
-                    globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgSubCntr_NavigateLabyrinth);
+                    if (!startSignalRecvStarted) {
+                        HAL_UART_Receive_DMA(uart_RadioModule, startCounterBuffer, 1);
+                        startSignalRecvStarted = true;
+                    }
+
+                    if (!globals::startSignalEnabled || '0' == startCounter) {
+                        HAL_UART_DMAStop(uart_RadioModule);
+                        endTime = getTime() + second_t(20);
+                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgSubCntr_NavigateLabyrinth);
+                        LOG_DEBUG("Started!");
+                    } else if (startCounter != prevStartCounter) {
+                        LOG_DEBUG("Seconds until start: %c", startCounter);
+                        prevStartCounter = startCounter;
+                    }
+
                     break;
 
                 case ProgSubCntr_NavigateLabyrinth:
                     xQueuePeek(detectedLinesQueue, &detectedLines, 0);
                     LineCalculator::updateMainLine(detectedLines.lines, mainLine);
+
+                    if (testCasePointIdx < numTestCasePoints) {
+                        globals::car.pose = testCase[testCasePointIdx].pose;
+                        detectedLines.pattern = testCase[testCasePointIdx].pattern;
+                        testCasePointIdx++;
+                    }
 
                     if (detectedLines.pattern != prevDetectedLines.pattern &&
                         (LinePattern::JUNCTION_1 == detectedLines.pattern.type ||
@@ -459,7 +613,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                         const uint8_t numSegments = LinePattern::JUNCTION_1 == detectedLines.pattern.type ? 1 :
                             LinePattern::JUNCTION_2 == detectedLines.pattern.type ? 2 : 3;
 
-                        if (Sign::POSITIVE == detectedLines.pattern.dir) {
+                        if (Sign::NEGATIVE == detectedLines.pattern.dir) {
                             numInSegments = numSegments;
                             inJunctionPos = globals::car.pose.pos;
 
@@ -472,7 +626,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                             // So the segment direction is the same as the line pattern direction (in this example, RIGHT).
                             inSegmentDir = detectedLines.pattern.side;
 
-                        } else if (Sign::NEGATIVE == detectedLines.pattern.dir) {
+                        } else if (Sign::POSITIVE == detectedLines.pattern.dir) {
                             const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
                             const Direction steeringDir = onJunctionDetected(junctionPos, globals::car.pose.angle, numInSegments, inSegmentDir, numSegments);
 

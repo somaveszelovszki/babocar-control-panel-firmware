@@ -1,14 +1,11 @@
 #pragma once
 
-#include "Graph.hpp"
-
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
-#include <micro/utils/CarProps.hpp>
-#include <micro/utils/algorithm.hpp>
-#include <micro/container/sorted_map.hpp>
+#include <micro/container/map.hpp>
 
-#include "cfg_track.hpp"
+#include <Graph.hpp>
+#include <cfg_track.hpp>
 
 #include <algorithm>
 
@@ -30,14 +27,17 @@ struct Connection : public Edge<Segment> {
 
     Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
+    Segment* getOtherSegment(const Segment *seg) const;
+
     Junction *junction; // The junction.
 };
 
 /* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    typedef micro::unsorted_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map_type;
-    typedef micro::unsorted_map<radian_t, side_segment_map_type, 2> segment_map_type;
+    typedef micro::unordered_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
+    typedef micro::unordered_map<radian_t, side_segment_map, 2> segment_map;
+    typedef micro::vec<std::pair<radian_t, Direction>, 2> segment_info;
 
     Junction() : idx(-1) {}
 
@@ -49,20 +49,22 @@ struct Junction {
 
     bool isConnected(Segment *seg) const;
 
-    std::pair<radian_t, Direction> getSegmentInfo(const Segment *seg);
+    segment_info getSegmentInfo(radian_t orientation, const Segment *seg);
+
+    segment_info getSegmentInfo(const Segment *seg);
 
     int32_t idx;
     point2<meter_t> pos; // Junction position - relative to car start position.
-    segment_map_type segments;
+    segment_map segments;
 
-    segment_map_type::const_iterator getSideSegments(radian_t orientation) const {
-        return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const segment_map_type::entry_type& entry) {
+    segment_map::const_iterator getSideSegments(radian_t orientation) const {
+        return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const segment_map::entry_type& entry) {
             return micro::eqWithOverflow360(orientation, entry.first, PI_4);
         });
     }
 
-    segment_map_type::iterator getSideSegments(radian_t orientation) {
-        return const_cast<segment_map_type::iterator>(const_cast<const Junction*>(this)->getSideSegments(orientation));
+    segment_map::iterator getSideSegments(radian_t orientation) {
+        return const_cast<segment_map::iterator>(const_cast<const Junction*>(this)->getSideSegments(orientation));
     }
 };
 
@@ -72,15 +74,19 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
     Segment()
         : name('_')
         , length(0)
-        , isDeadEnd(false) {}
+        , isDeadEnd(false)
+        , isActive(false) {}
 
     bool isFloating() const;
+
+    bool isLoop() const;
 
     void reset();
 
     char name;
     meter_t length;  // The segment length.
     bool isDeadEnd;
+    bool isActive;
 };
 
 } // namespace uns

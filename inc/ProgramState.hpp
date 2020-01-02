@@ -8,8 +8,7 @@ class ProgramState {
 public:
     enum class ActiveModule {
         Labyrinth = 0,
-        RaceTrack = 1,
-        INVALID   = 2
+        RaceTrack = 1
     };
 
     ProgramState(ActiveModule module, uint8_t subCntr)

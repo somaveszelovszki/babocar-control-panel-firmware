@@ -4,6 +4,10 @@
 #include <micro/utils/point2.hpp>
 #include <micro/container/infinite_buffer.hpp>
 
+#include <ProgramState.hpp>
+
+#include <functional>
+
 namespace micro {
 
 /* @brief Stores data of a detected line pattern.
@@ -12,7 +16,7 @@ struct LinePattern {
 public:
     /* @brief Defines line pattern type.
      **/
-    enum Type {
+    enum Type : uint8_t {
         NONE        = 0, ///< No lines detected
         SINGLE_LINE = 1, ///< 1 solid 1.9mm wide line.
         ACCELERATE  = 2, ///< 1 solid line in the middle, 2 dashed lines on both sides
@@ -35,7 +39,7 @@ public:
         , side(Direction::CENTER)
         , startDist(0) {}
 
-    LinePattern(Type type, Sign dir, Direction side, meter_t startDist)
+    LinePattern(Type type, Sign dir, Direction side, meter_t startDist = meter_t(0))
         : type(type)
         , dir(dir)
         , side(side)
@@ -52,42 +56,49 @@ public:
 
 class LinePatternCalculator {
 public:
-    LinePatternCalculator(void)
-        : isPatternChangeCheckActive(false) {
-        this->prevPatterns.push_back({ LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) });
-    }
-
-    void update(const LinePositions& front, const LinePositions& rear, meter_t currentDist);
-
-    const LinePattern& pattern() const {
-        return const_cast<LinePatternCalculator*>(this)->currentPattern();
-    }
-
-private:
     struct StampedLines {
         LinePositions front;
         LinePositions rear;
         meter_t distance;
     };
 
+    typedef infinite_buffer<StampedLines, 500> measurement_buffer_t;
+    typedef infinite_buffer<LinePattern, 200> pattern_buffer_t;
+    typedef vec<LinePattern, 10> linePatterns_t;
+
+    struct LinePatternInfo {
+        meter_t validityLength;
+        std::function<bool(const measurement_buffer_t&, const LinePattern&, const LinePositions&, const LinePositions&, meter_t)> isValid;
+        std::function<linePatterns_t(const LinePattern&, const ProgramState)> validNextPatterns;
+    };
+
+    LinePatternCalculator(void)
+        : isPatternChangeCheckActive(false)
+        , currentPatternInfo(nullptr) {
+        this->prevPatterns.push_back({ LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) });
+    }
+
+    void update(const ProgramState programState, const LinePositions& front, const LinePositions& rear, meter_t currentDist);
+
+    const LinePattern& pattern() const {
+        return const_cast<LinePatternCalculator*>(this)->currentPattern();
+    }
+
+    static meter_t distanceSinceNumLines(const measurement_buffer_t& prevMeas, uint8_t numLines, meter_t currentDist);
+
+private:
     LinePattern& currentPattern() {
         return this->prevPatterns.peek_back(0);
     }
 
     void changePattern(const LinePattern& newPattern);
 
-    meter_t distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const;
-
-    bool isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t currentDist);
-
-    void startPatternChangeCheck(const std::initializer_list<LinePattern>& possiblePatterns);
-
-    infinite_buffer<StampedLines, 500> prevMeas;
-    infinite_buffer<LinePattern, 200> prevPatterns;
+    measurement_buffer_t prevMeas;
+    pattern_buffer_t prevPatterns;
 
     bool isPatternChangeCheckActive;
-    static constexpr uint32_t MAX_NUM_POSSIBLE_PATTERNS = 10;
-    vec<LinePattern, MAX_NUM_POSSIBLE_PATTERNS> possiblePatterns;
+    linePatterns_t possiblePatterns;
+    const LinePatternInfo *currentPatternInfo;
 };
 
 } // namespace micro

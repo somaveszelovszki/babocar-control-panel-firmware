@@ -104,7 +104,7 @@ extern "C" void runLineDetectTask(const void *argument) {
 //                    static_cast<degree_t>(mainLine.angle).get(),
 //                    static_cast<deg_per_sec_t>(mainLine.angular_velocity).get());
 
-            linePatternCalc.update(frontLinePositions, rearLinePositions, globals::car.distance);
+            linePatternCalc.update(globals::programState, frontLinePositions, rearLinePositions, globals::car.distance);
             const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
 

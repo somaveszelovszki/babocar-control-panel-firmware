@@ -1,43 +1,205 @@
 #include <LinePattern.hpp>
-#include <globals.hpp>
 #include <micro/utils/log.hpp>
+#include <micro/container/map.hpp>
 
 namespace micro {
 
-static constexpr meter_t NONE_VALIDITY_LENGTH        = centimeter_t(10);
+static const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
+    { // NONE
+        centimeter_t(10),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const LinePositions& front, const LinePositions&, meter_t) {
+            return 0 == front.size();
+        },
+        [] (const LinePattern&, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
 
-static constexpr meter_t SINGLE_LINE_VALIDITY_LENGTH = centimeter_t(10);
+            } else if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.append({ LinePattern::ACCELERATE,  Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.append({ LinePattern::BRAKE,       Sign::NEUTRAL, Direction::CENTER });
+            }
+            return validPatterns;
+        }
+    },
+    { // SINGLE_LINE
+        centimeter_t(10),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const LinePositions& front, const LinePositions&, meter_t) {
+            return 1 == front.size();
+        },
+        [] (const LinePattern&, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                validPatterns.append({ LinePattern::NONE,       Sign::NEUTRAL,  Direction::CENTER });
+                validPatterns.append({ LinePattern::JUNCTION_1, Sign::NEGATIVE, Direction::CENTER });
+                validPatterns.append({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT   });
+                validPatterns.append({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT  });
+                validPatterns.append({ LinePattern::JUNCTION_3, Sign::NEGATIVE, Direction::LEFT   });
+                validPatterns.append({ LinePattern::JUNCTION_3, Sign::NEGATIVE, Direction::CENTER });
+                validPatterns.append({ LinePattern::JUNCTION_3, Sign::NEGATIVE, Direction::RIGHT  });
 
-static constexpr meter_t ACCELERATE_SECTION_LENGTH   = centimeter_t(8);
-static constexpr meter_t ACCELERATE_SPACE_LENGTH     = centimeter_t(8);
-static constexpr meter_t ACCELERATE_VALIDITY_LENGTH  = centimeter_t(16);
-static constexpr meter_t ACCELERATE_PATTERN_LENGTH   = centimeter_t(72);
+            } else if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+                validPatterns.append({ LinePattern::NONE,       Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.append({ LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.append({ LinePattern::BRAKE,      Sign::NEUTRAL, Direction::CENTER });
+            }
+            return validPatterns;
+        }
+    },
+    { // ACCELERATE
+        centimeter_t(16),
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const LinePositions& front, const LinePositions&, meter_t currentDist) {
 
-static constexpr meter_t BRAKE_VALIDITY_LENGTH       = centimeter_t(20);
-static constexpr meter_t BRAKE_PATTERN_LENGTH        = centimeter_t(300);
+            static constexpr meter_t SECTION_LENGTH = centimeter_t(8);
+            static constexpr meter_t SPACE_LENGTH   = centimeter_t(8);
 
-static constexpr meter_t LANE_CHANGE_VALIDITY_LENGTH = centimeter_t(20);
-static constexpr meter_t JUNCTION_VALIDITY_LENGTH    = centimeter_t(20);
-static constexpr meter_t DEAD_END_VALIDITY_LENGTH    = centimeter_t(20);
-
-static const meter_t VALIDITY_LENGTHS[] = {
-    NONE_VALIDITY_LENGTH,
-    SINGLE_LINE_VALIDITY_LENGTH,
-    ACCELERATE_VALIDITY_LENGTH,
-    BRAKE_VALIDITY_LENGTH,
-    LANE_CHANGE_VALIDITY_LENGTH,
-    JUNCTION_VALIDITY_LENGTH,
-    DEAD_END_VALIDITY_LENGTH
+            bool valid = false;
+            switch(front.size()) {
+            case 1:
+                valid = currentDist - pattern.startDist >= SECTION_LENGTH - centimeter_t(3) &&
+                    LinePatternCalculator::distanceSinceNumLines(prevMeas, 1, currentDist) < SPACE_LENGTH + centimeter_t(3);
+                break;
+            case 2:
+                valid = true; // entering or leaving a triple-line (don't care)
+                break;
+            case 3:
+                valid = LinePatternCalculator::distanceSinceNumLines(prevMeas, 3, currentDist) < SECTION_LENGTH + centimeter_t(3);
+                break;
+            }
+            return valid;
+        },
+        [] (const LinePattern&, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+            }
+            return validPatterns;
+        }
+    },
+    { // BRAKE
+        centimeter_t(20),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const LinePositions& front, const LinePositions&, meter_t) {
+            return 3 == front.size();
+        },
+        [] (const LinePattern&, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+            }
+            return validPatterns;
+        }
+    },
+    { // LANE_CHANGE
+        centimeter_t(16),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const LinePositions& front, const LinePositions&, meter_t) {
+            // TODO
+            return false;
+        },
+        [] (const LinePattern&, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                validPatterns.append({ LinePattern::NONE,        Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+            }
+            return validPatterns;
+        }
+    },
+    { // JUNCTION_1
+        centimeter_t(20),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t) {
+            // TODO
+            return false;
+        },
+        [] (const LinePattern& pattern, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                if (Sign::NEGATIVE == pattern.dir) {
+                    validPatterns.append({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT   });
+                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::LEFT   });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::RIGHT  });
+                } else if (Sign::POSITIVE == pattern.dir) {
+                    validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                }
+            }
+            return validPatterns;
+        }
+    },
+    { // JUNCTION_2
+        centimeter_t(20),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t) {
+            // TODO
+            return false;
+        },
+        [] (const LinePattern& pattern, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                if (Sign::NEGATIVE == pattern.dir) {
+                    validPatterns.append({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT   });
+                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::LEFT   });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::RIGHT  });
+                } else if (Sign::POSITIVE == pattern.dir) {
+                    validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                }
+            }
+            return validPatterns;
+        }
+    },
+    { // JUNCTION_3
+        centimeter_t(20),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t) {
+            // TODO
+            return false;
+        },
+        [] (const LinePattern& pattern, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                if (Sign::NEGATIVE == pattern.dir) {
+                    validPatterns.append({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT   });
+                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::LEFT   });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::RIGHT  });
+                } else if (Sign::POSITIVE == pattern.dir) {
+                    validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                }
+            }
+            return validPatterns;
+        }
+    },
+    { // DEAD_END
+        centimeter_t(3),
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const LinePositions& front, const LinePositions& rear, meter_t) {
+            return 0 == front.size() && 1 == rear.size() && isBtw(rear[0], centimeter_t(2), centimeter_t(-2));
+        },
+        [] (const LinePattern& pattern, const ProgramState programState) {
+            LinePatternCalculator::linePatterns_t validPatterns;
+            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+                validPatterns.append({ LinePattern::NONE,        Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+            }
+            return validPatterns;
+        }
+    }
 };
 
-void LinePatternCalculator::update(const LinePositions& front, const LinePositions& rear, meter_t currentDist) {
+void LinePatternCalculator::update(const ProgramState programState, const LinePositions& front, const LinePositions& rear, meter_t currentDist) {
     this->prevMeas.push_back({ front, rear, currentDist });
 
-    if (this->isPatternChangeCheckActive) {
-        for (vec<LinePattern, MAX_NUM_POSSIBLE_PATTERNS>::iterator it = this->possiblePatterns.begin(); it != this->possiblePatterns.end();) {
+    LinePattern& current = this->currentPattern();
 
-            if (this->isPatternValid(*it, front, rear, currentDist)) {
-                if (abs(currentDist - it->startDist) >= VALIDITY_LENGTHS[static_cast<uint8_t>(it->type)]) {
+    if (this->isPatternChangeCheckActive) {
+        for (linePatterns_t::iterator it = possiblePatterns.begin(); it != possiblePatterns.end();) {
+
+            if (this->currentPatternInfo->isValid(this->prevMeas, *it, front, rear, currentDist)) {
+                if (abs(currentDist - it->startDist) >= this->currentPatternInfo->validityLength) {
                     this->changePattern(*it);
                     break;
                 }
@@ -52,115 +214,10 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
             }
         }
     } else {
-        LinePattern& current = this->currentPattern();
 
-        switch(current.type) {
-
-        case LinePattern::NONE:
-        {
-            switch(globals::programState.activeModule()) {
-
-            case ProgramState::ActiveModule::Labyrinth:
-            {
-                break;
-            }
-
-            case ProgramState::ActiveModule::RaceTrack:
-            {
-                if (0 != front.size()) {
-                    this->startPatternChangeCheck({
-                        { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist },
-                        { LinePattern::ACCELERATE, Sign::POSITIVE, Direction::CENTER, currentDist },
-                        { LinePattern::BRAKE, Sign::POSITIVE, Direction::CENTER, currentDist }
-                    });
-                }
-                break;
-            }
-
-            default:
-                break;
-            }
-
-            break;
-        }
-
-        case LinePattern::SINGLE_LINE:
-        {
-            switch(globals::programState.activeModule()) {
-
-            case ProgramState::ActiveModule::Labyrinth:
-            {
-                break;
-            }
-
-            case ProgramState::ActiveModule::RaceTrack:
-            {
-                if (!this->isPatternValid(current, front, rear, currentDist)) {
-                    this->startPatternChangeCheck({
-                        { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, currentDist },
-                        { LinePattern::ACCELERATE, Sign::POSITIVE, Direction::CENTER, currentDist },
-                        { LinePattern::BRAKE, Sign::POSITIVE, Direction::CENTER, currentDist }
-                    });
-                }
-                break;
-            }
-
-            default:
-                break;
-            }
-
-            break;
-        }
-
-        case LinePattern::ACCELERATE:
-        {
-            if (!this->isPatternValid(current, front, rear, currentDist)) {
-                this->startPatternChangeCheck({
-                    { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, currentDist },
-                    { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
-                });
-            }
-            break;
-        }
-
-        case LinePattern::BRAKE:
-        {
-            if (!this->isPatternValid(current, front, rear, currentDist)) {
-                this->startPatternChangeCheck({
-                    { LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, currentDist },
-                    { LinePattern::SINGLE_LINE, Sign::POSITIVE, Direction::CENTER, currentDist }
-                });
-            }
-            break;
-        }
-
-        case LinePattern::LANE_CHANGE:
-        {
-            break;
-        }
-
-        case LinePattern::JUNCTION_1:
-        {
-            break;
-        }
-
-        case LinePattern::JUNCTION_2:
-        {
-            break;
-        }
-
-        case LinePattern::JUNCTION_3:
-        {
-            break;
-        }
-
-        case LinePattern::DEAD_END:
-        {
-            break;
-        }
-
-        default:
-            break;
+        if (!currentPatternInfo->isValid(this->prevMeas, current, front, rear, currentDist)) {
+            this->isPatternChangeCheckActive = true;
+            this->possiblePatterns = this->currentPatternInfo->validNextPatterns(current, programState);
         }
     }
 }
@@ -168,18 +225,18 @@ void LinePatternCalculator::update(const LinePositions& front, const LinePositio
 void LinePatternCalculator::changePattern(const LinePattern& newPattern) {
     this->prevPatterns.push_back(newPattern);
     this->isPatternChangeCheckActive = false;
-    this->possiblePatterns.clear();
+    this->currentPatternInfo = &PATTERN_INFO[static_cast<uint8_t>(newPattern.type)];
 
     LOG_DEBUG("Pattern changed from %d to %d",
             static_cast<int32_t>(this->prevPatterns.peek_back(1).type),
             static_cast<int32_t>(this->currentPattern().type));
 }
 
-meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t currentDist) const {
+meter_t LinePatternCalculator::distanceSinceNumLines(const measurement_buffer_t& prevMeas, uint8_t numLines, meter_t currentDist) {
     meter_t dist = meter_t::zero();
 
-    for (uint32_t i = 0; i < this->prevMeas.capacity(); ++i) {
-        const StampedLines& l = this->prevMeas.peek_back(i);
+    for (uint32_t i = 0; i < prevMeas.capacity(); ++i) {
+        const StampedLines& l = prevMeas.peek_back(i);
         if (l.front.size() != numLines) {
             break;
         }
@@ -187,70 +244,6 @@ meter_t LinePatternCalculator::distanceSinceNumLinesIs(uint8_t numLines, meter_t
     }
 
     return dist;
-}
-
-bool LinePatternCalculator::isPatternValid(const LinePattern& pattern, const LinePositions& front, const LinePositions& rear, meter_t currentDist) {
-
-    (void)rear;
-
-    bool valid = false;
-
-    switch (pattern.type) {
-
-    case LinePattern::NONE:
-        valid = 0 == front.size();
-        break;
-
-    case LinePattern::SINGLE_LINE:
-        valid = 1 == front.size();
-        break;
-
-    case LinePattern::ACCELERATE:
-        switch(front.size()) {
-        case 1:
-            valid = currentDist - pattern.startDist >= ACCELERATE_SECTION_LENGTH - centimeter_t(3) &&
-                this->distanceSinceNumLinesIs(1, currentDist) < ACCELERATE_SPACE_LENGTH + centimeter_t(3);
-            break;
-        case 2:
-            valid = true; // entering or leaving a triple-line (don't care)
-            break;
-        case 3:
-            valid = this->distanceSinceNumLinesIs(3, currentDist) < ACCELERATE_SECTION_LENGTH + centimeter_t(3);
-            break;
-        }
-        break;
-
-    case LinePattern::BRAKE:
-        valid = 3 == front.size();
-        break;
-
-    case LinePattern::LANE_CHANGE:
-        valid = false;
-        break;
-
-    case LinePattern::JUNCTION_2:
-        valid = false;
-        break;
-
-    case LinePattern::JUNCTION_3:
-        valid = false;
-        break;
-
-    case LinePattern::DEAD_END:
-        valid = false;
-        break;
-
-    default:
-        valid = false;
-        break;
-    }
-
-    return valid;
-}
-
-void LinePatternCalculator::startPatternChangeCheck(const std::initializer_list<LinePattern>& possiblePatterns) {
-    this->possiblePatterns = possiblePatterns;
-    this->isPatternChangeCheckActive = true;
 }
 
 } // namespace micro

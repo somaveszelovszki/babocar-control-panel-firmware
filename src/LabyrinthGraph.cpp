@@ -18,14 +18,18 @@ Status Connection::updateSegment(Segment *oldSeg, Segment *newSeg) {
     return result;
 }
 
+Segment* Connection::getOtherSegment(const Segment *seg) const {
+    return this->node1 == seg ? this->node2 : this->node2 == seg ? this->node1 : nullptr;
+}
+
 Status Junction::addSegment(Segment *seg, radian_t orientation, Direction dir) {
     Status result = Status::ERROR;
 
     if (seg) {
-        segment_map_type::iterator sideSegments = this->getSideSegments(orientation);
+        segment_map::iterator sideSegments = this->getSideSegments(orientation);
 
         if (sideSegments == this->segments.end()) {
-            this->segments.put(orientation, side_segment_map_type());
+            this->segments.put(orientation, side_segment_map());
             sideSegments = this->getSideSegments(orientation);
         }
 
@@ -47,7 +51,7 @@ Status Junction::addSegment(Segment *seg, radian_t orientation, Direction dir) {
 
 Segment* Junction::getSegment(radian_t orientation, Direction dir) {
     Segment *result = nullptr;
-    segment_map_type::const_iterator sideSegments = this->getSideSegments(orientation);
+    segment_map::const_iterator sideSegments = this->getSideSegments(orientation);
 
     if (sideSegments != this->segments.end()) {
         Segment * const * seg = sideSegments->second.get(dir);
@@ -72,8 +76,8 @@ Status Junction::updateSegment(Segment *oldSeg, Segment *newSeg) {
 
     Status result = Status::INVALID_ID;
     if (oldSeg && newSeg) {
-        for (segment_map_type::iterator itSide = this->segments.begin(); itSide != this-> segments.end(); ++itSide) {
-            for (side_segment_map_type::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
+        for (segment_map::iterator itSide = this->segments.begin(); itSide != this-> segments.end(); ++itSide) {
+            for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
                 if (itSeg->second == oldSeg) {
                     itSeg->second = newSeg;
                     result = Status::OK;
@@ -90,29 +94,36 @@ Status Junction::updateSegment(Segment *oldSeg, Segment *newSeg) {
 }
 
 bool Junction::isConnected(Segment *seg) const {
-    return !!seg ? std::find_if(this->segments.begin(), this->segments.end(), [seg] (const segment_map_type::entry_type& s1) {
-        return std::find_if(s1.second.begin(), s1.second.end(), [seg] (const side_segment_map_type::entry_type& s2) {
+    return !!seg ? std::find_if(this->segments.begin(), this->segments.end(), [seg] (const segment_map::entry_type& s1) {
+        return std::find_if(s1.second.begin(), s1.second.end(), [seg] (const side_segment_map::entry_type& s2) {
             return s2.second == seg;
         }) != s1.second.end();
     }) != this->segments.end() : false;
 }
 
-std::pair<radian_t, Direction> Junction::getSegmentInfo(const Segment *seg) {
-    bool found = false;
-    std::pair<radian_t, Direction> info = { radian_t(0), Direction::CENTER };
+Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segment *seg) {
+    segment_info info;
 
-    for (segment_map_type::iterator itSide = this->segments.begin(); itSide != this-> segments.end(); ++itSide) {
-        for (side_segment_map_type::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
+    const segment_map::iterator itSide = this->getSideSegments(orientation);
+    if (itSide != this->segments.end()) {
+        for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
             if (itSeg->second == seg) {
-                info.first = itSide->first;
-                info.second = itSeg->first;
-                found = true;
-                break;
+                info.append({ itSide->first, itSeg->first });
             }
         }
+    }
 
-        if (found) {
-            break;
+    return info;
+}
+
+Junction::segment_info Junction::getSegmentInfo(const Segment *seg) {
+    segment_info info;
+
+    for (segment_map::iterator itSide = this->segments.begin(); itSide != this->segments.end(); ++itSide) {
+        for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
+            if (itSeg->second == seg) {
+                info.append({ itSide->first, itSeg->first });
+            }
         }
     }
 
@@ -123,7 +134,8 @@ bool Segment::isFloating() const {
     Junction *j1 = nullptr;
     bool floating = true;
 
-    // iterates through all connections to check if the segment is connected to 2 different junctions (2 different junctions mean the segment is not floating)
+    // iterates through all connections to check if the segment is connected to 2 different junctions,
+    // meaning that the segment is not floating
     for (const Connection *c : this->edges) {
         if (j1 != c->junction) {
             if (j1) {
@@ -133,7 +145,18 @@ bool Segment::isFloating() const {
             j1 = c->junction;
         }
     }
+
+    // if the segment can be approached via the same junction, but in 2 different directions
+    // (e.g. LEFT and RIGHT or from different angles), then the segment is not floating, but it is closing into itself (loop)
+    if (floating) {
+        floating = !this->isLoop();
+    }
+
     return floating;
+}
+
+bool Segment::isLoop() const {
+    return this->edges.size() > 0 && this->edges[0]->junction->getSegmentInfo(this).size() == 2;
 }
 
 void Segment::reset() {

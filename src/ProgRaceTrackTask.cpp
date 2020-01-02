@@ -150,7 +150,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", globals::programState.subCntr());
-                globals::programState.set(ProgramState::ActiveModule::INVALID, 0);
                 break;
             }
 
