@@ -22,6 +22,10 @@ Segment* Connection::getOtherSegment(const Segment *seg) const {
     return this->node1 == seg ? this->node2 : this->node2 == seg ? this->node1 : nullptr;
 }
 
+Maneuver Connection::getManeuver(const Segment *seg) const {
+    return this->node1 == seg ? this->maneuver1 : this->maneuver2;
+}
+
 Status Junction::addSegment(Segment *seg, radian_t orientation, Direction dir) {
     Status result = Status::ERROR;
 

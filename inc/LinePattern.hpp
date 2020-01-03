@@ -45,11 +45,11 @@ public:
         , side(side)
         , startDist(startDist) {}
 
-    bool operator==(const LinePattern& other) {
+    bool operator==(const LinePattern& other) const {
         return this->type == other.type && this->dir == other.dir && this->side == other.side;
     }
 
-    bool operator!=(const LinePattern& other) {
+    bool operator!=(const LinePattern& other) const {
         return !(*this == other);
     }
 };

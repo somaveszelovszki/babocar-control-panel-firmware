@@ -11,6 +11,27 @@
 
 namespace micro {
 
+struct Maneuver {
+    radian_t orientation;
+    Direction direction;
+
+    Maneuver()
+        : orientation(0)
+        , direction(Direction::CENTER) {}
+
+    Maneuver(radian_t orientation, Direction direction)
+        : orientation(orientation)
+        , direction(direction) {}
+
+    bool operator==(const Maneuver& other) const {
+        return eqWithOverflow360(this->orientation, other.orientation, PI_4) && this->direction == other.direction;
+    }
+
+    bool operator!=(const Maneuver& other) const {
+        return !(*this == other);
+    }
+};
+
 struct Junction;
 struct Segment;
 
@@ -21,15 +42,14 @@ struct Connection : public Edge<Segment> {
         : Edge()
         , junction(nullptr) {}
 
-    Connection(Segment *seg1, Segment *seg2, Junction *junction)
-        : Edge(seg1, seg2)
-        , junction(junction) {}
-
     Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
     Segment* getOtherSegment(const Segment *seg) const;
 
+    Maneuver getManeuver(const Segment *seg) const;
+
     Junction *junction; // The junction.
+    Maneuver maneuver1, maneuver2;
 };
 
 /* @brief Labyrinth junction (cross-roads).
