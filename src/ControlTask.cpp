@@ -100,7 +100,7 @@ extern "C" void runControlTask(const void *argument) {
 //                frontSteeringServo.writeWheelAngle(steerAngle);
 //                rearSteeringServo.writeWheelAngle(-steerAngle);
 
-                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos_front - controlData.offset).get());
+                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
                 frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
                 rearSteeringServo.writeWheelAngle(controlData.angle + degree_t(-lineController.getOutput()));
             }

@@ -57,18 +57,17 @@ public:
 class LinePatternCalculator {
 public:
     struct StampedLines {
-        LinePositions front;
-        LinePositions rear;
+        Lines lines;
         meter_t distance;
     };
 
-    typedef infinite_buffer<StampedLines, 500> measurement_buffer_t;
+    typedef infinite_buffer<StampedLines, 1000> measurement_buffer_t;
     typedef infinite_buffer<LinePattern, 200> pattern_buffer_t;
     typedef vec<LinePattern, 10> linePatterns_t;
 
     struct LinePatternInfo {
         meter_t validityLength;
-        std::function<bool(const measurement_buffer_t&, const LinePattern&, const LinePositions&, const LinePositions&, meter_t)> isValid;
+        std::function<bool(const measurement_buffer_t&, const LinePattern&, const Lines&, meter_t)> isValid;
         std::function<linePatterns_t(const LinePattern&, const ProgramState)> validNextPatterns;
     };
 
@@ -78,13 +77,21 @@ public:
         this->prevPatterns.push_back({ LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) });
     }
 
-    void update(const ProgramState programState, const LinePositions& front, const LinePositions& rear, meter_t currentDist);
+    void update(const ProgramState programState, const Lines& lines, meter_t currentDist);
 
     const LinePattern& pattern() const {
         return const_cast<LinePatternCalculator*>(this)->currentPattern();
     }
 
-    static meter_t distanceSinceNumLines(const measurement_buffer_t& prevMeas, uint8_t numLines, meter_t currentDist);
+    static StampedLines peek_back(const measurement_buffer_t& prevMeas, std::function<bool(const StampedLines&)> condition);
+
+    static StampedLines peek_back(const measurement_buffer_t& prevMeas, meter_t peekBackDist);
+
+    static Lines::const_iterator getMainLine(const Lines& lines, const measurement_buffer_t& prevMeas);
+
+    static bool areClose(const Lines& lines);
+
+    static bool areFar(const Lines& lines);
 
 private:
     LinePattern& currentPattern() {

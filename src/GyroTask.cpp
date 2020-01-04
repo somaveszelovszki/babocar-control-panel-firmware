@@ -35,9 +35,10 @@ extern "C" void runGyroTask(const void *argument) {
             const radian_t newAngle = normalize360(gyroAngleFilter.update(atan2(mag.Y, mag.X)));
 
             vTaskSuspendAll();
+            const meter_t dist = globals::car.speed * timeDiff;
             globals::car.pose.angle = avg(newAngle, globals::car.pose.angle);
-            globals::car.pose.pos.X += globals::car.speed * timeDiff * cos(globals::car.pose.angle);
-            globals::car.pose.pos.Y += globals::car.speed * timeDiff * sin(globals::car.pose.angle);
+            globals::car.pose.pos.X += dist * cos(globals::car.pose.angle);
+            globals::car.pose.pos.Y += dist * sin(globals::car.pose.angle);
             globals::car.pose.angle = newAngle;
             // TODO handle ~180deg bug
             xTaskResumeAll();

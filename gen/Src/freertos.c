@@ -177,6 +177,15 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDistSensorTask */
 void StartDistSensorTask(void const * argument)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+
   /* USER CODE BEGIN StartDistSensorTask */
   runDistSensorTask(argument);
   /* USER CODE END StartDistSensorTask */

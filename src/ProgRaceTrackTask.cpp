@@ -46,17 +46,6 @@ struct Overtake {
 
 };
 
-bool isSafe(const Line& line) {
-
-    static millisecond_t unsafeSectionStartTime = millisecond_t(0);
-
-    if (abs(line.angular_velocity) > deg_per_sec_t(30)) {
-        unsafeSectionStartTime = getTime();
-    }
-
-    return getTime() - unsafeSectionStartTime > millisecond_t(1000);
-}
-
 m_per_sec_t calcSafetyCarSpeed(meter_t frontDist, bool isFastSection) {
     return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
         isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);

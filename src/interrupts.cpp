@@ -17,7 +17,6 @@ extern void micro_Command_Uart_TxCpltCallback();                    // Callback 
 extern void micro_MotorPanel_Uart_RxCpltCallback();                 // Callback for motor panel UART RxCplt - called when receive finishes.
 extern void micro_RadioModule_Uart_RxCpltCallback();                // Callback for radio module UART RxCplt - called when receive finishes.
 extern void micro_FrontLineDetectPanel_Uart_RxCpltCallback();       // Callback for front line detect panel UART RxCplt - called when receive finishes.
-extern void micro_RearLineDetectPanel_Uart_RxCpltCallback();        // Callback for rear line detect panel UART RxCplt - called when receive finishes.
 
 /* @brief Internal callback - called when SPI reception finishes.
  * @param hspi Pointer to the SPI handle.
@@ -65,9 +64,6 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
     } else if (huart == uart_FrontLineDetectPanel) {
         micro_FrontLineDetectPanel_Uart_RxCpltCallback();
-
-    } else if (huart == uart_RearLineDetectPanel) {
-        micro_RearLineDetectPanel_Uart_RxCpltCallback();
 
     }
 }

@@ -613,7 +613,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
                 // Line pattern direction indicates on which side of the current line the OTHER lines are,
                 // so if the current line is the leftmost line of three lines, pattern direction will be RIGHT.
-                // Segment direction is a junction indicates which side the car should steer in order to follow a segment,
+                // Segment direction in a junction indicates which side the car should steer in order to follow a segment,
                 // when leaving a junction.
                 // Currently the car is entering a junction, therefore if the current line is the leftmost,
                 // the car will need to steer to the right when leaving the junction.
