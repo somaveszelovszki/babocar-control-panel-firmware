@@ -35,7 +35,7 @@ public:
 
     LinePattern()
         : type(Type::NONE)
-        , dir(Sign::POSITIVE)
+        , dir(Sign::NEUTRAL)
         , side(Direction::CENTER)
         , startDist(0) {}
 
@@ -71,12 +71,10 @@ public:
         std::function<linePatterns_t(const LinePattern&, const ProgramState)> validNextPatterns;
     };
 
-    LinePatternCalculator(void)
-        : isPatternChangeCheckActive(false)
-        , currentPatternInfo(nullptr) {
-        this->prevPatterns.push_back({ LinePattern::NONE, Sign::POSITIVE, Direction::CENTER, meter_t(0) });
+    LinePatternCalculator()
+        : isPatternChangeCheckActive(false) {
+        this->prevPatterns.push_back({ LinePattern::NONE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) });
     }
-
     void update(const ProgramState programState, const Lines& lines, meter_t currentDist);
 
     const LinePattern& pattern() const {
@@ -105,7 +103,6 @@ private:
 
     bool isPatternChangeCheckActive;
     linePatterns_t possiblePatterns;
-    const LinePatternInfo *currentPatternInfo;
 };
 
 } // namespace micro
