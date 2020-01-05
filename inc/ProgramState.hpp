@@ -23,7 +23,7 @@ public:
     ActiveModule activeModule(void) const { return this->module_; }
     uint8_t subCntr(void) const { return this->subCntr_; }
 
-    void set(ActiveModule module, uint8_t subCntr) {
+    void set(ActiveModule module, uint8_t subCntr = 0) {
         this->module_ = module;
         this->subCntr_ = subCntr;
     }

@@ -138,22 +138,26 @@ bool Segment::isFloating() const {
     Junction *j1 = nullptr;
     bool floating = true;
 
-    // iterates through all connections to check if the segment is connected to 2 different junctions,
-    // meaning that the segment is not floating
-    for (const Connection *c : this->edges) {
-        if (j1 != c->junction) {
-            if (j1) {
-                floating = false;
-                break;
+    if (this->isDeadEnd) {
+        floating = false; // a dead-end section cannot be floating (it only has one connected end by definition)
+    } else {
+        // iterates through all connections to check if the segment is connected to 2 different junctions,
+        // meaning that the segment is not floating
+        for (const Connection *c : this->edges) {
+            if (j1 != c->junction) {
+                if (j1) {
+                    floating = false;
+                    break;
+                }
+                j1 = c->junction;
             }
-            j1 = c->junction;
         }
-    }
 
-    // if the segment can be approached via the same junction, but in 2 different directions
-    // (e.g. LEFT and RIGHT or from different angles), then the segment is not floating, but it is closing into itself (loop)
-    if (floating) {
-        floating = !this->isLoop();
+        // if the segment can be approached via the same junction, but in 2 different directions
+        // (e.g. LEFT and RIGHT or from different angles), then the segment is not floating, but it is closing into itself (loop)
+        if (floating) {
+            floating = !this->isLoop();
+        }
     }
 
     return floating;

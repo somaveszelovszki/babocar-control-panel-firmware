@@ -31,6 +31,9 @@ extern m_per_sec_t speed_FAST_UNSAFE;
 extern m_per_sec_t speed_SLOW;
 extern m_per_sec_t speed_SLOW_UNSAFE;
 extern meter_t slowSectionStartOffset;
+extern m_per_sec_t speed_LAB_FWD;
+extern m_per_sec_t speed_LAB_BWD;
+extern m_per_sec_t speed_LANE_CHANGE;
 
 extern bool isControlTaskInitialized;
 extern bool isDebugTaskInitialized;

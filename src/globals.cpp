@@ -26,6 +26,9 @@ m_per_sec_t speed_FAST_UNSAFE    = speed_FAST * 0.8;
 m_per_sec_t speed_SLOW           = m_per_sec_t(2.0f);
 m_per_sec_t speed_SLOW_UNSAFE    = speed_SLOW * 0.7;
 meter_t slowSectionStartOffset   = meter_t(1.2);
+m_per_sec_t speed_LAB_FWD        = m_per_sec_t(1.0f);
+m_per_sec_t speed_LAB_BWD        = m_per_sec_t(0.7f);
+m_per_sec_t speed_LANE_CHANGE    = m_per_sec_t(0.8f);
 
 bool isControlTaskInitialized    = false;
 bool isDebugTaskInitialized      = false;
@@ -53,6 +56,9 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(speed_SLOW);
     REGISTER_GLOBAL(speed_SLOW_UNSAFE);
     REGISTER_GLOBAL(slowSectionStartOffset);
+    REGISTER_GLOBAL(speed_LAB_FWD);
+    REGISTER_GLOBAL(speed_LAB_BWD);
+    REGISTER_GLOBAL(speed_LANE_CHANGE);
 
 #undef REGISTER_GLOBAL
 }
