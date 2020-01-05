@@ -6,6 +6,7 @@ namespace micro {
 namespace globals {
 
 ProgramState programState        = ProgramState(ProgramState::ActiveModule::Labyrinth, 1);
+bool linePatternCalcEnabled      = true;
 bool useSafetyEnableSignal       = true;
 bool indicatorLedsEnabled        = true;
 bool startSignalEnabled          = false;

@@ -4,55 +4,32 @@
 
 namespace cfg {
 
-constexpr micro::millimeter_t CAR_PIVOT_DIST_FRONT_REAR = micro::millimeter_t(273);      // Distance between front and rear pivots.
-constexpr micro::millimeter_t CAR_PIVOT_DIST_MID        = CAR_PIVOT_DIST_FRONT_REAR / 2; // Distance between pivot and car middle.
-constexpr micro::millimeter_t CAR_PIVOT_LENGTH_FRONT    = micro::millimeter_t(250);      // Length of front pivot (wheel to wheel).
-constexpr micro::millimeter_t CAR_PIVOT_LENGTH_REAR     = micro::millimeter_t(250);      // Length of front pivot (wheel to wheel).
-constexpr micro::millimeter_t CAR_PIVOT_FRONT_DIST      = micro::millimeter_t(72);       // Distance between car front and front pivot.
-constexpr micro::millimeter_t CAR_PIVOT_REAR_DIST       = micro::millimeter_t(72);       // Distance between car rear and rear pivot.
+constexpr micro::meter_t CAR_FRONT_REAR_PIVOT_DIST      = micro::millimeter_t(268);      // Distance between front and rear pivots.
+constexpr micro::meter_t CAR_PIVOT_CENTER_DIST          = CAR_FRONT_REAR_PIVOT_DIST / 2; // Distance between pivots and car center.
+constexpr micro::meter_t CAR_FRONT_PIVOT_LENGTH         = micro::millimeter_t(257);      // Length of front pivot (wheel to wheel).
+constexpr micro::meter_t CAR_REAR_PIVOT_LENGTH          = micro::millimeter_t(257);      // Length of rear pivot (wheel to wheel).
 
-constexpr micro::millimeter_t CAR_WHEEL_CIRC = micro::millimeter_t(329);    // Wheel circumference.
+constexpr micro::meter_t CAR_OPTO_FRONT_PIVOT_DIST      = micro::centimeter_t(11.0f);    // Distance between optical sensor row and front pivot.
+constexpr micro::meter_t CAR_OPTO_CENTER_DIST           = CAR_PIVOT_CENTER_DIST + CAR_OPTO_FRONT_PIVOT_DIST; // Distance between optical sensor row and car center.
 
-constexpr uint8_t NUM_OPTO_FRONT = 32;                                  // Number of front opto-sensors.
-constexpr uint8_t NUM_OPTO_REAR  = 32;                                  // Number of rear opto-sensors.
-constexpr uint8_t NUM_OPTO       = NUM_OPTO_FRONT + NUM_OPTO_REAR;      // Number of opto-sensors.
+constexpr uint32_t        FRONT_SERVO_PWM_0             = 1000;                          // Front servo PWM for 0 degrees.
+constexpr uint32_t        FRONT_SERVO_PWM_180           = 2000;                          // Front servo PWM for 180 degrees.
+constexpr micro::radian_t FRONT_SERVO_OFFSET            = micro::degree_t(103.0f);       // Front servo middle position angle.
+constexpr micro::radian_t FRONT_SERVO_WHEEL_MAX_DELTA   = micro::degree_t(23.0f);        // Front wheel max delta angle.
+constexpr float           FRONT_SERVO_WHEEL_TR          = 16.5f / 40.0f;                 // Front servo-to-wheel transfer rate.
 
-constexpr micro::millimeter_t DIST_BTW_OPTOS = micro::millimeter_t(7.742f); // Distance between the line detector optical sensors.
+constexpr uint32_t        REAR_SERVO_PWM_0              = 1000;                          // Rear servo PWM for 0 degrees.
+constexpr uint32_t        REAR_SERVO_PWM_180            = 2000;                          // Rear servo PWM for 180 degrees.
+constexpr micro::radian_t REAR_SERVO_OFFSET             = micro::degree_t(95.0f);        // Rear servo middle position angle.
+constexpr micro::radian_t REAR_SERVO_WHEEL_MAX_DELTA    = micro::degree_t(23.0f);        // Rear wheel max delta angle.
+constexpr float           REAR_SERVO_WHEEL_TR           = 16.5f / 40.0f;                 // Rear servo-to-wheel transfer rate.
 
-// Maximum position of the front optical sensor line.
-// Leftmost sensor's position:  -MAX_POS_OPTO_FRONT
-// Middle position:             0
-// Rightmost sensor's position: MAX_POS_OPTO_FRONT
-constexpr micro::millimeter_t MAX_POS_OPTO_FRONT = DIST_BTW_OPTOS * NUM_OPTO_FRONT / 2;
+constexpr uint32_t        DIST_SERVO_PWM_0              = 1000;                          // Front distance sensor servo PWM for 0 degrees.
+constexpr uint32_t        DIST_SERVO_PWM_180            = 2000;                          // Front distance sensor servo PWM for 180 degrees.
+constexpr micro::radian_t DIST_SERVO_OFFSET             = micro::degree_t(100.0f);       // Front distance sensor servo servo middle position angle.
+constexpr micro::radian_t DIST_SERVO_MAX_DELTA          = micro::degree_t(45.0f);        // Front distance sensor servo max delta angle.
 
-// Maximum position of the rear optical sensor line.
-// Leftmost sensor's position:  -MAX_POS_OPTO_REAR
-// Middle position:             0
-// Rightmost sensor's position: MAX_POS_OPTO_REAR
-constexpr micro::millimeter_t MAX_POS_OPTO_REAR = DIST_BTW_OPTOS * NUM_OPTO_REAR / 2;
-
-constexpr micro::millimeter_t CAR_MIDDLE_FRONT_OPTO_DIST = micro::centimeter_t(30.0f);   // Distance between car middle point and the front optical sensor row.
-constexpr micro::millimeter_t CAR_MIDDLE_REAR_OPTO_DIST  = micro::centimeter_t(10.0f);   // Distance between car middle point and the rear optical sensor row.
-constexpr micro::millimeter_t CAR_FRONT_REAR_OPTO_DIST   = CAR_MIDDLE_FRONT_OPTO_DIST - CAR_MIDDLE_REAR_OPTO_DIST;
-
-constexpr uint32_t        FRONT_SERVO_PWM_0           = 1000;                    // Front servo PWM for 0 degrees.
-constexpr uint32_t        FRONT_SERVO_PWM_180         = 2000;                    // Front servo PWM for 180 degrees.
-constexpr micro::radian_t FRONT_SERVO_OFFSET          = micro::degree_t(103.0f); // Front servo middle position angle.
-constexpr micro::radian_t FRONT_SERVO_WHEEL_MAX_DELTA = micro::degree_t(23.0f);  // Front wheel max delta angle.
-constexpr float           FRONT_SERVO_WHEEL_TR        = 16.5f / 40.0f;           // Front servo-to-wheel transfer rate.
-
-constexpr uint32_t        REAR_SERVO_PWM_0            = 1000;                    // Rear servo PWM for 0 degrees.
-constexpr uint32_t        REAR_SERVO_PWM_180          = 2000;                    // Rear servo PWM for 180 degrees.
-constexpr micro::radian_t REAR_SERVO_OFFSET           = micro::degree_t(95.0f);  // Rear servo middle position angle.
-constexpr micro::radian_t REAR_SERVO_WHEEL_MAX_DELTA  = micro::degree_t(23.0f);  // Rear wheel max delta angle.
-constexpr float           REAR_SERVO_WHEEL_TR         = 16.5f / 40.0f;           // Rear servo-to-wheel transfer rate.
-
-constexpr uint32_t        DIST_SERVO_PWM_0            = 1000;                    // Front distance sensor servo PWM for 0 degrees.
-constexpr uint32_t        DIST_SERVO_PWM_180          = 2000;                    // Front distance sensor servo PWM for 180 degrees.
-constexpr micro::radian_t DIST_SERVO_OFFSET           = micro::degree_t(100.0f); // Front distance sensor servo servo middle position angle.
-constexpr micro::radian_t DIST_SERVO_MAX_DELTA        = micro::degree_t(45.0f);  // Front distance sensor servo max delta angle.
-
-constexpr micro::millimeter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(107.0f); // Distance between front sensors and front wheels.
+constexpr micro::meter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(107.0f);     // Distance between front sensors and front wheels.
 
 constexpr micro::microsecond_t DC_MOTOR_T_ELECTRICAL = micro::microsecond_t(484.0f);
 

@@ -11,6 +11,7 @@ class Params;
 namespace globals {
 
 extern ProgramState programState;
+extern bool linePatternCalcEnabled;
 extern bool useSafetyEnableSignal;
 extern bool indicatorLedsEnabled;
 extern bool startSignalEnabled;

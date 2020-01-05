@@ -26,7 +26,6 @@ extern QueueHandle_t detectedLinesQueue;
 extern QueueHandle_t controlQueue;
 
 namespace {
-constexpr degree_t MERGE_VIRTUAL_LINE_ANGLE(30.0f);
 
 uint8_t startCounterBuffer[1];
 volatile char startCounter = '6';   // start counter will count back from 5 to 0
@@ -44,8 +43,6 @@ struct {
     Junction *lastJunc = nullptr;
     Maneuver lastManeuver;
 } laneChange;
-
-meter_t lineFollowDirStartDist;
 
 millisecond_t endTime;
 
@@ -644,7 +641,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
                 // if the car is going backwards, mirrored pattern sides are detected
                 if (currentSeg->isDeadEnd) {
-                    inSegmentDir = switchDirection(inSegmentDir);
+                    inSegmentDir = -inSegmentDir;
                 }
 
                 // if there are 3 detected lines, follows center line, otherwise follows default main line
@@ -716,8 +713,33 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
 bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
 
+    static enum {
+        Started,
+        Rotating,
+        Shifting,
+        Slide,
+        Finishing,
+        Finished
+    } state = Started;
+
+    switch (state) {
+    case Started:
+        globals::linePatternCalcEnabled = false;
+        break;
+    case Rotating:
+        break;
+    case Shifting:
+        break;
+    case Finishing:
+        globals::linePatternCalcEnabled = true;
+        state = Finished;
+        break;
+    default:
+        break;
+    }
+
     controlSpeed = globals::speed_LANE_CHANGE;
-    return false;
+    return Finished == state;
 }
 
 } // namespace

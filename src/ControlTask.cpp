@@ -101,8 +101,9 @@ extern "C" void runControlTask(const void *argument) {
 //                rearSteeringServo.writeWheelAngle(-steerAngle);
 
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
+
                 frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
-                rearSteeringServo.writeWheelAngle(controlData.angle + degree_t(-lineController.getOutput()));
+                rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
             }
 
         } else if (micro::getTime() - lastControlDataRecvTime > millisecond_t(20)) {
