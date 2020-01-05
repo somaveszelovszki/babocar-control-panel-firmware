@@ -620,6 +620,11 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 // So the segment direction is the same as the line pattern direction (in this example, RIGHT).
                 inSegmentDir = detectedLines.pattern.side;
 
+                // if there are 3 detected lines, follows center line, otherwise follows default main line
+                if (3 == detectedLines.lines.size()) {
+                    mainLine = detectedLines.lines[1];
+                }
+
             } else if (Sign::POSITIVE == detectedLines.pattern.dir) {
                 const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
                 const Direction steeringDir = onJunctionDetected(junctionPos, globals::car.pose.angle, numInSegments, inSegmentDir, numSegments);
