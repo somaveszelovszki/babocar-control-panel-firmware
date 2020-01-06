@@ -23,7 +23,7 @@ public:
             if (patternDist >= d - eps) {
                 if (patternDist <= d + entry.second + eps) {
                     if (std::find(validLines.begin(), validLines.end(), entry.first) == validLines.end()) {
-                        validLines.append(entry.first);
+                        validLines.push_back(entry.first);
                     }
                 }
             } else {
@@ -47,12 +47,12 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePattern&, const ProgramState programState) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
-                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
 
             } else if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
-                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
-                validPatterns.append({ LinePattern::ACCELERATE,  Sign::NEUTRAL, Direction::CENTER });
-                validPatterns.append({ LinePattern::BRAKE,       Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::ACCELERATE,  Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::BRAKE,       Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
         }
@@ -65,21 +65,21 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePattern&, const ProgramState programState) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
-                validPatterns.append({ LinePattern::NONE,        Sign::NEUTRAL,  Direction::CENTER });
-                validPatterns.append({ LinePattern::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER });
-                validPatterns.append({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   });
-                validPatterns.append({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::RIGHT  });
-                validPatterns.append({ LinePattern::JUNCTION_3,  Sign::NEGATIVE, Direction::LEFT   });
-                validPatterns.append({ LinePattern::JUNCTION_3,  Sign::NEGATIVE, Direction::CENTER });
-                validPatterns.append({ LinePattern::JUNCTION_3,  Sign::NEGATIVE, Direction::RIGHT  });
-                validPatterns.append({ LinePattern::LANE_CHANGE, Sign::POSITIVE, Direction::RIGHT  });
-                validPatterns.append({ LinePattern::LANE_CHANGE, Sign::NEGATIVE, Direction::LEFT   });
-                validPatterns.append({ LinePattern::DEAD_END,    Sign::NEUTRAL,  Direction::CENTER });
+                validPatterns.push_back({ LinePattern::NONE,        Sign::NEUTRAL,  Direction::CENTER });
+                validPatterns.push_back({ LinePattern::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   });
+                validPatterns.push_back({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::RIGHT  });
+                validPatterns.push_back({ LinePattern::JUNCTION_3,  Sign::NEGATIVE, Direction::LEFT   });
+                validPatterns.push_back({ LinePattern::JUNCTION_3,  Sign::NEGATIVE, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::JUNCTION_3,  Sign::NEGATIVE, Direction::RIGHT  });
+                validPatterns.push_back({ LinePattern::LANE_CHANGE, Sign::POSITIVE, Direction::RIGHT  });
+                validPatterns.push_back({ LinePattern::LANE_CHANGE, Sign::NEGATIVE, Direction::LEFT   });
+                validPatterns.push_back({ LinePattern::DEAD_END,    Sign::NEUTRAL,  Direction::CENTER });
 
             } else if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
-                validPatterns.append({ LinePattern::NONE,       Sign::NEUTRAL, Direction::CENTER });
-                validPatterns.append({ LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER });
-                validPatterns.append({ LinePattern::BRAKE,      Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::NONE,       Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::BRAKE,      Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
         }
@@ -101,13 +101,13 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             };
 
             LinePatternDescriptor::lines validLines = descriptor.getValidLines(pattern.dir, currentDist - pattern.startDist, centimeter_t(3));
-            validLines.append(2);
+            validLines.push_back(2);
             return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end() && LinePatternCalculator::areClose(lines);
         },
         [] (const LinePattern&, const ProgramState programState) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
-                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
         }
@@ -121,7 +121,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePattern&, const ProgramState programState) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
-                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
         }
@@ -148,8 +148,8 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePattern&, const ProgramState programState) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
-                validPatterns.append({ LinePattern::NONE,        Sign::NEUTRAL, Direction::CENTER });
-                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::NONE,        Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
         }
@@ -175,11 +175,11 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
                 if (Sign::NEGATIVE == pattern.dir) {
-                    validPatterns.append({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
-                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
-                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
+                    validPatterns.push_back({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
                 } else if (Sign::POSITIVE == pattern.dir) {
-                    validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
                 }
             }
             return validPatterns;
@@ -214,11 +214,11 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
                 if (Sign::NEGATIVE == pattern.dir) {
-                    validPatterns.append({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
-                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
-                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
+                    validPatterns.push_back({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
                 } else if (Sign::POSITIVE == pattern.dir) {
-                    validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
                 }
             }
             return validPatterns;
@@ -255,11 +255,11 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
                 if (Sign::NEGATIVE == pattern.dir) {
-                    validPatterns.append({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
-                    validPatterns.append({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
-                    validPatterns.append({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
+                    validPatterns.push_back({ LinePattern::JUNCTION_3, Sign::POSITIVE, Direction::CENTER });
                 } else if (Sign::POSITIVE == pattern.dir) {
-                    validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                    validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
                 }
             }
             return validPatterns;
@@ -278,7 +278,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePattern& pattern, const ProgramState programState) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
-                validPatterns.append({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
+                validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
         }

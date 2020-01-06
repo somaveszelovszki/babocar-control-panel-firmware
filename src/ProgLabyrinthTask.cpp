@@ -3,6 +3,7 @@
 #include <micro/utils/time.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
+#include <micro/utils/trajectory.hpp>
 
 #include <LinePattern.hpp>
 #include <LabyrinthGraph.hpp>
@@ -57,7 +58,7 @@ struct Route {
         , lastSeg(nullptr) {}
 
     void append(Connection *c) {
-        this->connections.append(c);
+        this->connections.push_back(c);
         this->lastSeg = c->getOtherSegment(this->lastSeg);
     }
 
@@ -88,7 +89,7 @@ Route plannedRoute;  // Planned route, when there is a given destination - e.g. 
 template <typename T, uint32_t N>
 T* getNew(vec<T, N>& vec) {
     T *elem = nullptr;
-    if (vec.append(T())) {
+    if (vec.push_back(T())) {
         elem = vec.back();
     } else {
         LOG_ERROR("Pool empty, cannot get new element");
@@ -179,7 +180,7 @@ vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> getFloatingSegments() {
     vec<Segment*, cfg::MAX_NUM_LAB_SEGMENTS> floatingSegments;
     for (Segment& seg : segments) {
         if (seg.isActive && seg.isFloating()) {
-            floatingSegments.append(&seg);
+            floatingSegments.push_back(&seg);
         }
     }
     return floatingSegments;
@@ -263,15 +264,15 @@ void addConnection(Connection * const conn, Segment * const seg1, const Maneuver
     conn->node2 = seg2;
     conn->maneuver1 = maneuver1;
     conn->maneuver2 = maneuver2;
-    seg1->edges.append(conn);
-    seg2->edges.append(conn);
+    seg1->edges.push_back(conn);
+    seg2->edges.push_back(conn);
 }
 
 vec<Connection*, 2> getConnections(Segment *seg1, Segment *seg2) {
     vec<Connection*, 2> connections;
     for (Connection *c : seg1->edges) {
         if (c->getOtherSegment(seg1) == seg2) {
-            connections.append(c);
+            connections.push_back(c);
         }
     }
     return connections;
@@ -317,7 +318,7 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
                 // adds all the connections of this segment to the previously defined floating segment (updates segment pointers)
                 for (Connection *c : oldSeg->edges) {
                     c->updateSegment(oldSeg, newSeg);
-                    newSeg->edges.append(c);
+                    newSeg->edges.push_back(c);
                     c->junction->updateSegment(oldSeg, newSeg);
                 }
 
@@ -384,7 +385,7 @@ Connection* onExistingJunction(Junction *junc, const point2m& pos, radian_t inOr
 
 Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
-    Junction *junc = currentSeg->isDeadEnd ? prevConn->junction : findExistingJunction(pos);
+    Junction *junc = currentSeg->isDeadEnd && prevConn ? prevConn->junction : findExistingJunction(pos);
     Connection *nextConn = nullptr;
     Maneuver nextManeuver = { outOri, Direction::CENTER };
 
@@ -713,33 +714,27 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
 bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
 
-    static enum {
-        Started,
-        Rotating,
-        Shifting,
-        Slide,
-        Finishing,
-        Finished
-    } state = Started;
+    static Trajectory trajectory = []() {
+        Trajectory traj(cfg::CAR_OPTO_CENTER_DIST, Trajectory::config_t{ globals::car.pose.pos, globals::speed_LANE_CHANGE });
 
-    switch (state) {
-    case Started:
-        globals::linePatternCalcEnabled = false;
-        break;
-    case Rotating:
-        break;
-    case Shifting:
-        break;
-    case Finishing:
-        globals::linePatternCalcEnabled = true;
-        state = Finished;
-        break;
-    default:
-        break;
-    }
+        traj.appendLine(Trajectory::config_t{
+            globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(globals::car.pose.angle),
+            globals::speed_LANE_CHANGE
+        });
 
-    controlSpeed = globals::speed_LANE_CHANGE;
-    return Finished == state;
+        traj.appendSineArc(Trajectory::config_t{
+            traj.lastConfig().pos + vec2m(centimeter_t(120), centimeter_t(-60)).rotate(globals::car.pose.angle),
+            globals::speed_LANE_CHANGE
+        }, globals::car.pose.angle, 30);
+
+        return traj;
+    }();
+    globals::car.pose.pos = { meter_t(-2), meter_t(-4.01) };
+    const ControlData controlData = trajectory.update(globals::car);
+    mainLine = controlData.baseline;
+    controlSpeed = controlData.speed;
+
+    return trajectory.length() - trajectory.coveredDistance() < centimeter_t(30) && LinePattern::SINGLE_LINE == detectedLines.pattern.type;
 }
 
 } // namespace

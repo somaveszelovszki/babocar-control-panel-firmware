@@ -45,7 +45,7 @@ static void getLinesFromPanel(LineDetectPanel& panel, Lines& lines, bool mirror 
 
     for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
         const line_t * const l = &dataIn.lines.values[i];
-        lines.append(Line{ millimeter_t(l->pos_mm) * (mirror ? -1 : 1), l->id });
+        lines.push_back(Line{ millimeter_t(l->pos_mm) * (mirror ? -1 : 1), l->id });
     }
 
     lines.removeDuplicates();

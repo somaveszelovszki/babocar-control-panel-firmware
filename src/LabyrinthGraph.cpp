@@ -112,7 +112,7 @@ Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segm
     if (itSide != this->segments.end()) {
         for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
             if (itSeg->second == seg) {
-                info.append({ itSide->first, itSeg->first });
+                info.push_back({ itSide->first, itSeg->first });
             }
         }
     }
@@ -126,7 +126,7 @@ Junction::segment_info Junction::getSegmentInfo(const Segment *seg) {
     for (segment_map::iterator itSide = this->segments.begin(); itSide != this->segments.end(); ++itSide) {
         for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
             if (itSeg->second == seg) {
-                info.append({ itSide->first, itSeg->first });
+                info.push_back({ itSide->first, itSeg->first });
             }
         }
     }
