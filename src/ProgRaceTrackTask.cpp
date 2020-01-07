@@ -7,6 +7,7 @@
 #include <micro/panel/MotorPanel.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
+#include <micro/utils/trajectory.hpp>
 
 #include <DetectedLines.hpp>
 #include <ControlData.hpp>
@@ -31,24 +32,98 @@ static StaticQueue_t distancesQueueBuffer;
 
 namespace {
 
-enum {
-    ProgSubCntr_ReachSafetyCar  = 0,
-    ProgSubCntr_FollowSafetyCar = 1,
-    ProgSubCntr_Overtake        = 2,
-    ProgSubCntr_Race            = 3
-};
-
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.4f);
 
-struct Overtake {
-    Pose startPose;
+struct TrackSegment {
+    enum Type {
+        Slow,
+        Fast
+    };
 
+    Type type;
+    Direction dir;
+    meter_t startDist;
+    meter_t endDist;
 };
 
-m_per_sec_t calcSafetyCarSpeed(meter_t frontDist, bool isFastSection) {
+TrackSegment trackSegments[] = {
+    { TrackSegment::Fast, Direction::CENTER, meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) },
+    { TrackSegment::Fast, Direction::CENTER, meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::RIGHT,  meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) },
+    { TrackSegment::Fast, Direction::CENTER, meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::RIGHT,  meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::CENTER, meter_t(0), meter_t(0) },
+    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) }
+};
+
+struct {
+    radian_t sectionOrientation = radian_t(0);
+    Trajectory trajectory       = Trajectory(cfg::CAR_OPTO_CENTER_DIST);
+} overtake;
+
+m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFastSection) {
     return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
         isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+}
+
+bool overtakeSafetyCar(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
+
+    static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900);
+
+    static constexpr meter_t SIDE_DISTANCE         = centimeter_t(60);
+    static constexpr meter_t BEGIN_SINE_ARC_LENGTH = centimeter_t(150);
+    static constexpr meter_t ACCELERATION_LENGTH   = centimeter_t(10);
+    static constexpr meter_t BRAKE_LENGTH          = centimeter_t(100);
+    static constexpr meter_t END_SINE_ARC_LENGTH   = centimeter_t(150);
+    static constexpr meter_t FAST_SECTION_LENGTH   = OVERTAKE_SECTION_LENGTH - meter_t(2) - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH - END_SINE_ARC_LENGTH;
+
+    if (overtake.trajectory.length() == meter_t(0)) {
+        overtake.trajectory.setStartConfig(Trajectory::config_t{ globals::car.pose.pos, globals::car.speed });
+
+        overtake.trajectory.appendLine(Trajectory::config_t{
+            overtake.trajectory.lastConfig().pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(overtake.sectionOrientation),
+            globals::speed_OVERTAKE_CURVE
+        });
+
+        overtake.trajectory.appendSineArc(Trajectory::config_t{
+            overtake.trajectory.lastConfig().pos + vec2m(BEGIN_SINE_ARC_LENGTH, -SIDE_DISTANCE).rotate(overtake.sectionOrientation),
+            globals::speed_OVERTAKE_CURVE
+        }, globals::car.pose.angle, 30);
+
+        overtake.trajectory.appendLine(Trajectory::config_t{
+            overtake.trajectory.lastConfig().pos + vec2m(ACCELERATION_LENGTH, centimeter_t(0)).rotate(overtake.sectionOrientation),
+            globals::speed_OVERTAKE_STRAIGHT
+        });
+
+        overtake.trajectory.appendLine(Trajectory::config_t{
+            overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH, centimeter_t(0)).rotate(overtake.sectionOrientation),
+            globals::speed_OVERTAKE_STRAIGHT
+        });
+
+        overtake.trajectory.appendLine(Trajectory::config_t{
+            overtake.trajectory.lastConfig().pos + vec2m(BRAKE_LENGTH, centimeter_t(0)).rotate(overtake.sectionOrientation),
+            globals::speed_OVERTAKE_CURVE
+        });
+
+        overtake.trajectory.appendSineArc(Trajectory::config_t{
+            overtake.trajectory.lastConfig().pos + vec2m(END_SINE_ARC_LENGTH, SIDE_DISTANCE + centimeter_t(5)).rotate(overtake.sectionOrientation),
+            globals::speed_OVERTAKE_CURVE
+        }, globals::car.pose.angle, 30);
+    }
+
+    const ControlData controlData = overtake.trajectory.update(globals::car);
+    mainLine = controlData.baseline;
+    controlSpeed = controlData.speed;
+
+    const bool finished = overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
+    if (finished) {
+        overtake.trajectory.clear();
+    }
+    return finished;
 }
 
 } // namespace
@@ -88,39 +163,42 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             }
 
             switch (globals::programState.subCntr()) {
-            case ProgSubCntr_ReachSafetyCar:
+            case ProgRaceTrackSubCntr_ReachSafetyCar:
                 controlData.speed = m_per_sec_t(0.75f);
 
-                if (calcSafetyCarSpeed(distances.front, false) < controlData.speed) {
-                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_FollowSafetyCar);
+                if (safetyCarFollowSpeed(distances.front, false) < controlData.speed) {
+                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_FollowSafetyCar);
                 }
 
 //                if (distances.front < centimeter_t(60)) {
-//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_FollowSafetyCar);
+//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_FollowSafetyCar);
 //                }
                 break;
 
-            case ProgSubCntr_FollowSafetyCar:
-                controlData.speed = calcSafetyCarSpeed(distances.front, isFastSection);
+            case ProgRaceTrackSubCntr_FollowSafetyCar:
+                controlData.speed = safetyCarFollowSpeed(distances.front, isFastSection);
 
-//                if (distances.front < meter_t(1.5f)) {
-//                    lastDistWithActiveSafetyCar = globals::car.distance;
-//                }
-//
-//                // when the safety car leaves the track (after a curve, before the fast signs),
-//                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
-//                    isFastSection &&
-//                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
-//
-//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgSubCntr_Race);
-//                }
+                if (distances.front < meter_t(1.5f)) {
+                    lastDistWithActiveSafetyCar = globals::car.distance;
+                }
+
+                // when the safety car leaves the track (after a curve, before the fast signs),
+                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
+                    isFastSection &&
+                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
+
+                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_Race);
+                }
 
                 break;
 
-            case ProgSubCntr_Overtake:
+            case ProgRaceTrackSubCntr_OvertakeSafetyCar:
+                if (overtakeSafetyCar(detectedLines, mainLine, controlData.speed)) {
+                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_Race);
+                }
                 break;
 
-            case ProgSubCntr_Race:
+            case ProgRaceTrackSubCntr_Race:
                 if (isFastSection || (sectionStartDist != startDist && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
                     if (!isFastSection && detectedLines.pattern.type == LinePattern::SINGLE_LINE) {
 

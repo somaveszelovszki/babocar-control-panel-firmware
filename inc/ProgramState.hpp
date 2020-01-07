@@ -23,7 +23,7 @@ public:
     ActiveModule activeModule(void) const { return this->module_; }
     uint8_t subCntr(void) const { return this->subCntr_; }
 
-    void set(ActiveModule module, uint8_t subCntr = 0) {
+    void set(ActiveModule module, uint8_t subCntr) {
         this->module_ = module;
         this->subCntr_ = subCntr;
     }
@@ -31,6 +31,21 @@ public:
 private:
     ActiveModule module_;
     uint8_t subCntr_;
+};
+
+// Labyrinth states
+enum {
+    ProgLabyrinthSubCntr_WaitStartSignal   = 0,
+    ProgLabyrinthSubCntr_NavigateLabyrinth = 1,
+    ProgLabyrinthSubCntr_LaneChange        = 2
+};
+
+// RaceTrack states
+enum {
+    ProgRaceTrackSubCntr_ReachSafetyCar    = 0,
+    ProgRaceTrackSubCntr_FollowSafetyCar   = 1,
+    ProgRaceTrackSubCntr_OvertakeSafetyCar = 2,
+    ProgRaceTrackSubCntr_Race              = 3
 };
 
 } // namespace micro

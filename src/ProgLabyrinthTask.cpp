@@ -40,9 +40,10 @@ Connection *prevConn = nullptr;
 Connection *prevPrevConn = nullptr;
 
 struct {
-    Segment *seg = nullptr;
-    Junction *lastJunc = nullptr;
-    Maneuver lastManeuver;
+    Segment *seg          = nullptr;
+    Junction *lastJunc    = nullptr;
+    Maneuver lastManeuver = { radian_t(0), Direction::CENTER };
+    Trajectory trajectory = Trajectory(cfg::CAR_OPTO_CENTER_DIST);
 } laneChange;
 
 millisecond_t endTime;
@@ -434,12 +435,6 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
     return nextManeuver.direction;
 }
 
-enum {
-    ProgSubCntr_WaitStartSignal   = 0,
-    ProgSubCntr_NavigateLabyrinth = 1,
-    ProgSubCntr_LaneChange        = 2
-};
-
 struct TestCase {
     Pose pose;
     LinePattern pattern;
@@ -714,27 +709,31 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
 bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
 
-    static Trajectory trajectory = []() {
-        Trajectory traj(cfg::CAR_OPTO_CENTER_DIST, Trajectory::config_t{ globals::car.pose.pos, globals::speed_LANE_CHANGE });
+    static constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
-        traj.appendLine(Trajectory::config_t{
+    if (laneChange.trajectory.length() == meter_t(0)) {
+        laneChange.trajectory.setStartConfig(Trajectory::config_t{ globals::car.pose.pos, globals::speed_LANE_CHANGE });
+
+        laneChange.trajectory.appendLine(Trajectory::config_t{
             globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
         });
 
-        traj.appendSineArc(Trajectory::config_t{
-            traj.lastConfig().pos + vec2m(centimeter_t(120), centimeter_t(-60)).rotate(globals::car.pose.angle),
+        laneChange.trajectory.appendSineArc(Trajectory::config_t{
+            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(120), -(LANE_DISTANCE + centimeter_t(5))).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
         }, globals::car.pose.angle, 30);
+    }
 
-        return traj;
-    }();
-    globals::car.pose.pos = { meter_t(-2), meter_t(-4.01) };
-    const ControlData controlData = trajectory.update(globals::car);
+    const ControlData controlData = laneChange.trajectory.update(globals::car);
     mainLine = controlData.baseline;
     controlSpeed = controlData.speed;
 
-    return trajectory.length() - trajectory.coveredDistance() < centimeter_t(30) && LinePattern::SINGLE_LINE == detectedLines.pattern.type;
+    const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
+    if (finished) {
+        laneChange.trajectory.clear();
+    }
+    return finished;
 }
 
 } // namespace
@@ -758,22 +757,22 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 LineCalculator::updateMainLine(detectedLines.lines, mainLine);
 
                 switch (globals::programState.subCntr()) {
-                case ProgSubCntr_WaitStartSignal:
+                case ProgLabyrinthSubCntr_WaitStartSignal:
                     if (waitStartSignal()) {
-                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgSubCntr_NavigateLabyrinth);
+                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgLabyrinthSubCntr_NavigateLabyrinth);
                     }
                     controlData.speed = m_per_sec_t(0);
                     break;
 
-                case ProgSubCntr_NavigateLabyrinth:
+                case ProgLabyrinthSubCntr_NavigateLabyrinth:
                     if (navigateLabyrinth(prevDetectedLines, detectedLines, mainLine, controlData.speed)) {
-                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgSubCntr_LaneChange);
+                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgLabyrinthSubCntr_LaneChange);
                     }
                     break;
 
-                case ProgSubCntr_LaneChange:
+                case ProgLabyrinthSubCntr_LaneChange:
                     if (changeLane(detectedLines, mainLine, controlData.speed)) {
-                        globals::programState.set(ProgramState::ActiveModule::RaceTrack);
+                        globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_ReachSafetyCar);
                     }
                 }
 
