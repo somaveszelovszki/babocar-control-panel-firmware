@@ -14,7 +14,6 @@ extern ProgramState programState;
 extern bool useSafetyEnableSignal;
 extern bool indicatorLedsEnabled;
 extern bool startSignalEnabled;
-extern bool lineFollowEnabled;
 extern microsecond_t motorCtrl_Ti;
 extern float motorCtrl_Kc;
 extern float frontLineCtrl_P_slow;
@@ -37,11 +36,11 @@ extern m_per_sec_t speed_LANE_CHANGE;
 extern m_per_sec_t speed_OVERTAKE_CURVE;
 extern m_per_sec_t speed_OVERTAKE_STRAIGHT;
 
-extern bool isControlTaskInitialized;
-extern bool isDebugTaskInitialized;
-extern bool isDistSensorTaskInitialized;
-extern bool isGyroTaskInitialized;
-extern bool isLineDetectInitialized;
+extern bool isControlTaskOk;
+extern bool isDebugTaskOk;
+extern bool isDistSensorTaskOk;
+extern bool isGyroTaskOk;
+extern bool isLineDetectTaskOk;
 
 void registerGlobalParams(Params& params);
 

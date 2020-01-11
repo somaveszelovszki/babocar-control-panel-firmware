@@ -1,5 +1,3 @@
-#include <cfg_board.h>
-#include <micro/task/common.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
@@ -7,9 +5,10 @@
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/control/PD_Controller.hpp>
-#include <micro/panel/LineDetectPanel.hpp>
-#include <micro/panel/MotorPanel.hpp>
+#include <micro/panel/MotorPanelLink.hpp>
+#include <micro/task/common.hpp>
 
+#include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <globals.hpp>
 #include <ControlData.hpp>
@@ -26,23 +25,27 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-MotorPanel motorPanel(uart_MotorPanel);
+MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_TX_PERIOD_MS), millisecond_t(MOTOR_PANEL_LINK_RX_PERIOD_MS));
 
 hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180, cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA, cfg::FRONT_SERVO_WHEEL_TR);
 hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::REAR_SERVO_PWM_0, cfg::REAR_SERVO_PWM_180, cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA, cfg::REAR_SERVO_WHEEL_TR);
 
 hw::Servo frontDistServo(tim_ServoX, tim_chnl_ServoX1, cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180, cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
 
-static Timer motorPanelSendTimer;
 static Timer frontDistServoUpdateTimer;
 
-void fillMotorPanelData(motorPanelDataIn_t& panelData, m_per_sec_t targetSpeed) {
-    panelData.controller_Kc    = globals::motorCtrl_Kc;
-    panelData.targetSpeed_mmps = static_cast<int16_t>(static_cast<mm_per_sec_t>(targetSpeed).get());
-    panelData.controller_Ti_us = static_cast<microsecond_t>(globals::motorCtrl_Ti).get();
+void fillMotorPanelData(motorPanelDataIn_t& txData, m_per_sec_t targetSpeed) {
+    txData.controller_Kc    = globals::motorCtrl_Kc;
+    txData.targetSpeed_mmps = static_cast<int16_t>(static_cast<mm_per_sec_t>(targetSpeed).get());
+    txData.controller_Ti_us = static_cast<microsecond_t>(globals::motorCtrl_Ti).get();
 
-    panelData.flags = 0x00;
-    if (globals::useSafetyEnableSignal) panelData.flags |= MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL;
+    txData.flags = 0x00;
+    if (globals::useSafetyEnableSignal) txData.flags |= MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL;
+}
+
+static void parseMotorPanelData(motorPanelDataOut_t& rxData) {
+    globals::car.distance = millimeter_t(rxData.distance_mm);
+    globals::car.speed = mm_per_sec_t(rxData.actualSpeed_mmps);
 }
 
 } // namespace
@@ -56,10 +59,10 @@ extern "C" void runControlTask(const void *argument) {
     rearSteeringServo.writeWheelAngle(radian_t::zero());
     frontDistServo.write(radian_t::zero());
 
-    motorPanel.start();
-    motorPanel.waitResponse();
-    motorPanelSendTimer.start(millisecond_t(20));
     frontDistServoUpdateTimer.start(millisecond_t(20));
+
+    motorPanelDataOut_t rxData;
+    motorPanelDataIn_t txData;
 
     ControlData controlData;
     millisecond_t lastControlDataRecvTime = millisecond_t::zero();
@@ -67,58 +70,41 @@ extern "C" void runControlTask(const void *argument) {
     PD_Controller lineController(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow,
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
-    //LineController2 lineController2(cfg::CAR_PIVOT_DIST_MID, cfg::OPTO_SENSOR_FRONT_WHEEL_DIST);
-
-    globals::isControlTaskInitialized = true;
-
     while (true) {
-        if (motorPanel.hasNewValue()) {
-            motorPanelDataOut_t motorPanelData = motorPanel.acquireLastValue();
-            globals::car.distance = millimeter_t(motorPanelData.distance_mm);
-            globals::car.speed = mm_per_sec_t(motorPanelData.actualSpeed_mmps);
-//            const m_per_sec_t currentTargetSpeed = mm_per_sec_t(motorPanelData.targetSpeed_mmps);
-//            LOG_DEBUG("actual speed: %f m/s\ttarget speed: %f m/s\tisMotorEnabled:%s\tpos: %fmm",
-//                globals::car.speed.get(),
-//                currentTargetSpeed.get(),
-//                motorPanelData.isMotorEnabled ? "true" : "false",
-//                static_cast<millimeter_t>(globals::car.distance).get());
-        }
-
-        // if no control data is received for a given period, stops motor for safety reasons
-        if (xQueueReceive(controlQueue, &controlData, 0)) {
-            lastControlDataRecvTime = micro::getTime();
-
-            if (globals::lineFollowEnabled) {
-
-                if (abs(globals::car.speed) > m_per_sec_t(2.2)) {
-                    lineController.setParams(globals::frontLineCtrl_P_fast, globals::frontLineCtrl_D_fast);
-                } else {
-                    lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
-                }
-
-//                const radian_t steerAngle = lineController2.GetControlSignal(globals::car.speed, controlData.baseline);
-//                frontSteeringServo.writeWheelAngle(steerAngle);
-//                rearSteeringServo.writeWheelAngle(-steerAngle);
-
-                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
-
-                frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
-                rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
-            }
-
-        } else if (micro::getTime() - lastControlDataRecvTime > millisecond_t(20)) {
-            controlData.speed = m_per_sec_t::zero();
-        }
-
-        if (motorPanelSendTimer.checkTimeout()) {
-            motorPanelDataIn_t data;
-            fillMotorPanelData(data, controlData.speed);
-            motorPanel.send(data);
-        }
-
-        if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
-            frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
-        }
+//        motorPanelLink.update();
+//        globals::isControlTaskOk = motorPanelLink.isConnected();
+//
+//        if (motorPanelLink.readAvailable(rxData)) {
+//            parseMotorPanelData(rxData);
+//        }
+//
+//        // if no control data is received for a given period, stops motor for safety reasons
+//        if (xQueueReceive(controlQueue, &controlData, 0)) {
+//            lastControlDataRecvTime = getTime();
+//
+//            if (abs(globals::car.speed) > m_per_sec_t(2.2)) {
+//                lineController.setParams(globals::frontLineCtrl_P_fast, globals::frontLineCtrl_D_fast);
+//            } else {
+//                lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
+//            }
+//
+//            lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
+//
+//            frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
+//            rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
+//
+//        } else if (getTime() - lastControlDataRecvTime > millisecond_t(20)) {
+//            controlData.speed = m_per_sec_t::zero();
+//        }
+//
+//        if (motorPanelLink.shouldSend()) {
+//            fillMotorPanelData(txData, controlData.speed);
+//            motorPanelLink.send(txData);
+//        }
+//
+//        if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
+//            frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
+//        }
 
         vTaskDelay(1);
     }
@@ -129,5 +115,5 @@ extern "C" void runControlTask(const void *argument) {
 /* @brief Callback for motor panel UART RxCplt - called when receive finishes.
  */
 void micro_MotorPanel_Uart_RxCpltCallback() {
-    motorPanel.onDataReceived();
+    motorPanelLink.onNewRxData();
 }

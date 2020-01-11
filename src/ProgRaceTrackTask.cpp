@@ -3,8 +3,6 @@
 #include <micro/utils/updatable.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/sensor/Filter.hpp>
-#include <micro/panel/LineDetectPanel.hpp>
-#include <micro/panel/MotorPanel.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
@@ -17,6 +15,8 @@
 #include <globals.hpp>
 
 #include <FreeRTOS.h>
+#include <micro/panel/LineDetectPanelLink.hpp>
+#include <micro/panel/MotorPanelLink.hpp>
 #include <task.h>
 #include <queue.h>
 

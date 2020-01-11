@@ -7,9 +7,8 @@ namespace globals {
 
 ProgramState programState           = ProgramState(ProgramState::ActiveModule::Labyrinth, 1);
 bool useSafetyEnableSignal          = true;
-bool indicatorLedsEnabled           = true;
+bool indicatorLedsEnabled           = false;
 bool startSignalEnabled             = false;
-bool lineFollowEnabled              = true;
 microsecond_t motorCtrl_Ti          = cfg::DC_MOTOR_CONTROLLER_DEFAULT_Ti;
 float motorCtrl_Kc                  = cfg::DC_MOTOR_CONTROLLER_DEFAULT_Kc;
 float frontLineCtrl_P_slow          = cfg::FRONT_LINE_CONTROLLER_DEFAULT_P_slow;
@@ -32,11 +31,11 @@ m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
 m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.4f);
 m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(3.0f);
 
-bool isControlTaskInitialized    = false;
-bool isDebugTaskInitialized      = false;
-bool isDistSensorTaskInitialized = false;
-bool isGyroTaskInitialized       = false;
-bool isLineDetectInitialized     = false;
+bool isControlTaskOk    = false;
+bool isDebugTaskOk      = false;
+bool isDistSensorTaskOk = false;
+bool isGyroTaskOk       = false;
+bool isLineDetectTaskOk = false;
 
 void registerGlobalParams(Params& params) {
 

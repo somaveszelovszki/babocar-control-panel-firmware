@@ -22,7 +22,7 @@ extern "C" void runGyroTask(const void *argument) {
 
     gyro.initialize();
 
-    globals::isGyroTaskInitialized = true;
+    globals::isGyroTaskOk = true;
     LOG_DEBUG("Gyro task initialized");
 
     microsecond_t prevCarPoseUpdateTime = micro::getExactTime();

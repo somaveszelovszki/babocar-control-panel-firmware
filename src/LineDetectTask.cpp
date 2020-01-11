@@ -1,17 +1,16 @@
-#include <cfg_board.h>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
-#include <micro/panel/LineDetectPanel.hpp>
-#include <micro/panel/LineDetectPanelData.h>
-#include <micro/task/common.hpp>
 #include <micro/sensor/Filter.hpp>
+#include <micro/panel/LineDetectPanelLink.hpp>
+#include <micro/task/common.hpp>
 
+#include <cfg_board.h>
+#include <cfg_car.hpp>
+#include <globals.hpp>
 #include <ControlData.hpp>
 #include <DistancesData.hpp>
 #include <DetectedLines.hpp>
-#include <cfg_car.hpp>
-#include <globals.hpp>
 
 #include <FreeRTOS.h>
 #include <queue.h>
@@ -24,27 +23,23 @@ QueueHandle_t detectedLinesQueue;
 static uint8_t detectedLinesQueueStorageBuffer[DETECTED_LINES_QUEUE_LENGTH * sizeof(DetectedLines)];
 static StaticQueue_t detectedLinesQueueBuffer;
 
-static LineDetectPanel frontLineDetectPanel(uart_FrontLineDetectPanel);
-static lineDetectPanelDataIn_t frontLineDetectPanelData;
+static LineDetectPanelLink frontLineDetectPanelLink(uart_FrontLineDetectPanel, millisecond_t(LINE_DETECT_PANEL_LINK_TX_PERIOD_MS), millisecond_t(LINE_DETECT_PANEL_LINK_RX_PERIOD_MS));
 
 static LineCalculator lineCalc;
 static LinePatternCalculator linePatternCalc;
 
-static Timer lineDetectPanelSendTimer;
-
 static Line mainLine;
 
-static void fillLineDetectPanelData(lineDetectPanelDataIn_t& panelData) {
-    panelData.flags = 0x00;
-    if (globals::indicatorLedsEnabled) panelData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
+static void fillLineDetectPanelData(lineDetectPanelDataIn_t& txData) {
+    txData.flags = 0x00;
+    if (globals::indicatorLedsEnabled) txData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
 }
 
-static void getLinesFromPanel(LineDetectPanel& panel, Lines& lines, bool mirror = false) {
-    lineDetectPanelDataOut_t dataIn = panel.acquireLastValue();
+static void parseLineDetectPanelData(lineDetectPanelDataOut_t& rxData, Lines& lines, bool mirror = false) {
     lines.clear();
 
-    for (uint8_t i = 0; i < dataIn.lines.numLines; ++i) {
-        const line_t * const l = &dataIn.lines.values[i];
+    for (uint8_t i = 0; i < rxData.lines.numLines; ++i) {
+        const line_t * const l = &rxData.lines.values[i];
         lines.push_back(Line{ millimeter_t(l->pos_mm) * (mirror ? -1 : 1), l->id });
     }
 
@@ -57,29 +52,26 @@ extern "C" void runLineDetectTask(const void *argument) {
 
     vTaskDelay(300); // gives time to other tasks to wake up
 
-    frontLineDetectPanel.start();
-    frontLineDetectPanel.waitResponse();
-
-    lineDetectPanelSendTimer.start(millisecond_t(400));
-
-    globals::isLineDetectInitialized = true;
-    LOG_DEBUG("Line detect task initialized");
-
     Lines lines;
 
-    while (true) {
+    lineDetectPanelDataOut_t rxData;
+    lineDetectPanelDataIn_t txData;
 
-        if (frontLineDetectPanel.hasNewValue()) {
-            getLinesFromPanel(frontLineDetectPanel, lines);
+    while (true) {
+        frontLineDetectPanelLink.update();
+        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
+
+        if (frontLineDetectPanelLink.readAvailable(rxData)) {
+            parseLineDetectPanelData(rxData, lines);
             lineCalc.update(lines);
             linePatternCalc.update(globals::programState, lines, globals::car.distance);
             const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }
 
-        if (lineDetectPanelSendTimer.checkTimeout()) {
-            fillLineDetectPanelData(frontLineDetectPanelData);
-            frontLineDetectPanel.send(frontLineDetectPanelData);
+        if (frontLineDetectPanelLink.shouldSend()) {
+            fillLineDetectPanelData(txData);
+            frontLineDetectPanelLink.send(txData);
         }
 
         vTaskDelay(1);
@@ -91,5 +83,5 @@ extern "C" void runLineDetectTask(const void *argument) {
 /* @brief Callback for front line detect panel UART RxCplt - called when receive finishes.
  */
 void micro_FrontLineDetectPanel_Uart_RxCpltCallback() {
-    frontLineDetectPanel.onDataReceived();
+    frontLineDetectPanelLink.onNewRxData();
 }

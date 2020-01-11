@@ -37,12 +37,12 @@ static Timer ledBlinkTimer;
 
 static volatile bool uartOccupied = false;
 
-static bool areAllTasksInitialized(void) {
-    return globals::isControlTaskInitialized &&
-           globals::isDebugTaskInitialized &&
-           globals::isDistSensorTaskInitialized &&
-           globals::isGyroTaskInitialized &&
-           globals::isLineDetectInitialized;
+static bool areAllTasksOk(void) {
+    return globals::isControlTaskOk &&
+           globals::isDebugTaskOk &&
+           globals::isDistSensorTaskOk &&
+           globals::isGyroTaskOk &&
+           globals::isLineDetectTaskOk;
 }
 
 extern "C" void runDebugTask(const void *argument) {
@@ -56,7 +56,7 @@ extern "C" void runDebugTask(const void *argument) {
     debugParamsSendTimer.start(millisecond_t(500));
     ledBlinkTimer.start(millisecond_t(250));
 
-    globals::isDebugTaskInitialized = true;
+    globals::isDebugTaskOk = true;
     LOG_DEBUG("Debug task initialized");
 
     while (true) {
@@ -108,10 +108,11 @@ extern "C" void runDebugTask(const void *argument) {
             uartOccupied = true;
         }
 
-        ledBlinkTimer.setPeriod(millisecond_t(areAllTasksInitialized() ? 500 : 250));
-        if (ledBlinkTimer.checkTimeout()) {
-            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-        }
+//        ledBlinkTimer.setPeriod(millisecond_t(areAllTasksOk() ? 500 : 250));
+//        if (ledBlinkTimer.checkTimeout()) {
+//            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+//        }
+        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isLineDetectTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
         vTaskDelay(1);
     }
