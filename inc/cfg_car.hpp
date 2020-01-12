@@ -45,4 +45,6 @@ constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D_fast = 50.0f;
 constexpr float REAR_LINE_CONTROLLER_DEFAULT_P  = 1.0f;
 constexpr float REAR_LINE_CONTROLLER_DEFAULT_D  = 1.0f;
 
+#define SERIAL_DEBUG_ENABLED false
+
 } // namespace cfg

@@ -8,6 +8,7 @@
 #include <micro/utils/timer.hpp>
 #include <micro/debug/params.hpp>
 
+#include <cfg_car.hpp>
 #include <globals.hpp>
 
 #include <FreeRTOS.h>
@@ -26,12 +27,14 @@ static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
 static StaticQueue_t logQueueBuffer;
 
 static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 6> rxBuffer;
-static char inCmd[MAX_RX_BUFFER_SIZE];
 static char txLog[LOG_MSG_MAX_SIZE];
-static char debugParamsStr[DEBUG_PARAMS_STR_MAX_SIZE];
 
+#if SERIAL_DEBUG_ENABLED
+static char inCmd[MAX_RX_BUFFER_SIZE];
+static char debugParamsStr[DEBUG_PARAMS_STR_MAX_SIZE];
 static Params debugParams;
 static Timer debugParamsSendTimer;
+#endif // SERIAL_DEBUG_ENABLED
 
 static Timer ledBlinkTimer;
 
@@ -47,19 +50,23 @@ static bool areAllTasksOk(void) {
 
 extern "C" void runDebugTask(const void *argument) {
     logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
-    globals::registerGlobalParams(debugParams);
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
+#if SERIAL_DEBUG_ENABLED
+    globals::registerGlobalParams(debugParams);
     debugParamsSendTimer.start(millisecond_t(500));
+#endif // SERIAL_DEBUG_ENABLED
+
     ledBlinkTimer.start(millisecond_t(250));
 
     globals::isDebugTaskOk = true;
     LOG_DEBUG("Debug task initialized");
 
     while (true) {
+#if SERIAL_DEBUG_ENABLED
         if (rxBuffer.size() > 0) {
             const char * const rxData = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
 
@@ -101,6 +108,7 @@ extern "C" void runDebugTask(const void *argument) {
             HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(debugParamsStr), len);
             uartOccupied = true;
         }
+#endif // SERIAL_DEBUG_ENABLED
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
         if(!uartOccupied && xQueueReceive(logQueue, txLog, 1)) {
@@ -108,11 +116,10 @@ extern "C" void runDebugTask(const void *argument) {
             uartOccupied = true;
         }
 
-//        ledBlinkTimer.setPeriod(millisecond_t(areAllTasksOk() ? 500 : 250));
-//        if (ledBlinkTimer.checkTimeout()) {
-//            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-//        }
-        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isLineDetectTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        ledBlinkTimer.setPeriod(millisecond_t(areAllTasksOk() ? 500 : 250));
+        if (ledBlinkTimer.checkTimeout()) {
+            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+        }
 
         vTaskDelay(1);
     }
