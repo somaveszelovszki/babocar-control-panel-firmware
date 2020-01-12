@@ -27,10 +27,22 @@ namespace {
 
 MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_TX_PERIOD_MS), millisecond_t(MOTOR_PANEL_LINK_RX_PERIOD_MS));
 
-hw::SteeringServo frontSteeringServo(tim_SteeringServo, tim_chnl_FrontServo, cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180, cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA, cfg::FRONT_SERVO_WHEEL_TR);
-hw::SteeringServo rearSteeringServo(tim_SteeringServo, tim_chnl_RearServo, cfg::REAR_SERVO_PWM_0, cfg::REAR_SERVO_PWM_180, cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA, cfg::REAR_SERVO_WHEEL_TR);
+hw::SteeringServo frontSteeringServo(
+    tim_SteeringServo, tim_chnl_FrontServo,
+    cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180,
+    cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA,
+    cfg::FRONT_SERVO_WHEEL_TR);
 
-hw::Servo frontDistServo(tim_ServoX, tim_chnl_ServoX1, cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180, cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
+hw::SteeringServo rearSteeringServo(
+    tim_SteeringServo, tim_chnl_RearServo,
+    cfg::REAR_SERVO_PWM_0, cfg::REAR_SERVO_PWM_180,
+    cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA,
+    cfg::REAR_SERVO_WHEEL_TR);
+
+hw::Servo frontDistServo(
+    tim_ServoX, tim_chnl_ServoX1,
+    cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180,
+    cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
 
 static Timer frontDistServoUpdateTimer;
 

@@ -45,8 +45,8 @@ extern I2C_HandleTypeDef  hi2c2;
 #define tim_chnl_RearServo           TIM_CHANNEL_2
 
 #define tim_ServoX                   (&htim3)
-#define tim_chnl_ServoX1             TIM_CHANNEL_3
-#define tim_chnl_ServoX2             TIM_CHANNEL_4
+#define tim_chnl_ServoX1             TIM_CHANNEL_4
+#define tim_chnl_ServoX2             TIM_CHANNEL_3
 
 #define uart_MotorPanel              (&huart1)
 #define uart_Command                 (&huart2)
