@@ -47,9 +47,10 @@ hw::Servo frontDistServo(
 static Timer frontDistServoUpdateTimer;
 
 void fillMotorPanelData(motorPanelDataIn_t& txData, m_per_sec_t targetSpeed) {
-    txData.controller_Kc    = globals::motorCtrl_Kc;
-    txData.targetSpeed_mmps = static_cast<int16_t>(static_cast<mm_per_sec_t>(targetSpeed).get());
-    txData.controller_Ti_us = static_cast<microsecond_t>(globals::motorCtrl_Ti).get();
+    txData.controller_P            = globals::motorCtrl_P;
+    txData.controller_I            = globals::motorCtrl_I;
+    txData.controller_integral_max = globals::motorCtrl_integral_max;
+    txData.targetSpeed_mmps        = static_cast<int16_t>(static_cast<mm_per_sec_t>(targetSpeed).get());
 
     txData.flags = 0x00;
     if (globals::useSafetyEnableSignal) txData.flags |= MOTOR_PANEL_FLAG_USE_SAFETY_SIGNAL;
@@ -83,40 +84,37 @@ extern "C" void runControlTask(const void *argument) {
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
     while (true) {
-//        motorPanelLink.update();
-//        globals::isControlTaskOk = motorPanelLink.isConnected();
-//
-//        if (motorPanelLink.readAvailable(rxData)) {
-//            parseMotorPanelData(rxData);
-//        }
-//
-//        // if no control data is received for a given period, stops motor for safety reasons
-//        if (xQueueReceive(controlQueue, &controlData, 0)) {
-//            lastControlDataRecvTime = getTime();
-//
-//            if (abs(globals::car.speed) > m_per_sec_t(2.2)) {
-//                lineController.setParams(globals::frontLineCtrl_P_fast, globals::frontLineCtrl_D_fast);
-//            } else {
-//                lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
-//            }
-//
-//            lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
-//
-//            frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
-//            rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
-//
-//        } else if (getTime() - lastControlDataRecvTime > millisecond_t(20)) {
-//            controlData.speed = m_per_sec_t::zero();
-//        }
-//
-//        if (motorPanelLink.shouldSend()) {
-//            fillMotorPanelData(txData, controlData.speed);
-//            motorPanelLink.send(txData);
-//        }
-//
-//        if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
-//            frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
-//        }
+        motorPanelLink.update();
+        globals::isControlTaskOk = motorPanelLink.isConnected();
+
+        if (motorPanelLink.readAvailable(rxData)) {
+            parseMotorPanelData(rxData);
+        }
+
+        // if no control data is received for a given period, stops motor for safety reasons
+        if (xQueueReceive(controlQueue, &controlData, 0)) {
+            lastControlDataRecvTime = getTime();
+
+            //lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
+            lineController.setParams(globals::frontLineCtrl_P_slow, 0.0f);
+
+            lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
+
+            frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
+            rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
+
+        } else if (getTime() - lastControlDataRecvTime > millisecond_t(20)) {
+            controlData.speed = m_per_sec_t::zero();
+        }
+
+        if (motorPanelLink.shouldSend()) {
+            fillMotorPanelData(txData, controlData.speed);
+            motorPanelLink.send(txData);
+        }
+
+        if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
+            frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
+        }
 
         vTaskDelay(1);
     }

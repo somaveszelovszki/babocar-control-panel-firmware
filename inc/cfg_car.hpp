@@ -32,20 +32,6 @@ constexpr micro::radian_t DIST_SERVO_MAX_DELTA        = micro::degree_t(45.0f); 
 
 constexpr micro::meter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(107.0f);     // Distance between front sensors and front wheels.
 
-constexpr micro::microsecond_t DC_MOTOR_T_ELECTRICAL = micro::microsecond_t(484.0f);
-
-constexpr micro::microsecond_t DC_MOTOR_CONTROLLER_DEFAULT_Ti = DC_MOTOR_T_ELECTRICAL;
-constexpr float                DC_MOTOR_CONTROLLER_DEFAULT_Kc = 1.0f;
-
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P_slow = 1.8f;
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D_slow = 1700.0f;
-
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_P_fast = 0.15f;
-constexpr float FRONT_LINE_CONTROLLER_DEFAULT_D_fast = 50.0f;
-
-constexpr float REAR_LINE_CONTROLLER_DEFAULT_P  = 1.0f;
-constexpr float REAR_LINE_CONTROLLER_DEFAULT_D  = 1.0f;
-
 #define SERIAL_DEBUG_ENABLED false
 
 } // namespace cfg
