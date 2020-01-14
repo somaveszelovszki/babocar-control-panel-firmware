@@ -85,8 +85,6 @@ extern I2C_HandleTypeDef  hi2c2;
 #define gpio_DistEn                  GPIOB
 #define gpioPin_DistEn               GPIO_PIN_1
 
-#define MAX_RX_BUFFER_SIZE           1024
-
 #ifdef __cplusplus
 }
 #endif // __cplusplus

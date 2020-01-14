@@ -304,7 +304,7 @@ void LinePatternCalculator::update(const ProgramState programState, const Lines&
 
                 if (!this->possiblePatterns.size()) {
                     this->isPatternChangeCheckActive = false;
-                    LOG_DEBUG("All possible patterns are invalid, steps back to previous pattern");
+                    //LOG_DEBUG("All possible patterns are invalid, steps back to previous pattern");
                 }
             }
         }

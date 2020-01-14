@@ -227,7 +227,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             xQueueOverwrite(controlQueue, &controlData);
             prevDetectedLines = detectedLines;
 
-            vTaskDelay(1);
+            vTaskDelay(2);
             break;
         }
 

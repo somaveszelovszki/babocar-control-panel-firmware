@@ -591,19 +591,19 @@ bool waitStartSignal() {
 
 bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
 
-    // TODO only for testing -------------------------------------------
-
-    static const TestCase *testCase = testCase1;
-    static const uint32_t numTestCasePoints = ARRAY_SIZE(testCase1);
-    static uint32_t testCasePointIdx = 0;
-
-    if (testCasePointIdx < numTestCasePoints) {
-        globals::car.pose = testCase[testCasePointIdx].pose;
-        const_cast<DetectedLines&>(detectedLines).pattern = testCase[testCasePointIdx].pattern;
-        testCasePointIdx++;
-    }
-
-    // -----------------------------------------------------------------
+//    // TODO only for testing -------------------------------------------
+//
+//    static const TestCase *testCase = testCase1;
+//    static const uint32_t numTestCasePoints = ARRAY_SIZE(testCase1);
+//    static uint32_t testCasePointIdx = 0;
+//
+//    if (testCasePointIdx < numTestCasePoints) {
+//        globals::car.pose = testCase[testCasePointIdx].pose;
+//        const_cast<DetectedLines&>(detectedLines).pattern = testCase[testCasePointIdx].pattern;
+//        testCasePointIdx++;
+//    }
+//
+//    // -----------------------------------------------------------------
 
     static uint8_t numInSegments;
     static Direction inSegmentDir;
@@ -796,7 +796,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 }
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
-void micro_RadioModule_Uart_RxCpltCallback() {
+void micro_RadioModule_Uart_RxCpltCallback(const uint32_t) {
     const uint8_t cntr = static_cast<uint8_t>(startCounterBuffer[0]);
     if (cntr == startCounter - 1) {
         startCounter = cntr;

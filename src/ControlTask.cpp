@@ -25,7 +25,7 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_TX_PERIOD_MS), millisecond_t(MOTOR_PANEL_LINK_RX_PERIOD_MS));
+MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_RX_TIMEOUT_MS), millisecond_t(MOTOR_PANEL_LINK_TX_PERIOD_MS));
 
 hw::SteeringServo frontSteeringServo(
     tim_SteeringServo, tim_chnl_FrontServo,
@@ -84,7 +84,6 @@ extern "C" void runControlTask(const void *argument) {
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
     while (true) {
-        motorPanelLink.update();
         globals::isControlTaskOk = motorPanelLink.isConnected();
 
         if (motorPanelLink.readAvailable(rxData)) {
@@ -124,6 +123,6 @@ extern "C" void runControlTask(const void *argument) {
 
 /* @brief Callback for motor panel UART RxCplt - called when receive finishes.
  */
-void micro_MotorPanel_Uart_RxCpltCallback() {
-    motorPanelLink.onNewRxData();
+void micro_MotorPanel_Uart_RxCpltCallback(const uint32_t leftBytes) {
+    motorPanelLink.onNewRxData(sizeof(motorPanelDataOut_t) - leftBytes);
 }

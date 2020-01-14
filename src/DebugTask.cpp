@@ -19,9 +19,9 @@
 
 using namespace micro;
 
-#define DEBUG_PARAMS_STR_MAX_SIZE MAX_RX_BUFFER_SIZE
+#define MAX_RX_BUFFER_SIZE  1024
 
-#define LOG_QUEUE_LENGTH 16
+#define LOG_QUEUE_LENGTH    16
 QueueHandle_t logQueue;
 static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
 static StaticQueue_t logQueueBuffer;
@@ -31,7 +31,7 @@ static char txLog[LOG_MSG_MAX_SIZE];
 
 #if SERIAL_DEBUG_ENABLED
 static char inCmd[MAX_RX_BUFFER_SIZE];
-static char debugParamsStr[DEBUG_PARAMS_STR_MAX_SIZE];
+static char debugParamsStr[MAX_RX_BUFFER_SIZE];
 static Params debugParams;
 static Timer debugParamsSendTimer;
 #endif // SERIAL_DEBUG_ENABLED
@@ -80,7 +80,7 @@ extern "C" void runDebugTask(const void *argument) {
             rxBuffer.updateTail(1);
 
             if (!strncmp(inCmd, "[P]", 3)) {
-                debugParams.deserializeAll(&inCmd[3]);
+                debugParams.deserializeAll(&inCmd[3], len - 3);
 
                 HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
                 vTaskDelay(100);
@@ -99,7 +99,7 @@ extern "C" void runDebugTask(const void *argument) {
 
         if (!uartOccupied && debugParamsSendTimer.checkTimeout()) {
             strncpy(debugParamsStr, "[P]", 3);
-            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, DEBUG_PARAMS_STR_MAX_SIZE - (3 + 4));
+            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, MAX_RX_BUFFER_SIZE - (3 + 4));
             debugParamsStr[len++] = '$';
             debugParamsStr[len++] = '\r';
             debugParamsStr[len++] = '\n';
@@ -118,7 +118,7 @@ extern "C" void runDebugTask(const void *argument) {
 
         ledBlinkTimer.setPeriod(millisecond_t(areAllTasksOk() ? 500 : 250));
         if (ledBlinkTimer.checkTimeout()) {
-            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+            //HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
         }
 
         vTaskDelay(1);
@@ -129,8 +129,8 @@ extern "C" void runDebugTask(const void *argument) {
 
 /* @brief Callback for Serial UART RxCplt - called when receive finishes.
  */
-void micro_Command_Uart_RxCpltCallback(const uint32_t size) {
-    if (size > 0) {
+void micro_Command_Uart_RxCpltCallback(const uint32_t leftBytes) {
+    if (MAX_RX_BUFFER_SIZE > leftBytes) {
         rxBuffer.updateHead(1);
     }
 
