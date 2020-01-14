@@ -25,7 +25,7 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_RX_TIMEOUT_MS), millisecond_t(MOTOR_PANEL_LINK_TX_PERIOD_MS));
+MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_TX_TIMEOUT_MS), millisecond_t(MOTOR_PANEL_LINK_RX_PERIOD_MS));
 
 hw::SteeringServo frontSteeringServo(
     tim_SteeringServo, tim_chnl_FrontServo,

@@ -27,8 +27,8 @@ static StaticQueue_t detectedLinesQueueBuffer;
 
 static LineDetectPanelLink frontLineDetectPanelLink(
     uart_FrontLineDetectPanel,
-    millisecond_t(LINE_DETECT_PANEL_LINK_RX_TIMEOUT_MS),
-    millisecond_t(LINE_DETECT_PANEL_LINK_TX_PERIOD_MS));
+    millisecond_t(LINE_DETECT_PANEL_LINK_OUT_TIMEOUT_MS),
+    millisecond_t(LINE_DETECT_PANEL_LINK_IN_PERIOD_MS));
 
 static LineCalculator lineCalc;
 static LinePatternCalculator linePatternCalc;
@@ -51,18 +51,14 @@ static void parseLineDetectPanelData(lineDetectPanelDataOut_t& rxData, Lines& li
     lines.removeDuplicates();
 }
 
-static lineDetectPanelDataOut_t rxDataBuffer;
-static volatile bool available = false;
-
 extern "C" void runLineDetectTask(const void *argument) {
 
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
     Lines lines;
 
+    lineDetectPanelDataOut_t rxData;
     lineDetectPanelDataIn_t txData;
-
-    HAL_UART_Receive_DMA(uart_FrontLineDetectPanel, (uint8_t*)&rxDataBuffer, sizeof(lineDetectPanelDataOut_t));
 
     vTaskDelay(300); // gives time to other tasks to wake up
 
@@ -73,12 +69,11 @@ extern "C" void runLineDetectTask(const void *argument) {
     lines.push_back(Line{ millimeter_t(0), 1 });
 
     while (true) {
-        if (available) {
-            available = false;
+        frontLineDetectPanelLink.update();
+        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
+        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isLineDetectTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-            lineDetectPanelDataOut_t rxData;
-            memcpy(&rxData, &rxDataBuffer, sizeof(lineDetectPanelDataOut_t));
-
+        if (frontLineDetectPanelLink.readAvailable(rxData)) {
             HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, GPIO_PIN_SET);
             prevReadTime = getTime();
             parseLineDetectPanelData(rxData, lines);
@@ -86,27 +81,12 @@ extern "C" void runLineDetectTask(const void *argument) {
             linePatternCalc.update(globals::programState, lines, globals::car.distance);
             const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
-        } else {
-            HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, GPIO_PIN_RESET);
         }
-        //frontLineDetectPanelLink.update();
-        //globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
-//        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isLineDetectTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
-//
-//        if (frontLineDetectPanelLink.readAvailable(rxData)) {
-//            HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, GPIO_PIN_SET);
-//            prevReadTime = getTime();
-//            parseLineDetectPanelData(rxData, lines);
-//            lineCalc.update(lines);
-//            linePatternCalc.update(globals::programState, lines, globals::car.distance);
-//            const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
-//            xQueueOverwrite(detectedLinesQueue, &detectedLines);
-//        }
-//
-//        if (frontLineDetectPanelLink.shouldSend()) {
-//            fillLineDetectPanelData(txData);
-//            frontLineDetectPanelLink.send(txData);
-//        }
+
+        if (frontLineDetectPanelLink.shouldSend()) {
+            fillLineDetectPanelData(txData);
+            frontLineDetectPanelLink.send(txData);
+        }
 
         vTaskDelay(1);
     }
@@ -117,15 +97,10 @@ extern "C" void runLineDetectTask(const void *argument) {
 /* @brief Callback for front line detect panel UART RxCplt - called when receive finishes.
  */
 void micro_FrontLineDetectPanel_Uart_RxCpltCallback(const uint32_t leftBytes) {
-    //frontLineDetectPanelLink.onNewRxData(sizeof(lineDetectPanelDataOut_t) - leftBytes);
-    if (0 == leftBytes) {
-        available = true;
-    }
-    HAL_UART_Receive_DMA(uart_FrontLineDetectPanel, (uint8_t*)&rxDataBuffer, sizeof(lineDetectPanelDataOut_t));
+    frontLineDetectPanelLink.onNewRxData(sizeof(lineDetectPanelDataOut_t) - leftBytes);
 }
 
 void micro_FrontLineDetectPanel_Uart_ErrorCallback() {
-    //frontLineDetectPanelLink.onRxError();
-    HAL_UART_Receive_DMA(uart_FrontLineDetectPanel, (uint8_t*)&rxDataBuffer, sizeof(lineDetectPanelDataOut_t));
+    frontLineDetectPanelLink.onRxError();
 }
 
