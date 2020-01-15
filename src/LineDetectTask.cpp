@@ -71,7 +71,6 @@ extern "C" void runLineDetectTask(const void *argument) {
     while (true) {
         frontLineDetectPanelLink.update();
         globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
-        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isLineDetectTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
         if (frontLineDetectPanelLink.readAvailable(rxData)) {
             HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, GPIO_PIN_SET);

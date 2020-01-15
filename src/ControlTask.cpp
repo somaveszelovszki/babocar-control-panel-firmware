@@ -25,7 +25,10 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-MotorPanelLink motorPanelLink(uart_MotorPanel, millisecond_t(MOTOR_PANEL_LINK_TX_TIMEOUT_MS), millisecond_t(MOTOR_PANEL_LINK_RX_PERIOD_MS));
+MotorPanelLink motorPanelLink(
+    uart_MotorPanel,
+    millisecond_t(MOTOR_PANEL_LINK_OUT_TIMEOUT_MS),
+    millisecond_t(MOTOR_PANEL_LINK_IN_PERIOD_MS));
 
 hw::SteeringServo frontSteeringServo(
     tim_SteeringServo, tim_chnl_FrontServo,
@@ -61,6 +64,8 @@ static void parseMotorPanelData(motorPanelDataOut_t& rxData) {
     globals::car.speed = mm_per_sec_t(rxData.actualSpeed_mmps);
 }
 
+volatile bool newData = false;
+
 } // namespace
 
 extern "C" void runControlTask(const void *argument) {
@@ -83,19 +88,33 @@ extern "C" void runControlTask(const void *argument) {
     PD_Controller lineController(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow,
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
-    while (true) {
-        globals::isControlTaskOk = motorPanelLink.isConnected();
-
-        if (motorPanelLink.readAvailable(rxData)) {
-            parseMotorPanelData(rxData);
+    HAL_UART_Receive_DMA(uart_MotorPanel, (uint8_t*)&rxData, sizeof(motorPanelDataOut_t));
+    millisecond_t prevSendTime = millisecond_t(0);
+    char startChar = 'S';
+    do {
+        if (getTime() - prevSendTime > millisecond_t(50)) {
+            HAL_UART_Transmit(uart_MotorPanel, (uint8_t*)&startChar, 1, 2);
+            prevSendTime = getTime();
         }
+    } while (!newData);
+    newData = false;
+
+    globals::isControlTaskOk = true;
+
+    while (true) {
+        //motorPanelLink.update();
+        //globals::isControlTaskOk = motorPanelLink.isConnected();
+        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isControlTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+//        if (motorPanelLink.readAvailable(rxData)) {
+//            parseMotorPanelData(rxData);
+//        }
 
         // if no control data is received for a given period, stops motor for safety reasons
         if (xQueueReceive(controlQueue, &controlData, 0)) {
             lastControlDataRecvTime = getTime();
 
-            //lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
-            lineController.setParams(globals::frontLineCtrl_P_slow, 0.0f);
+            lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
 
             lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
 
@@ -106,13 +125,19 @@ extern "C" void runControlTask(const void *argument) {
             controlData.speed = m_per_sec_t::zero();
         }
 
-        if (motorPanelLink.shouldSend()) {
-            fillMotorPanelData(txData, controlData.speed);
-            motorPanelLink.send(txData);
-        }
+//        if (motorPanelLink.shouldSend()) {
+//            fillMotorPanelData(txData, controlData.speed);
+//            motorPanelLink.send(txData);
+//        }
 
         if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
             frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
+        }
+
+        if (getTime() - prevSendTime > millisecond_t(20)) {
+            fillMotorPanelData(txData, controlData.speed);
+            HAL_UART_Transmit_DMA(uart_MotorPanel, (uint8_t*)&txData, sizeof(motorPanelDataIn_t));
+            prevSendTime = getTime();
         }
 
         vTaskDelay(1);
@@ -124,5 +149,6 @@ extern "C" void runControlTask(const void *argument) {
 /* @brief Callback for motor panel UART RxCplt - called when receive finishes.
  */
 void micro_MotorPanel_Uart_RxCpltCallback(const uint32_t leftBytes) {
-    motorPanelLink.onNewRxData(sizeof(motorPanelDataOut_t) - leftBytes);
+    newData = true;
+    //motorPanelLink.onNewRxData(sizeof(motorPanelDataOut_t) - leftBytes);
 }
