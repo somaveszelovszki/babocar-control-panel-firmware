@@ -5,7 +5,7 @@
 namespace micro {
 namespace globals {
 
-ProgramState programState           = ProgramState(ProgramState::ActiveModule::RaceTrack, 3);
+ProgramState programState           = ProgramState(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_FollowSafetyCar);
 bool useSafetyEnableSignal          = true;
 bool indicatorLedsEnabled           = true;
 bool startSignalEnabled             = false;
@@ -13,14 +13,14 @@ float motorCtrl_P                   = 0.5f;
 float motorCtrl_I                   = 0.04f;
 float motorCtrl_integral_max        = 4.0f;
 float frontLineCtrl_P_slow          = 1.5f;
-float frontLineCtrl_D_slow          = 1700.0f;
+float frontLineCtrl_D_slow          = 0.0f;
 float frontLineCtrl_P_fast          = 0.15f;
 float frontLineCtrl_D_fast          = 50.0f;
 CarProps car                        = CarProps();
 bool distServoEnabled               = true;
 float distServoTransferRate         = 3.0f;
-m_per_sec_t speed_FAST              = m_per_sec_t(1.0f);
-m_per_sec_t speed_SLOW              = m_per_sec_t(0.5f);
+m_per_sec_t speed_FAST              = m_per_sec_t(1.5f);
+m_per_sec_t speed_SLOW              = m_per_sec_t(1.0f);
 meter_t slowSectionStartOffset      = meter_t(1.2);
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.0f);
 m_per_sec_t speed_LAB_BWD           = m_per_sec_t(0.7f);

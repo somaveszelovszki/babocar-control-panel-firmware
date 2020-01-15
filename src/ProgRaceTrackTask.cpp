@@ -32,8 +32,8 @@ static StaticQueue_t distancesQueueBuffer;
 
 namespace {
 
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.4f);
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.6f);
+constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.2f);
 
 struct TrackSegment {
     enum Type {
@@ -183,12 +183,12 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 }
 
                 // when the safety car leaves the track (after a curve, before the fast signs),
-                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
-                    isFastSection &&
-                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
-
-                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_Race);
-                }
+//                if (isBtw(globals::car.distance - lastDistWithActiveSafetyCar, centimeter_t(50), centimeter_t(150)) &&
+//                    isFastSection &&
+//                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
+//
+//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_Race);
+//                }
 
                 break;
 
@@ -199,20 +199,21 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 break;
 
             case ProgRaceTrackSubCntr_Race:
-                if (isFastSection || (sectionStartDist != startDist && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
-                    if (!isFastSection && detectedLines.pattern.type == LinePattern::SINGLE_LINE) {
-
-                        controlData.speed = globals::speed_SLOW;
-                    } else if (abs(controlData.baseline.pos) < centimeter_t(2)) {
-                        controlData.speed = globals::speed_FAST;
-                    } else {
-                        controlData.speed = globals::speed_SLOW;
-                    }
-                    //controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
-                } else { // slow section
-                    controlData.speed = globals::speed_SLOW;
-                    //controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
-                }
+//                if (isFastSection || (sectionStartDist != startDist && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
+//                    if (!isFastSection && detectedLines.pattern.type == LinePattern::SINGLE_LINE) {
+//
+//                        controlData.speed = globals::speed_SLOW;
+//                    } else if (abs(controlData.baseline.pos) < centimeter_t(2)) {
+//                        controlData.speed = globals::speed_FAST;
+//                    } else {
+//                        controlData.speed = globals::speed_SLOW;
+//                    }
+//                    //controlData.speed = isSafe(mainLine) ? globals::speed_FAST : globals::speed_FAST_UNSAFE;
+//                } else { // slow section
+//                    controlData.speed = globals::speed_SLOW;
+//                    //controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
+//                }
+                controlData.speed = isFastSection ? globals::speed_FAST : globals::speed_SLOW;
                 break;
 
             default:

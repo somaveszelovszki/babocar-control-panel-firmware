@@ -66,6 +66,19 @@ static void parseMotorPanelData(motorPanelDataOut_t& rxData) {
 
 volatile bool newData = false;
 
+void startPanel() {
+    millisecond_t prevSendTime = millisecond_t(0);
+    char startChar = 'S';
+    do {
+        if (getTime() - prevSendTime > millisecond_t(50)) {
+            HAL_UART_Transmit(uart_MotorPanel, (uint8_t*)&startChar, 1, 2);
+            prevSendTime = getTime();
+        }
+        vTaskDelay(1);
+    } while (!newData);
+    newData = false;
+}
+
 } // namespace
 
 extern "C" void runControlTask(const void *argument) {
@@ -89,16 +102,10 @@ extern "C" void runControlTask(const void *argument) {
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
     HAL_UART_Receive_DMA(uart_MotorPanel, (uint8_t*)&rxData, sizeof(motorPanelDataOut_t));
-    millisecond_t prevSendTime = millisecond_t(0);
-    char startChar = 'S';
-    do {
-        if (getTime() - prevSendTime > millisecond_t(50)) {
-            HAL_UART_Transmit(uart_MotorPanel, (uint8_t*)&startChar, 1, 2);
-            prevSendTime = getTime();
-        }
-    } while (!newData);
-    newData = false;
 
+    startPanel();
+
+    millisecond_t prevSendTime = millisecond_t(0);
     globals::isControlTaskOk = true;
 
     while (true) {
@@ -109,6 +116,11 @@ extern "C" void runControlTask(const void *argument) {
 //        if (motorPanelLink.readAvailable(rxData)) {
 //            parseMotorPanelData(rxData);
 //        }
+
+        if (newData) {
+            newData = false;
+            parseMotorPanelData(rxData);
+        }
 
         // if no control data is received for a given period, stops motor for safety reasons
         if (xQueueReceive(controlQueue, &controlData, 0)) {
