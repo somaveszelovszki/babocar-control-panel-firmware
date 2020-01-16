@@ -38,10 +38,6 @@ extern "C" void runStartupTask(const void *argument) {
     uint32_t buttonClick = 0;
     GPIO_PinState prevButtonState = GPIO_PIN_SET;
 
-    while (!globals::areAllTasksOk()) {
-        vTaskDelay(1);
-    }
-
     while(getTime() - lastButtonClickTime < second_t(2)) {
         GPIO_PinState buttonState = HAL_GPIO_ReadPin(gpio_Btn, gpioPin_Btn1);
 
@@ -51,7 +47,7 @@ extern "C" void runStartupTask(const void *argument) {
             LOG_DEBUG("Click! (%d)", buttonClick);
         }
         prevButtonState = buttonState;
-        vTaskDelay(1);
+        vTaskDelay(50);
     }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
@@ -67,7 +63,7 @@ extern "C" void runStartupTask(const void *argument) {
 
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
-void micro_RadioModule_Uart_RxCpltCallback(const uint32_t) {
+void micro_RadioModule_Uart_RxCpltCallback() {
     const uint8_t cntr = static_cast<uint8_t>(startCounterBuffer[0]);
     if (cntr == startCounter - 1) {
         startCounter = cntr;

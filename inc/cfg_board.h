@@ -49,9 +49,9 @@ extern I2C_HandleTypeDef  hi2c2;
 #define tim_chnl_ServoX2             TIM_CHANNEL_3
 
 #define uart_MotorPanel              (&huart1)
-#define uart_Command                 (&huart4)
+#define uart_Command                 (&huart2)
 #define uart_RadioModule             (&huart3)
-#define uart_X1                      (&huart2)
+#define uart_X1                      (&huart4)
 #define uart_X2                      (&huart5)
 #define uart_FrontLineDetectPanel    (&huart6)
 

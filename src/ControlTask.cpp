@@ -125,6 +125,6 @@ extern "C" void runControlTask(const void *argument) {
 
 /* @brief Callback for motor panel UART RxCplt - called when receive finishes.
  */
-void micro_MotorPanel_Uart_RxCpltCallback(const uint32_t leftBytes) {
+void micro_MotorPanel_Uart_RxCpltCallback() {
     motorPanelLink.onNewRxData();
 }
