@@ -71,7 +71,7 @@ void startPanel() {
     char startChar = 'S';
     do {
         if (getTime() - prevSendTime > millisecond_t(50)) {
-            HAL_UART_Transmit_DMA(uart_MotorPanel, (uint8_t*)&startChar, 1); // TODO _DMA not tested, but it blocks, so changed
+            HAL_UART_Transmit_DMA(uart_MotorPanel, (uint8_t*)&startChar, 1);
             prevSendTime = getTime();
         }
         vTaskDelay(5);
@@ -84,16 +84,15 @@ void startPanel() {
 extern "C" void runControlTask(const void *argument) {
     controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
 
+    motorPanelDataOut_t rxData;
+    motorPanelDataIn_t txData;
+    HAL_UART_Receive_DMA(uart_MotorPanel, (uint8_t*)&rxData, sizeof(motorPanelDataOut_t));
+
     vTaskDelay(10); // gives time to other tasks to wake up
 
     frontSteeringServo.writeWheelAngle(radian_t::zero());
     rearSteeringServo.writeWheelAngle(radian_t::zero());
     frontDistServo.write(radian_t::zero());
-
-    frontDistServoUpdateTimer.start(millisecond_t(20));
-
-    motorPanelDataOut_t rxData;
-    motorPanelDataIn_t txData;
 
     ControlData controlData;
     millisecond_t lastControlDataRecvTime = millisecond_t::zero();
@@ -101,12 +100,11 @@ extern "C" void runControlTask(const void *argument) {
     PD_Controller lineController(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow,
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
 
-    HAL_UART_Receive_DMA(uart_MotorPanel, (uint8_t*)&rxData, sizeof(motorPanelDataOut_t));
-
     startPanel();
 
     millisecond_t prevSendTime = millisecond_t(0);
     globals::isControlTaskOk = true;
+    frontDistServoUpdateTimer.start(millisecond_t(20));
 
     while (true) {
         //motorPanelLink.update();

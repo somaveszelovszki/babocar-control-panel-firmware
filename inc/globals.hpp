@@ -41,5 +41,13 @@ extern bool isLineDetectTaskOk;
 
 void registerGlobalParams(Params& params);
 
+inline bool areAllTasksOk(void) {
+    return isControlTaskOk &&
+           isDebugTaskOk &&
+           isDistSensorTaskOk &&
+           isGyroTaskOk &&
+           isLineDetectTaskOk;
+}
+
 } // namespace globals
 } // namespace micro

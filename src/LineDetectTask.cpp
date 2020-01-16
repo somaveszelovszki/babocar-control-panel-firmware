@@ -60,7 +60,7 @@ extern "C" void runLineDetectTask(const void *argument) {
     lineDetectPanelDataOut_t rxData;
     lineDetectPanelDataIn_t txData;
 
-    vTaskDelay(300); // gives time to other tasks to wake up
+    vTaskDelay(10); // gives time to other tasks to wake up
 
     millisecond_t prevReadTime;
 
@@ -73,11 +73,10 @@ extern "C" void runLineDetectTask(const void *argument) {
         globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
 
         if (frontLineDetectPanelLink.readAvailable(rxData)) {
-            HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, GPIO_PIN_SET);
             prevReadTime = getTime();
             parseLineDetectPanelData(rxData, lines);
             lineCalc.update(lines);
-            linePatternCalc.update(globals::programState, lines, globals::car.distance);
+            linePatternCalc.update(getActiveTask(globals::programState), lines, globals::car.distance);
             const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }

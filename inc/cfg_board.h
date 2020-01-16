@@ -49,25 +49,11 @@ extern I2C_HandleTypeDef  hi2c2;
 #define tim_chnl_ServoX2             TIM_CHANNEL_3
 
 #define uart_MotorPanel              (&huart1)
-#define uart_Command                 (&huart2)
+#define uart_Command                 (&huart4)
 #define uart_RadioModule             (&huart3)
-#define uart_X1                      (&huart4)
+#define uart_X1                      (&huart2)
 #define uart_X2                      (&huart5)
 #define uart_FrontLineDetectPanel    (&huart6)
-
-#define dmaBase_MotorPanel           DMA1
-#define dmaBase_Command              DMA2
-#define dmaBase_RadioModule          DMA1
-#define dmaBase_UartX1               DMA1
-#define dmaBase_UartX2               DMA1
-#define dmaBase_FrontLineDetectPanel DMA1
-
-#define dma_MotorPanel               (&hdma_usart1_rx)
-#define dma_Command                  (&hdma_usart2_rx)
-#define dma_RadioModule              (&hdma_usart3_rx)
-#define dma_UartX1                   (&hdma_uart4_rx)
-#define dma_UartX2                   (&hdma_uart5_rx)
-#define dma_FrontLineDetectPanel     (&hdma_usart6_rx)
 
 #define i2c_Gyro                     (&hi2c1)
 #define i2c_Dist                     (&hi2c2)

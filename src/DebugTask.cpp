@@ -40,14 +40,6 @@ static Timer ledBlinkTimer;
 
 static volatile bool uartOccupied = false;
 
-static bool areAllTasksOk(void) {
-    return globals::isControlTaskOk &&
-           globals::isDebugTaskOk &&
-           globals::isDistSensorTaskOk &&
-           globals::isGyroTaskOk &&
-           globals::isLineDetectTaskOk;
-}
-
 extern "C" void runDebugTask(const void *argument) {
     logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
 
@@ -116,7 +108,7 @@ extern "C" void runDebugTask(const void *argument) {
             uartOccupied = true;
         }
 
-        ledBlinkTimer.setPeriod(millisecond_t(areAllTasksOk() ? 500 : 250));
+        ledBlinkTimer.setPeriod(millisecond_t(globals::areAllTasksOk() ? 500 : 250));
         if (ledBlinkTimer.checkTimeout()) {
             HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
         }
