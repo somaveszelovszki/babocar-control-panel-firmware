@@ -740,6 +740,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     if (changeLane(detectedLines, mainLine, controlData.speed)) {
                         globals::programState = ProgramState::ReachSafetyCar;
                     }
+                    break;
                 default:
                     break;
                 }

@@ -85,7 +85,7 @@ void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 38400;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -221,8 +221,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(UART4_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(UART4_IRQn);
   /* USER CODE BEGIN UART4_MspInit 1 */
-    __HAL_UART_ENABLE_IT(&huart4, UART_IT_IDLE);        // enables idle line interrupt
-    __HAL_DMA_ENABLE_IT(&hdma_uart4_rx, DMA_IT_TC);    // enables DMA TxCplt interrupt
+    __HAL_UART_ENABLE_IT(&huart4, UART_IT_IDLE);
   /* USER CODE END UART4_MspInit 1 */
   }
   else if(uartHandle->Instance==UART5)
@@ -294,7 +293,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(UART5_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(UART5_IRQn);
   /* USER CODE BEGIN UART5_MspInit 1 */
-    __HAL_UART_ENABLE_IT(&huart5, UART_IT_IDLE);
+
   /* USER CODE END UART5_MspInit 1 */
   }
   else if(uartHandle->Instance==USART1)
@@ -366,7 +365,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
-    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+
   /* USER CODE END USART1_MspInit 1 */
   }
   else if(uartHandle->Instance==USART2)
@@ -430,8 +429,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
   /* USER CODE BEGIN USART2_MspInit 1 */
-    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);        // enables idle line interrupt
-    __HAL_DMA_ENABLE_IT(&hdma_usart2_rx, DMA_IT_TC);    // enables DMA TxCplt interrupt
+    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
   /* USER CODE END USART2_MspInit 1 */
   }
   else if(uartHandle->Instance==USART3)
@@ -495,7 +493,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(USART3_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART3_IRQn);
   /* USER CODE BEGIN USART3_MspInit 1 */
-    //__HAL_DMA_ENABLE_IT(&hdma_usart3_rx, DMA_IT_TC);    // enables DMA TxCplt interrupt
+
   /* USER CODE END USART3_MspInit 1 */
   }
   else if(uartHandle->Instance==USART6)
@@ -559,7 +557,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_SetPriority(USART6_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART6_IRQn);
   /* USER CODE BEGIN USART6_MspInit 1 */
-    //__HAL_UART_ENABLE_IT(&huart6, UART_IT_IDLE);
+
   /* USER CODE END USART6_MspInit 1 */
   }
 }
