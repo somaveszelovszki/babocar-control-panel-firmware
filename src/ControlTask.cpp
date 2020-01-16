@@ -25,11 +25,6 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-MotorPanelLink motorPanelLink(
-    uart_MotorPanel,
-    millisecond_t(MOTOR_PANEL_LINK_OUT_TIMEOUT_MS),
-    millisecond_t(MOTOR_PANEL_LINK_IN_PERIOD_MS));
-
 hw::SteeringServo frontSteeringServo(
     tim_SteeringServo, tim_chnl_FrontServo,
     cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180,
@@ -107,13 +102,6 @@ extern "C" void runControlTask(const void *argument) {
     frontDistServoUpdateTimer.start(millisecond_t(20));
 
     while (true) {
-        //motorPanelLink.update();
-        //globals::isControlTaskOk = motorPanelLink.isConnected();
-
-//        if (motorPanelLink.readAvailable(rxData)) {
-//            parseMotorPanelData(rxData);
-//        }
-
         if (newData) {
             newData = false;
             parseMotorPanelData(rxData);
@@ -133,11 +121,6 @@ extern "C" void runControlTask(const void *argument) {
         } else if (getTime() - lastControlDataRecvTime > millisecond_t(20)) {
             controlData.speed = m_per_sec_t::zero();
         }
-
-//        if (motorPanelLink.shouldSend()) {
-//            fillMotorPanelData(txData, controlData.speed);
-//            motorPanelLink.send(txData);
-//        }
 
         if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
             frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
@@ -159,5 +142,4 @@ extern "C" void runControlTask(const void *argument) {
  */
 void micro_MotorPanel_Uart_RxCpltCallback(const uint32_t leftBytes) {
     newData = true;
-    //motorPanelLink.onNewRxData(sizeof(motorPanelDataOut_t) - leftBytes);
 }

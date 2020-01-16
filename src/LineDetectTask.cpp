@@ -51,6 +51,21 @@ static void parseLineDetectPanelData(lineDetectPanelDataOut_t& rxData, Lines& li
     lines.removeDuplicates();
 }
 
+volatile bool newData = false;
+
+void startPanel() {
+    millisecond_t prevSendTime = millisecond_t(0);
+    char startChar = 'S';
+    do {
+        if (getTime() - prevSendTime > millisecond_t(50)) {
+            HAL_UART_Transmit_DMA(uart_FrontLineDetectPanel, (uint8_t*)&startChar, 1);
+            prevSendTime = getTime();
+        }
+        vTaskDelay(5);
+    } while (!newData);
+    newData = false;
+}
+
 extern "C" void runLineDetectTask(const void *argument) {
 
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
@@ -60,6 +75,8 @@ extern "C" void runLineDetectTask(const void *argument) {
     lineDetectPanelDataOut_t rxData;
     lineDetectPanelDataIn_t txData;
 
+    HAL_UART_Receive_DMA(uart_FrontLineDetectPanel, (uint8_t*)&rxData, sizeof(lineDetectPanelDataOut_t));
+
     vTaskDelay(10); // gives time to other tasks to wake up
 
     millisecond_t prevReadTime;
@@ -68,12 +85,31 @@ extern "C" void runLineDetectTask(const void *argument) {
     linePattern.type = LinePattern::SINGLE_LINE;
     lines.push_back(Line{ millimeter_t(0), 1 });
 
-    while (true) {
-        frontLineDetectPanelLink.update();
-        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
+    startPanel();
 
-        if (frontLineDetectPanelLink.readAvailable(rxData)) {
-            prevReadTime = getTime();
+    millisecond_t prevSendTime = millisecond_t(0);
+    globals::isLineDetectTaskOk = true;
+
+    while (true) {
+//        frontLineDetectPanelLink.update();
+//        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
+//
+//        if (frontLineDetectPanelLink.readAvailable(rxData)) {
+//            prevReadTime = getTime();
+//            parseLineDetectPanelData(rxData, lines);
+//            lineCalc.update(lines);
+//            linePatternCalc.update(getActiveTask(globals::programState), lines, globals::car.distance);
+//            const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
+//            xQueueOverwrite(detectedLinesQueue, &detectedLines);
+//        }
+//
+//        if (frontLineDetectPanelLink.shouldSend()) {
+//            fillLineDetectPanelData(txData);
+//            frontLineDetectPanelLink.send(txData);
+//        }
+
+        if (newData) {
+            newData = false;
             parseLineDetectPanelData(rxData, lines);
             lineCalc.update(lines);
             linePatternCalc.update(getActiveTask(globals::programState), lines, globals::car.distance);
@@ -81,9 +117,10 @@ extern "C" void runLineDetectTask(const void *argument) {
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }
 
-        if (frontLineDetectPanelLink.shouldSend()) {
+        if (getTime() - prevSendTime > millisecond_t(20)) {
             fillLineDetectPanelData(txData);
-            frontLineDetectPanelLink.send(txData);
+            HAL_UART_Transmit_DMA(uart_FrontLineDetectPanel, (uint8_t*)&txData, sizeof(lineDetectPanelDataIn_t));
+            prevSendTime = getTime();
         }
 
         vTaskDelay(1);
@@ -95,10 +132,11 @@ extern "C" void runLineDetectTask(const void *argument) {
 /* @brief Callback for front line detect panel UART RxCplt - called when receive finishes.
  */
 void micro_FrontLineDetectPanel_Uart_RxCpltCallback(const uint32_t leftBytes) {
-    frontLineDetectPanelLink.onNewRxData(sizeof(lineDetectPanelDataOut_t) - leftBytes);
+    newData = true;
+    //frontLineDetectPanelLink.onNewRxData(sizeof(lineDetectPanelDataOut_t) - leftBytes);
 }
 
 void micro_FrontLineDetectPanel_Uart_ErrorCallback() {
-    frontLineDetectPanelLink.onRxError();
+    //frontLineDetectPanelLink.onRxError();
 }
 

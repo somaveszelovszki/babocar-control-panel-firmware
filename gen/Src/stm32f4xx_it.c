@@ -453,10 +453,10 @@ void USART6_IRQHandler(void)
   /* USER CODE END USART6_IRQn 0 */
   HAL_UART_IRQHandler(&huart6);
   /* USER CODE BEGIN USART6_IRQn 1 */
-  if (__HAL_UART_GET_FLAG(&huart6, UART_FLAG_IDLE)) {
-      __HAL_UART_CLEAR_IDLEFLAG(&huart6);
-      hdma_usart6_rx.Instance->CR &= ~DMA_SxCR_EN;  // disabling DMA will force transfer complete interrupt if enabled
-  }
+//  if (__HAL_UART_GET_FLAG(&huart6, UART_FLAG_IDLE)) {
+//      __HAL_UART_CLEAR_IDLEFLAG(&huart6);
+//      hdma_usart6_rx.Instance->CR &= ~DMA_SxCR_EN;  // disabling DMA will force transfer complete interrupt if enabled
+//  }
   /* USER CODE END USART6_IRQn 1 */
 }
 
