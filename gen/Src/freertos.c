@@ -168,7 +168,7 @@ void MX_FREERTOS_Init(void) {
   LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
 
   /* definition and creation of StartupTask */
-  osThreadStaticDef(StartupTask, StartStartupTask, osPriorityBelowNormal, 0, 256, StartupTaskBuffer, &StartupTaskControlBlock);
+  osThreadStaticDef(StartupTask, StartStartupTask, osPriorityLow, 0, 256, StartupTaskBuffer, &StartupTaskControlBlock);
   StartupTaskHandle = osThreadCreate(osThread(StartupTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */

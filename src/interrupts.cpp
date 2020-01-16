@@ -15,8 +15,7 @@
 extern void micro_Command_Uart_RxCpltCallback(const uint32_t leftBytes);              // Callback for command UART RxCplt - called when receive finishes.
 extern void micro_MotorPanel_Uart_RxCpltCallback(const uint32_t leftBytes);           // Callback for motor panel UART RxCplt - called when receive finishes.
 extern void micro_RadioModule_Uart_RxCpltCallback(const uint32_t leftBytes);          // Callback for radio module UART RxCplt - called when receive finishes.
-extern void micro_FrontLineDetectPanel_Uart_RxCpltCallback(const uint32_t leftBytes); // Callback for front line detect panel UART RxCplt - called when receive finishes.
-extern void micro_FrontLineDetectPanel_Uart_ErrorCallback();                          // Callback for front line detect panel UART error.
+extern void micro_FrontLineDetectPanel_Uart_RxCpltCallback();                         // Callback for front line detect panel UART RxCplt - called when receive finishes.
 
 /* @brief Internal callback - called when SPI reception finishes.
  * @param hspi Pointer to the SPI handle.
@@ -63,18 +62,14 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         micro_RadioModule_Uart_RxCpltCallback(huart->hdmarx->Instance->NDTR);
 
     } else if (huart == uart_FrontLineDetectPanel) {
-        micro_FrontLineDetectPanel_Uart_RxCpltCallback(huart->hdmarx->Instance->NDTR);
+        micro_FrontLineDetectPanel_Uart_RxCpltCallback();
 
     }
 }
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {}
 
-extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-    if (huart == uart_FrontLineDetectPanel) {
-        micro_FrontLineDetectPanel_Uart_ErrorCallback();
-    }
-}
+extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {}
 
 /* @brief Callback function for timer period elapsed event.
  * @param htim Pointer to the timer handle.
