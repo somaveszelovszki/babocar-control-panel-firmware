@@ -28,9 +28,6 @@ extern QueueHandle_t controlQueue;
 
 namespace {
 
-uint8_t startCounterBuffer[1];
-volatile char startCounter = '6';   // start counter will count back from 5 to 0
-
 vec<Segment, 5 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segments.
 vec<Junction, 5 * cfg::MAX_NUM_LAB_SEGMENTS> junctions;             // The junctions - at most the number of segments.
 vec<Connection, 5 * cfg::MAX_NUM_LAB_SEGMENTS * 2> connections;     // The connections - 2 times the number of junctions.
@@ -565,30 +562,6 @@ const TestCase testCase1[] = {
     { { { meter_t(-1), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::NONE,        Sign::NEUTRAL,  Direction::CENTER } }
 };
 
-bool waitStartSignal() {
-    static bool startSignalRecvStarted = false;
-    static char prevStartCounter = startCounter;
-
-    bool finished = false;
-
-    if (!startSignalRecvStarted) {
-        HAL_UART_Receive_DMA(uart_RadioModule, startCounterBuffer, 1);
-        startSignalRecvStarted = true;
-    }
-
-    if (!globals::startSignalEnabled || '0' == startCounter) {
-        HAL_UART_DMAStop(uart_RadioModule);
-        endTime = getTime() + second_t(20);
-        finished = true;
-        LOG_DEBUG("Started!");
-    } else if (startCounter != prevStartCounter) {
-        LOG_DEBUG("Seconds until start: %c", startCounter);
-        prevStartCounter = startCounter;
-    }
-
-    return finished;
-}
-
 bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
 
 //    // TODO only for testing -------------------------------------------
@@ -750,30 +723,25 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     endTime = getTime() + second_t(20);
 
     while (true) {
-        switch (globals::programState.activeModule()) {
-            case ProgramState::ActiveModule::Labyrinth:
+        switch (getActiveTask(globals::programState)) {
+            case ProgramTask::Labyrinth:
 
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
                 LineCalculator::updateMainLine(detectedLines.lines, mainLine);
 
-                switch (globals::programState.subCntr()) {
-                case ProgLabyrinthSubCntr_WaitStartSignal:
-                    if (waitStartSignal()) {
-                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgLabyrinthSubCntr_NavigateLabyrinth);
-                    }
-                    controlData.speed = m_per_sec_t(0);
-                    break;
-
-                case ProgLabyrinthSubCntr_NavigateLabyrinth:
+                switch (globals::programState) {
+                case ProgramState::NavigateLabyrinth:
                     if (navigateLabyrinth(prevDetectedLines, detectedLines, mainLine, controlData.speed)) {
-                        globals::programState.set(ProgramState::ActiveModule::Labyrinth, ProgLabyrinthSubCntr_LaneChange);
+                        globals::programState = ProgramState::LaneChange;
                     }
                     break;
 
-                case ProgLabyrinthSubCntr_LaneChange:
+                case ProgramState::LaneChange:
                     if (changeLane(detectedLines, mainLine, controlData.speed)) {
-                        globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_ReachSafetyCar);
+                        globals::programState = ProgramState::ReachSafetyCar;
                     }
+                default:
+                    break;
                 }
 
                 controlData.baseline = mainLine;
@@ -785,7 +753,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
 
             default:
-                vTaskDelay(100);
+                vTaskDelay(20);
                 break;
         }
 
@@ -793,12 +761,4 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     }
 
     vTaskDelete(nullptr);
-}
-/* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
- */
-void micro_RadioModule_Uart_RxCpltCallback(const uint32_t) {
-    const uint8_t cntr = static_cast<uint8_t>(startCounterBuffer[0]);
-    if (cntr == startCounter - 1) {
-        startCounter = cntr;
-    }
 }

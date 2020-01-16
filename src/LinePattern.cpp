@@ -44,12 +44,12 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines& lines, meter_t) {
             return 0 == lines.size();
         },
-        [] (const LinePattern&, const ProgramState programState) {
+        [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
 
-            } else if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+            } else if (ProgramTask::RaceTrack == activeTask) {
                 validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::ACCELERATE,  Sign::NEUTRAL, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::BRAKE,       Sign::NEUTRAL, Direction::CENTER });
@@ -62,9 +62,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines& lines, meter_t) {
             return 1 == lines.size();
         },
-        [] (const LinePattern&, const ProgramState programState) {
+        [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 validPatterns.push_back({ LinePattern::NONE,        Sign::NEUTRAL,  Direction::CENTER });
                 validPatterns.push_back({ LinePattern::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   });
@@ -76,7 +76,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
                 validPatterns.push_back({ LinePattern::LANE_CHANGE, Sign::NEGATIVE, Direction::LEFT   });
                 validPatterns.push_back({ LinePattern::DEAD_END,    Sign::NEUTRAL,  Direction::CENTER });
 
-            } else if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+            } else if (ProgramTask::RaceTrack == activeTask) {
                 validPatterns.push_back({ LinePattern::NONE,       Sign::NEUTRAL, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::BRAKE,      Sign::NEUTRAL, Direction::CENTER });
@@ -104,9 +104,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             validLines.push_back(2);
             return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end() && LinePatternCalculator::areClose(lines);
         },
-        [] (const LinePattern&, const ProgramState programState) {
+        [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+            if (ProgramTask::RaceTrack == activeTask) {
                 validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
@@ -118,9 +118,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             static constexpr meter_t PATTERN_LENGTH = centimeter_t(300);
             return currentDist - pattern.startDist < PATTERN_LENGTH + centimeter_t(5) && 3 == lines.size() && LinePatternCalculator::areClose(lines);
         },
-        [] (const LinePattern&, const ProgramState programState) {
+        [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::RaceTrack == programState.activeModule()) {
+            if (ProgramTask::RaceTrack == activeTask) {
                 validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
@@ -145,9 +145,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             const LinePatternDescriptor::lines validLines = descriptor.getValidLines(pattern.dir, currentDist - pattern.startDist, centimeter_t(3));
             return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end();
         },
-        [] (const LinePattern&, const ProgramState programState) {
+        [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 validPatterns.push_back({ LinePattern::NONE,        Sign::NEUTRAL, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
@@ -171,9 +171,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             }
             return valid;
         },
-        [] (const LinePattern& pattern, const ProgramState programState) {
+        [] (const LinePattern& pattern, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 if (Sign::NEGATIVE == pattern.dir) {
                     validPatterns.push_back({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
                     validPatterns.push_back({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
@@ -210,9 +210,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             }
             return valid;
         },
-        [] (const LinePattern& pattern, const ProgramState programState) {
+        [] (const LinePattern& pattern, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 if (Sign::NEGATIVE == pattern.dir) {
                     validPatterns.push_back({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
                     validPatterns.push_back({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
@@ -251,9 +251,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             }
             return valid;
         },
-        [] (const LinePattern& pattern, const ProgramState programState) {
+        [] (const LinePattern& pattern, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 if (Sign::NEGATIVE == pattern.dir) {
                     validPatterns.push_back({ LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER });
                     validPatterns.push_back({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT  });
@@ -275,9 +275,9 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             }
             return valid;
         },
-        [] (const LinePattern& pattern, const ProgramState programState) {
+        [] (const LinePattern& pattern, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
-            if (ProgramState::ActiveModule::Labyrinth == programState.activeModule()) {
+            if (ProgramTask::Labyrinth == activeTask) {
                 validPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
             }
             return validPatterns;
@@ -285,7 +285,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
     }
 };
 
-void LinePatternCalculator::update(const ProgramState programState, const Lines& lines, meter_t currentDist) {
+void LinePatternCalculator::update(const ProgramTask activeTask, const Lines& lines, meter_t currentDist) {
     this->prevMeas.push_back({ lines, currentDist });
 
     LinePattern& current = this->currentPattern();
@@ -312,7 +312,7 @@ void LinePatternCalculator::update(const ProgramState programState, const Lines&
         const LinePatternInfo *currentPatternInfo = &PATTERN_INFO[static_cast<uint8_t>(this->currentPattern().type)];
         if (!currentPatternInfo->isValid(this->prevMeas, current, lines, currentDist)) {
             this->isPatternChangeCheckActive = true;
-            this->possiblePatterns = currentPatternInfo->validNextPatterns(current, programState);
+            this->possiblePatterns = currentPatternInfo->validNextPatterns(current, activeTask);
 
             for (LinePattern& pattern : this->possiblePatterns) {
                 pattern.startDist = currentDist;

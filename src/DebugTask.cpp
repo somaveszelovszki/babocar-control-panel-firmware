@@ -118,10 +118,8 @@ extern "C" void runDebugTask(const void *argument) {
 
         ledBlinkTimer.setPeriod(millisecond_t(areAllTasksOk() ? 500 : 250));
         if (ledBlinkTimer.checkTimeout()) {
-            //HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
         }
-
-        vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);

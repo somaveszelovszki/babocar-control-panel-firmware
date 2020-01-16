@@ -68,14 +68,14 @@ public:
     struct LinePatternInfo {
         meter_t validityLength;
         std::function<bool(const measurement_buffer_t&, const LinePattern&, const Lines&, meter_t)> isValid;
-        std::function<linePatterns_t(const LinePattern&, const ProgramState)> validNextPatterns;
+        std::function<linePatterns_t(const LinePattern&, const ProgramTask)> validNextPatterns;
     };
 
     LinePatternCalculator()
         : isPatternChangeCheckActive(false) {
         this->prevPatterns.push_back({ LinePattern::NONE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) });
     }
-    void update(const ProgramState programState, const Lines& lines, meter_t currentDist);
+    void update(const ProgramTask activeTask, const Lines& lines, meter_t currentDist);
 
     const LinePattern& pattern() const {
         return const_cast<LinePatternCalculator*>(this)->currentPattern();

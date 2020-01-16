@@ -69,6 +69,9 @@ osStaticThreadDef_t GyroTaskControlBlock;
 osThreadId LineDetectTaskHandle;
 uint32_t LineDetectTaskBuffer[ 1024 ];
 osStaticThreadDef_t LineDetectTaskControlBlock;
+osThreadId StartupTaskHandle;
+uint32_t StartupTaskBuffer[ 256 ];
+osStaticThreadDef_t StartupTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -79,6 +82,7 @@ void runDebugTask(const void *argument);
 void runControlTask(const void *argument);
 void runProgLabyrinthTask(const void *argument);
 void runProgRaceTrackTask(const void *argument);
+void runStartupTask(const void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDistSensorTask(void const * argument);
@@ -88,6 +92,7 @@ void StartProgLabyrinthTask(void const * argument);
 void StartProgRaceTrackTask(void const * argument);
 void StartGyroTask(void const * argument);
 void StartLineDetectTask(void const * argument);
+void StartStartupTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -162,6 +167,10 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 1024, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
   LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
 
+  /* definition and creation of StartupTask */
+  osThreadStaticDef(StartupTask, StartStartupTask, osPriorityBelowNormal, 0, 256, StartupTaskBuffer, &StartupTaskControlBlock);
+  StartupTaskHandle = osThreadCreate(osThread(StartupTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -177,6 +186,7 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDistSensorTask */
 void StartDistSensorTask(void const * argument)
 {
+    
     
     
     
@@ -273,6 +283,20 @@ void StartLineDetectTask(void const * argument)
   /* USER CODE BEGIN StartLineDetectTask */
   runLineDetectTask(argument);
   /* USER CODE END StartLineDetectTask */
+}
+
+/* USER CODE BEGIN Header_StartStartupTask */
+/**
+* @brief Function implementing the StartupTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartStartupTask */
+void StartStartupTask(void const * argument)
+{
+  /* USER CODE BEGIN StartStartupTask */
+  runStartupTask(argument);
+  /* USER CODE END StartStartupTask */
 }
 
 /* Private application code --------------------------------------------------*/

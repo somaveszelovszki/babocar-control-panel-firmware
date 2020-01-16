@@ -145,8 +145,8 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
     meter_t lastDistWithActiveSafetyCar = startDist;
 
     while (true) {
-        switch(globals::programState.activeModule()) {
-        case ProgramState::ActiveModule::RaceTrack:
+        switch(getActiveTask(globals::programState)) {
+        case ProgramTask::RaceTrack:
         {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
@@ -162,20 +162,20 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 }
             }
 
-            switch (globals::programState.subCntr()) {
-            case ProgRaceTrackSubCntr_ReachSafetyCar:
+            switch (globals::programState) {
+            case ProgramState::ReachSafetyCar:
                 controlData.speed = m_per_sec_t(0.75f);
 
                 if (safetyCarFollowSpeed(distances.front, false) < controlData.speed) {
-                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_FollowSafetyCar);
+                    globals::programState = ProgramState::FollowSafetyCar;
                 }
 
 //                if (distances.front < centimeter_t(60)) {
-//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_FollowSafetyCar);
+//                    globals::programState.set(ProgramTask::RaceTrack, ProgramState::FollowSafetyCar);
 //                }
                 break;
 
-            case ProgRaceTrackSubCntr_FollowSafetyCar:
+            case ProgramState::FollowSafetyCar:
                 controlData.speed = safetyCarFollowSpeed(distances.front, isFastSection);
 
                 if (distances.front < meter_t(1.5f)) {
@@ -187,18 +187,18 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 //                    isFastSection &&
 //                    globals::car.distance - sectionStartDist < centimeter_t(5)) {
 //
-//                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_Race);
+//                    globals::programState.set(ProgramTask::RaceTrack, ProgramState::Race);
 //                }
 
                 break;
 
-            case ProgRaceTrackSubCntr_OvertakeSafetyCar:
+            case ProgramState::OvertakeSafetyCar:
                 if (overtakeSafetyCar(detectedLines, mainLine, controlData.speed)) {
-                    globals::programState.set(ProgramState::ActiveModule::RaceTrack, ProgRaceTrackSubCntr_Race);
+                    globals::programState = ProgramState::Race;
                 }
                 break;
 
-            case ProgRaceTrackSubCntr_Race:
+            case ProgramState::Race:
 //                if (isFastSection || (sectionStartDist != startDist && globals::car.distance - sectionStartDist < globals::slowSectionStartOffset)) {
 //                    if (!isFastSection && detectedLines.pattern.type == LinePattern::SINGLE_LINE) {
 //
@@ -217,7 +217,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 break;
 
             default:
-                LOG_ERROR("Invalid program state counter: [%u]", globals::programState.subCntr());
+                LOG_ERROR("Invalid program state counter: [%u]", globals::programState);
                 break;
             }
 

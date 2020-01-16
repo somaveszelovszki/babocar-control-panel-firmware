@@ -4,48 +4,42 @@
 
 namespace micro {
 
-class ProgramState {
-public:
-    enum class ActiveModule {
-        Labyrinth = 0,
-        RaceTrack = 1
-    };
+enum class ProgramState : uint8_t {
+    // Start states
+    INVALID           = 0xff,
+    WaitStartSignal   = 0,
 
-    ProgramState(ActiveModule module, uint8_t subCntr)
-        : module_(module)
-        , subCntr_(subCntr) {}
+    // Labyrinth states
+    NavigateLabyrinth = 1,
+    LaneChange        = 2,
 
-    ProgramState(const ProgramState& other) {
-        this->module_ = other.module_;
-        this->subCntr_ = other.subCntr_;
+    // RaceTrack states
+    ReachSafetyCar    = 3,
+    FollowSafetyCar   = 4,
+    OvertakeSafetyCar = 5,
+    Race              = 6,
+};
+
+enum class ProgramTask {
+    INVALID,
+    Startup,
+    Labyrinth,
+    RaceTrack
+};
+
+inline ProgramTask getActiveTask(const ProgramState programState) {
+    ProgramTask task = ProgramTask::INVALID;
+    switch (programState) {
+    case ProgramState::INVALID:           task = ProgramTask::INVALID;   break;
+    case ProgramState::WaitStartSignal:   task = ProgramTask::Startup;   break;
+    case ProgramState::NavigateLabyrinth:
+    case ProgramState::LaneChange:        task = ProgramTask::Labyrinth; break;
+    case ProgramState::ReachSafetyCar:
+    case ProgramState::FollowSafetyCar:
+    case ProgramState::OvertakeSafetyCar:
+    case ProgramState::Race:              task = ProgramTask::RaceTrack; break;
     }
-
-    ActiveModule activeModule(void) const { return this->module_; }
-    uint8_t subCntr(void) const { return this->subCntr_; }
-
-    void set(ActiveModule module, uint8_t subCntr) {
-        this->module_ = module;
-        this->subCntr_ = subCntr;
-    }
-
-private:
-    ActiveModule module_;
-    uint8_t subCntr_;
-};
-
-// Labyrinth states
-enum {
-    ProgLabyrinthSubCntr_WaitStartSignal   = 0,
-    ProgLabyrinthSubCntr_NavigateLabyrinth = 1,
-    ProgLabyrinthSubCntr_LaneChange        = 2
-};
-
-// RaceTrack states
-enum {
-    ProgRaceTrackSubCntr_ReachSafetyCar    = 0,
-    ProgRaceTrackSubCntr_FollowSafetyCar   = 1,
-    ProgRaceTrackSubCntr_OvertakeSafetyCar = 2,
-    ProgRaceTrackSubCntr_Race              = 3
-};
+    return task;
+}
 
 } // namespace micro

@@ -71,10 +71,10 @@ void startPanel() {
     char startChar = 'S';
     do {
         if (getTime() - prevSendTime > millisecond_t(50)) {
-            HAL_UART_Transmit(uart_MotorPanel, (uint8_t*)&startChar, 1, 2);
+            HAL_UART_Transmit_DMA(uart_MotorPanel, (uint8_t*)&startChar, 1); // TODO _DMA not tested, but it blocks, so changed
             prevSendTime = getTime();
         }
-        vTaskDelay(1);
+        vTaskDelay(5);
     } while (!newData);
     newData = false;
 }
@@ -111,7 +111,6 @@ extern "C" void runControlTask(const void *argument) {
     while (true) {
         //motorPanelLink.update();
         //globals::isControlTaskOk = motorPanelLink.isConnected();
-        HAL_GPIO_WritePin(gpio_Led, gpioPin_Led, globals::isControlTaskOk ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
 //        if (motorPanelLink.readAvailable(rxData)) {
 //            parseMotorPanelData(rxData);
