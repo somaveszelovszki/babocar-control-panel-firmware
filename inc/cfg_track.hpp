@@ -1,6 +1,5 @@
 #pragma once
 
-#include <micro/panel/lines.h>
 #include <micro/utils/units.hpp>
 
 namespace cfg {

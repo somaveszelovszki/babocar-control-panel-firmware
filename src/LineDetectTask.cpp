@@ -43,9 +43,13 @@ static void fillLineDetectPanelData(lineDetectPanelDataIn_t& txData) {
 static void parseLineDetectPanelData(lineDetectPanelDataOut_t& rxData, Lines& lines, bool mirror = false) {
     lines.clear();
 
-    for (uint8_t i = 0; i < rxData.lines.numLines; ++i) {
-        const line_t * const l = &rxData.lines.values[i];
-        lines.push_back(Line{ millimeter_t(l->pos_mm) * (mirror ? -1 : 1), l->id });
+    for (uint8_t i = 0; i < MAX_NUM_LINES; ++i) {
+        const trackedLine_t * const l = &rxData.values[i];
+        if (l->id != INVALID_LINE_IDX) {
+            lines.push_back(Line{ millimeter_t(l->pos_mm) * (mirror ? -1 : 1), l->id });
+        } else {
+            break;
+        }
     }
 
     lines.removeDuplicates();
