@@ -3,6 +3,7 @@
 #include <micro/utils/time.hpp>
 #include <micro/hw/MPU9250_Gyroscope.hpp>
 #include <micro/task/common.hpp>
+#include <micro/sensor/Filter.hpp>
 
 #include <globals.hpp>
 
@@ -15,7 +16,24 @@
 
 using namespace micro;
 
+class AngleFilter : public LowPassFilter<radian_t, 10> {
+public:
+    AngleFilter() : LowPassFilter() {}
+
+    radian_t update(const radian_t& measuredValue) override {
+        radian_t meas = measuredValue;
+        while (meas < this->filteredValue - PI) {
+            meas += 2 * PI;
+        }
+        while (meas > this->filteredValue + PI) {
+            meas -= 2 * PI;
+        }
+        return normalize360(LowPassFilter::update(meas));
+    }
+};
+
 static hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+static AngleFilter angleFilter;
 
 struct AngleCalc {
     struct MagNormalization {
@@ -55,7 +73,7 @@ extern "C" void runGyroTask(const void *argument) {
     while (true) {
         const point3<gauss_t> mag = gyro.readMagData();
         if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
-            const radian_t newAngle = normalize360(angleCalc.getAngle(mag));
+            const radian_t newAngle = angleFilter.update(angleCalc.getAngle(mag));
 
             vTaskSuspendAll();
             const meter_t dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
@@ -65,6 +83,11 @@ extern "C" void runGyroTask(const void *argument) {
             globals::car.pose.angle = newAngle;
             prevDist = globals::car.distance;
             xTaskResumeAll();
+
+            LOG_DEBUG("%d, %d / %f",
+                (int)static_cast<centimeter_t>(globals::car.pose.pos.X).get(),
+                (int)static_cast<centimeter_t>(globals::car.pose.pos.Y).get(),
+                static_cast<degree_t>(globals::car.pose.angle).get());
 
             prevReadTime = getTime();
             vTaskDelay(8); // new magnetometer data is available in every ~10ms
