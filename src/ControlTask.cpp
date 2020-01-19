@@ -97,12 +97,16 @@ extern "C" void runControlTask(const void *argument) {
         if (xQueueReceive(controlQueue, &controlData, 0)) {
             lastControlDataRecvTime = getTime();
 
-            lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
+            if (controlData.directControl) {
+                frontSteeringServo.writeWheelAngle(controlData.frontWheelAngle);
+                rearSteeringServo.writeWheelAngle(controlData.rearWheelAngle);
+            } else {
+                lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
+                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
 
-            lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
-
-            frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
-            rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
+                frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
+                rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
+            }
 
         } else if (getTime() - lastControlDataRecvTime > millisecond_t(20)) {
             controlData.speed = m_per_sec_t::zero();

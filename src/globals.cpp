@@ -26,6 +26,8 @@ meter_t slowSectionStartOffset      = meter_t(1.2);
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.0f);
 m_per_sec_t speed_LAB_BWD           = m_per_sec_t(0.7f);
 m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
+m_per_sec_t speed_REACH_SAFETY_CAR  = m_per_sec_t(0.8f);
+m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.5f);
 m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.4f);
 m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(3.0f);
 

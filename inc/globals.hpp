@@ -31,6 +31,8 @@ extern meter_t slowSectionStartOffset;
 extern m_per_sec_t speed_LAB_FWD;
 extern m_per_sec_t speed_LAB_BWD;
 extern m_per_sec_t speed_LANE_CHANGE;
+extern m_per_sec_t speed_REACH_SAFETY_CAR;
+extern m_per_sec_t speed_TURN_AROUND;
 extern m_per_sec_t speed_OVERTAKE_CURVE;
 extern m_per_sec_t speed_OVERTAKE_STRAIGHT;
 

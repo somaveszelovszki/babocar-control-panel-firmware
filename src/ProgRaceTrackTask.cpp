@@ -70,7 +70,7 @@ m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFastSection) {
         isFastSection ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 }
 
-bool overtakeSafetyCar(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
+bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900);
 
@@ -114,9 +114,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, Line& mainLine, m_per
         }, globals::car.pose.angle, 30);
     }
 
-    const ControlData controlData = overtake.trajectory.update(globals::car);
-    mainLine = controlData.baseline;
-    controlSpeed = controlData.speed;
+    controlData = overtake.trajectory.update(globals::car);
 
     const bool finished = overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
     if (finished) {
@@ -133,7 +131,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
     vTaskDelay(500); // gives time to other tasks to wake up
 
     DetectedLines prevDetectedLines, detectedLines;
-    Line mainLine;
     ControlData controlData;
     DistancesData distances;
 
@@ -149,7 +146,11 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
         {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
-            LineCalculator::updateMainLine(detectedLines.lines, mainLine);
+
+            controlData.directControl = false;
+            LineCalculator::updateMainLine(detectedLines.lines, controlData.baseline);
+            controlData.angle = degree_t(0);
+            controlData.offset = millimeter_t(0);
 
             if (detectedLines.pattern.type != prevDetectedLines.pattern.type) {
                 if (LinePattern::ACCELERATE == detectedLines.pattern.type) {
@@ -163,7 +164,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
             switch (globals::programState) {
             case ProgramState::ReachSafetyCar:
-                controlData.speed = m_per_sec_t(0.75f);
+                controlData.speed = globals::speed_REACH_SAFETY_CAR;
 
                 if (safetyCarFollowSpeed(distances.front, false) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;
@@ -192,7 +193,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 break;
 
             case ProgramState::OvertakeSafetyCar:
-                if (overtakeSafetyCar(detectedLines, mainLine, controlData.speed)) {
+                if (overtakeSafetyCar(detectedLines, controlData)) {
                     globals::programState = ProgramState::Race;
                 }
                 break;
@@ -220,9 +221,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 break;
             }
 
-            controlData.baseline = mainLine;
-            controlData.angle = degree_t(0);
-            controlData.offset = millimeter_t(0);
 
             xQueueOverwrite(controlQueue, &controlData);
             prevDetectedLines = detectedLines;
