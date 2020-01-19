@@ -43,6 +43,21 @@ struct {
     Trajectory trajectory = Trajectory(cfg::CAR_OPTO_CENTER_DIST);
 } laneChange;
 
+enum class Y_turnState {
+    INACTIVE,
+    FWD_LEFT1,
+    PREPARE_BWD_RIGHT,
+    BWD_RIGHT,
+    PREPARE_FWD_LEFT2,
+    FWD_LEFT2
+};
+
+struct {
+    Y_turnState state = Y_turnState::INACTIVE;
+    radian_t startOrientation;
+    millisecond_t stateStartTime;
+} y_turn;
+
 millisecond_t endTime;
 
 struct Route {
@@ -562,7 +577,7 @@ const TestCase testCase1[] = {
     { { { meter_t(-1), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::NONE,        Sign::NEUTRAL,  Direction::CENTER } }
 };
 
-bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
+bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, ControlData& controlData) {
 
 //    // TODO only for testing -------------------------------------------
 //
@@ -615,7 +630,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
                 // if there are 3 detected lines, follows center line, otherwise follows default main line
                 if (3 == detectedLines.lines.size()) {
-                    mainLine = detectedLines.lines[1];
+                    controlData.baseline = detectedLines.lines[1];
                 }
                 desiredSpeed = globals::speed_LAB_FWD;
 
@@ -632,19 +647,19 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 switch (steeringDir) {
                 case Direction::LEFT:
                     if (detectedLines.lines.size() >= 2) {
-                        mainLine = detectedLines.lines[0];
+                        controlData.baseline = detectedLines.lines[0];
                     }
                     break;
                 case Direction::CENTER:
                     if (detectedLines.lines.size() == 1) {
-                        mainLine = detectedLines.lines[0];
+                        controlData.baseline = detectedLines.lines[0];
                     } else if (detectedLines.lines.size() == 3) {
-                        mainLine = detectedLines.lines[1];
+                        controlData.baseline = detectedLines.lines[1];
                     }
                     break;
                 case Direction::RIGHT:
                     if (detectedLines.lines.size() >= 2) {
-                        mainLine = *detectedLines.lines.back();
+                        controlData.baseline = *detectedLines.lines.back();
                     }
                     break;
                 }
@@ -676,11 +691,83 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         }
     }
 
-    controlSpeed = desiredSpeed;
+    controlData.speed = desiredSpeed;
     return finished;
 }
 
-bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t& controlSpeed) {
+bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
+
+    static constexpr radian_t TURN_WHEEL_ANGLE = degree_t(22);
+    static constexpr millisecond_t PREPARE_TIME = millisecond_t(300);
+
+    const radian_t angleDiff = normalizePM180(globals::car.pose.angle - y_turn.startOrientation);
+    const Y_turnState prevState = y_turn.state;
+    controlData.directControl = true;
+
+    switch (y_turn.state) {
+    case Y_turnState::INACTIVE:
+        y_turn.startOrientation = normalizePM180(globals::car.pose.angle);
+        controlData.speed = globals::speed_TURN_AROUND;
+        controlData.frontWheelAngle = radian_t(0);
+        controlData.rearWheelAngle = radian_t(0);
+        y_turn.state = Y_turnState::FWD_LEFT1;
+        break;
+
+    case Y_turnState::FWD_LEFT1:
+        controlData.speed = globals::speed_TURN_AROUND;
+        controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
+        controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
+        if (angleDiff >= degree_t(50)) {
+            y_turn.state = Y_turnState::PREPARE_BWD_RIGHT;
+        }
+        break;
+
+    case Y_turnState::PREPARE_BWD_RIGHT:
+        controlData.speed = m_per_sec_t(0);
+        controlData.frontWheelAngle = -TURN_WHEEL_ANGLE;
+        controlData.rearWheelAngle = TURN_WHEEL_ANGLE;
+        if (getTime() - y_turn.stateStartTime >= PREPARE_TIME) {
+            y_turn.state = Y_turnState::BWD_RIGHT;
+        }
+        break;
+
+    case Y_turnState::BWD_RIGHT:
+        controlData.speed = -globals::speed_TURN_AROUND;
+        controlData.frontWheelAngle = -TURN_WHEEL_ANGLE;
+        controlData.rearWheelAngle = TURN_WHEEL_ANGLE;
+        if (angleDiff >= degree_t(110)) {
+            y_turn.state = Y_turnState::PREPARE_FWD_LEFT2;
+        }
+        break;
+
+    case Y_turnState::PREPARE_FWD_LEFT2:
+        controlData.speed = m_per_sec_t(0);
+        controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
+        controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
+        if (getTime() - y_turn.stateStartTime >= PREPARE_TIME) {
+            y_turn.state = Y_turnState::FWD_LEFT2;
+        }
+        break;
+
+    case Y_turnState::FWD_LEFT2:
+        controlData.speed = globals::speed_TURN_AROUND;
+        controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
+        controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
+        break;
+    }
+
+    if (y_turn.state != prevState) {
+        y_turn.stateStartTime = getTime();
+    }
+
+    const bool finished = Y_turnState::FWD_LEFT2 == y_turn.state && abs(angleDiff) >= degree_t(130) && LinePattern::NONE != detectedLines.pattern.type;
+    if (finished) {
+        y_turn.state = Y_turnState::INACTIVE;
+    }
+    return finished;
+}
+
+bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
@@ -698,9 +785,7 @@ bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t&
         }, globals::car.pose.angle, 30);
     }
 
-    const ControlData controlData = laneChange.trajectory.update(globals::car);
-    mainLine = controlData.baseline;
-    controlSpeed = controlData.speed;
+    controlData = laneChange.trajectory.update(globals::car);
 
     if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(35)) {
         globals::linePatternCalcEnabled = true;
@@ -720,7 +805,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     vTaskDelay(100); // gives time to other tasks and panels to wake up
 
     DetectedLines prevDetectedLines, detectedLines;
-    Line mainLine;
     ControlData controlData;
 
     currentSeg = createNewSegment();
@@ -731,27 +815,27 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             case ProgramTask::Labyrinth:
 
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
-                LineCalculator::updateMainLine(detectedLines.lines, mainLine);
+
+                controlData.directControl = false;
+                LineCalculator::updateMainLine(detectedLines.lines, controlData.baseline);
+                controlData.angle = degree_t(0);
+                controlData.offset = millimeter_t(0);
 
                 switch (globals::programState) {
                 case ProgramState::NavigateLabyrinth:
-                    if (navigateLabyrinth(prevDetectedLines, detectedLines, mainLine, controlData.speed)) {
+                    if (navigateLabyrinth(prevDetectedLines, detectedLines, controlData)) {
                         globals::programState = ProgramState::LaneChange;
                     }
                     break;
 
                 case ProgramState::LaneChange:
-                    if (changeLane(detectedLines, mainLine, controlData.speed)) {
+                    if (/*changeLane*/turnAround(detectedLines, controlData)) {
                         globals::programState = ProgramState::ReachSafetyCar;
                     }
                     break;
                 default:
                     break;
                 }
-
-                controlData.baseline = mainLine;
-                controlData.angle = degree_t(0);
-                controlData.offset = millimeter_t(0);
 
                 xQueueOverwrite(controlQueue, &controlData);
                 prevDetectedLines = detectedLines;
