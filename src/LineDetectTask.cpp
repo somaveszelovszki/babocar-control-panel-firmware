@@ -64,15 +64,12 @@ extern "C" void runLineDetectTask(const void *argument) {
     lineDetectPanelDataOut_t rxData;
     lineDetectPanelDataIn_t txData;
     Lines lines;
-    LinePattern linePattern;
-    linePattern.type = LinePattern::SINGLE_LINE;
-    lines.push_back(Line{ millimeter_t(0), 1 });
 
     while (true) {
         frontLineDetectPanelLink.update();
         globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
 
-        if (frontLineDetectPanelLink.readAvailable(rxData)) {
+        if (frontLineDetectPanelLink.readAvailable(rxData) && globals::linePatternCalcEnabled) {
             parseLineDetectPanelData(rxData, lines);
             lineCalc.update(lines);
             linePatternCalc.update(getActiveTask(globals::programState), lines, globals::car.distance);

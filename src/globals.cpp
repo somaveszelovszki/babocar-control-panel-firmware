@@ -9,6 +9,7 @@ ProgramState programState           = ProgramState::INVALID;
 bool useSafetyEnableSignal          = true;
 bool indicatorLedsEnabled           = true;
 bool startSignalEnabled             = false;
+bool linePatternCalcEnabled         = true;
 float motorCtrl_P                   = 0.5f;
 float motorCtrl_I                   = 0.04f;
 float motorCtrl_integral_max        = 4.0f;

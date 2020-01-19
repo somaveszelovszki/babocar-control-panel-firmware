@@ -14,6 +14,7 @@ extern ProgramState programState;
 extern bool useSafetyEnableSignal;
 extern bool indicatorLedsEnabled;
 extern bool startSignalEnabled;
+extern bool linePatternCalcEnabled;
 extern float motorCtrl_P;
 extern float motorCtrl_I;
 extern float motorCtrl_integral_max;
