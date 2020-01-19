@@ -685,6 +685,8 @@ bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t&
     static constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
     if (laneChange.trajectory.length() == meter_t(0)) {
+        globals::linePatternCalcEnabled = false;
+
         laneChange.trajectory.setStartConfig(Trajectory::config_t{ globals::car.pose.pos, globals::speed_LANE_CHANGE });
 
         laneChange.trajectory.appendLine(Trajectory::config_t{
@@ -701,6 +703,10 @@ bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t&
     const ControlData controlData = laneChange.trajectory.update(globals::car);
     mainLine = controlData.baseline;
     controlSpeed = controlData.speed;
+
+    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(50)) {
+        globals::linePatternCalcEnabled = true;
+    }
 
     const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
     if (finished) {
@@ -758,7 +764,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
         }
 
-        vTaskDelay(1);
+        vTaskDelay(2);
     }
 
     vTaskDelete(nullptr);
