@@ -82,11 +82,10 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, Line& mainLine, m_per
     static constexpr meter_t FAST_SECTION_LENGTH   = OVERTAKE_SECTION_LENGTH - meter_t(2) - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH - END_SINE_ARC_LENGTH;
 
     if (overtake.trajectory.length() == meter_t(0)) {
-        overtake.trajectory.setStartConfig(Trajectory::config_t{ globals::car.pose.pos, globals::car.speed });
 
-        overtake.trajectory.appendLine(Trajectory::config_t{
-            overtake.trajectory.lastConfig().pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(overtake.sectionOrientation),
-            globals::speed_OVERTAKE_CURVE
+        overtake.trajectory.setStartConfig(Trajectory::config_t{
+            globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(overtake.sectionOrientation),
+                    globals::speed_OVERTAKE_CURVE
         });
 
         overtake.trajectory.appendSineArc(Trajectory::config_t{

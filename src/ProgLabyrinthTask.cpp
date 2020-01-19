@@ -687,15 +687,13 @@ bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t&
     if (laneChange.trajectory.length() == meter_t(0)) {
         globals::linePatternCalcEnabled = false;
 
-        laneChange.trajectory.setStartConfig(Trajectory::config_t{ globals::car.pose.pos, globals::speed_LANE_CHANGE });
-
-        laneChange.trajectory.appendLine(Trajectory::config_t{
+        laneChange.trajectory.setStartConfig(Trajectory::config_t{
             globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
         });
 
         laneChange.trajectory.appendSineArc(Trajectory::config_t{
-            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(120), -(LANE_DISTANCE + centimeter_t(5))).rotate(globals::car.pose.angle),
+            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(100), -(LANE_DISTANCE + centimeter_t(5))).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
         }, globals::car.pose.angle, 30);
     }
@@ -704,11 +702,11 @@ bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t&
     mainLine = controlData.baseline;
     controlSpeed = controlData.speed;
 
-    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(50)) {
+    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(35)) {
         globals::linePatternCalcEnabled = true;
     }
 
-    const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
+    const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(25) && LinePattern::NONE != detectedLines.pattern.type;
     if (finished) {
         laneChange.trajectory.clear();
     }
