@@ -693,7 +693,7 @@ bool changeLane(const DetectedLines& detectedLines, Line& mainLine, m_per_sec_t&
         });
 
         laneChange.trajectory.appendSineArc(Trajectory::config_t{
-            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(100), -(LANE_DISTANCE + centimeter_t(5))).rotate(globals::car.pose.angle),
+            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(80), -(LANE_DISTANCE + centimeter_t(3))).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
         }, globals::car.pose.angle, 30);
     }
