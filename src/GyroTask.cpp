@@ -49,27 +49,35 @@ extern "C" void runGyroTask(const void *argument) {
 
     globals::isGyroTaskOk = true;
 
-    microsecond_t prevCarPoseUpdateTime = micro::getExactTime();
+    millisecond_t prevReadTime = micro::getTime();
+    meter_t prevDist = globals::car.distance;
 
     while (true) {
         const point3<gauss_t> mag = gyro.readMagData();
         if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
-            const microsecond_t now      = micro::getExactTime();
-            const microsecond_t timeDiff = now - prevCarPoseUpdateTime;
             const radian_t newAngle = normalize360(angleCalc.getAngle(mag));
 
             vTaskSuspendAll();
-            const meter_t dist = globals::car.speed * timeDiff;
+            const meter_t dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
             globals::car.pose.angle = avg(newAngle, globals::car.pose.angle);
             globals::car.pose.pos.X += dist * cos(globals::car.pose.angle);
             globals::car.pose.pos.Y += dist * sin(globals::car.pose.angle);
             globals::car.pose.angle = newAngle;
+            prevDist = globals::car.distance;
             xTaskResumeAll();
 
-            prevCarPoseUpdateTime = now;
+            prevReadTime = getTime();
+            vTaskDelay(8); // new magnetometer data is available in every ~10ms
+
+        } else if (getTime() - prevReadTime > millisecond_t(30)) {
+            HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_SET);
+            vTaskDelay(2);
+            HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_RESET);
+            vTaskDelay(8);
+            prevReadTime = getTime();
         }
 
-        vTaskDelay(5);
+        vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);
