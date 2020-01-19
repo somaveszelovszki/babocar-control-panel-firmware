@@ -2,6 +2,7 @@
 #include <micro/utils/log.hpp>
 #include <micro/container/map.hpp>
 #include <micro/container/vec.hpp>
+#include <micro/panel/line.h>
 
 #include <cfg_track.hpp>
 
@@ -102,7 +103,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
 
             LinePatternDescriptor::lines validLines = descriptor.getValidLines(pattern.dir, currentDist - pattern.startDist, centimeter_t(3));
             validLines.push_back(2);
-            return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end() && LinePatternCalculator::areClose(lines);
+            return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end();
         },
         [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
@@ -116,7 +117,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         centimeter_t(12),
         [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern& pattern, const Lines& lines, meter_t currentDist) {
             static constexpr meter_t PATTERN_LENGTH = centimeter_t(300);
-            return currentDist - pattern.startDist < PATTERN_LENGTH + centimeter_t(5) && 3 == lines.size() && LinePatternCalculator::areClose(lines);
+            return currentDist - pattern.startDist < PATTERN_LENGTH + centimeter_t(5) && 3 == lines.size();
         },
         [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
@@ -143,7 +144,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             };
 
             const LinePatternDescriptor::lines validLines = descriptor.getValidLines(pattern.dir, currentDist - pattern.startDist, centimeter_t(3));
-            return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end();
+            return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end() && LinePatternCalculator::areClose(lines);
         },
         [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
@@ -301,13 +302,14 @@ void LinePatternCalculator::update(const ProgramTask activeTask, const Lines& li
                 ++it;
             } else {
                 it = this->possiblePatterns.erase(it);
-
-                if (!this->possiblePatterns.size()) {
-                    this->isPatternChangeCheckActive = false;
-                    //LOG_DEBUG("All possible patterns are invalid, steps back to previous pattern");
-                }
             }
         }
+
+        if (this->possiblePatterns.empty()) {
+            this->isPatternChangeCheckActive = false;
+            //LOG_DEBUG("All possible patterns are invalid, steps back to previous pattern");
+        }
+
     } else {
         const LinePatternInfo *currentPatternInfo = &PATTERN_INFO[static_cast<uint8_t>(this->currentPattern().type)];
         if (!currentPatternInfo->isValid(this->prevMeas, current, lines, currentDist)) {

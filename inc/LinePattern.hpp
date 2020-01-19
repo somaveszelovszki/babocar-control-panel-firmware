@@ -73,7 +73,7 @@ public:
 
     LinePatternCalculator()
         : isPatternChangeCheckActive(false) {
-        this->prevPatterns.push_back({ LinePattern::NONE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) });
+        this->prevPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) });
     }
     void update(const ProgramTask activeTask, const Lines& lines, meter_t currentDist);
 
