@@ -38,7 +38,10 @@ extern "C" void runStartupTask(const void *argument) {
     uint32_t buttonClick = 0;
     GPIO_PinState prevButtonState = GPIO_PIN_SET;
 
-    while(getTime() - lastButtonClickTime < second_t(2)) {
+    globals::linePatternCalcEnabled = false;
+    globals::gyroCalibrationEnabled = true;
+
+    while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
         GPIO_PinState buttonState = HAL_GPIO_ReadPin(gpio_Btn, gpioPin_Btn1);
 
         if (GPIO_PIN_RESET == buttonState && GPIO_PIN_SET == prevButtonState) { // detects falling edges
@@ -51,7 +54,10 @@ extern "C" void runStartupTask(const void *argument) {
     }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
-    globals::programState = static_cast<ProgramState>(buttonClick);
+
+    globals::linePatternCalcEnabled = true;
+    globals::gyroCalibrationEnabled = false;
+    globals::programState = ProgramState::LaneChange;//static_cast<ProgramState>(buttonClick);
 
     if (ProgramState::WaitStartSignal == globals::programState) {
         waitStartSignal();

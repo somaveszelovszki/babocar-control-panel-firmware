@@ -6,18 +6,18 @@ namespace micro {
 
 enum class ProgramState : uint8_t {
     // Start states
-    INVALID           = 0xff,
-    WaitStartSignal   = 0,
+    INVALID           = 0,
+    WaitStartSignal   = 1,
 
     // Labyrinth states
-    NavigateLabyrinth = 1,
-    LaneChange        = 2,
+    NavigateLabyrinth = 2,
+    LaneChange        = 3,
 
     // RaceTrack states
-    ReachSafetyCar    = 3,
-    FollowSafetyCar   = 4,
-    OvertakeSafetyCar = 5,
-    Race              = 6,
+    ReachSafetyCar    = 4,
+    FollowSafetyCar   = 5,
+    OvertakeSafetyCar = 6,
+    Race              = 7,
 };
 
 enum class ProgramTask {

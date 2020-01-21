@@ -14,6 +14,8 @@
 #include <queue.h>
 #include <task.h>
 
+#include <utility>
+
 using namespace micro;
 
 class AngleFilter : public LowPassFilter<radian_t, 10> {
@@ -35,27 +37,54 @@ public:
 static hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 static AngleFilter angleFilter;
 
-struct AngleCalc {
+class AngleCalc {
+public:
     struct MagNormalization {
-        gauss_t offset;
-        gauss_t amplitude;
+        gauss_t min_;
+        gauss_t max_;
+
+        void update(const gauss_t value) {
+            if (this->min_ == gauss_t(0) || value < this->min_) {
+                this->min_ = value;
+            }
+            if (this->max_ == gauss_t(0) || value > this->max_) {
+                this->max_ = value;
+            }
+        }
 
         float apply(gauss_t mag) const {
-            return (mag - this->offset) / this->amplitude;
+            return map(mag, this->min_, this->max_, -1.0f, 1.0f);
         }
     };
 
-    const point2<MagNormalization> norm;
+    explicit AngleCalc(const point2<MagNormalization>& defaultNorm = { {}, {} }) : norm(defaultNorm) {}
 
-    radian_t getAngle(const point3<gauss_t>& mag) const {
+    radian_t getAngle(const point3<gauss_t>& mag, bool updateNorm) {
+
+        if (updateNorm) {
+            norm.X.update(mag.X);
+            norm.Y.update(mag.Y);
+        }
+
         return micro::atan2(norm.Y.apply(mag.Y), norm.X.apply(mag.X));
     }
+
+    bool isCalibrated() const {
+        return abs(this->norm.X.max_ - this->norm.X.min_) > gauss_t(200) &&
+               abs(this->norm.Y.max_ - this->norm.Y.min_) > gauss_t(200);
+    }
+
+private:
+    point2<MagNormalization> norm;
+    point2<std::pair<gauss_t, gauss_t>> boundaries;
 };
 
-static const AngleCalc angleCalc = {{
-    { gauss_t(-243), gauss_t(217) },
-    { gauss_t(494),  gauss_t(199) }
-}};
+static AngleCalc DEFAULT_ANGLE_CALC({
+    { gauss_t(-460), gauss_t(-26) },
+    { gauss_t(295),  gauss_t(693) }
+});
+
+static AngleCalc angleCalc;
 
 extern "C" void runGyroTask(const void *argument) {
 
@@ -69,11 +98,24 @@ extern "C" void runGyroTask(const void *argument) {
 
     millisecond_t prevReadTime = micro::getTime();
     meter_t prevDist = globals::car.distance;
+    bool prevCalibEn = true;
 
     while (true) {
         const point3<gauss_t> mag = gyro.readMagData();
         if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
-            const radian_t newAngle = angleFilter.update(angleCalc.getAngle(mag));
+            const bool calibEn = globals::gyroCalibrationEnabled;
+
+            if (prevCalibEn && !calibEn) {
+                if (angleCalc.isCalibrated()) {
+                    LOG_DEBUG("Gyro calibrated");
+                } else {
+                    LOG_DEBUG("Using default gyro calibration");
+                    angleCalc = DEFAULT_ANGLE_CALC;
+                }
+            }
+            prevCalibEn = calibEn;
+
+            const radian_t newAngle = angleFilter.update(angleCalc.getAngle(mag, calibEn));
 
             vTaskSuspendAll();
             const meter_t dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
