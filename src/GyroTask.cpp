@@ -97,48 +97,43 @@ extern "C" void runGyroTask(const void *argument) {
     globals::isGyroTaskOk = true;
 
     millisecond_t prevReadTime = micro::getTime();
+    microsecond_t prevCalcTime = micro::getExactTime();
     meter_t prevDist = globals::car.distance;
     bool prevCalibEn = true;
 
     while (true) {
-        const point3<gauss_t> mag = gyro.readMagData();
-        if (!isZero(mag.X) || !isZero(mag.Y) || !isZero(mag.Z)) {
-            const bool calibEn = globals::gyroCalibrationEnabled;
+        const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
+        if (gyroData.X != rad_per_sec_t(0) || gyroData.Y != rad_per_sec_t(0) || gyroData.Z != rad_per_sec_t(0)) {
 
-            if (prevCalibEn && !calibEn) {
-                if (angleCalc.isCalibrated()) {
-                    LOG_DEBUG("Gyro calibrated");
-                } else {
-                    LOG_DEBUG("Using default gyro calibration");
-                    angleCalc = DEFAULT_ANGLE_CALC;
-                }
-            }
-            prevCalibEn = calibEn;
-
-            const radian_t newAngle = angleFilter.update(angleCalc.getAngle(mag, calibEn));
+            const microsecond_t now = getExactTime();
+            const radian_t d_angle = gyroData.Z * (now - prevCalcTime);
 
             vTaskSuspendAll();
-            const meter_t dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
-            globals::car.pose.angle = avg(newAngle, globals::car.pose.angle);
-            globals::car.pose.pos.X += dist * cos(globals::car.pose.angle);
-            globals::car.pose.pos.Y += dist * sin(globals::car.pose.angle);
-            globals::car.pose.angle = newAngle;
+            const meter_t d_dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
+
+            globals::car.pose.angle += d_angle / 2;
+            globals::car.pose.pos.X += d_dist * cos(globals::car.pose.angle);
+            globals::car.pose.pos.Y += d_dist * sin(globals::car.pose.angle);
+            globals::car.pose.angle += d_angle / 2;
+
             prevDist = globals::car.distance;
             xTaskResumeAll();
 
-            LOG_DEBUG("%d, %d / %f",
+            LOG_DEBUG("%d, %d / %f (%dms)",
                 (int)static_cast<centimeter_t>(globals::car.pose.pos.X).get(),
                 (int)static_cast<centimeter_t>(globals::car.pose.pos.Y).get(),
-                static_cast<degree_t>(globals::car.pose.angle).get());
+                static_cast<degree_t>(globals::car.pose.angle).get(),
+                static_cast<int32_t>(static_cast<millisecond_t>(now - prevCalcTime).get()));
 
-            prevReadTime = getTime();
-            vTaskDelay(8); // new magnetometer data is available in every ~10ms
+            prevCalcTime = now;
+            prevReadTime = now;
 
-        } else if (getTime() - prevReadTime > millisecond_t(30)) {
+        } else if (getTime() - prevReadTime > millisecond_t(15)) {
             HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_SET);
             vTaskDelay(2);
             HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_RESET);
-            vTaskDelay(8);
+            vTaskDelay(10);
+            gyro.initialize();
             prevReadTime = getTime();
         }
 
