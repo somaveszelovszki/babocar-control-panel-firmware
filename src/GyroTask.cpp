@@ -99,11 +99,11 @@ extern "C" void runGyroTask(const void *argument) {
     millisecond_t prevReadTime = micro::getTime();
     microsecond_t prevCalcTime = micro::getExactTime();
     meter_t prevDist = globals::car.distance;
-    bool prevCalibEn = true;
 
     while (true) {
         const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
         if (gyroData.X != rad_per_sec_t(0) || gyroData.Y != rad_per_sec_t(0) || gyroData.Z != rad_per_sec_t(0)) {
+            globals::isGyroTaskOk = true;
 
             const microsecond_t now = getExactTime();
             const radian_t d_angle = gyroData.Z * (now - prevCalcTime);
@@ -119,16 +119,12 @@ extern "C" void runGyroTask(const void *argument) {
             prevDist = globals::car.distance;
             xTaskResumeAll();
 
-            LOG_DEBUG("%d, %d / %f (%dms)",
-                (int)static_cast<centimeter_t>(globals::car.pose.pos.X).get(),
-                (int)static_cast<centimeter_t>(globals::car.pose.pos.Y).get(),
-                static_cast<degree_t>(globals::car.pose.angle).get(),
-                static_cast<int32_t>(static_cast<millisecond_t>(now - prevCalcTime).get()));
-
             prevCalcTime = now;
             prevReadTime = now;
 
         } else if (getTime() - prevReadTime > millisecond_t(15)) {
+            globals::isGyroTaskOk = false;
+
             HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_SET);
             vTaskDelay(2);
             HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_RESET);
