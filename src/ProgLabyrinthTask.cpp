@@ -698,11 +698,13 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr radian_t TURN_WHEEL_ANGLE = degree_t(22);
-    static constexpr millisecond_t PREPARE_TIME = millisecond_t(300);
+    static constexpr millisecond_t PREPARE_TIME = millisecond_t(200);
 
     const radian_t angleDiff = normalizePM180(globals::car.pose.angle - y_turn.startOrientation);
     const Y_turnState prevState = y_turn.state;
     controlData.directControl = true;
+
+    LOG_DEBUG("%f | %f", degree_t(globals::car.pose.angle).get(), degree_t(y_turn.startOrientation).get());
 
     switch (y_turn.state) {
     case Y_turnState::INACTIVE:
@@ -717,7 +719,7 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
         controlData.speed = globals::speed_TURN_AROUND;
         controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
         controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
-        if (angleDiff >= degree_t(50)) {
+        if (angleDiff >= degree_t(60)) {
             y_turn.state = Y_turnState::PREPARE_BWD_RIGHT;
         }
         break;
@@ -735,7 +737,7 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
         controlData.speed = -globals::speed_TURN_AROUND;
         controlData.frontWheelAngle = -TURN_WHEEL_ANGLE;
         controlData.rearWheelAngle = TURN_WHEEL_ANGLE;
-        if (angleDiff >= degree_t(110)) {
+        if (angleDiff >= degree_t(120)) {
             y_turn.state = Y_turnState::PREPARE_FWD_LEFT2;
         }
         break;
@@ -760,7 +762,7 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
         y_turn.stateStartTime = getTime();
     }
 
-    const bool finished = Y_turnState::FWD_LEFT2 == y_turn.state && abs(angleDiff) >= degree_t(130) && LinePattern::NONE != detectedLines.pattern.type;
+    const bool finished = Y_turnState::FWD_LEFT2 == y_turn.state && abs(angleDiff) >= degree_t(145) && LinePattern::NONE != detectedLines.pattern.type;
     if (finished) {
         y_turn.state = Y_turnState::INACTIVE;
     }
@@ -780,18 +782,18 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
         });
 
         laneChange.trajectory.appendSineArc(Trajectory::config_t{
-            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(80), -(LANE_DISTANCE + centimeter_t(3))).rotate(globals::car.pose.angle),
+            laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(80), -LANE_DISTANCE).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
         }, globals::car.pose.angle, 30);
     }
 
     controlData = laneChange.trajectory.update(globals::car);
 
-    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(35)) {
+    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(50)) {
         globals::linePatternCalcEnabled = true;
     }
 
-    const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(25) && LinePattern::NONE != detectedLines.pattern.type;
+    const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
     if (finished) {
         laneChange.trajectory.clear();
     }
@@ -829,7 +831,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     break;
 
                 case ProgramState::LaneChange:
-                    if (/*changeLane*/turnAround(detectedLines, controlData)) {
+                    if (changeLane(detectedLines, controlData)) {
                         globals::programState = ProgramState::ReachSafetyCar;
                     }
                     break;
