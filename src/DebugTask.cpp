@@ -28,6 +28,7 @@ static StaticQueue_t logQueueBuffer;
 
 static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 6> rxBuffer;
 static char txLog[LOG_MSG_MAX_SIZE];
+static microsecond_t txEndTime;
 
 #if SERIAL_DEBUG_ENABLED
 static char inCmd[MAX_RX_BUFFER_SIZE];
@@ -38,7 +39,10 @@ static Timer debugParamsSendTimer;
 
 static Timer ledBlinkTimer;
 
-static volatile bool uartOccupied = false;
+static void transmit(const char * const data, const uint32_t length) {
+    HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), length);
+    txEndTime = getExactTime() + length * second_t(1) / (uart_Command->Init.BaudRate / 12);
+}
 
 extern "C" void runDebugTask(const void *argument) {
     logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
@@ -89,7 +93,7 @@ extern "C" void runDebugTask(const void *argument) {
             }
         }
 
-        if (!uartOccupied && debugParamsSendTimer.checkTimeout()) {
+        if (getExactTime() > txEndTime && debugParamsSendTimer.checkTimeout()) {
             strncpy(debugParamsStr, "[P]", 3);
             uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, MAX_RX_BUFFER_SIZE - (3 + 4));
             debugParamsStr[len++] = '$';
@@ -97,15 +101,13 @@ extern "C" void runDebugTask(const void *argument) {
             debugParamsStr[len++] = '\n';
             debugParamsStr[len++] = '\0';
 
-            HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(debugParamsStr), len);
-            uartOccupied = true;
+            transmit(debugParamsStr, len);
         }
 #endif // SERIAL_DEBUG_ENABLED
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        if(!uartOccupied && xQueueReceive(logQueue, txLog, 1)) {
-            HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(txLog), strlen(txLog));
-            uartOccupied = true;
+        if (getExactTime() > txEndTime && xQueueReceive(logQueue, txLog, 1)) {
+            transmit(txLog, strlen(txLog));
         }
 
         ledBlinkTimer.setPeriod(millisecond_t(globals::areAllTasksOk() ? 500 : 250));
@@ -129,6 +131,4 @@ void micro_Command_Uart_RxCpltCallback(const uint32_t leftBytes) {
 
 /* @brief Callback for Serial UART TxCplt - called when transmit finishes.
  */
-void micro_Command_Uart_TxCpltCallback() {
-    uartOccupied = false;
-}
+void micro_Command_Uart_TxCpltCallback() {}

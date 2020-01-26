@@ -26,6 +26,9 @@ using namespace micro;
 extern QueueHandle_t detectedLinesQueue;
 extern QueueHandle_t controlQueue;
 
+#define LOG_WAIT_DEBUG(...) { LOG_DEBUG(__VA_ARGS__); vTaskDelay(10); }
+#define LOG_WAIT_ERROR(...) { LOG_ERROR(__VA_ARGS__); vTaskDelay(10); }
+
 namespace {
 
 vec<Segment, 5 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segments.
@@ -34,7 +37,6 @@ vec<Connection, 5 * cfg::MAX_NUM_LAB_SEGMENTS * 2> connections;     // The conne
 
 Segment *currentSeg = nullptr;
 Connection *prevConn = nullptr;
-Connection *prevPrevConn = nullptr;
 
 struct {
     Segment *seg          = nullptr;
@@ -105,33 +107,73 @@ T* getNew(vec<T, N>& vec) {
     if (vec.push_back(T())) {
         elem = vec.back();
     } else {
-        LOG_ERROR("Pool empty, cannot get new element");
+        LOG_WAIT_ERROR("Pool empty, cannot get new element");
     }
     return elem;
 }
 
-Junction* findExistingJunction(const point2m& pos) {
-    constexpr meter_t MIN_JUNCTION_POS_ACCURACY = centimeter_t(50);
+Junction* findExistingJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments, bool& isValid) {
+    constexpr meter_t MIN_JUNCTION_POS_ACCURACY = centimeter_t(100);
 
     Junction *result = nullptr;
-    meter_t minDist = meter_t::infinity();
+
+    struct JunctionDist {
+        Junction *junc = nullptr;
+        meter_t dist = meter_t::infinity();
+    };
+
+    // FIRST:  closest junction to current position
+    // SECOND: closest junction to current position with the correct topology
+    std::pair<JunctionDist, JunctionDist> closest = {};
 
     for(Junction& j : junctions) {
         const meter_t dist = pos.distance(j.pos);
 
-        if (dist < minDist) {
-            result = &j;
-            minDist = dist;
+        if (dist < closest.first.dist) {
+            closest.first.junc = &j;
+            closest.first.dist = dist;
+        }
+
+        if (dist < closest.second.dist) {
+            const Junction::segment_map::const_iterator inSegments = j.getSideSegments(inOri);
+
+            if (inSegments != j.segments.end()) {
+                LOG_WAIT_DEBUG("%fdeg (in) -> %fdeg: %d segments (current: %d)",
+                    static_cast<degree_t>(inOri).get(), static_cast<degree_t>(inSegments->first).get(), (int32_t)inSegments->second.size(), (int32_t)numInSegments);
+            } else {
+                LOG_WAIT_ERROR("No segments found in direction %fdeg (in)", static_cast<degree_t>(inOri).get());
+            }
+
+            const Junction::segment_map::const_iterator outSegments = j.getSideSegments(outOri);
+
+            if (outSegments != j.segments.end()) {
+                LOG_WAIT_DEBUG("%fdeg (out) -> %fdeg: %d segments (current: %d)",
+                    static_cast<degree_t>(outOri).get(), static_cast<degree_t>(outSegments->first).get(), (int32_t)outSegments->second.size(), (int32_t)numOutSegments);
+            } else {
+                LOG_WAIT_ERROR("No segments found in direction %fdeg (out)", static_cast<degree_t>(outOri).get());
+            }
+
+            if (inSegments != j.segments.end() && inSegments->second.size() == numInSegments) {
+                if (outSegments != j.segments.end() && outSegments->second.size() == numOutSegments) {
+                    closest.second.junc = &j;
+                    closest.second.dist = dist;
+                }
+            }
         }
     }
 
-    if (minDist > MIN_JUNCTION_POS_ACCURACY) {  // result is further from the current position than the max, this junction is a new one
+    if (closest.second.dist < centimeter_t(120)) {
+        // a junction at the right position and the correct topology has been found
+        result = closest.second.junc;
+        isValid = true;
+    } else if (closest.first.dist < centimeter_t(80)) {
+        // a junction at the right position but with incorrect topology has been found
+        result = closest.first.junc;
+        isValid = false;
+    } else {
+        // the junction has not been found
         result = nullptr;
-    }
-
-    LOG_DEBUG("pos: %d, %d", (int32_t)static_cast<centimeter_t>(pos.X).get(), (int32_t)static_cast<centimeter_t>(pos.Y).get());
-    if (result) {
-        LOG_DEBUG("found #%d:  %d, %d", result->idx, (int32_t)static_cast<centimeter_t>(result->pos.X).get(), (int32_t)static_cast<centimeter_t>(result->pos.Y).get());
+        isValid = false;
     }
 
     return result;
@@ -157,11 +199,13 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastRouteJunc 
             for (Connection *c : currentRoute->lastSeg->edges) {
 
                 // does not permit going backwards or navigating through dead-end segments
-                if ((!lastRouteConn || c->junction != lastRouteConn->junction || c->getManeuver(currentRoute->lastSeg) != lastManeuver) &&
-                    !c->getOtherSegment(currentRoute->lastSeg)->isDeadEnd) {
+                if ((!lastRouteConn ||
+                    c->junction != lastRouteConn->junction ||
+                    c->getManeuver(currentRoute->lastSeg) != lastManeuver) ||
+                    currentRoute->lastSeg->isDeadEnd) {
 
                     if (routes.size() >= MAX_NUM_ROUTES) {
-                        LOG_ERROR("routes.size() >= MAX_NUM_ROUTES");
+                        LOG_WAIT_ERROR("routes.size() >= MAX_NUM_ROUTES");
                         break;
                     }
                     Route *newRoute = getNew(routes);
@@ -292,7 +336,7 @@ vec<Connection*, 2> getConnections(Segment *seg1, Segment *seg2) {
 }
 
 Junction* onNewJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
-    LOG_DEBUG("New junction | currentSeg: %c", currentSeg->name);
+    LOG_WAIT_DEBUG("New junction | currentSeg: %c", currentSeg->name);
     Junction * const junc = getNew(junctions);
     if (junc) {
         junc->idx = junctions.size();
@@ -313,7 +357,7 @@ Junction* onNewJunction(const point2m& pos, radian_t inOri, radian_t outOri, uin
         endTime += second_t(10);
 
     } else {
-        LOG_ERROR("Junction pool empty");
+        LOG_WAIT_ERROR("Junction pool empty");
     }
 
     return junc;
@@ -324,8 +368,6 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
 
     if (oldSeg != newSeg) {
         if (newSeg->isFloating()) {
-            LOG_DEBUG("New segment floating (OK)");
-
             // if both segments are floating, merges them
             if (oldSeg->isFloating()) {
                 // adds all the connections of this segment to the previously defined floating segment (updates segment pointers)
@@ -341,56 +383,58 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
 
                 oldSeg->isActive = false;
                 result = Status::OK;
-                LOG_DEBUG("Merged: %c -> %c", oldSeg->name, newSeg->name);
+                LOG_WAIT_DEBUG("Merged: %c -> %c", oldSeg->name, newSeg->name);
             } else {
-                LOG_ERROR("Old segment not floating (NOT OK)");
+                LOG_WAIT_ERROR("Old segment not floating (NOT OK)");
             }
         } else {
-            LOG_ERROR("New segment not floating (NOT OK)");
+            LOG_WAIT_ERROR("New segment not floating (NOT OK)");
         }
     }
 
     return result;
 }
 
-Connection* onExistingJunction(Junction *junc, const point2m& pos, radian_t inOri, Direction inSegmentDir) {
+Connection* onExistingJunction(Junction *junc, bool isValid, const point2m& pos, radian_t inOri, Direction inSegmentDir) {
 
-    LOG_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
+    LOG_WAIT_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
 
     vTaskSuspendAll();
+    const point2m prevCarPos = globals::car.pose.pos;
     globals::car.pose.pos += (junc->pos - pos);
     xTaskResumeAll();
 
-    LOG_DEBUG("Car pos updated: (%f, %f)", static_cast<centimeter_t>(globals::car.pose.pos.X).get(), static_cast<centimeter_t>(globals::car.pose.pos.Y).get());
+    LOG_WAIT_DEBUG("Car pos updated: (%f, %f) -> (%f, %f)", prevCarPos.X.get(), prevCarPos.Y.get(), globals::car.pose.pos.X.get(), globals::car.pose.pos.Y.get());
 
-    Segment * const junctionSeg = junc->getSegment(inOri, inSegmentDir);
     Connection *nextConn = nullptr;
 
-    if (junctionSeg) {
-        LOG_DEBUG("junctionSeg: %c", junctionSeg->name);
+    if (isValid) {
+        Segment * const junctionSeg = junc->getSegment(inOri, inSegmentDir);
 
-        if (currentSeg->isDeadEnd) {
-            currentSeg = prevConn->getOtherSegment(currentSeg);
-            prevConn = prevPrevConn;
+        if (junctionSeg) {
+            LOG_WAIT_DEBUG("junctionSeg: %c", junctionSeg->name);
 
-        } else if (currentSeg != junctionSeg) {
-            if (!isOk(mergeSegments(currentSeg, junctionSeg))) {
-                plannedRoute.reset();
+            if (currentSeg != junctionSeg) {
+                if (!isOk(mergeSegments(currentSeg, junctionSeg))) {
+                    plannedRoute.reset();
+                }
+                currentSeg = junctionSeg;
             }
-            currentSeg = junctionSeg;
-        }
 
-        // If there is no planned route, creates a new route.
-        // The destination of the route will be the closest floating segment.
-        // If there are no floating segments, it means the labyrinth has been completed.
-        // In this case the destination will be the lane change segment.
-        if (plannedRoute.connections.size() || getRoute()) {
-            nextConn = plannedRoute.nextConnection();
+            // If there is no planned route, creates a new route.
+            // The destination of the route will be the closest floating segment.
+            // If there are no floating segments, it means the labyrinth has been completed.
+            // In this case the destination will be the lane change segment.
+            if (plannedRoute.connections.size() || getRoute()) {
+                nextConn = plannedRoute.nextConnection();
+            } else {
+                LOG_WAIT_ERROR("createNewRoute() failed");
+            }
         } else {
-            LOG_ERROR("createNewRoute() failed");
+            LOG_WAIT_ERROR("Junction segment with orientation [%fdeg] and direction [%s] not found", static_cast<degree_t>(inOri).get(), to_string(inSegmentDir));
         }
     } else {
-        LOG_ERROR("Junction segment with orientation [%fdeg] and direction [%s] not found", static_cast<degree_t>(inOri).get(), to_string(inSegmentDir));
+        LOG_WAIT_ERROR("Unexpected junction topology, skips segment merge and route planning");
     }
 
     return nextConn;
@@ -398,28 +442,48 @@ Connection* onExistingJunction(Junction *junc, const point2m& pos, radian_t inOr
 
 Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
-    Junction *junc = currentSeg->isDeadEnd && prevConn ? prevConn->junction : findExistingJunction(pos);
+    bool isJuncValid = false;
+    Junction *junc = findExistingJunction(pos, inOri, outOri, numInSegments, inSegmentDir, numOutSegments, isJuncValid);
+
+    if (currentSeg->isDeadEnd && prevConn && junc != prevConn->junction) {
+        junc = prevConn->junction;
+        isJuncValid = false;
+        LOG_WAIT_ERROR("After a dead-end, detected junction is not the previous one.");
+    }
+
     Connection *nextConn = nullptr;
     Maneuver nextManeuver = { outOri, Direction::CENTER };
 
     if (!junc) { // new junction found - creates new segments and adds connections
+        LOG_WAIT_DEBUG("new junction");
         junc = onNewJunction(pos, inOri, outOri, numInSegments, inSegmentDir, numOutSegments);
-    } else { // arrived at a previously found junction - the corresponding floating segment of the junction (if there is one) must be merged with the current segment
-        nextConn = onExistingJunction(junc, pos, inOri, inSegmentDir);
+    } else { // arrived at a previously found junction - the corresponding floating segment of the junction (if any) must be merged with the current segment
+        LOG_WAIT_DEBUG("existing junction");
+        nextConn = onExistingJunction(junc, isJuncValid, pos, inOri, inSegmentDir);
     }
 
-    if (!nextConn) {
+    LOG_WAIT_DEBUG("junction handling done, choosing next maneuver");
+
+    if (nextConn) {
+        nextManeuver = nextConn->getManeuver(nextConn->getOtherSegment(currentSeg));
+    }  else {
+        LOG_WAIT_DEBUG("!nextConn");
+
         Junction::segment_map::iterator outSegments = junc->getSideSegments(nextManeuver.orientation);
         Segment **pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::RIGHT));
         if (!pNextSeg) {
             pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::CENTER));
         }
 
-        for (Connection *c : getConnections(currentSeg, *pNextSeg)) {
-            if (c->junction == junc && c->getManeuver(*pNextSeg) == nextManeuver) {
-                nextConn = c;
-                break;
+        if (pNextSeg) {
+            for (Connection *c : getConnections(currentSeg, *pNextSeg)) {
+                if (c->junction == junc && c->getManeuver(*pNextSeg) == nextManeuver) {
+                    nextConn = c;
+                    break;
+                }
             }
+        } else {
+            LOG_WAIT_ERROR("pNextSeg should not be nullptr at this point");
         }
     }
 
@@ -437,11 +501,10 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
 
         Segment *nextSeg = nextConn->getOtherSegment(currentSeg);
         currentSeg = nextSeg;
-        prevPrevConn = prevConn;
         prevConn = nextConn;
-        LOG_DEBUG("Next: %c", nextSeg->name);
+        LOG_WAIT_DEBUG("Next: %c (%s)", nextSeg->name, micro::to_string(nextManeuver.direction));
     } else {
-        LOG_ERROR("No next connection found");
+        LOG_WAIT_ERROR("No next connection found");
     }
 
     return nextManeuver.direction;
@@ -548,12 +611,12 @@ const TestCase testCase1[] = {
     { { { meter_t(5), meter_t(5) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER } },
 
     // 5
-    { { { meter_t(5), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   } },
-    { { { meter_t(5), meter_t(2) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::RIGHT  } },
-    { { { meter_t(5), meter_t(2) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
+    { { { meter_t(5), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::NEGATIVE, Direction::RIGHT  } },
+    { { { meter_t(5), meter_t(2) }, -PI_2 }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(5), meter_t(2) }, -PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
 
     // 2
-    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_3,  Sign::NEGATIVE, Direction::LEFT   } },
+    { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_3,  Sign::NEGATIVE, Direction::CENTER } },
     { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::JUNCTION_2,  Sign::POSITIVE, Direction::LEFT   } },
     { { { meter_t(3), meter_t(4) }, PI_2 }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
 
@@ -577,123 +640,19 @@ const TestCase testCase1[] = {
     { { { meter_t(-1), meter_t(-4) }, radian_t(0) }, { LinePattern::Type::NONE,        Sign::NEUTRAL,  Direction::CENTER } }
 };
 
-bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, ControlData& controlData) {
+const TestCase testCase2[] = {
+    { { { meter_t(0), meter_t(0) }, radian_t(0) }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
 
-//    // TODO only for testing -------------------------------------------
-//
-//    static const TestCase *testCase = testCase1;
-//    static const uint32_t numTestCasePoints = ARRAY_SIZE(testCase1);
-//    static uint32_t testCasePointIdx = 0;
-//
-//    if (testCasePointIdx < numTestCasePoints) {
-//        globals::car.pose = testCase[testCasePointIdx].pose;
-//        const_cast<DetectedLines&>(detectedLines).pattern = testCase[testCasePointIdx].pattern;
-//        testCasePointIdx++;
-//    }
-//
-//    // -----------------------------------------------------------------
+    // 1
+    { { { meter_t(0), meter_t(2) }, radian_t(0) }, { LinePattern::Type::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, radian_t(0) }, { LinePattern::Type::JUNCTION_3,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, radian_t(0) }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } },
 
-    static uint8_t numInSegments;
-    static Direction inSegmentDir;
-    static point2m inJunctionPos;
-    static m_per_sec_t desiredSpeed = globals::speed_LAB_FWD;
-
-    bool finished = false;
-
-    if (detectedLines.pattern != prevDetectedLines.pattern) {
-
-        switch (detectedLines.pattern.type) {
-        case LinePattern::JUNCTION_1:
-        case LinePattern::JUNCTION_2:
-        case LinePattern::JUNCTION_3:
-        {
-            const uint8_t numSegments = LinePattern::JUNCTION_1 == detectedLines.pattern.type ? 1 :
-                LinePattern::JUNCTION_2 == detectedLines.pattern.type ? 2 : 3;
-
-            if (Sign::NEGATIVE == detectedLines.pattern.dir) {
-                numInSegments = numSegments;
-                inJunctionPos = globals::car.pose.pos;
-
-                // Line pattern direction indicates on which side of the current line the OTHER lines are,
-                // so if the current line is the leftmost line of three lines, pattern direction will be RIGHT.
-                // Segment direction in a junction indicates which side the car should steer in order to follow a segment,
-                // when leaving a junction.
-                // Currently the car is entering a junction, therefore if the current line is the leftmost,
-                // the car will need to steer to the right when leaving the junction.
-                // So the segment direction is the same as the line pattern direction (in this example, RIGHT).
-                inSegmentDir = detectedLines.pattern.side;
-
-                // if the car is going backwards, mirrored pattern sides are detected
-                if (currentSeg->isDeadEnd) {
-                    inSegmentDir = -inSegmentDir;
-                }
-
-                // if there are 3 detected lines, follows center line, otherwise follows default main line
-                if (3 == detectedLines.lines.size()) {
-                    controlData.baseline = detectedLines.lines[1];
-                }
-                desiredSpeed = globals::speed_LAB_FWD;
-
-            } else if (Sign::POSITIVE == detectedLines.pattern.dir) {
-                const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
-
-                const radian_t carOri = globals::car.pose.angle;
-                const radian_t inOri  = normalize360(currentSeg->isDeadEnd ? carOri : carOri - PI);
-                const radian_t outOri = normalize360(carOri);
-
-                const Direction steeringDir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
-
-                // updates the main line (if an error occurs, does not change the default line)
-                switch (steeringDir) {
-                case Direction::LEFT:
-                    if (detectedLines.lines.size() >= 2) {
-                        controlData.baseline = detectedLines.lines[0];
-                    }
-                    break;
-                case Direction::CENTER:
-                    if (detectedLines.lines.size() == 1) {
-                        controlData.baseline = detectedLines.lines[0];
-                    } else if (detectedLines.lines.size() == 3) {
-                        controlData.baseline = detectedLines.lines[1];
-                    }
-                    break;
-                case Direction::RIGHT:
-                    if (detectedLines.lines.size() >= 2) {
-                        controlData.baseline = *detectedLines.lines.back();
-                    }
-                    break;
-                }
-            }
-
-            desiredSpeed = globals::speed_LAB_FWD;
-            break;
-        }
-
-        case LinePattern::DEAD_END:
-            currentSeg->isDeadEnd = true;
-            desiredSpeed = globals::speed_LAB_BWD;
-            break;
-
-        case LinePattern::LANE_CHANGE:
-            if (getFloatingSegments().size()) {
-                laneChange.seg = currentSeg;
-                if (Sign::POSITIVE == detectedLines.pattern.dir && prevConn) {
-                    laneChange.lastJunc = prevConn->junction;
-                    laneChange.lastManeuver = prevConn->getManeuver(currentSeg);
-                }
-            } else {
-                finished = true;
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    controlData.speed = desiredSpeed;
-    return finished;
-}
+    // 1 - wrong pattern
+    { { { meter_t(0), meter_t(2) }, PI }, { LinePattern::Type::JUNCTION_3,  Sign::NEGATIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, PI }, { LinePattern::Type::JUNCTION_1,  Sign::POSITIVE, Direction::CENTER } },
+    { { { meter_t(0), meter_t(2) }, PI }, { LinePattern::Type::SINGLE_LINE, Sign::NEUTRAL,  Direction::CENTER } }
+};
 
 bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
 
@@ -704,10 +663,9 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
     const Y_turnState prevState = y_turn.state;
     controlData.directControl = true;
 
-    LOG_DEBUG("%f | %f", degree_t(globals::car.pose.angle).get(), degree_t(y_turn.startOrientation).get());
-
     switch (y_turn.state) {
     case Y_turnState::INACTIVE:
+        globals::lineDetectionEnabled = false;
         y_turn.startOrientation = normalizePM180(globals::car.pose.angle);
         controlData.speed = globals::speed_TURN_AROUND;
         controlData.frontWheelAngle = radian_t(0);
@@ -747,6 +705,7 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
         controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
         controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
         if (getTime() - y_turn.stateStartTime >= PREPARE_TIME) {
+            globals::lineDetectionEnabled = true;
             y_turn.state = Y_turnState::FWD_LEFT2;
         }
         break;
@@ -769,12 +728,128 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
     return finished;
 }
 
+bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, ControlData& controlData) {
+
+//    // TODO only for testing -------------------------------------------
+//
+//#define TEST_CASE testCase2
+//    static const TestCase *testCase = TEST_CASE;
+//    static const uint32_t numTestCasePoints = ARRAY_SIZE(TEST_CASE);
+//    static uint32_t testCasePointIdx = 0;
+//#undef TEST_CASE
+//
+//    if (testCasePointIdx < numTestCasePoints) {
+//        globals::car.pose = testCase[testCasePointIdx].pose;
+//        const_cast<DetectedLines&>(detectedLines).pattern = testCase[testCasePointIdx].pattern;
+//        testCasePointIdx++;
+//    }
+//
+//    // -----------------------------------------------------------------
+
+    static uint8_t numInSegments;
+    static Direction inSegmentDir;
+    static point2m inJunctionPos;
+    static bool turnAroundActive = false;
+
+    bool finished = false;
+    controlData.speed = globals::speed_LAB_FWD;
+
+    if (turnAroundActive) {
+        if (turnAround(detectedLines, controlData)) {
+            turnAroundActive = false;
+        }
+    } else if (detectedLines.pattern != prevDetectedLines.pattern) {
+
+        switch (detectedLines.pattern.type) {
+        case LinePattern::JUNCTION_1:
+        case LinePattern::JUNCTION_2:
+        case LinePattern::JUNCTION_3:
+        {
+            const uint8_t numSegments = LinePattern::JUNCTION_1 == detectedLines.pattern.type ? 1 :
+                LinePattern::JUNCTION_2 == detectedLines.pattern.type ? 2 : 3;
+
+            if (Sign::NEGATIVE == detectedLines.pattern.dir) {
+                numInSegments = numSegments;
+                inJunctionPos = globals::car.pose.pos;
+
+                // Line pattern direction indicates on which side of the current line the OTHER lines are,
+                // so if the current line is the leftmost line of three lines, pattern direction will be RIGHT.
+                // Segment direction in a junction indicates which side the car should steer in order to follow a segment,
+                // when leaving a junction.
+                // Currently the car is entering a junction, therefore if the current line is the leftmost,
+                // the car will need to steer to the right when leaving the junction.
+                // So the segment direction is the same as the line pattern direction (in this example, RIGHT).
+                inSegmentDir = detectedLines.pattern.side;
+
+                // if there are 3 detected lines, follows center line, otherwise follows default main line
+                if (3 == detectedLines.lines.size()) {
+                    controlData.baseline = detectedLines.lines[1];
+                }
+
+            } else if (Sign::POSITIVE == detectedLines.pattern.dir) {
+                const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
+
+                const radian_t carOri = globals::car.pose.angle;
+                const radian_t inOri  = normalize360(carOri + PI);
+                const radian_t outOri = normalize360(carOri);
+
+                const Direction steeringDir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
+
+                // updates the main line (if an error occurs, does not change the default line)
+                switch (steeringDir) {
+                case Direction::LEFT:
+                    if (detectedLines.lines.size() >= 2) {
+                        controlData.baseline = detectedLines.lines[0];
+                    }
+                    break;
+                case Direction::CENTER:
+                    if (detectedLines.lines.size() == 1) {
+                        controlData.baseline = detectedLines.lines[0];
+                    } else if (detectedLines.lines.size() == 3) {
+                        controlData.baseline = detectedLines.lines[1];
+                    }
+                    break;
+                case Direction::RIGHT:
+                    if (detectedLines.lines.size() >= 2) {
+                        controlData.baseline = *detectedLines.lines.back();
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+
+        case LinePattern::DEAD_END:
+            currentSeg->isDeadEnd = true;
+            turnAroundActive = true;
+            break;
+
+        case LinePattern::LANE_CHANGE:
+            if (getFloatingSegments().size()) {
+                laneChange.seg = currentSeg;
+                if (Sign::POSITIVE == detectedLines.pattern.dir && prevConn) {
+                    laneChange.lastJunc = prevConn->junction;
+                    laneChange.lastManeuver = prevConn->getManeuver(currentSeg);
+                }
+            } else {
+                finished = true;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    return finished;
+}
+
 bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
     if (laneChange.trajectory.length() == meter_t(0)) {
-        globals::linePatternCalcEnabled = false;
+        globals::lineDetectionEnabled = false;
 
         laneChange.trajectory.setStartConfig(Trajectory::config_t{
             globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(globals::car.pose.angle),
@@ -790,7 +865,7 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
     controlData = laneChange.trajectory.update(globals::car);
 
     if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(50)) {
-        globals::linePatternCalcEnabled = true;
+        globals::lineDetectionEnabled = true;
     }
 
     const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
@@ -815,6 +890,8 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     while (true) {
         switch (getActiveTask(globals::programState)) {
             case ProgramTask::Labyrinth:
+                globals::distServoEnabled = false;
+                globals::distSensorEnabled = false;
 
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
 

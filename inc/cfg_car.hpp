@@ -32,6 +32,6 @@ constexpr micro::radian_t DIST_SERVO_MAX_DELTA        = micro::degree_t(45.0f); 
 
 constexpr micro::meter_t OPTO_SENSOR_FRONT_WHEEL_DIST = micro::millimeter_t(107.0f);     // Distance between front sensors and front wheels.
 
-#define SERIAL_DEBUG_ENABLED false
+#define SERIAL_DEBUG_ENABLED true
 
 } // namespace cfg

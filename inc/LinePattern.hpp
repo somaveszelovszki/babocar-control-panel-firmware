@@ -61,18 +61,22 @@ public:
         meter_t distance;
     };
 
-    typedef infinite_buffer<StampedLines, 1000> measurement_buffer_t;
+    typedef infinite_buffer<StampedLines, 200> measurement_buffer_t;
     typedef infinite_buffer<LinePattern, 200> pattern_buffer_t;
     typedef vec<LinePattern, 10> linePatterns_t;
 
     struct LinePatternInfo {
-        meter_t validityLength;
-        std::function<bool(const measurement_buffer_t&, const LinePattern&, const Lines&, meter_t)> isValid;
+        enum {
+            USES_HISTORY,
+            NO_HISTORY
+        } historyDependency;
+        std::function<bool(const measurement_buffer_t&, const LinePattern&, const Lines&, const Lines&, uint8_t, meter_t)> isValid;
         std::function<linePatterns_t(const LinePattern&, const ProgramTask)> validNextPatterns;
     };
 
     LinePatternCalculator()
-        : isPatternChangeCheckActive(false) {
+        : isPatternChangeCheckActive(false)
+        , lastSingleLineId(0) {
         this->prevPatterns.push_back({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) });
     }
     void update(const ProgramTask activeTask, const Lines& lines, meter_t currentDist);
@@ -81,11 +85,9 @@ public:
         return const_cast<LinePatternCalculator*>(this)->currentPattern();
     }
 
-    static StampedLines peek_back(const measurement_buffer_t& prevMeas, std::function<bool(const StampedLines&)> condition);
-
     static StampedLines peek_back(const measurement_buffer_t& prevMeas, meter_t peekBackDist);
 
-    static Lines::const_iterator getMainLine(const Lines& lines, const measurement_buffer_t& prevMeas);
+    static Lines::const_iterator getMainLine(const Lines& lines, const uint8_t lastSingleLineId);
 
     static bool areClose(const Lines& lines);
 
@@ -103,6 +105,9 @@ private:
 
     bool isPatternChangeCheckActive;
     linePatterns_t possiblePatterns;
+    uint8_t lastSingleLineId;
 };
+
+const char* to_string(const LinePattern::Type& type);
 
 } // namespace micro

@@ -38,9 +38,6 @@ extern "C" void runStartupTask(const void *argument) {
     uint32_t buttonClick = 0;
     GPIO_PinState prevButtonState = GPIO_PIN_SET;
 
-    globals::linePatternCalcEnabled = false;
-    globals::gyroCalibrationEnabled = true;
-
     while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
         GPIO_PinState buttonState = HAL_GPIO_ReadPin(gpio_Btn, gpioPin_Btn1);
 
@@ -55,9 +52,7 @@ extern "C" void runStartupTask(const void *argument) {
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
 
-    globals::linePatternCalcEnabled = true;
-    globals::gyroCalibrationEnabled = false;
-    globals::programState = ProgramState::LaneChange;//static_cast<ProgramState>(buttonClick);
+    globals::programState = ProgramState::NavigateLabyrinth;//static_cast<ProgramState>(buttonClick);
 
     if (ProgramState::WaitStartSignal == globals::programState) {
         waitStartSignal();

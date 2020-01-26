@@ -114,7 +114,7 @@ extern "C" void runGyroTask(const void *argument) {
             globals::car.pose.angle += d_angle / 2;
             globals::car.pose.pos.X += d_dist * cos(globals::car.pose.angle);
             globals::car.pose.pos.Y += d_dist * sin(globals::car.pose.angle);
-            globals::car.pose.angle += d_angle / 2;
+            globals::car.pose.angle = normalize360(globals::car.pose.angle + d_angle / 2);
 
             prevDist = globals::car.distance;
             xTaskResumeAll();
@@ -122,7 +122,7 @@ extern "C" void runGyroTask(const void *argument) {
             prevCalcTime = now;
             prevReadTime = now;
 
-        } else if (getTime() - prevReadTime > millisecond_t(15)) {
+        } else if (getTime() - prevReadTime > millisecond_t(400)) {
             globals::isGyroTaskOk = false;
 
             HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_SET);

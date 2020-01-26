@@ -8,6 +8,13 @@
 
 namespace micro {
 
+constexpr meter_t MAX_CLOSE_LINES_DISTANCE = centimeter_t(5.2f);
+constexpr meter_t MIN_VALID_LENGTH = centimeter_t(3);
+
+bool isInJunctionCenter(const Lines& lines) {
+    return 1 < lines.size() && LinePatternCalculator::areClose(lines);
+}
+
 class LinePatternDescriptor {
 public:
     typedef vec<uint8_t, MAX_NUM_LINES + 1> lines;
@@ -41,8 +48,8 @@ private:
 
 const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
     { // NONE
-        centimeter_t(10),
-        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines& lines, meter_t) {
+        LinePatternCalculator::LinePatternInfo::NO_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines& lines, const Lines&, uint8_t, meter_t) {
             return 0 == lines.size();
         },
         [] (const LinePattern&, const ProgramTask activeTask) {
@@ -59,14 +66,13 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // SINGLE_LINE
-        centimeter_t(10),
-        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines& lines, meter_t) {
+        LinePatternCalculator::LinePatternInfo::NO_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines& lines, const Lines&, uint8_t, meter_t) {
             return 1 == lines.size();
         },
         [] (const LinePattern&, const ProgramTask activeTask) {
             LinePatternCalculator::linePatterns_t validPatterns;
             if (ProgramTask::Labyrinth == activeTask) {
-                validPatterns.push_back({ LinePattern::NONE,        Sign::NEUTRAL,  Direction::CENTER });
                 validPatterns.push_back({ LinePattern::JUNCTION_1,  Sign::NEGATIVE, Direction::CENTER });
                 validPatterns.push_back({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::LEFT   });
                 validPatterns.push_back({ LinePattern::JUNCTION_2,  Sign::NEGATIVE, Direction::RIGHT  });
@@ -86,8 +92,8 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // ACCELERATE
-        centimeter_t(12),
-        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, meter_t currentDist) {
+        LinePatternCalculator::LinePatternInfo::NO_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, const Lines&, uint8_t, meter_t currentDist) {
 
             static const LinePatternDescriptor descriptor = {
                 { 3, centimeter_t(8) },
@@ -114,8 +120,8 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // BRAKE
-        centimeter_t(12),
-        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern& pattern, const Lines& lines, meter_t currentDist) {
+        LinePatternCalculator::LinePatternInfo::NO_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t&, const LinePattern& pattern, const Lines& lines, const Lines&, uint8_t, meter_t currentDist) {
             static constexpr meter_t PATTERN_LENGTH = centimeter_t(300);
             return currentDist - pattern.startDist < PATTERN_LENGTH + centimeter_t(5) && 3 == lines.size();
         },
@@ -128,8 +134,8 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // LANE_CHANGE
-        centimeter_t(34),
-        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, meter_t currentDist) {
+        LinePatternCalculator::LinePatternInfo::NO_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, const Lines&, uint8_t, meter_t currentDist) {
 
             static const LinePatternDescriptor descriptor = {
                 { 2, centimeter_t(16) },
@@ -156,18 +162,19 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // JUNCTION_1
-        centimeter_t(19),
-        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, meter_t) {
+        LinePatternCalculator::LinePatternInfo::USES_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, const Lines& pastLines, uint8_t, meter_t) {
             bool valid = false;
-            const LinePatternCalculator::StampedLines pastLines = LinePatternCalculator::peek_back(prevMeas, centimeter_t(25));
 
             if (Sign::POSITIVE == pattern.dir) {
-                if (1 == lines.size()) {
-                    valid = 1 < pastLines.lines.size() && LinePatternCalculator::areClose(pastLines.lines);
+                if (isInJunctionCenter(lines)) {
+                    valid = true;
+                } else if (1 == lines.size() && isInJunctionCenter(pastLines)) {
+                    valid = true;
                 }
             } else if (Sign::NEGATIVE == pattern.dir) {
-                if (1 < lines.size() && LinePatternCalculator::areClose(lines)) {
-                    valid = 1 == pastLines.lines.size();
+                if (isInJunctionCenter(lines) && 1 == pastLines.size()) {
+                    valid = true;
                 }
             }
             return valid;
@@ -187,26 +194,36 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // JUNCTION_2
-        centimeter_t(19),
-        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, meter_t) {
+        LinePatternCalculator::LinePatternInfo::USES_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, const Lines& pastLines, uint8_t lastSingleLineId, meter_t) {
             bool valid = false;
-            const LinePatternCalculator::StampedLines pastLines = LinePatternCalculator::peek_back(prevMeas, centimeter_t(25));
+
+            static const std::function<bool(const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines&, uint8_t lastSingleLineId)> areValidFarLines = []
+                (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, uint8_t lastSingleLineId) {
+
+                bool valid = false;
+                if (2 == lines.size() && LinePatternCalculator::areFar(lines)) {
+                    Lines::const_iterator mainLine = LinePatternCalculator::getMainLine(lines, lastSingleLineId);
+                    if (Direction::RIGHT == pattern.side) {
+                        valid = *mainLine == lines[0];
+                    } else if (Direction::LEFT == pattern.side) {
+                        valid = *mainLine == lines[1];
+                    }
+                }
+                return valid;
+            };
 
             if (Sign::POSITIVE == pattern.dir) {
-                if (2 == lines.size() && LinePatternCalculator::areFar(lines)) {
-                    valid = 1 < pastLines.lines.size() && LinePatternCalculator::areClose(pastLines.lines);
+                if (isInJunctionCenter(lines)) {
+                    valid = true;
+                } else if (2 == lines.size() && LinePatternCalculator::areFar(lines) && isInJunctionCenter(pastLines)) {
+                    valid = true;
                 }
             } else if (Sign::NEGATIVE == pattern.dir) {
-                if (1 < lines.size() && LinePatternCalculator::areClose(lines)) {
-                    if (2 == pastLines.lines.size() && LinePatternCalculator::areFar(pastLines.lines)) {
-
-                        Lines::const_iterator mainLine = LinePatternCalculator::getMainLine(pastLines.lines, prevMeas);
-                        if (Direction::RIGHT == pattern.side) {
-                            valid = *mainLine == pastLines.lines[0];
-                        } else if (Direction::LEFT == pattern.side) {
-                            valid = *mainLine == pastLines.lines[1];
-                        }
-                    }
+                if (2 == lines.size() && areValidFarLines(prevMeas, pattern, lines, lastSingleLineId)) {
+                    valid = true;
+                } else if (2 == lines.size() && isInJunctionCenter(lines) && areValidFarLines(prevMeas, pattern, pastLines, lastSingleLineId)) {
+                    valid = true;
                 }
             }
             return valid;
@@ -226,28 +243,48 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // JUNCTION_3
-        centimeter_t(19),
-        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, meter_t) {
+        LinePatternCalculator::LinePatternInfo::USES_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, const Lines& pastLines, uint8_t lastSingleLineId, meter_t) {
             bool valid = false;
-            const LinePatternCalculator::StampedLines pastLines = LinePatternCalculator::peek_back(prevMeas, centimeter_t(25));
 
-            if (Sign::POSITIVE == pattern.dir) {
-                if (3 == lines.size() && LinePatternCalculator::areFar(lines)) {
-                    valid = 1 < pastLines.lines.size() && LinePatternCalculator::areClose(pastLines.lines);
-                }
-            } else if (Sign::NEGATIVE == pattern.dir) {
-                if (1 < lines.size() && LinePatternCalculator::areClose(lines)) {
-                    if (3 == pastLines.lines.size() && LinePatternCalculator::areFar(pastLines.lines)) {
+            static const std::function<bool(const LinePatternCalculator::measurement_buffer_t&, const LinePattern&, const Lines&, uint8_t lastSingleLineId)> areValidFarLines = []
+                (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, uint8_t lastSingleLineId) {
 
-                        Lines::const_iterator mainLine = LinePatternCalculator::getMainLine(pastLines.lines, prevMeas);
+                bool valid = false;
+                if (1 < lines.size() && LinePatternCalculator::areFar(lines)) {
+                    Lines::const_iterator mainLine = LinePatternCalculator::getMainLine(lines, lastSingleLineId);
+                    if (2 == lines.size()) {
                         if (Direction::RIGHT == pattern.side) {
-                            valid = *mainLine == pastLines.lines[0];
+                            valid = *mainLine == lines[0];
                         } else if (Direction::CENTER == pattern.side) {
-                            valid = *mainLine == pastLines.lines[1];
+                            valid = true;
                         } else if (Direction::LEFT == pattern.side) {
-                            valid = *mainLine == pastLines.lines[2];
+                            valid = *mainLine == lines[1];
+                        }
+                    } else if (3 == lines.size()) {
+                        if (Direction::RIGHT == pattern.side) {
+                            valid = *mainLine == lines[0];
+                        } else if (Direction::CENTER == pattern.side) {
+                            valid = *mainLine == lines[1];
+                        } else if (Direction::LEFT == pattern.side) {
+                            valid = *mainLine == lines[2];
                         }
                     }
+                }
+                return valid;
+            };
+
+            if (Sign::POSITIVE == pattern.dir) {
+                if (isInJunctionCenter(lines)) {
+                    valid = true;
+                } else if (3 == lines.size() && LinePatternCalculator::areFar(lines) && isInJunctionCenter(pastLines)) {
+                    valid = true;
+                }
+            } else if (Sign::NEGATIVE == pattern.dir) {
+                if (areValidFarLines(prevMeas, pattern, lines, lastSingleLineId)) {
+                    valid = true;
+                } else if (3 == lines.size() && isInJunctionCenter(lines) && areValidFarLines(prevMeas, pattern, pastLines, lastSingleLineId)) {
+                    valid = true;
                 }
             }
             return valid;
@@ -267,12 +304,11 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // DEAD_END
-        centimeter_t(3),
-        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern&, const Lines& lines, meter_t) {
+        LinePatternCalculator::LinePatternInfo::USES_HISTORY,
+        [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern&, const Lines& lines, const Lines& pastLines, uint8_t, meter_t) {
             bool valid = false;
             if (0 == lines.size()) {
-                const LinePatternCalculator::StampedLines pastLines = LinePatternCalculator::peek_back(prevMeas, centimeter_t(15));
-                valid = 1 == pastLines.lines.size() && isBtw(pastLines.lines[0].pos, centimeter_t(5), centimeter_t(-5));
+                valid = 1 == pastLines.size() && isBtw(pastLines[0].pos, centimeter_t(5), centimeter_t(-5));
             }
             return valid;
         },
@@ -287,15 +323,33 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
 };
 
 void LinePatternCalculator::update(const ProgramTask activeTask, const Lines& lines, meter_t currentDist) {
-    this->prevMeas.push_back({ lines, currentDist });
 
+    static const std::function<Lines(void)> getPastLines = [this] () {
+        return LinePatternCalculator::peek_back(this->prevMeas, centimeter_t(8)).lines;
+    };
+
+    this->prevMeas.push_back({ lines, currentDist });
     LinePattern& current = this->currentPattern();
 
+    if (LinePattern::SINGLE_LINE == current.type && 1 == lines.size()) {
+        this->lastSingleLineId = lines[0].id;
+    }
+
     if (this->isPatternChangeCheckActive) {
+
+        Lines pastLines;
+        for (linePatterns_t::iterator it = possiblePatterns.begin(); it != possiblePatterns.end(); ++it) {
+            const LinePatternInfo *patternInfo = &PATTERN_INFO[static_cast<uint8_t>(it->type)];
+            if (LinePatternCalculator::LinePatternInfo::USES_HISTORY == patternInfo->historyDependency) {
+                pastLines = getPastLines();
+                break;
+            }
+        }
+
         for (linePatterns_t::iterator it = possiblePatterns.begin(); it != possiblePatterns.end();) {
             const LinePatternInfo *patternInfo = &PATTERN_INFO[static_cast<uint8_t>(it->type)];
-            if (patternInfo->isValid(this->prevMeas, *it, lines, currentDist)) {
-                if (abs(currentDist - it->startDist) >= patternInfo->validityLength) {
+            if (patternInfo->isValid(this->prevMeas, *it, lines, pastLines, this->lastSingleLineId, currentDist)) {
+                if (1 == possiblePatterns.size() && abs(currentDist - it->startDist) >= MIN_VALID_LENGTH) {
                     this->changePattern(*it);
                     break;
                 }
@@ -312,7 +366,13 @@ void LinePatternCalculator::update(const ProgramTask activeTask, const Lines& li
 
     } else {
         const LinePatternInfo *currentPatternInfo = &PATTERN_INFO[static_cast<uint8_t>(this->currentPattern().type)];
-        if (!currentPatternInfo->isValid(this->prevMeas, current, lines, currentDist)) {
+
+        Lines pastLines;
+        if (LinePatternCalculator::LinePatternInfo::USES_HISTORY == currentPatternInfo->historyDependency) {
+            pastLines = getPastLines();
+        }
+
+        if (!currentPatternInfo->isValid(this->prevMeas, current, lines, pastLines, this->lastSingleLineId, currentDist)) {
             this->isPatternChangeCheckActive = true;
             this->possiblePatterns = currentPatternInfo->validNextPatterns(current, activeTask);
 
@@ -324,46 +384,42 @@ void LinePatternCalculator::update(const ProgramTask activeTask, const Lines& li
 }
 
 void LinePatternCalculator::changePattern(const LinePattern& newPattern) {
+    const LinePattern prevPattern = this->currentPattern();
     this->prevPatterns.push_back(newPattern);
     this->isPatternChangeCheckActive = false;
 
-    LOG_DEBUG("Pattern changed from %d to %d",
-            static_cast<int32_t>(this->prevPatterns.peek_back(1).type),
-            static_cast<int32_t>(this->currentPattern().type));
-}
-
-LinePatternCalculator::StampedLines LinePatternCalculator::peek_back(const measurement_buffer_t& prevMeas, std::function<bool(const StampedLines&)> condition) {
-    StampedLines lines;
-    for (uint32_t i = 1; i < prevMeas.capacity(); ++i) {
-        const StampedLines& l = prevMeas.peek_back(i);
-        if (condition(l)) {
-            lines = l;
-            break;
-        }
-    }
-    return lines;
+    LOG_DEBUG("Pattern changed from { %s, %s, %s } to { %s, %s, %s }",
+        to_string(prevPattern.type), to_string(prevPattern.side), to_string(prevPattern.dir),
+        to_string(newPattern.type), to_string(newPattern.side), to_string(newPattern.dir));
 }
 
 LinePatternCalculator::StampedLines LinePatternCalculator::peek_back(const measurement_buffer_t& prevMeas, meter_t peekBackDist) {
     const meter_t dist = prevMeas.peek_back(0).distance - peekBackDist;
-    return LinePatternCalculator::peek_back(prevMeas, [dist](const StampedLines& l) { return l.distance < dist; });
+
+    uint32_t startIdx = 1;
+    uint32_t endIdx = prevMeas.size() - 1;
+
+    while (startIdx < endIdx - 1) {
+        const uint8_t i = avg(startIdx, endIdx);
+        if (prevMeas.peek_back(i).distance < dist) {
+            endIdx = i;
+        } else {
+            startIdx = i;
+        }
+    }
+
+    return prevMeas.peek_back(endIdx);
 }
 
-Lines::const_iterator LinePatternCalculator::getMainLine(const Lines& lines, const measurement_buffer_t& prevMeas) {
-    const Line lastSingleLine = LinePatternCalculator::peek_back(prevMeas, [](const LinePatternCalculator::StampedLines& l) {
-        return 1 == l.lines.size();
-    }).lines[0];
-
-    Lines::const_iterator mainLine = LineCalculator::findLine(lines, lastSingleLine.id);
+Lines::const_iterator LinePatternCalculator::getMainLine(const Lines& lines, const uint8_t lastSingleLineId) {
+    Lines::const_iterator mainLine = LineCalculator::findLine(lines, lastSingleLineId);
     if (mainLine == lines.end()) {
         mainLine = LineCalculator::findClosestLine(lines, millimeter_t(0));
     }
-
     return mainLine;
 }
 
 bool LinePatternCalculator::areClose(const Lines& lines) {
-    constexpr centimeter_t MAX_CLOSE_LINES_DISTANCE = centimeter_t(4.5f);
 
     bool close = true;
     for (uint32_t i = 1; i < lines.size(); ++i) {
@@ -376,16 +432,24 @@ bool LinePatternCalculator::areClose(const Lines& lines) {
 }
 
 bool LinePatternCalculator::areFar(const Lines& lines) {
-    constexpr centimeter_t MIN_FAR_LINES_DISTANCE = centimeter_t(5.0f);
+    return !LinePatternCalculator::areClose(lines);
+}
 
-    bool close = true;
-    for (uint32_t i = 1; i < lines.size(); ++i) {
-        if (lines[i].pos - lines[i - 1].pos < MIN_FAR_LINES_DISTANCE) {
-            close = false;
-            break;
-        }
+const char* to_string(const LinePattern::Type& type) {
+    const char *str = nullptr;
+    switch (type) {
+    case LinePattern::NONE:        str = "NONE";        break;
+    case LinePattern::SINGLE_LINE: str = "SINGLE_LINE"; break;
+    case LinePattern::ACCELERATE:  str = "ACCELERATE";  break;
+    case LinePattern::BRAKE:       str = "BRAKE";       break;
+    case LinePattern::LANE_CHANGE: str = "LANE_CHANGE"; break;
+    case LinePattern::JUNCTION_1:  str = "JUNCTION_1";  break;
+    case LinePattern::JUNCTION_2:  str = "JUNCTION_2";  break;
+    case LinePattern::JUNCTION_3:  str = "JUNCTION_3";  break;
+    case LinePattern::DEAD_END:    str = "DEAD_END";    break;
+    default:                       str = "";            break;
     }
-    return close;
+    return str;
 }
 
 } // namespace micro

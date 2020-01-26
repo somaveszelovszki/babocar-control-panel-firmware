@@ -430,7 +430,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_EnableIRQ(USART2_IRQn);
   /* USER CODE BEGIN USART2_MspInit 1 */
     __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
-    __HAL_DMA_ENABLE_IT(&hdma_usart2_rx, DMA_IT_TC);
   /* USER CODE END USART2_MspInit 1 */
   }
   else if(uartHandle->Instance==USART3)

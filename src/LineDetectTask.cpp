@@ -69,8 +69,14 @@ extern "C" void runLineDetectTask(const void *argument) {
         frontLineDetectPanelLink.update();
         globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
 
-        if (frontLineDetectPanelLink.readAvailable(rxData) && globals::linePatternCalcEnabled) {
-            parseLineDetectPanelData(rxData, lines);
+        if (frontLineDetectPanelLink.readAvailable(rxData)) {
+
+            if (globals::lineDetectionEnabled) {
+                parseLineDetectPanelData(rxData, lines);
+            } else {
+                lines.clear();
+            }
+
             lineCalc.update(lines);
             linePatternCalc.update(getActiveTask(globals::programState), lines, globals::car.distance);
             const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };

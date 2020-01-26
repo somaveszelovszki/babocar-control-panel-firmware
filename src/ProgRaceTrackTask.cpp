@@ -24,11 +24,7 @@ using namespace micro;
 
 extern QueueHandle_t detectedLinesQueue;
 extern QueueHandle_t controlQueue;
-
-#define DISTANCES_QUEUE_LENGTH 1
-QueueHandle_t distancesQueue;
-static uint8_t distancesQueueStorageBuffer[DISTANCES_QUEUE_LENGTH * sizeof(DistancesData)];
-static StaticQueue_t distancesQueueBuffer;
+extern QueueHandle_t distancesQueue;
 
 namespace {
 
@@ -126,7 +122,6 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 } // namespace
 
 extern "C" void runProgRaceTrackTask(const void *argument) {
-    distancesQueue = xQueueCreateStatic(DISTANCES_QUEUE_LENGTH, sizeof(DistancesData), distancesQueueStorageBuffer, &distancesQueueBuffer);
 
     vTaskDelay(500); // gives time to other tasks to wake up
 
@@ -144,6 +139,9 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
         switch(getActiveTask(globals::programState)) {
         case ProgramTask::RaceTrack:
         {
+            globals::distServoEnabled = true;
+            globals::distSensorEnabled = true;
+
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
@@ -166,7 +164,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgramState::ReachSafetyCar:
                 controlData.speed = globals::speed_REACH_SAFETY_CAR;
 
-                if (safetyCarFollowSpeed(distances.front, false) < controlData.speed) {
+                if (distances.front > meter_t(0) && safetyCarFollowSpeed(distances.front, false) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;
                 }
 
@@ -230,7 +228,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
         }
 
         default:
-            vTaskDelay(100);
+            vTaskDelay(20);
             break;
         }
     }
