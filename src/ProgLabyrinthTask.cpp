@@ -728,6 +728,25 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
     return finished;
 }
 
+void updateCarOrientation() {
+    static bool isOriented = false;
+    static meter_t orientedSectionStartDist;
+
+    const bool prevIsOriented = isOriented;
+    isOriented = eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(5));
+
+    if (isOriented && !prevIsOriented) {
+        orientedSectionStartDist = globals::car.distance;
+    }
+
+    if (isOriented && globals::car.distance - orientedSectionStartDist >= centimeter_t(30)) {
+        vTaskSuspendAll();
+        globals::car.pose.angle = round90(globals::car.pose.angle);
+        xTaskResumeAll();
+        orientedSectionStartDist = globals::car.distance;
+    }
+}
+
 bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, ControlData& controlData) {
 
 //    // TODO only for testing -------------------------------------------
@@ -753,6 +772,8 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     bool finished = false;
     controlData.speed = globals::speed_LAB_FWD;
+
+    updateCarOrientation();
 
     if (turnAroundActive) {
         if (turnAround(detectedLines, controlData)) {
@@ -790,8 +811,8 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
 
                 const radian_t carOri = globals::car.pose.angle;
-                const radian_t inOri  = normalize360(carOri + PI);
-                const radian_t outOri = normalize360(carOri);
+                const radian_t inOri  = round90(carOri + PI);
+                const radian_t outOri = round90(carOri);
 
                 const Direction steeringDir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
 
