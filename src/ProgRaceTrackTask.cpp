@@ -32,34 +32,92 @@ constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.6f);
 constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.2f);
 
 struct TrackSegment {
-    enum Type {
-        Slow,
-        Fast
-    };
-
-    Type type;
-    Direction dir;
-    meter_t startDist;
-    meter_t endDist;
+    std::function<bool(const LinePattern&, const Line&, const CarProps&, meter_t)> hasBecomeActive;
+    std::function<ControlData(const Line&, uint8_t, const CarProps&, const CarProps&)> getControl;
 };
 
-TrackSegment trackSegments[] = {
-    { TrackSegment::Fast, Direction::CENTER, meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) },
-    { TrackSegment::Fast, Direction::CENTER, meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::RIGHT,  meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) },
-    { TrackSegment::Fast, Direction::CENTER, meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::RIGHT,  meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::CENTER, meter_t(0), meter_t(0) },
-    { TrackSegment::Slow, Direction::LEFT,   meter_t(0), meter_t(0) }
+bool hasBecomeActive_Fast(const LinePattern&, const Line&, const CarProps&, meter_t orientedDist) {
+    return orientedDist > centimeter_t(40);
+}
+
+bool hasBecomeActive_SlowStart(const LinePattern& pattern, const Line&, const CarProps& car, meter_t) {
+    static constexpr m_per_sec2_t MAX_DECELERATION = m_per_sec2_t(5);
+    const meter_t brakeDist = meter_t(0.5f * car.speed.get() * car.speed.get() / MAX_DECELERATION.get());
+
+    return LinePattern::BRAKE == pattern.type && car.distance - pattern.startDist > meter_t(3) + centimeter_t(20) - brakeDist;
+}
+
+bool hasBecomeActive_SlowRoundLeft(const LinePattern& pattern, const Line& mainLine, const CarProps&, meter_t) {
+    return LinePattern::SINGLE_LINE == pattern.type && mainLine.pos < centimeter_t(5);
+}
+
+std::pair<m_per_sec_t, m_per_sec_t> getSpeeds(uint8_t lap) {
+    std::pair<m_per_sec_t, m_per_sec_t> speeds;
+    switch(lap) {
+    case 1: speeds = { globals::speed_SLOW1, globals::speed_FAST1 }; break;
+    case 2: speeds = { globals::speed_SLOW2, globals::speed_FAST2 }; break;
+    case 3: speeds = { globals::speed_SLOW3, globals::speed_FAST3 }; break;
+    case 4: speeds = { globals::speed_SLOW4, globals::speed_FAST4 }; break;
+    case 5: speeds = { globals::speed_SLOW5, globals::speed_FAST5 }; break;
+    case 6: speeds = { globals::speed_SLOW6, globals::speed_FAST6 }; break;
+    }
+    return speeds;
+}
+
+ControlData getControl_Fast(const Line& mainLine, uint8_t lap, const CarProps&, const CarProps&) {
+    const std::pair<m_per_sec_t, m_per_sec_t> speeds = getSpeeds(lap);
+    ControlData controlData;
+    controlData.speed = abs(mainLine.pos) < centimeter_t(5) ? speeds.second : speeds.first;
+    controlData.baseline = mainLine;
+    controlData.offset = millimeter_t(0);
+    controlData.angle = radian_t(0);
+    return controlData;
+}
+
+ControlData getControl_SlowStart(const Line& mainLine, uint8_t lap, const CarProps&, const CarProps&) {
+    ControlData controlData;
+    controlData.speed = getSpeeds(lap).first;
+    controlData.baseline = mainLine;
+    controlData.offset = millimeter_t(0);
+    controlData.angle = radian_t(0);
+    return controlData;
+}
+
+ControlData getControl_SlowRoundLeft(const Line& mainLine, uint8_t lap, const CarProps& segStartCarProps, const CarProps& car) {
+    const radian_t angleDiff = abs(normalizePM180(car.pose.angle - segStartCarProps.pose.angle));
+    ControlData controlData;
+    controlData.speed = getSpeeds(lap).first;
+    controlData.baseline = mainLine;
+    controlData.offset = angleDiff < PI_2 ? angleDiff / PI_2 * centimeter_t(10) : (PI - angleDiff) / PI_2 * centimeter_t(10);
+    controlData.angle = radian_t(0);
+    return controlData;
+}
+
+const vec<TrackSegment, 10> trackSegments = {
+    { hasBecomeActive_Fast,          getControl_Fast },
+    { hasBecomeActive_SlowStart,     getControl_SlowStart },
+    { hasBecomeActive_Fast,          getControl_Fast },
+    { hasBecomeActive_SlowStart,     getControl_SlowStart },
+    { hasBecomeActive_SlowRoundLeft, getControl_SlowRoundLeft },
+    { hasBecomeActive_Fast,          getControl_Fast },
+    { hasBecomeActive_SlowStart,     getControl_SlowStart },
+    { hasBecomeActive_SlowRoundLeft, getControl_SlowRoundLeft },
+    { hasBecomeActive_Fast,          getControl_Fast },
+    { hasBecomeActive_SlowStart,     getControl_SlowStart }
 };
+
+uint8_t lap = 1;
+vec<TrackSegment, 10>::const_iterator currentSeg = trackSegments.begin();
+CarProps currentSegStartCarProps;
 
 struct {
     radian_t sectionOrientation = radian_t(0);
     Trajectory trajectory       = Trajectory(cfg::CAR_OPTO_CENTER_DIST);
 } overtake;
+
+vec<TrackSegment, 10>::const_iterator nextSegment() {
+    return trackSegments.back() == currentSeg ? trackSegments.begin() : currentSeg + 1;
+}
 
 m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFastSection) {
     return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0),
@@ -131,6 +189,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
     bool isFastSection = false;
 
+    ProgramState prevProgramState = ProgramState::INVALID;
     meter_t startDist = globals::car.distance;
     meter_t sectionStartDist = startDist;
     meter_t lastDistWithActiveSafetyCar = startDist;
@@ -211,7 +270,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 //                    controlData.speed = globals::speed_SLOW;
 //                    //controlData.speed = isSafe(mainLine) ? globals::speed_SLOW : globals::speed_SLOW_UNSAFE;
 //                }
-                controlData.speed = isFastSection ? globals::speed_FAST : globals::speed_SLOW;
+                controlData.speed = isFastSection ? globals::speed_FAST1 : globals::speed_SLOW1;
                 break;
 
             default:
