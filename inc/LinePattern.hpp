@@ -66,11 +66,13 @@ public:
     typedef vec<LinePattern, 10> linePatterns_t;
 
     struct LinePatternInfo {
+        meter_t minValidityLength;
+        meter_t maxLength;
         enum {
             USES_HISTORY,
             NO_HISTORY
         } historyDependency;
-        std::function<bool(const measurement_buffer_t&, const LinePattern&, const Lines&, const Lines&, uint8_t, meter_t)> isValid;
+        std::function<bool(const measurement_buffer_t&, const LinePattern&, const Lines&, uint8_t, meter_t)> isValid;
         std::function<linePatterns_t(const LinePattern&, const ProgramTask)> validNextPatterns;
     };
 
