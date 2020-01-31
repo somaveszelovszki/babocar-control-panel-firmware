@@ -52,7 +52,7 @@ extern I2C_HandleTypeDef  hi2c2;
 #define uart_Command                 (&huart2)
 #define uart_RadioModule             (&huart3)
 #define uart_X1                      (&huart4)
-#define uart_X2                      (&huart5)
+#define uart_RearLineDetectPanel     (&huart5)
 #define uart_FrontLineDetectPanel    (&huart6)
 
 #define i2c_Gyro                     (&hi2c1)

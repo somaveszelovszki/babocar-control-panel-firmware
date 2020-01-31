@@ -5,7 +5,10 @@
 namespace micro {
 
 struct DetectedLines {
-    Lines lines;
+    struct {
+        Lines front;
+        Lines rear;
+    } lines;
     LinePattern pattern;
 };
 

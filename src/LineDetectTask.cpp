@@ -30,7 +30,11 @@ static LineDetectPanelLink frontLineDetectPanelLink(
     millisecond_t(LINE_DETECT_PANEL_LINK_OUT_TIMEOUT_MS),
     millisecond_t(LINE_DETECT_PANEL_LINK_IN_PERIOD_MS));
 
-static LineCalculator lineCalc;
+static LineDetectPanelLink rearLineDetectPanelLink(
+    uart_RearLineDetectPanel,
+    millisecond_t(LINE_DETECT_PANEL_LINK_OUT_TIMEOUT_MS),
+    millisecond_t(LINE_DETECT_PANEL_LINK_IN_PERIOD_MS));
+
 static LinePatternCalculator linePatternCalc;
 
 static Line mainLine;
@@ -63,29 +67,41 @@ extern "C" void runLineDetectTask(const void *argument) {
 
     lineDetectPanelDataOut_t rxData;
     lineDetectPanelDataIn_t txData;
-    Lines lines;
+    DetectedLines detectedLines;
 
     while (true) {
         frontLineDetectPanelLink.update();
-        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();
+        rearLineDetectPanelLink.update();
+        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected() && rearLineDetectPanelLink.isConnected();
 
         if (frontLineDetectPanelLink.readAvailable(rxData)) {
-
             if (globals::lineDetectionEnabled) {
-                parseLineDetectPanelData(rxData, lines);
+                parseLineDetectPanelData(rxData, detectedLines.lines.front);
             } else {
-                lines.clear();
+                detectedLines.lines.front.clear();
             }
 
-            lineCalc.update(lines);
-            linePatternCalc.update(getActiveTask(globals::programState), lines, globals::car.distance);
-            const DetectedLines detectedLines = { lineCalc.lines(), linePatternCalc.pattern() };
+            linePatternCalc.update(getActiveTask(globals::programState), detectedLines.lines.front, globals::car.distance);
+            detectedLines.pattern = linePatternCalc.pattern();
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
+        }
+
+        if (rearLineDetectPanelLink.readAvailable(rxData)) {
+            if (globals::lineDetectionEnabled) {
+                parseLineDetectPanelData(rxData, detectedLines.lines.rear, true);
+            } else {
+                detectedLines.lines.rear.clear();
+            }
         }
 
         if (frontLineDetectPanelLink.shouldSend()) {
             fillLineDetectPanelData(txData);
             frontLineDetectPanelLink.send(txData);
+        }
+
+        if (rearLineDetectPanelLink.shouldSend()) {
+            fillLineDetectPanelData(txData);
+            rearLineDetectPanelLink.send(txData);
         }
 
         vTaskDelay(1);
@@ -100,3 +116,8 @@ void micro_FrontLineDetectPanel_Uart_RxCpltCallback() {
     frontLineDetectPanelLink.onNewRxData();
 }
 
+/* @brief Callback for rear line detect panel UART RxCplt - called when receive finishes.
+ */
+void micro_RearLineDetectPanel_Uart_RxCpltCallback() {
+    rearLineDetectPanelLink.onNewRxData();
+}
