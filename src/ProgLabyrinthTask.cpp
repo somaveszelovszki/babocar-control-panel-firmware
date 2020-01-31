@@ -31,12 +31,14 @@ extern QueueHandle_t controlQueue;
 
 namespace {
 
-vec<Segment, 5 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segments.
-vec<Junction, 5 * cfg::MAX_NUM_LAB_SEGMENTS> junctions;             // The junctions - at most the number of segments.
-vec<Connection, 5 * cfg::MAX_NUM_LAB_SEGMENTS * 2> connections;     // The connections - 2 times the number of junctions.
+vec<Segment, 2 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segments.
+vec<Junction, 2 * cfg::MAX_NUM_LAB_SEGMENTS> junctions;             // The junctions - at most the number of segments.
+vec<Connection, 2 * cfg::MAX_NUM_LAB_SEGMENTS * 2> connections;     // The connections - 2 times the number of junctions.
 
 Segment *currentSeg = nullptr;
 Connection *prevConn = nullptr;
+
+millisecond_t endTime;
 
 struct {
     Segment *seg          = nullptr;
@@ -47,23 +49,25 @@ struct {
 
 enum class Y_turnState {
     INACTIVE,
+    BWD_STRAIGHT,
+    BWD_RIGHT1,
+    PREPARE_FWD_LEFT1,
     FWD_LEFT1,
-    PREPARE_BWD_RIGHT,
-    BWD_RIGHT,
+    PREPARE_BWD_RIGHT2,
+    BWD_RIGHT2,
     PREPARE_FWD_LEFT2,
     FWD_LEFT2
 };
 
 struct {
     Y_turnState state = Y_turnState::INACTIVE;
+    meter_t startDist;
     radian_t startOrientation;
     millisecond_t stateStartTime;
 } y_turn;
 
-millisecond_t endTime;
-
 struct Route {
-    static constexpr uint32_t MAX_LENGTH = cfg::MAX_NUM_LAB_SEGMENTS * 2;
+    static constexpr uint32_t MAX_LENGTH = cfg::MAX_NUM_LAB_SEGMENTS;
     Segment *startSeg;
     Segment *lastSeg;
     vec<Connection*, MAX_LENGTH> connections;
@@ -136,24 +140,9 @@ Junction* findExistingJunction(const point2m& pos, radian_t inOri, radian_t outO
 
         if (dist < closest.second.dist) {
             const Junction::segment_map::const_iterator inSegments = j.getSideSegments(inOri);
-
-            if (inSegments != j.segments.end()) {
-                LOG_WAIT_DEBUG("%fdeg (in) -> %fdeg: %d segments (current: %d)",
-                    static_cast<degree_t>(inOri).get(), static_cast<degree_t>(inSegments->first).get(), (int32_t)inSegments->second.size(), (int32_t)numInSegments);
-            } else {
-                LOG_WAIT_ERROR("No segments found in direction %fdeg (in)", static_cast<degree_t>(inOri).get());
-            }
-
-            const Junction::segment_map::const_iterator outSegments = j.getSideSegments(outOri);
-
-            if (outSegments != j.segments.end()) {
-                LOG_WAIT_DEBUG("%fdeg (out) -> %fdeg: %d segments (current: %d)",
-                    static_cast<degree_t>(outOri).get(), static_cast<degree_t>(outSegments->first).get(), (int32_t)outSegments->second.size(), (int32_t)numOutSegments);
-            } else {
-                LOG_WAIT_ERROR("No segments found in direction %fdeg (out)", static_cast<degree_t>(outOri).get());
-            }
-
             if (inSegments != j.segments.end() && inSegments->second.size() == numInSegments) {
+
+                const Junction::segment_map::const_iterator outSegments = j.getSideSegments(outOri);
                 if (outSegments != j.segments.end() && outSegments->second.size() == numOutSegments) {
                     closest.second.junc = &j;
                     closest.second.dist = dist;
@@ -179,6 +168,38 @@ Junction* findExistingJunction(const point2m& pos, radian_t inOri, radian_t outO
     return result;
 }
 
+bool isValidRouteConnection(const Route *route, const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) {
+    bool valid = false;
+
+    // does not permit going backwards
+    if (!lastRouteConn ||
+        c->junction != lastRouteConn->junction ||
+        c->getManeuver(route->lastSeg) != lastManeuver) {
+
+        // does not permit navigating through dead-end segments
+        if (!c->getOtherSegment(route->lastSeg)->isDeadEnd) {
+
+            const Segment *newSeg = c->getOtherSegment(route->lastSeg);
+            const Maneuver newManeuver = c->getManeuver(newSeg);
+
+            valid = true;
+
+            // does not permit cycles (taking the same junction exit twice)
+            const Segment *prevSeg = route->startSeg;
+            for (const Connection *routeConn : route->connections) {
+                const Segment *nextSeg = routeConn->getOtherSegment(prevSeg);
+                if (nextSeg == newSeg && routeConn->getManeuver(nextSeg) == newManeuver) {
+                    valid = false;
+                    break;
+                }
+                prevSeg = nextSeg;
+            }
+
+        }
+    }
+    return valid;
+}
+
 bool getRoute(Route& result, const Segment *dest, const Junction *lastRouteJunc = nullptr, const Maneuver lastRouteManeuver = Maneuver()) {
     routes.clear();
     Route * const initialRoute = getNew(routes);
@@ -197,17 +218,13 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastRouteJunc 
             const Maneuver lastManeuver = lastRouteConn ? lastRouteConn->getManeuver(currentRoute->lastSeg) : Maneuver();
 
             for (Connection *c : currentRoute->lastSeg->edges) {
-
-                // does not permit going backwards or navigating through dead-end segments
-                if ((!lastRouteConn ||
-                    c->junction != lastRouteConn->junction ||
-                    c->getManeuver(currentRoute->lastSeg) != lastManeuver) ||
-                    currentRoute->lastSeg->isDeadEnd) {
-
+                if (isValidRouteConnection(currentRoute, lastRouteConn, lastManeuver, c)) {
                     if (routes.size() >= MAX_NUM_ROUTES) {
                         LOG_WAIT_ERROR("routes.size() >= MAX_NUM_ROUTES");
+                        routes.clear();
                         break;
                     }
+
                     Route *newRoute = getNew(routes);
                     *newRoute = *currentRoute;
                     newRoute->append(c);
@@ -222,7 +239,9 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastRouteJunc 
                 }
             }
 
-            routes.erase(routes.begin());
+            if (routes.size()) {
+                routes.erase(routes.begin());
+            }
         }
     } while(!shortestRoute && routes.size() > 0 && ++depth < Route::MAX_LENGTH);
 
@@ -466,7 +485,7 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
 
     if (nextConn) {
         nextManeuver = nextConn->getManeuver(nextConn->getOtherSegment(currentSeg));
-    }  else {
+    } else if (junc) {
         LOG_WAIT_DEBUG("!nextConn");
 
         Junction::segment_map::iterator outSegments = junc->getSideSegments(nextManeuver.orientation);
@@ -485,6 +504,8 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
         } else {
             LOG_WAIT_ERROR("pNextSeg should not be nullptr at this point");
         }
+    } else {
+        LOG_WAIT_ERROR("junc should not be nullptr at this point");
     }
 
     if (nextConn) {
@@ -666,44 +687,75 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
     switch (y_turn.state) {
     case Y_turnState::INACTIVE:
         globals::lineDetectionEnabled = false;
+        y_turn.startDist = globals::car.distance;
         y_turn.startOrientation = normalizePM180(globals::car.pose.angle);
         controlData.speed = globals::speed_TURN_AROUND;
         controlData.frontWheelAngle = radian_t(0);
         controlData.rearWheelAngle = radian_t(0);
-        y_turn.state = Y_turnState::FWD_LEFT1;
+        y_turn.state = Y_turnState::BWD_STRAIGHT;
+        break;
+
+    case Y_turnState::BWD_STRAIGHT:
+        controlData.speed = -globals::speed_TURN_AROUND;
+        controlData.frontWheelAngle = radian_t(0);
+        controlData.rearWheelAngle = radian_t(0);
+        if (globals::car.speed > m_per_sec_t(0)) {
+            y_turn.startDist = globals::car.distance; // updates startDist until car stops
+        } else if (globals::car.distance - y_turn.startDist > centimeter_t(20)) {
+            y_turn.state = Y_turnState::BWD_RIGHT1;
+        }
+        break;
+
+    case Y_turnState::BWD_RIGHT1:
+        controlData.speed = -globals::speed_TURN_AROUND;
+        controlData.frontWheelAngle = -TURN_WHEEL_ANGLE;
+        controlData.rearWheelAngle = TURN_WHEEL_ANGLE;
+        if (angleDiff >= degree_t(45)) {
+            y_turn.state = Y_turnState::PREPARE_FWD_LEFT1;
+        }
+        break;
+
+    case Y_turnState::PREPARE_FWD_LEFT1:
+        controlData.speed = m_per_sec_t(0);
+        controlData.frontWheelAngle = radian_t(0);
+        controlData.rearWheelAngle = radian_t(0);
+        if (getTime() - y_turn.stateStartTime >= PREPARE_TIME) {
+            globals::lineDetectionEnabled = true;
+            y_turn.state = Y_turnState::FWD_LEFT1;
+        }
         break;
 
     case Y_turnState::FWD_LEFT1:
         controlData.speed = globals::speed_TURN_AROUND;
         controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
         controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
-        if (angleDiff >= degree_t(60)) {
-            y_turn.state = Y_turnState::PREPARE_BWD_RIGHT;
+        if (angleDiff >= degree_t(90)) {
+            y_turn.state = Y_turnState::PREPARE_BWD_RIGHT2;
         }
         break;
 
-    case Y_turnState::PREPARE_BWD_RIGHT:
+    case Y_turnState::PREPARE_BWD_RIGHT2:
         controlData.speed = m_per_sec_t(0);
-        controlData.frontWheelAngle = -TURN_WHEEL_ANGLE;
-        controlData.rearWheelAngle = TURN_WHEEL_ANGLE;
+        controlData.frontWheelAngle = radian_t(0);
+        controlData.rearWheelAngle = radian_t(0);
         if (getTime() - y_turn.stateStartTime >= PREPARE_TIME) {
-            y_turn.state = Y_turnState::BWD_RIGHT;
+            y_turn.state = Y_turnState::BWD_RIGHT2;
         }
         break;
 
-    case Y_turnState::BWD_RIGHT:
+    case Y_turnState::BWD_RIGHT2:
         controlData.speed = -globals::speed_TURN_AROUND;
         controlData.frontWheelAngle = -TURN_WHEEL_ANGLE;
         controlData.rearWheelAngle = TURN_WHEEL_ANGLE;
-        if (angleDiff >= degree_t(120)) {
+        if (angleDiff >= degree_t(135)) {
             y_turn.state = Y_turnState::PREPARE_FWD_LEFT2;
         }
         break;
 
     case Y_turnState::PREPARE_FWD_LEFT2:
         controlData.speed = m_per_sec_t(0);
-        controlData.frontWheelAngle = TURN_WHEEL_ANGLE;
-        controlData.rearWheelAngle = -TURN_WHEEL_ANGLE;
+        controlData.frontWheelAngle = radian_t(0);
+        controlData.rearWheelAngle = radian_t(0);
         if (getTime() - y_turn.stateStartTime >= PREPARE_TIME) {
             globals::lineDetectionEnabled = true;
             y_turn.state = Y_turnState::FWD_LEFT2;
@@ -721,7 +773,7 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
         y_turn.stateStartTime = getTime();
     }
 
-    const bool finished = Y_turnState::FWD_LEFT2 == y_turn.state && abs(angleDiff) >= degree_t(145) && LinePattern::NONE != detectedLines.pattern.type;
+    const bool finished = Y_turnState::FWD_LEFT2 == y_turn.state && abs(angleDiff) >= degree_t(160) && LinePattern::NONE != detectedLines.pattern.type;
     if (finished) {
         y_turn.state = Y_turnState::INACTIVE;
     }
@@ -768,18 +820,19 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
     static uint8_t numInSegments;
     static Direction inSegmentDir;
     static point2m inJunctionPos;
-    static bool turnAroundActive = false;
+
+    static const bool runOnce = [&controlData]() {
+        controlData.speed = globals::speed_LAB_FWD;
+        endTime = getTime() + millisecond_t(20);
+        return true;
+    }();
+    UNUSED(runOnce);
 
     bool finished = false;
-    controlData.speed = globals::speed_LAB_FWD;
 
     updateCarOrientation();
 
-    if (turnAroundActive) {
-        if (turnAround(detectedLines, controlData)) {
-            turnAroundActive = false;
-        }
-    } else if (detectedLines.pattern != prevDetectedLines.pattern) {
+    if (detectedLines.pattern != prevDetectedLines.pattern) {
 
         switch (detectedLines.pattern.type) {
         case LinePattern::JUNCTION_1:
@@ -802,16 +855,22 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 // So the segment direction is the same as the line pattern direction (in this example, RIGHT).
                 inSegmentDir = detectedLines.pattern.side;
 
-                // if there are 3 detected lines, follows center line, otherwise follows default main line
-                if (3 == detectedLines.lines.size()) {
-                    controlData.baseline = detectedLines.lines[1];
+                // if the car is going backwards, mirrored pattern sides are detected
+                if (currentSeg->isDeadEnd) {
+                    inSegmentDir = -inSegmentDir;
                 }
+
+                // follows center or right line in junctions
+                if (1 < detectedLines.lines.front.size()) {
+                    controlData.baseline = detectedLines.lines.front[1];
+                }
+                controlData.speed = globals::speed_LAB_FWD;
 
             } else if (Sign::POSITIVE == detectedLines.pattern.dir) {
                 const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
 
                 const radian_t carOri = globals::car.pose.angle;
-                const radian_t inOri  = round90(carOri + PI);
+                const radian_t inOri  = round90(currentSeg->isDeadEnd ? carOri : carOri + PI);
                 const radian_t outOri = round90(carOri);
 
                 const Direction steeringDir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
@@ -819,20 +878,20 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 // updates the main line (if an error occurs, does not change the default line)
                 switch (steeringDir) {
                 case Direction::LEFT:
-                    if (detectedLines.lines.size() >= 2) {
-                        controlData.baseline = detectedLines.lines[0];
+                    if (detectedLines.lines.front.size() >= 2) {
+                        controlData.baseline = detectedLines.lines.front[0];
                     }
                     break;
                 case Direction::CENTER:
-                    if (detectedLines.lines.size() == 1) {
-                        controlData.baseline = detectedLines.lines[0];
-                    } else if (detectedLines.lines.size() == 3) {
-                        controlData.baseline = detectedLines.lines[1];
+                    if (detectedLines.lines.front.size() == 1) {
+                        controlData.baseline = detectedLines.lines.front[0];
+                    } else if (detectedLines.lines.front.size() == 3) {
+                        controlData.baseline = detectedLines.lines.front[1];
                     }
                     break;
                 case Direction::RIGHT:
-                    if (detectedLines.lines.size() >= 2) {
-                        controlData.baseline = *detectedLines.lines.back();
+                    if (detectedLines.lines.front.size() >= 2) {
+                        controlData.baseline = *detectedLines.lines.front.back();
                     }
                     break;
                 }
@@ -842,11 +901,11 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
         case LinePattern::DEAD_END:
             currentSeg->isDeadEnd = true;
-            turnAroundActive = true;
+            controlData.speed = globals::speed_LAB_BWD;
             break;
 
         case LinePattern::LANE_CHANGE:
-            if (getFloatingSegments().size()) {
+            if ((getFloatingSegments().size() && endTime - getTime() > second_t(15)) || segments.size() < 10) {
                 laneChange.seg = currentSeg;
                 if (Sign::POSITIVE == detectedLines.pattern.dir && prevConn) {
                     laneChange.lastJunc = prevConn->junction;
@@ -875,7 +934,7 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
         laneChange.trajectory.setStartConfig(Trajectory::config_t{
             globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(globals::car.pose.angle),
             globals::speed_LANE_CHANGE
-        });
+        }, globals::car.distance);
 
         laneChange.trajectory.appendSineArc(Trajectory::config_t{
             laneChange.trajectory.lastConfig().pos + vec2m(centimeter_t(80), -LANE_DISTANCE).rotate(globals::car.pose.angle),
@@ -906,7 +965,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     ControlData controlData;
 
     currentSeg = createNewSegment();
-    endTime = getTime() + second_t(20);
 
     while (true) {
         switch (getActiveTask(globals::programState)) {
@@ -917,7 +975,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
 
                 controlData.directControl = false;
-                LineCalculator::updateMainLine(detectedLines.lines, controlData.baseline);
+                micro::updateMainLine(globals::car.speed > m_per_sec_t(0) ? detectedLines.lines.front : detectedLines.lines.rear, controlData.baseline);
                 controlData.angle = degree_t(0);
                 controlData.offset = millimeter_t(0);
 

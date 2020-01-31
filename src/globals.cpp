@@ -13,10 +13,12 @@ bool lineDetectionEnabled           = true;
 float motorCtrl_P                   = 0.5f;
 float motorCtrl_I                   = 0.04f;
 float motorCtrl_integral_max        = 4.0f;
-float frontLineCtrl_P_slow          = 1.5f;
-float frontLineCtrl_D_slow          = 0.0f;
-float frontLineCtrl_P_fast          = 0.15f;
+float frontLineCtrl_P_slow          = 1.5f; // 1.5 m/s
+float frontLineCtrl_D_slow          = 100.0f;
+float frontLineCtrl_P_fast          = 0.5f; // 3 m/s
 float frontLineCtrl_D_fast          = 50.0f;
+float frontLineCtrl_P_bwd           = 3.5f;
+float frontLineCtrl_D_bwd           = 200.0f;
 CarProps car                        = CarProps();
 bool distSensorEnabled              = false;
 bool distServoEnabled               = true;
@@ -34,11 +36,11 @@ m_per_sec_t speed_SLOW4             = m_per_sec_t(1.0f);
 m_per_sec_t speed_SLOW5             = m_per_sec_t(1.0f);
 m_per_sec_t speed_SLOW6             = m_per_sec_t(1.0f);
 meter_t slowSectionStartOffset      = meter_t(1.2);
-m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.0f);
-m_per_sec_t speed_LAB_BWD           = m_per_sec_t(0.7f);
+m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.4f);
+m_per_sec_t speed_LAB_BWD           = m_per_sec_t(-1.0f);
 m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
 m_per_sec_t speed_REACH_SAFETY_CAR  = m_per_sec_t(0.8f);
-m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.8f);
+m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.6f);
 m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.4f);
 m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(3.0f);
 
@@ -60,8 +62,6 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(frontLineCtrl_P_fast);
     REGISTER_GLOBAL(frontLineCtrl_D_fast);
     REGISTER_GLOBAL(car);
-    REGISTER_GLOBAL(distServoEnabled);
-    REGISTER_GLOBAL(distServoTransferRate);
     REGISTER_GLOBAL(speed_FAST1);
     REGISTER_GLOBAL(speed_FAST2);
     REGISTER_GLOBAL(speed_FAST3);
@@ -77,7 +77,6 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(slowSectionStartOffset);
     REGISTER_GLOBAL(speed_LAB_FWD);
     REGISTER_GLOBAL(speed_LAB_BWD);
-    REGISTER_GLOBAL(speed_LANE_CHANGE);
 
 #undef REGISTER_GLOBAL
 }

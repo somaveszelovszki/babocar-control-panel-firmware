@@ -101,14 +101,26 @@ extern "C" void runControlTask(const void *argument) {
                 frontSteeringServo.writeWheelAngle(controlData.frontWheelAngle);
                 rearSteeringServo.writeWheelAngle(controlData.rearWheelAngle);
             } else {
-                lineController.setParams(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow);
+                const bool isFwd = globals::car.speed >= m_per_sec_t(0);
+                float P, D;
+                radian_t frontWheelAngle, rearWheelAngle;
+
+                if (isFwd) {
+                    P = map(globals::car.speed, m_per_sec_t(1.5f), m_per_sec_t(3.0f), globals::frontLineCtrl_P_slow, globals::frontLineCtrl_P_fast);
+                    D = map(globals::car.speed, m_per_sec_t(1.5f), m_per_sec_t(3.0f), globals::frontLineCtrl_D_slow, globals::frontLineCtrl_D_fast);
+                } else {
+                    P = globals::frontLineCtrl_P_bwd;
+                    D = globals::frontLineCtrl_D_bwd;
+                }
+
+                lineController.setParams(P, D);
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
 
-                frontSteeringServo.writeWheelAngle(controlData.angle + degree_t(lineController.getOutput()));
+                frontSteeringServo.writeWheelAngle(isFwd ? controlData.angle + degree_t(lineController.getOutput()) : radian_t(0));
                 rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
             }
 
-        } else if (getTime() - lastControlDataRecvTime > millisecond_t(20)) {
+        } else if (getTime() - lastControlDataRecvTime > millisecond_t(500)) {
             controlData.speed = m_per_sec_t::zero();
         }
 

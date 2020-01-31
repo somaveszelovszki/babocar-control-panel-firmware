@@ -140,7 +140,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
         overtake.trajectory.setStartConfig(Trajectory::config_t{
             globals::car.pose.pos + vec2m(cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0)).rotate(overtake.sectionOrientation),
                     globals::speed_OVERTAKE_CURVE
-        });
+        }, globals::car.distance);
 
         overtake.trajectory.appendSineArc(Trajectory::config_t{
             overtake.trajectory.lastConfig().pos + vec2m(BEGIN_SINE_ARC_LENGTH, -SIDE_DISTANCE).rotate(overtake.sectionOrientation),
@@ -189,7 +189,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
     bool isFastSection = false;
 
-    ProgramState prevProgramState = ProgramState::INVALID;
     meter_t startDist = globals::car.distance;
     meter_t sectionStartDist = startDist;
     meter_t lastDistWithActiveSafetyCar = startDist;
@@ -205,7 +204,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             xQueuePeek(distancesQueue, &distances, 0);
 
             controlData.directControl = false;
-            LineCalculator::updateMainLine(detectedLines.lines, controlData.baseline);
+            micro::updateMainLine(detectedLines.lines.front, controlData.baseline);
             controlData.angle = degree_t(0);
             controlData.offset = millimeter_t(0);
 
