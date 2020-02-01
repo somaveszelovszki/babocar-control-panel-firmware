@@ -710,6 +710,11 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
     static Direction inSegmentDir;
     static point2m inJunctionPos;
 
+    static struct {
+        Direction dir = Direction::CENTER;
+        bool enabled = false;
+    } forcedManeuver;
+
     static const bool runOnce = [&controlData]() {
         controlData.speed = globals::speed_LAB_FWD;
         controlData.rampTime = millisecond_t(500);
@@ -737,6 +742,10 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
     if (detectedLines.pattern != prevDetectedLines.pattern) {
 
         switch (detectedLines.pattern.type) {
+        case LinePattern::SINGLE_LINE:
+            forcedManeuver.enabled = false;
+            break;
+
         case LinePattern::JUNCTION_1:
         case LinePattern::JUNCTION_2:
         case LinePattern::JUNCTION_3:
@@ -788,28 +797,8 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 const radian_t inOri  = round90(carOri + PI);
                 const radian_t outOri = round90(carOri);
 
-                const Direction steeringDir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
-
-                // updates the main line (if an error occurs, does not change the default line)
-                switch (steeringDir) {
-                case Direction::LEFT:
-                    if (detectedLines.lines.front.size() >= 2) {
-                        controlData.baseline = detectedLines.lines.front[0];
-                    }
-                    break;
-                case Direction::CENTER:
-                    if (detectedLines.lines.front.size() == 1) {
-                        controlData.baseline = detectedLines.lines.front[0];
-                    } else if (detectedLines.lines.front.size() == 3) {
-                        controlData.baseline = detectedLines.lines.front[1];
-                    }
-                    break;
-                case Direction::RIGHT:
-                    if (detectedLines.lines.front.size() >= 2) {
-                        controlData.baseline = *detectedLines.lines.front.back();
-                    }
-                    break;
-                }
+                forcedManeuver.dir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
+                forcedManeuver.enabled = true;
             }
             break;
         }
@@ -833,6 +822,29 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
             break;
 
         default:
+            break;
+        }
+    }
+
+    if (forcedManeuver.enabled) {
+        // updates the main line (if an error occurs, does not change the default line)
+        switch (forcedManeuver.dir) {
+        case Direction::LEFT:
+            if (detectedLines.lines.front.size() >= 1) {
+                controlData.baseline = detectedLines.lines.front[0];
+            }
+            break;
+        case Direction::CENTER:
+            if (detectedLines.lines.front.size() == 1) {
+                controlData.baseline = detectedLines.lines.front[0];
+            } else if (detectedLines.lines.front.size() == 3) {
+                controlData.baseline = detectedLines.lines.front[1];
+            }
+            break;
+        case Direction::RIGHT:
+            if (detectedLines.lines.front.size() >= 2) {
+                controlData.baseline = *detectedLines.lines.front.back();
+            }
             break;
         }
     }
