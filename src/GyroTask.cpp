@@ -18,6 +18,8 @@
 
 using namespace micro;
 
+namespace {
+
 class AngleFilter : public LowPassFilter<radian_t, 10> {
 public:
     AngleFilter() : LowPassFilter() {}
@@ -34,8 +36,8 @@ public:
     }
 };
 
-static hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
-static AngleFilter angleFilter;
+hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+AngleFilter angleFilter;
 
 class AngleCalc {
 public:
@@ -79,12 +81,27 @@ private:
     point2<std::pair<gauss_t, gauss_t>> boundaries;
 };
 
-static AngleCalc DEFAULT_ANGLE_CALC({
+AngleCalc DEFAULT_ANGLE_CALC({
     { gauss_t(-460), gauss_t(-26) },
     { gauss_t(295),  gauss_t(693) }
 });
 
-static AngleCalc angleCalc;
+AngleCalc angleCalc;
+
+void updateOrientedDistance() {
+    static meter_t orientedSectionStartDist;
+    static radian_t orientation;
+
+    const bool isOriented = eqWithOverflow360(globals::car.pose.angle, orientation, degree_t(5));
+    if (!isOriented) {
+        orientedSectionStartDist = globals::car.distance;
+        orientation = globals::car.pose.angle;
+    }
+
+    globals::car.orientedDistance = globals::car.distance - orientedSectionStartDist;
+}
+
+} // namespace
 
 extern "C" void runGyroTask(const void *argument) {
 
@@ -115,6 +132,8 @@ extern "C" void runGyroTask(const void *argument) {
             globals::car.pose.pos.X += d_dist * cos(globals::car.pose.angle);
             globals::car.pose.pos.Y += d_dist * sin(globals::car.pose.angle);
             globals::car.pose.angle = normalize360(globals::car.pose.angle + d_angle / 2);
+
+            updateOrientedDistance();
 
             prevDist = globals::car.distance;
             xTaskResumeAll();
