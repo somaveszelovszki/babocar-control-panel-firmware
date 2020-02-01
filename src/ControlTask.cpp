@@ -25,7 +25,7 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-static MotorPanelLink motorPanelLink(
+MotorPanelLink motorPanelLink(
     uart_MotorPanel,
     millisecond_t(MOTOR_PANEL_LINK_OUT_TIMEOUT_MS),
     millisecond_t(MOTOR_PANEL_LINK_IN_PERIOD_MS));
@@ -47,7 +47,7 @@ hw::Servo frontDistServo(
     cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180,
     cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
 
-static Timer frontDistServoUpdateTimer;
+Timer frontDistServoUpdateTimer;
 
 void fillMotorPanelData(motorPanelDataIn_t& txData, m_per_sec_t targetSpeed) {
     txData.controller_P            = globals::motorCtrl_P;
@@ -76,6 +76,11 @@ extern "C" void runControlTask(const void *argument) {
     ControlData controlData;
     millisecond_t lastControlDataRecvTime = millisecond_t::zero();
 
+    struct {
+        m_per_sec_t prevSpeedRef;
+        millisecond_t startTime;
+    } ramp;
+
     frontSteeringServo.writeWheelAngle(radian_t(0));
     rearSteeringServo.writeWheelAngle(radian_t(0));
     frontDistServo.write(radian_t(0));
@@ -92,6 +97,8 @@ extern "C" void runControlTask(const void *argument) {
         if (motorPanelLink.readAvailable(rxData)) {
             parseMotorPanelData(rxData);
         }
+
+        const m_per_sec_t prevSpeedRef = controlData.speed;
 
         // if no control data is received for a given period, stops motor for safety reasons
         if (xQueueReceive(controlQueue, &controlData, 0)) {
@@ -120,8 +127,16 @@ extern "C" void runControlTask(const void *argument) {
                 rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
             }
 
-        } else if (getTime() - lastControlDataRecvTime > millisecond_t(500)) {
+        } else if (getTime() - lastControlDataRecvTime > millisecond_t(1000)) {
+            LOG_ERROR("No control data for 1000ms");
+            lastControlDataRecvTime = getTime();
             controlData.speed = m_per_sec_t::zero();
+            controlData.rampTime = millisecond_t(0);
+        }
+
+        if (controlData.speed != prevSpeedRef) {
+            ramp.prevSpeedRef = prevSpeedRef;
+            ramp.startTime = getTime();
         }
 
         if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
@@ -129,7 +144,10 @@ extern "C" void runControlTask(const void *argument) {
         }
 
         if (motorPanelLink.shouldSend()) {
-            fillMotorPanelData(txData, controlData.speed);
+            const m_per_sec_t speedRef = controlData.rampTime > millisecond_t(0) ?
+                map(getTime(), ramp.startTime, ramp.startTime + controlData.rampTime, ramp.prevSpeedRef, controlData.speed) :
+                controlData.speed;
+            fillMotorPanelData(txData, speedRef);
             motorPanelLink.send(txData);
         }
 

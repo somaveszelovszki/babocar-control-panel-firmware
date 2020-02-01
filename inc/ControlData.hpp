@@ -8,6 +8,7 @@ namespace micro {
  **/
 struct ControlData {
     m_per_sec_t speed;
+    millisecond_t rampTime;
     bool directControl = false;
 
     // line control
