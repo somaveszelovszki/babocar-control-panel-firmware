@@ -34,8 +34,6 @@ extern "C" void runDistSensorTask(const void *argument) {
     DistancesData distances;
     millisecond_t prevReadTime = getTime();
 
-    int i = 0;
-
     while (true) {
         if (globals::distServoEnabled) {
             if (isOk(frontDistSensor.readDistance(distances.front))) {
