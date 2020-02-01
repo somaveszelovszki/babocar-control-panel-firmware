@@ -18,6 +18,7 @@ enum class ProgramState : uint8_t {
     FollowSafetyCar   = 5,
     OvertakeSafetyCar = 6,
     Race              = 7,
+    Finish            = 8,
 };
 
 enum class ProgramTask {
@@ -37,7 +38,8 @@ inline ProgramTask getActiveTask(const ProgramState programState) {
     case ProgramState::ReachSafetyCar:
     case ProgramState::FollowSafetyCar:
     case ProgramState::OvertakeSafetyCar:
-    case ProgramState::Race:              task = ProgramTask::RaceTrack; break;
+    case ProgramState::Race:
+    case ProgramState::Finish:            task = ProgramTask::RaceTrack; break;
     }
     return task;
 }
