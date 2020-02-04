@@ -113,8 +113,9 @@ extern "C" void runControlTask(const void *argument) {
                 radian_t frontWheelAngle, rearWheelAngle;
 
                 if (isFwd) {
-                    P = map(globals::car.speed, m_per_sec_t(1.5f), m_per_sec_t(3.0f), globals::frontLineCtrl_P_slow, globals::frontLineCtrl_P_fast);
-                    D = map(globals::car.speed, m_per_sec_t(1.5f), m_per_sec_t(3.0f), globals::frontLineCtrl_D_slow, globals::frontLineCtrl_D_fast);
+                    const float speed = clamp(globals::car.speed, m_per_sec_t(2), m_per_sec_t(10)).get();
+                    P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
+                    D = globals::frontLineCtrl_D_fwd;
                 } else {
                     P = globals::frontLineCtrl_P_bwd;
                     D = globals::frontLineCtrl_D_bwd;
@@ -123,8 +124,11 @@ extern "C" void runControlTask(const void *argument) {
                 lineController.setParams(P, D);
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
 
+                // at high speeds the rear servo is disabled
+                const float rearMul = map(globals::car.speed, m_per_sec_t(2.0f), m_per_sec_t(3.0f), 1.0f, 0.0f);
+
                 frontSteeringServo.writeWheelAngle(isFwd ? controlData.angle + degree_t(lineController.getOutput()) : radian_t(0));
-                rearSteeringServo.writeWheelAngle(controlData.angle - degree_t(lineController.getOutput()));
+                rearSteeringServo.writeWheelAngle(controlData.angle - rearMul * degree_t(lineController.getOutput()));
             }
 
         } else if (getTime() - lastControlDataRecvTime > millisecond_t(1000)) {
@@ -135,6 +139,7 @@ extern "C" void runControlTask(const void *argument) {
         }
 
         if (controlData.speed != prevSpeedRef) {
+            LOG_DEBUG("New speed ref: %fm/s", controlData.speed.get());
             ramp.prevSpeedRef = prevSpeedRef;
             ramp.startTime = getTime();
         }
