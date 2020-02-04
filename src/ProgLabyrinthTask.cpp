@@ -288,7 +288,7 @@ bool getRoute() {
 Segment* createNewSegment() {
     Segment *seg = getNew(segments);
     if (seg) {
-        seg->name      = 'A' + static_cast<char>(segments.size() - 1);
+        seg->name      = segments.size() >= 27 ? 'a' + static_cast<char>(segments.size() - 27) : 'A' + static_cast<char>(segments.size() - 1);
         seg->length    = meter_t(0);
         seg->isDeadEnd = false;
         seg->isActive  = true;
@@ -357,12 +357,11 @@ vec<Connection*, 2> getConnections(Segment *seg1, Segment *seg2) {
     return connections;
 }
 
-Junction* onNewJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
-    LOG_DEBUG("New junction | currentSeg: %c", currentSeg->name);
+Junction* onNewJunction(radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
     Junction * const junc = getNew(junctions);
     if (junc) {
         junc->idx = junctions.size();
-        junc->pos = pos;
+        junc->pos = globals::car.pose.pos;
         addSegments(junc, inOri, outOri, numInSegments, inSegmentDir, numOutSegments);
 
         Junction::segment_map::iterator inSegments  = junc->getSideSegments(inOri);
@@ -415,13 +414,13 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
     return result;
 }
 
-Connection* onExistingJunction(Junction *junc, bool isValid, const point2m& pos, radian_t inOri, Direction inSegmentDir) {
+Connection* onExistingJunction(Junction *junc, bool isValid, radian_t inOri, Direction inSegmentDir) {
 
     LOG_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
 
     vTaskSuspendAll();
     const point2m prevCarPos = globals::car.pose.pos;
-    globals::car.pose.pos += (junc->pos - pos);
+    globals::car.pose.pos = junc->pos;
     xTaskResumeAll();
 
     LOG_DEBUG("Car pos updated: (%f, %f) -> (%f, %f)", prevCarPos.X.get(), prevCarPos.Y.get(), globals::car.pose.pos.X.get(), globals::car.pose.pos.Y.get());
@@ -446,6 +445,15 @@ Connection* onExistingJunction(Junction *junc, bool isValid, const point2m& pos,
             // If there are no floating segments, it means the labyrinth has been completed.
             // In this case the destination will be the lane change segment.
             if (plannedRoute.connections.size() || getRoute()) {
+                LOG_DEBUG("Planned route:");
+
+                const Segment *prev = plannedRoute.startSeg;
+                for (const Connection *c : plannedRoute.connections) {
+                    const Segment *next = c->getOtherSegment(prev);
+                    LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getManeuver(next).direction));
+                    prev = next;
+                }
+
                 nextConn = plannedRoute.nextConnection();
             } else {
                 LOG_ERROR("createNewRoute() failed");
@@ -460,20 +468,28 @@ Connection* onExistingJunction(Junction *junc, bool isValid, const point2m& pos,
     return nextConn;
 }
 
-Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
+uint32_t random(uint32_t interval) {
+    return static_cast<uint32_t>(static_cast<centimeter_t>(globals::car.distance).get()) % interval;
+}
+
+Direction onJunctionDetected(radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
     bool isJuncValid = false;
-    Junction *junc = findExistingJunction(pos, inOri, outOri, numInSegments, inSegmentDir, numOutSegments, isJuncValid);;
+    Junction *junc = findExistingJunction(globals::car.pose.pos, inOri, outOri, numInSegments, inSegmentDir, numOutSegments, isJuncValid);;
 
     Connection *nextConn = nullptr;
     Maneuver nextManeuver = { outOri, Direction::CENTER };
 
     if (!junc) { // new junction found - creates new segments and adds connections
         LOG_DEBUG("new junction");
-        junc = onNewJunction(pos, inOri, outOri, numInSegments, inSegmentDir, numOutSegments);
+        junc = onNewJunction(inOri, outOri, numInSegments, inSegmentDir, numOutSegments);
     } else { // arrived at a previously found junction - the corresponding floating segment of the junction (if any) must be merged with the current segment
         LOG_DEBUG("existing junction");
-        nextConn = onExistingJunction(junc, isJuncValid, pos, inOri, inSegmentDir);
+        nextConn = onExistingJunction(junc, isJuncValid, inOri, inSegmentDir);
+    }
+
+    if (junc) {
+        LOG_DEBUG("currentSeg: %c, junction: %d (%f, %f)", currentSeg->name, junc->idx, junc->pos.X.get(), junc->pos.Y.get());
     }
 
     LOG_DEBUG("junction handling done, choosing next maneuver");
@@ -488,6 +504,17 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
         if (!pNextSeg) {
             pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::CENTER));
         }
+
+//        const uint32_t numSegs = junc->getSideSegments(nextManeuver.orientation)->second.size();
+//        const uint32_t r = random(numSegs);
+//        if (1 == numSegs) {
+//            nextManeuver.direction = Direction::CENTER;
+//        } else if (2 == numSegs) {
+//            nextManeuver.direction = 0 == r ? Direction::LEFT : Direction::RIGHT;
+//        } else {
+//            nextManeuver.direction = static_cast<Direction>(r);
+//        }
+//        Segment **pNextSeg = outSegments->second.get(nextManeuver.direction);
 
         if (pNextSeg) {
             for (Connection *c : getConnections(currentSeg, *pNextSeg)) {
@@ -518,7 +545,7 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
         Segment *nextSeg = nextConn->getOtherSegment(currentSeg);
 
         if (nextSeg->isFloating()) {
-            endTime += second_t(10);
+            endTime = min(static_cast<second_t>(endTime) + second_t(10), second_t(20) + second_t(10) * 17);
         }
 
         currentSeg = nextSeg;
@@ -679,8 +706,8 @@ const TestCase testCase2[] = {
 void updateCarOrientation() {
     static meter_t lastUpdatedOrientedDistance;
 
-    if (globals::car.orientedDistance - lastUpdatedOrientedDistance > centimeter_t(30) &&
-        eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(5))) {
+    if (globals::car.orientedDistance - lastUpdatedOrientedDistance > centimeter_t(40) &&
+        eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(8))) {
         vTaskSuspendAll();
         globals::car.pose.angle = round90(globals::car.pose.angle);
         xTaskResumeAll();
@@ -708,7 +735,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     static uint8_t numInSegments;
     static Direction inSegmentDir;
-    static point2m inJunctionPos;
+    static meter_t lastOriUpdateDist;
 
     static struct {
         Direction dir = Direction::CENTER;
@@ -727,7 +754,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     updateCarOrientation();
 
-    const bool isSafe = globals::car.orientedDistance > centimeter_t(30) &&
+    const bool isSafe = globals::car.orientedDistance > centimeter_t(50) &&
         detectedLines.lines.front.size() == 1 &&
         LinePattern::SINGLE_LINE == detectedLines.pattern.type;
 
@@ -744,6 +771,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         switch (detectedLines.pattern.type) {
         case LinePattern::SINGLE_LINE:
             forcedManeuver.enabled = false;
+            LOG_DEBUG("Force maneuver disabled");
             break;
 
         case LinePattern::JUNCTION_1:
@@ -755,7 +783,6 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
             if (Sign::NEGATIVE == detectedLines.pattern.dir) {
                 numInSegments = numSegments;
-                inJunctionPos = globals::car.pose.pos;
 
                 // Line pattern direction indicates on which side of the current line the OTHER lines are,
                 // so if the current line is the leftmost line of three lines, pattern direction will be RIGHT.
@@ -779,8 +806,6 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 }
 
             } else if (Sign::POSITIVE == detectedLines.pattern.dir) {
-                const point2m junctionPos = avg(inJunctionPos, globals::car.pose.pos);
-
                 if (currentSeg->isDeadEnd) {
                     if (prevConn) {
                         // when coming back from a dead-end, junction should be handled as if the car
@@ -797,8 +822,9 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 const radian_t inOri  = round90(carOri + PI);
                 const radian_t outOri = round90(carOri);
 
-                forcedManeuver.dir = onJunctionDetected(junctionPos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
+                forcedManeuver.dir = onJunctionDetected(inOri, outOri, numInSegments, inSegmentDir, numSegments);
                 forcedManeuver.enabled = true;
+                LOG_DEBUG("Forced maneuver: %s", to_string(forcedManeuver.dir));
             }
             break;
         }
@@ -810,7 +836,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
             break;
 
         case LinePattern::LANE_CHANGE:
-            if ((getFloatingSegments().size() && endTime - getTime() > second_t(15)) || (segments.size() - getFloatingSegments().size()) < 10) {
+            if ((getFloatingSegments().size() && endTime - getTime() > second_t(10)) || (segments.size() - getFloatingSegments().size()) <= 12) {
                 laneChange.seg = currentSeg;
                 if (Sign::POSITIVE == detectedLines.pattern.dir && prevConn) {
                     laneChange.lastJunc = prevConn->junction;
@@ -824,6 +850,14 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         default:
             break;
         }
+    }
+
+    if (globals::car.orientedDistance > centimeter_t(50) &&
+        eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(8)) &&
+        globals::car.distance - lastOriUpdateDist > centimeter_t(50)) {
+
+        globals::car.pose.angle = round90(globals::car.pose.angle);
+        lastOriUpdateDist = globals::car.distance;
     }
 
     if (forcedManeuver.enabled) {
