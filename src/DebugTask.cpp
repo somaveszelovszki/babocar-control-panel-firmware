@@ -77,19 +77,7 @@ extern "C" void runDebugTask(const void *argument) {
 
             if (!strncmp(inCmd, "[P]", 3)) {
                 debugParams.deserializeAll(&inCmd[3], len - 3);
-
-                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-                vTaskDelay(100);
-                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-                vTaskDelay(100);
-                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-                vTaskDelay(100);
-                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-                vTaskDelay(100);
-                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-                vTaskDelay(100);
-                HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-                vTaskDelay(100);
+                LOG_INFO("Params updated from server");
             }
         }
 
@@ -113,6 +101,11 @@ extern "C" void runDebugTask(const void *argument) {
         ledBlinkTimer.setPeriod(millisecond_t(globals::areAllTasksOk() ? 500 : 250));
         if (ledBlinkTimer.checkTimeout()) {
             HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
+//            if (!globals::isControlTaskOk)    LOG_DEBUG("ControlTask not OK");
+//            if (!globals::isDebugTaskOk)      LOG_DEBUG("DebugTask not OK");
+//            if (!globals::isDistSensorTaskOk) LOG_DEBUG("DistSensorTask not OK");
+//            if (!globals::isLineDetectTaskOk) LOG_DEBUG("LineDetectTask not OK");
+//            if (!globals::isGyroTaskOk)       LOG_DEBUG("GyroTask not OK");
         }
     }
 
