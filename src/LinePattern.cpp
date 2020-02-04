@@ -328,7 +328,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
         }
     },
     { // DEAD_END
-        centimeter_t(3),
+        centimeter_t(5),
         meter_t::infinity(),
         LinePatternCalculator::LinePatternInfo::USES_HISTORY,
         [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern&, const Lines& lines, uint8_t, meter_t) {
