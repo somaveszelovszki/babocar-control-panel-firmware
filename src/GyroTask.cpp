@@ -20,24 +20,7 @@ using namespace micro;
 
 namespace {
 
-class AngleFilter : public LowPassFilter<radian_t, 10> {
-public:
-    AngleFilter() : LowPassFilter() {}
-
-    radian_t update(const radian_t& measuredValue) override {
-        radian_t meas = measuredValue;
-        while (meas < this->filteredValue - PI) {
-            meas += 2 * PI;
-        }
-        while (meas > this->filteredValue + PI) {
-            meas -= 2 * PI;
-        }
-        return normalize360(LowPassFilter::update(meas));
-    }
-};
-
 hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
-AngleFilter angleFilter;
 
 class AngleCalc {
 public:
@@ -92,7 +75,7 @@ void updateOrientedDistance() {
     static meter_t orientedSectionStartDist;
     static radian_t orientation;
 
-    const bool isOriented = eqWithOverflow360(globals::car.pose.angle, orientation, degree_t(5));
+    const bool isOriented = eqWithOverflow360(globals::car.pose.angle, orientation, degree_t(3));
     if (!isOriented) {
         orientedSectionStartDist = globals::car.distance;
         orientation = globals::car.pose.angle;
@@ -123,6 +106,7 @@ extern "C" void runGyroTask(const void *argument) {
             globals::isGyroTaskOk = true;
 
             const microsecond_t now = getExactTime();
+
             const radian_t d_angle = gyroData.Z * (now - prevCalcTime);
 
             vTaskSuspendAll();
