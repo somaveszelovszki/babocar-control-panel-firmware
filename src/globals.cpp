@@ -7,18 +7,20 @@ namespace globals {
 
 ProgramState programState           = ProgramState::INVALID;
 bool useSafetyEnableSignal          = true;
-bool indicatorLedsEnabled           = true;
+bool indicatorLedsEnabled           = false;
 bool startSignalEnabled             = false;
 bool lineDetectionEnabled           = true;
 float motorCtrl_P                   = 0.5f;
 float motorCtrl_I                   = 0.04f;
 float motorCtrl_integral_max        = 4.0f;
-float frontLineCtrl_P_slow          = 1.5f; // 1.5 m/s
-float frontLineCtrl_D_slow          = 100.0f;
+float frontLineCtrl_P_slow          = 1.5f; // 1.4 m/s
+float frontLineCtrl_D_slow          = 80.0f;
 float frontLineCtrl_P_fast          = 0.5f; // 3 m/s
-float frontLineCtrl_D_fast          = 50.0f;
-float frontLineCtrl_P_bwd           = 2.5f;
+float frontLineCtrl_D_fast          = 40.0f;
+float frontLineCtrl_P_bwd           = 2.2f;
 float frontLineCtrl_D_bwd           = 100.0f;
+float frontLineCtrl_P_fwd_mul       = 20.0f;
+float frontLineCtrl_D_fwd           = 27.0f;
 CarProps car                        = CarProps();
 bool distSensorEnabled              = false;
 bool distServoEnabled               = true;
@@ -62,6 +64,8 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(frontLineCtrl_D_slow);
     REGISTER_GLOBAL(frontLineCtrl_P_fast);
     REGISTER_GLOBAL(frontLineCtrl_D_fast);
+    REGISTER_GLOBAL(frontLineCtrl_P_fwd_mul);
+    REGISTER_GLOBAL(frontLineCtrl_D_fwd);
     REGISTER_GLOBAL(car);
     REGISTER_GLOBAL(speed_FAST1);
     REGISTER_GLOBAL(speed_FAST2);
