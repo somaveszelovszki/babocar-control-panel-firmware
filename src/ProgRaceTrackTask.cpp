@@ -218,21 +218,14 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
             }, globals::car.pose.angle, 50);
 
             overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(ACCELERATION_LENGTH / 2, centimeter_t(0)).rotate(overtake.orientation),
-                m_per_sec_t(1.0f)
-            });
-
-            overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(ACCELERATION_LENGTH / 2, centimeter_t(0)).rotate(overtake.orientation),
+                overtake.trajectory.lastConfig().pos + vec2m(ACCELERATION_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
                 m_per_sec_t(2.0f)
             });
 
-            for (uint8_t i = 0; i < 100; ++i) {
-                overtake.trajectory.appendLine(Trajectory::config_t{
-                    overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH / 100, centimeter_t(0)).rotate(overtake.orientation),
-                    m_per_sec_t(2.0f)
-                });
-            }
+            overtake.trajectory.appendLine(Trajectory::config_t{
+                overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
+                m_per_sec_t(2.0f)
+            });
 
             overtake.trajectory.appendLine(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(BRAKE_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
