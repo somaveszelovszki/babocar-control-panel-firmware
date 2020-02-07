@@ -75,7 +75,7 @@ void updateOrientedDistance() {
     static meter_t orientedSectionStartDist;
     static radian_t orientation;
 
-    const bool isOriented = eqWithOverflow360(globals::car.pose.angle, orientation, degree_t(3));
+    const bool isOriented = eqWithOverflow360(globals::car.pose.angle, orientation, degree_t(5));
     if (!isOriented) {
         orientedSectionStartDist = globals::car.distance;
         orientation = globals::car.pose.angle;
