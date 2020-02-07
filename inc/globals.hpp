@@ -42,7 +42,6 @@ extern m_per_sec_t speed_SLOW3;
 extern m_per_sec_t speed_SLOW4;
 extern m_per_sec_t speed_SLOW5;
 extern m_per_sec_t speed_SLOW6;
-extern meter_t slowSectionStartOffset;
 extern m_per_sec_t speed_LAB_FWD;
 extern m_per_sec_t speed_LAB_FWD_FAST;
 extern m_per_sec_t speed_LAB_BWD;

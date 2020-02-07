@@ -10,7 +10,7 @@ bool useSafetyEnableSignal          = true;
 bool indicatorLedsEnabled           = false;
 bool startSignalEnabled             = false;
 bool lineDetectionEnabled           = true;
-float motorCtrl_P                   = 0.5f;
+float motorCtrl_P                   = 0.6f;
 float motorCtrl_I                   = 0.04f;
 float motorCtrl_integral_max        = 4.0f;
 float frontLineCtrl_P_slow          = 1.5f; // 1.4 m/s
@@ -19,13 +19,13 @@ float frontLineCtrl_P_fast          = 0.5f; // 3 m/s
 float frontLineCtrl_D_fast          = 40.0f;
 float frontLineCtrl_P_bwd           = 2.2f;
 float frontLineCtrl_D_bwd           = 100.0f;
-float frontLineCtrl_P_fwd_mul       = 20.0f;
-float frontLineCtrl_D_fwd           = 27.0f;
+float frontLineCtrl_P_fwd_mul       = 22.0f;
+float frontLineCtrl_D_fwd           = 30.0f;
 CarProps car                        = CarProps();
 bool distSensorEnabled              = false;
 bool distServoEnabled               = true;
 float distServoTransferRate         = 3.0f;
-m_per_sec_t speed_FAST1             = m_per_sec_t(1.5f);
+m_per_sec_t speed_FAST1             = m_per_sec_t(1.0f);
 m_per_sec_t speed_FAST2             = m_per_sec_t(1.5f);
 m_per_sec_t speed_FAST3             = m_per_sec_t(1.5f);
 m_per_sec_t speed_FAST4             = m_per_sec_t(1.5f);
@@ -37,15 +37,14 @@ m_per_sec_t speed_SLOW3             = m_per_sec_t(1.0f);
 m_per_sec_t speed_SLOW4             = m_per_sec_t(1.0f);
 m_per_sec_t speed_SLOW5             = m_per_sec_t(1.0f);
 m_per_sec_t speed_SLOW6             = m_per_sec_t(1.0f);
-meter_t slowSectionStartOffset      = meter_t(1.2);
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.4f);
 m_per_sec_t speed_LAB_FWD_FAST      = m_per_sec_t(1.8f);
 m_per_sec_t speed_LAB_BWD           = m_per_sec_t(-1.0f);
 m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
 m_per_sec_t speed_REACH_SAFETY_CAR  = m_per_sec_t(0.8f);
 m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.6f);
-m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.0f);
-m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(1.0f);
+m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.2f);
+m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(2.5f);
 
 bool isControlTaskOk    = false;
 bool isDebugTaskOk      = false;
@@ -79,7 +78,6 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(speed_SLOW4);
     REGISTER_GLOBAL(speed_SLOW5);
     REGISTER_GLOBAL(speed_SLOW6);
-    REGISTER_GLOBAL(slowSectionStartOffset);
     REGISTER_GLOBAL(speed_LAB_FWD);
     REGISTER_GLOBAL(speed_LAB_BWD);
 
