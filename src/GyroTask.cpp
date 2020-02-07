@@ -100,6 +100,8 @@ extern "C" void runGyroTask(const void *argument) {
     microsecond_t prevCalcTime = micro::getExactTime();
     meter_t prevDist = globals::car.distance;
 
+    LowPassFilter<rad_per_sec_t, 5> angVelFilter;
+
     while (true) {
         const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
         if (gyroData.X != rad_per_sec_t(0) || gyroData.Y != rad_per_sec_t(0) || gyroData.Z != rad_per_sec_t(0)) {
@@ -107,7 +109,7 @@ extern "C" void runGyroTask(const void *argument) {
 
             const microsecond_t now = getExactTime();
 
-            const radian_t d_angle = gyroData.Z * (now - prevCalcTime);
+            const radian_t d_angle = angVelFilter.update(gyroData.Z) * (now - prevCalcTime);
 
             vTaskSuspendAll();
             const meter_t d_dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
