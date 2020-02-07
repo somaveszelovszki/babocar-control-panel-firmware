@@ -416,7 +416,7 @@ Status mergeSegments(Segment *oldSeg, Segment *newSeg) {
 
 Connection* onExistingJunction(Junction *junc, bool isValid, radian_t inOri, Direction inSegmentDir) {
 
-    LOG_DEBUG("Junction: %d | currentSeg: %c", junc->idx, currentSeg->name);
+    LOG_DEBUG("Junction: %d", junc->idx);
 
     vTaskSuspendAll();
     const point2m prevCarPos = globals::car.pose.pos;
@@ -983,6 +983,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     break;
                 }
 
+                controlData.rearServoEnabled = controlData.speed < m_per_sec_t(0);
                 xQueueOverwrite(controlQueue, &controlData);
                 prevDetectedLines = detectedLines;
                 break;

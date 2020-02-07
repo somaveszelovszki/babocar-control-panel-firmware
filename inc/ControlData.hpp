@@ -10,6 +10,7 @@ struct ControlData {
     m_per_sec_t speed;
     millisecond_t rampTime;
     bool directControl = false;
+    bool rearServoEnabled = true;
 
     // line control
     Line baseline;
