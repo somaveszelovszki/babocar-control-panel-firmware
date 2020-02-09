@@ -438,7 +438,9 @@ Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegme
     globals::car.pose.pos = junc->pos;
     xTaskResumeAll();
 
-    LOG_DEBUG("Car pos updated: (%f, %f) -> (%f, %f)", prevCarPos.X.get(), prevCarPos.Y.get(), globals::car.pose.pos.X.get(), globals::car.pose.pos.Y.get());
+    LOG_DEBUG("Car pos updated: (%f, %f) -> (%f, %f) | diff: %f [m]",
+        prevCarPos.X.get(), prevCarPos.Y.get(), globals::car.pose.pos.X.get(), globals::car.pose.pos.Y.get(),
+        globals::car.pose.pos.distance(prevCarPos).get());
 
     Connection *nextConn = nullptr;
 
@@ -864,7 +866,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         case LinePattern::DEAD_END:
             currentSeg->isDeadEnd = true;
             controlData.speed = globals::speed_LAB_BWD;
-            controlData.rampTime = millisecond_t(100);
+            controlData.rampTime = millisecond_t(300);
             break;
 
         case LinePattern::LANE_CHANGE:
@@ -990,6 +992,18 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
     return finished;
 }
 
+Line avg(const Lines& lines) {
+    Line line;
+    for (const Line& l : lines) {
+        line.pos += l.pos;
+    }
+
+    if (lines.size()) {
+        line.pos /= lines.size();
+    }
+    return line;
+}
+
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
@@ -1008,7 +1022,15 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
 
                 controlData.directControl = false;
-                micro::updateMainLine(globals::car.speed > m_per_sec_t(0) ? detectedLines.lines.front : detectedLines.lines.rear, controlData.baseline);
+
+                if (globals::car.speed >= m_per_sec_t(0)) {
+                    micro::updateMainLine(detectedLines.lines.front, controlData.baseline);
+                } else if (3 == detectedLines.lines.rear.size() && LinePatternCalculator::areClose(detectedLines.lines.rear)) {
+                    controlData.baseline = avg(detectedLines.lines.rear);
+                } else {
+                    micro::updateMainLine(detectedLines.lines.rear, controlData.baseline);
+                }
+
                 controlData.angle = degree_t(0);
                 controlData.offset = millimeter_t(0);
 
