@@ -290,6 +290,9 @@ bool getRoute() {
             LOG_INFO("Planning route to %c", seg->name);
             if ((success |= getRoute(route, seg)) && (!plannedRoute.connections.size() || (plannedRoute.connections.size() > route.connections.size()))) {
                 plannedRoute = route;
+                if (1 == plannedRoute.connections.size()) {
+                    break;
+                }
             }
         }
     } else if (laneChange.seg && laneChange.lastJunc) { // no floating segments in the graph, new destination will be the lane change segment
