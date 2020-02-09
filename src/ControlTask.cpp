@@ -49,6 +49,11 @@ hw::Servo frontDistServo(
 
 Timer frontDistServoUpdateTimer;
 
+meter_t getCarTrajectoryRadius() {
+    const radian_t sumAngle = globals::car.frontWheelAngle - globals::car.rearWheelAngle;
+    return isZero(sumAngle) ? meter_t::infinity() : cfg::CAR_FRONT_REAR_PIVOT_DIST / -tan(sumAngle);
+}
+
 void fillMotorPanelData(motorPanelDataIn_t& txData, m_per_sec_t targetSpeed) {
     txData.controller_P            = globals::motorCtrl_P;
     txData.controller_I            = globals::motorCtrl_I;
@@ -98,6 +103,9 @@ extern "C" void runControlTask(const void *argument) {
             parseMotorPanelData(rxData);
         }
 
+        globals::car.frontWheelAngle = frontSteeringServo.wheelAngle();
+        globals::car.rearWheelAngle = rearSteeringServo.wheelAngle();
+
         const m_per_sec_t prevSpeedRef = controlData.speed;
 
         // if no control data is received for a given period, stops motor for safety reasons
@@ -113,9 +121,14 @@ extern "C" void runControlTask(const void *argument) {
                 radian_t frontWheelAngle, rearWheelAngle;
 
                 if (isFwd) {
-                    const float speed = clamp(globals::car.speed, m_per_sec_t(2.0f), m_per_sec_t(10)).get();
+                    const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
                     P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
                     D = globals::frontLineCtrl_D_fwd;
+
+                    if (globals::car.speed < m_per_sec_t(1.5f)) {
+                        P *= (controlData.rearServoEnabled ? 0.6f : 0.8f);
+                    }
+
                 } else {
                     P = globals::frontLineCtrl_P_bwd;
                     D = globals::frontLineCtrl_D_bwd;
@@ -136,7 +149,6 @@ extern "C" void runControlTask(const void *argument) {
         }
 
         if (controlData.speed != prevSpeedRef) {
-            LOG_DEBUG("New speed ref: %fm/s", controlData.speed.get());
             ramp.prevSpeedRef = prevSpeedRef;
             ramp.startTime = getTime();
         }
