@@ -39,9 +39,9 @@ static LinePatternCalculator linePatternCalc;
 
 static Line mainLine;
 
-static void fillLineDetectPanelData(lineDetectPanelDataIn_t& txData) {
+static void fillLineDetectPanelData(lineDetectPanelDataIn_t& txData, bool indicatorLedsEnabled) {
     txData.flags = 0x00;
-    if (globals::indicatorLedsEnabled) txData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
+    if (indicatorLedsEnabled) txData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
 }
 
 static void parseLineDetectPanelData(lineDetectPanelDataOut_t& rxData, Lines& lines, bool mirror = false) {
@@ -73,7 +73,7 @@ extern "C" void runLineDetectTask(const void *argument) {
         frontLineDetectPanelLink.update();
         rearLineDetectPanelLink.update();
 
-        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();// && rearLineDetectPanelLink.isConnected();
+        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected() && rearLineDetectPanelLink.isConnected();
 
         if (frontLineDetectPanelLink.readAvailable(rxDataFront)) {
             const Lines prevLines = detectedLines.lines.front;
@@ -102,12 +102,12 @@ extern "C" void runLineDetectTask(const void *argument) {
         }
 
         if (frontLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txDataFront);
+            fillLineDetectPanelData(txDataFront, globals::frontIndicatorLedsEnabled);
             frontLineDetectPanelLink.send(txDataFront);
         }
 
         if (rearLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txDataRear);
+            fillLineDetectPanelData(txDataRear, globals::rearIndicatorLedsEnabled);
             rearLineDetectPanelLink.send(txDataRear);
         }
 

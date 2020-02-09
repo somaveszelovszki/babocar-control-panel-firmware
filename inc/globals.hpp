@@ -12,8 +12,8 @@ namespace globals {
 
 extern ProgramState programState;
 extern bool useSafetyEnableSignal;
-extern bool indicatorLedsEnabled;
-extern bool startSignalEnabled;
+extern bool frontIndicatorLedsEnabled;
+extern bool rearIndicatorLedsEnabled;
 extern bool lineDetectionEnabled;
 extern float motorCtrl_P;
 extern float motorCtrl_I;
@@ -50,6 +50,7 @@ extern m_per_sec_t speed_REACH_SAFETY_CAR;
 extern m_per_sec_t speed_TURN_AROUND;
 extern m_per_sec_t speed_OVERTAKE_CURVE;
 extern m_per_sec_t speed_OVERTAKE_STRAIGHT;
+extern meter_t dist_OVERTAKE_SIDE;
 
 extern bool isControlTaskOk;
 extern bool isDebugTaskOk;
