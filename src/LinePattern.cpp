@@ -8,7 +8,7 @@
 
 namespace micro {
 
-constexpr meter_t MAX_CLOSE_LINES_DISTANCE = centimeter_t(5.2f);
+constexpr meter_t MAX_CLOSE_LINES_DISTANCE = centimeter_t(5.3f);
 
 bool isInJunctionCenter(const Lines& lines) {
     return 1 < lines.size() && LinePatternCalculator::areClose(lines);
@@ -112,7 +112,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
                 { 3, centimeter_t(8) }
             };
 
-            LinePatternDescriptor::lines validLines = descriptor.getValidLines(pattern.dir, currentDist - pattern.startDist, centimeter_t(3));
+            LinePatternDescriptor::lines validLines = descriptor.getValidLines(pattern.dir, currentDist - pattern.startDist, centimeter_t(2.5f));
             validLines.push_back(2);
             return std::find(validLines.begin(), validLines.end(), lines.size()) != validLines.end();
         },
