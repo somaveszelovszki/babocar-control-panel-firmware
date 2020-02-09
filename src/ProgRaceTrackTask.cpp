@@ -188,10 +188,9 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
     static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900);
 
-    static constexpr meter_t SIDE_DISTANCE         = centimeter_t(45);
-    static constexpr meter_t BEGIN_SINE_ARC_LENGTH = centimeter_t(120);
-    static constexpr meter_t ACCELERATION_LENGTH   = centimeter_t(100);
-    static constexpr meter_t BRAKE_LENGTH          = centimeter_t(100);
+    static constexpr meter_t BEGIN_SINE_ARC_LENGTH = centimeter_t(150);
+    static constexpr meter_t ACCELERATION_LENGTH   = centimeter_t(70);
+    static constexpr meter_t BRAKE_LENGTH          = centimeter_t(70);
     static constexpr meter_t END_SINE_ARC_LENGTH   = centimeter_t(150);
     static constexpr meter_t FAST_SECTION_LENGTH   = OVERTAKE_SECTION_LENGTH - meter_t(1.5f) - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH - END_SINE_ARC_LENGTH;
 
@@ -211,27 +210,27 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(BEGIN_SINE_ARC_LENGTH, SIDE_DISTANCE).rotate(overtake.orientation),
-                m_per_sec_t(1.2f)
+                overtake.trajectory.lastConfig().pos + vec2m(BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE).rotate(overtake.orientation),
+                globals::speed_OVERTAKE_CURVE
             }, globals::car.pose.angle, 50);
 
             overtake.trajectory.appendLine(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(ACCELERATION_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
-                m_per_sec_t(2.0f)
+                globals::speed_OVERTAKE_STRAIGHT
             });
 
             overtake.trajectory.appendLine(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
-                m_per_sec_t(2.0f)
+                globals::speed_OVERTAKE_STRAIGHT
             });
 
             overtake.trajectory.appendLine(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(BRAKE_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
-                m_per_sec_t(1.2f)
+                globals::speed_OVERTAKE_CURVE
             });
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(END_SINE_ARC_LENGTH, -SIDE_DISTANCE - centimeter_t(5)).rotate(overtake.orientation),
+                overtake.trajectory.lastConfig().pos + vec2m(END_SINE_ARC_LENGTH, -globals::dist_OVERTAKE_SIDE - centimeter_t(5)).rotate(overtake.orientation),
                 m_per_sec_t(1.2f)
             }, globals::car.pose.angle, 50);
         }
