@@ -65,43 +65,50 @@ extern "C" void runLineDetectTask(const void *argument) {
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
-    lineDetectPanelDataOut_t rxData;
-    lineDetectPanelDataIn_t txData;
+    lineDetectPanelDataOut_t rxDataFront, rxDataRear;
+    lineDetectPanelDataIn_t txDataFront, txDataRear;
     DetectedLines detectedLines;
 
     while (true) {
         frontLineDetectPanelLink.update();
         rearLineDetectPanelLink.update();
-        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected() && rearLineDetectPanelLink.isConnected();
 
-        if (frontLineDetectPanelLink.readAvailable(rxData)) {
+        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected();// && rearLineDetectPanelLink.isConnected();
+
+        if (frontLineDetectPanelLink.readAvailable(rxDataFront)) {
+            const Lines prevLines = detectedLines.lines.front;
             if (globals::lineDetectionEnabled) {
-                parseLineDetectPanelData(rxData, detectedLines.lines.front);
+                parseLineDetectPanelData(rxDataFront, detectedLines.lines.front);
             } else {
                 detectedLines.lines.front.clear();
             }
 
+            if (detectedLines.lines.front.size() != prevLines.size()) {
+                LOG_DEBUG("Lines: %d", static_cast<int32_t>(detectedLines.lines.front.size()));
+            }
+
             linePatternCalc.update(getActiveTask(globals::programState), detectedLines.lines.front, globals::car.distance);
             detectedLines.pattern = linePatternCalc.pattern();
+            detectedLines.isPending = linePatternCalc.isPending();
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }
 
-        if (rearLineDetectPanelLink.readAvailable(rxData)) {
+        if (rearLineDetectPanelLink.readAvailable(rxDataRear)) {
             if (globals::lineDetectionEnabled) {
-                parseLineDetectPanelData(rxData, detectedLines.lines.rear, true);
+                parseLineDetectPanelData(rxDataRear, detectedLines.lines.rear, true);
             } else {
                 detectedLines.lines.rear.clear();
             }
         }
 
         if (frontLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txData);
-            frontLineDetectPanelLink.send(txData);
+            fillLineDetectPanelData(txDataFront);
+            frontLineDetectPanelLink.send(txDataFront);
         }
 
         if (rearLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txData);
-            rearLineDetectPanelLink.send(txData);
+            fillLineDetectPanelData(txDataRear);
+            rearLineDetectPanelLink.send(txDataRear);
         }
 
         vTaskDelay(1);

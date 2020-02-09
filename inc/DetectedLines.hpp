@@ -10,6 +10,7 @@ struct DetectedLines {
         Lines rear;
     } lines;
     LinePattern pattern;
+    bool isPending = false;
 };
 
 } // namespace micro

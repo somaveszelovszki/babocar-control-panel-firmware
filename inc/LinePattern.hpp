@@ -87,6 +87,10 @@ public:
         return const_cast<LinePatternCalculator*>(this)->currentPattern();
     }
 
+    bool isPending() const {
+        return this->isPatternChangeCheckActive;
+    }
+
     static StampedLines peek_back(const measurement_buffer_t& prevMeas, meter_t peekBackDist);
 
     static Lines::const_iterator getMainLine(const Lines& lines, const uint8_t lastSingleLineId);
