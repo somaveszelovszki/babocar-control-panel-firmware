@@ -19,7 +19,7 @@ void waitStartSignal() {
     char prevStartCounter = startCounter;
     HAL_UART_Receive_DMA(uart_RadioModule, startCounterBuffer, 1);
 
-    while (globals::startSignalEnabled && '0' != startCounter) {
+    while ('0' != startCounter) {
         if (startCounter != prevStartCounter) {
             LOG_DEBUG("Seconds until start: %c", startCounter);
             prevStartCounter = startCounter;
