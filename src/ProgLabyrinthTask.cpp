@@ -213,7 +213,6 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastRouteJunc 
     routes.clear();
     Route * const initialRoute = getNew(routes);
     initialRoute->startSeg = initialRoute->lastSeg = currentSeg;
-    uint8_t depth = 0;
     Route *shortestRoute = nullptr;
 
     do {
@@ -250,10 +249,10 @@ bool getRoute(Route& result, const Segment *dest, const Junction *lastRouteJunc 
         if (routes.size()) {
             routes.erase(routes.begin());
         }
-    } while(!shortestRoute && routes.size() > 0 && ++depth < Route::MAX_LENGTH);
+    } while(!shortestRoute && routes.size() > 0 && routes.begin()->connections.size() < Route::MAX_LENGTH);
 
-    if (depth == Route::MAX_LENGTH) {
-        LOG_ERROR("depth == Route::MAX_LENGTH");
+    if (routes.begin()->connections.size() == Route::MAX_LENGTH) {
+        LOG_ERROR("routes.begin()->connections.size() == Route::MAX_LENGTH");
     }
 
     if (0 == routes.size()) {
