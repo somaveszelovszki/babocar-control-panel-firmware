@@ -10,8 +10,9 @@ constexpr micro::meter_t CAR_PIVOT_CENTER_DIST        = CAR_FRONT_REAR_PIVOT_DIS
 constexpr micro::meter_t CAR_FRONT_PIVOT_LENGTH       = micro::millimeter_t(257);      // Length of front pivot (wheel to wheel).
 constexpr micro::meter_t CAR_REAR_PIVOT_LENGTH        = micro::millimeter_t(257);      // Length of rear pivot (wheel to wheel).
 
-constexpr micro::meter_t CAR_OPTO_FRONT_PIVOT_DIST    = micro::centimeter_t(11.0f);    // Distance between optical sensor row and front pivot.
-constexpr micro::meter_t CAR_OPTO_CENTER_DIST         = CAR_PIVOT_CENTER_DIST + CAR_OPTO_FRONT_PIVOT_DIST; // Distance between optical sensor row and car center.
+constexpr micro::meter_t CAR_OPTO_FRONT_PIVOT_DIST    = micro::centimeter_t(11.0f);                            // Distance between optical sensor row and front pivot.
+constexpr micro::meter_t CAR_OPTO_CENTER_DIST         = CAR_PIVOT_CENTER_DIST + CAR_OPTO_FRONT_PIVOT_DIST;     // Distance between optical sensor row and car center.
+constexpr micro::meter_t CAR_OPTO_REAR_PIVOT_DIST     = CAR_FRONT_REAR_PIVOT_DIST + CAR_OPTO_FRONT_PIVOT_DIST; // Distance between optical sensor row and rear pivot.
 
 constexpr uint32_t        FRONT_SERVO_PWM_0           = 550;                              // Front servo PWM for 0 degrees.
 constexpr uint32_t        FRONT_SERVO_PWM_180         = 2600;                             // Front servo PWM for 180 degrees.
