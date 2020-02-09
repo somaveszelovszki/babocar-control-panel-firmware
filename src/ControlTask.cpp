@@ -117,21 +117,12 @@ extern "C" void runControlTask(const void *argument) {
                 rearSteeringServo.writeWheelAngle(controlData.rearWheelAngle);
             } else {
                 const bool isFwd = globals::car.speed >= m_per_sec_t(0);
-                float P, D;
-                radian_t frontWheelAngle, rearWheelAngle;
+                const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
+                float P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
+                float D = globals::frontLineCtrl_D_fwd;
 
-                if (isFwd) {
-                    const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
-                    P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
-                    D = globals::frontLineCtrl_D_fwd;
-
-                    if (globals::car.speed < m_per_sec_t(1.5f)) {
-                        P *= (controlData.rearServoEnabled ? 0.6f : 0.8f);
-                    }
-
-                } else {
-                    P = globals::frontLineCtrl_P_bwd;
-                    D = globals::frontLineCtrl_D_bwd;
+                if (abs(globals::car.speed) < m_per_sec_t(1.5f)) {
+                    P *= (isFwd && controlData.rearServoEnabled ? 0.6f : 0.8f);
                 }
 
                 lineController.setParams(P, D);
