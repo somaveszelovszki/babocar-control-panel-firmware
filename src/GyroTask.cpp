@@ -1,7 +1,6 @@
 #include <cfg_board.h>
 #include <micro/utils/log.hpp>
 #include <micro/utils/time.hpp>
-#include <micro/utils/timer.hpp>
 #include <micro/hw/MPU9250_Gyroscope.hpp>
 #include <micro/task/common.hpp>
 #include <micro/sensor/Filter.hpp>
@@ -21,7 +20,6 @@ using namespace micro;
 
 namespace {
 
-Timer angleSendTimer;
 hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 
 class AngleCalc {
@@ -101,8 +99,6 @@ extern "C" void runGyroTask(const void *argument) {
     microsecond_t prevReadTime = micro::getExactTime();
     meter_t prevDist = globals::car.distance;
 
-    angleSendTimer.start(millisecond_t(200));
-
     millisecond_t lastNonZeroAngVelTime = getTime();
 
     while (true) {
@@ -134,17 +130,8 @@ extern "C" void runGyroTask(const void *argument) {
 
         } else if (getTime() - prevReadTime > millisecond_t(400)) {
             globals::isGyroTaskOk = false;
-
-            HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_SET);
-            vTaskDelay(2);
-            HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_RESET);
-            vTaskDelay(10);
             gyro.initialize();
             prevReadTime = getExactTime();
-        }
-
-        if (angleSendTimer.checkTimeout()) {
-            LOG_DEBUG("angle: %fdeg", static_cast<degree_t>(globals::car.pose.angle).get());
         }
 
         vTaskDelay(1);
