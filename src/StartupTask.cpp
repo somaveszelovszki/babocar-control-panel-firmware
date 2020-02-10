@@ -52,7 +52,7 @@ extern "C" void runStartupTask(const void *argument) {
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
 
-    globals::programState = ProgramState::NavigateLabyrinth;//static_cast<ProgramState>(buttonClick);
+    globals::programState = static_cast<ProgramState>(buttonClick);
 
     if (ProgramState::WaitStartSignal == globals::programState) {
         waitStartSignal();
