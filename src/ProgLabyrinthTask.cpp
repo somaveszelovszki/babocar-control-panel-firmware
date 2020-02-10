@@ -869,7 +869,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         case LinePattern::DEAD_END:
             currentSeg->isDeadEnd = true;
             controlData.speed = globals::speed_LAB_BWD;
-            controlData.rampTime = millisecond_t(300);
+            controlData.rampTime = millisecond_t(200);
             break;
 
         case LinePattern::LANE_CHANGE:
