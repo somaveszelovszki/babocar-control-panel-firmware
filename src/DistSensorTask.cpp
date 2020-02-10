@@ -51,11 +51,6 @@ extern "C" void runDistSensorTask(const void *argument) {
         } else if (getTime() - prevReadTime > millisecond_t(200)) {
             distances.front = meter_t(0);
             globals::isDistSensorTaskOk = false;
-//
-//            HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_SET);
-//            vTaskDelay(2);
-//            HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_RESET);
-//            vTaskDelay(30);
             frontDistSensor.initialize();
             prevReadTime = getTime();
         }
