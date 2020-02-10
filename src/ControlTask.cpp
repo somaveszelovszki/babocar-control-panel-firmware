@@ -132,7 +132,7 @@ extern "C" void runControlTask(const void *argument) {
                 rearSteeringServo.writeWheelAngle(controlData.rearServoEnabled ? controlData.angle - degree_t(lineController.getOutput()) : controlData.angle);
             }
 
-        } else if (getTime() - lastControlDataRecvTime > millisecond_t(1000)) {
+        } else if (lastControlDataRecvTime != millisecond_t(0) && getTime() - lastControlDataRecvTime > millisecond_t(1000)) {
             LOG_ERROR("No control data for 1000ms");
             lastControlDataRecvTime = getTime();
             controlData.speed = m_per_sec_t::zero();
