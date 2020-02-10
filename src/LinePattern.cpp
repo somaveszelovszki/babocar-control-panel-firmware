@@ -8,7 +8,7 @@
 
 namespace micro {
 
-constexpr meter_t MAX_CLOSE_LINES_DISTANCE = centimeter_t(5.3f);
+constexpr meter_t MAX_CLOSE_LINES_DISTANCE = centimeter_t(5.2f);
 
 bool isInJunctionCenter(const Lines& lines) {
     return 1 < lines.size() && LinePatternCalculator::areClose(lines);
@@ -184,7 +184,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
     },
     { // JUNCTION_1
         centimeter_t(3),
-        centimeter_t(100),
+        centimeter_t(130),
         LinePatternCalculator::LinePatternInfo::USES_HISTORY,
         [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, uint8_t, meter_t currentDist) {
             bool valid = false;
@@ -219,7 +219,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
     },
     { // JUNCTION_2
         centimeter_t(3),
-        centimeter_t(100),
+        centimeter_t(130),
         LinePatternCalculator::LinePatternInfo::USES_HISTORY,
         [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, uint8_t lastSingleLineId, meter_t) {
             bool valid = false;
@@ -271,7 +271,7 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
     },
     { // JUNCTION_3
         centimeter_t(3),
-        centimeter_t(100),
+        centimeter_t(130),
         LinePatternCalculator::LinePatternInfo::USES_HISTORY,
         [] (const LinePatternCalculator::measurement_buffer_t& prevMeas, const LinePattern& pattern, const Lines& lines, uint8_t lastSingleLineId, meter_t) {
             bool valid = false;
@@ -342,7 +342,8 @@ const LinePatternCalculator::LinePatternInfo PATTERN_INFO[] = {
             const Lines pastLines = LinePatternCalculator::peek_back(prevMeas, centimeter_t(10)).lines;
 
             if (0 == lines.size()) {
-                valid = 1 == pastLines.size() && isBtw(pastLines[0].pos, centimeter_t(8), centimeter_t(-8));
+                static constexpr millimeter_t MAX_POS = centimeter_t(8);
+                valid = 1 == pastLines.size() && abs(pastLines[0].pos) <= MAX_POS;
             }
             return valid;
         },
