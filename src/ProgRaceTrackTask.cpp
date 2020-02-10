@@ -206,7 +206,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
                 globals::car.pose.pos + vec2m(cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0)).rotate(overtake.orientation),
-                globals::car.speed
+                clamp(globals::car.speed, m_per_sec_t(0.8f), globals::speed_OVERTAKE_CURVE)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
