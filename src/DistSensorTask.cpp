@@ -20,6 +20,7 @@ static uint8_t distancesQueueStorageBuffer[DISTANCES_QUEUE_LENGTH * sizeof(Dista
 static StaticQueue_t distancesQueueBuffer;
 
 static hw::VL53L1X_DistanceSensor frontDistSensor(i2c_Dist, 0x52);
+static Timer distSendTimer;
 
 extern "C" void runDistSensorTask(const void *argument) {
 
@@ -33,33 +34,34 @@ extern "C" void runDistSensorTask(const void *argument) {
     LowPassFilter<meter_t, 3> frontDistFilter;
     DistancesData distances;
     millisecond_t prevReadTime = getTime();
+    distSendTimer.start(millisecond_t(500));
 
     while (true) {
-        if (globals::distServoEnabled) {
-            if (isOk(frontDistSensor.readDistance(distances.front))) {
-                globals::isDistSensorTaskOk = true;
-
-                distances.front = frontDistFilter.update(distances.front);
-                if (distances.front > centimeter_t(200)) {
-                    distances.front = meter_t::infinity();
-                }
-
-                xQueueOverwrite(distancesQueue, &distances);
-                prevReadTime = getTime();
-                vTaskDelay(19);
-            } else if (getTime() - prevReadTime > millisecond_t(200)) {
-                distances.front = meter_t(0);
-                globals::isDistSensorTaskOk = false;
-
-                HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_SET);
-                vTaskDelay(2);
-                HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_RESET);
-                vTaskDelay(30);
-                frontDistSensor.initialize();
-                prevReadTime = getTime();
-            }
-        } else {
+        if (isOk(frontDistSensor.readDistance(distances.front))) {
             globals::isDistSensorTaskOk = true;
+
+            distances.front = frontDistFilter.update(distances.front);
+            if (distances.front > centimeter_t(200)) {
+                distances.front = meter_t::infinity();
+            }
+
+            xQueueOverwrite(distancesQueue, &distances);
+            prevReadTime = getTime();
+            vTaskDelay(19);
+        } else if (getTime() - prevReadTime > millisecond_t(200)) {
+            distances.front = meter_t(0);
+            globals::isDistSensorTaskOk = false;
+//
+//            HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_SET);
+//            vTaskDelay(2);
+//            HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_RESET);
+//            vTaskDelay(30);
+            frontDistSensor.initialize();
+            prevReadTime = getTime();
+        }
+
+        if (distSendTimer.checkTimeout()) {
+            LOG_DEBUG("dist: %fcm", static_cast<centimeter_t>(distances.front).get());
         }
 
         vTaskDelay(1);
