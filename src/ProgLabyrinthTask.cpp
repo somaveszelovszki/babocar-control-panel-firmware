@@ -636,21 +636,22 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     updateCarOrientation();
 
-    const bool isSafe = globals::car.orientedDistance > centimeter_t(50) &&
-        LinePattern::SINGLE_LINE == detectedLines.pattern.type && !detectedLines.isPending;
-
-    if (globals::speed_LAB_FWD == controlData.speed && isSafe) {
-        controlData.speed = globals::speed_LAB_FWD_FAST;
-        controlData.rampTime = millisecond_t(0);
-    } else if (globals::speed_LAB_FWD_FAST == controlData.speed && !isSafe) {
-        controlData.speed = globals::speed_LAB_FWD;
-        controlData.rampTime = millisecond_t(0);
-    }
-
     if (LinePattern::SINGLE_LINE == detectedLines.pattern.type && forcedManeuver.enabled) {
         if (abs(forcedManeuver.prevLine.pos) < FORCED_DISAPPEAR_POS) {
             forcedManeuver.enabled = false;
             LOG_DEBUG("Force maneuver disabled");
+        }
+    }
+
+    // handles if car is stuck in reverse and drives into a dead-end segment
+    if (globals::speed_LAB_BWD == controlData.speed) {
+        static meter_t lastDistOnLine = globals::car.distance;
+        if (detectedLines.lines.rear.size() > 0) {
+            lastDistOnLine = globals::car.distance;
+        } else if (globals::car.distance - lastDistOnLine > centimeter_t(25)) {
+            controlData.speed = globals::speed_LAB_FWD;
+            controlData.rampTime = millisecond_t(100);
+            reset();
         }
     }
 
@@ -720,7 +721,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         case LinePattern::DEAD_END:
             currentSeg->isDeadEnd = true;
             controlData.speed = globals::speed_LAB_BWD;
-            controlData.rampTime = millisecond_t(200);
+            controlData.rampTime = millisecond_t(400);
             break;
 
         case LinePattern::LANE_CHANGE:
