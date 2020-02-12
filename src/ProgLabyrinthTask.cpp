@@ -598,11 +598,12 @@ Direction onJunctionDetected(radian_t inOri, radian_t outOri, uint8_t numInSegme
     return nextManeuver.direction;
 }
 
-void updateCarOrientation() {
+void updateCarOrientation(const DetectedLines& detectedLines) {
     static meter_t lastUpdatedOrientedDistance;
 
     if (globals::car.orientedDistance - lastUpdatedOrientedDistance > centimeter_t(40) &&
-        eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(8))) {
+        globals::car.distance - detectedLines.pattern.startDist > centimeter_t(50) &&
+        eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(10))) {
         vTaskSuspendAll();
         globals::car.pose.angle = round90(globals::car.pose.angle);
         xTaskResumeAll();
@@ -626,6 +627,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     static const bool runOnce = [&controlData]() {
         reset();
+        globals::car.pose.angle = radian_t(0);
         controlData.speed = globals::speed_LAB_FWD;
         controlData.rampTime = millisecond_t(500);
         return true;
@@ -634,7 +636,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     bool finished = false;
 
-    updateCarOrientation();
+    updateCarOrientation(detectedLines);
 
     if (LinePattern::SINGLE_LINE == detectedLines.pattern.type && forcedManeuver.enabled) {
         if (abs(forcedManeuver.prevLine.pos) < FORCED_DISAPPEAR_POS) {
