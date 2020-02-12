@@ -42,9 +42,9 @@ m_per_sec_t speed_LAB_BWD           = m_per_sec_t(-0.8f);
 m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
 m_per_sec_t speed_REACH_SAFETY_CAR  = m_per_sec_t(0.8f);
 m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.6f);
-m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.2f);
-m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(2.5f);
-meter_t dist_OVERTAKE_SIDE          = centimeter_t(60);
+m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.7f);
+m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(4.0f);
+meter_t dist_OVERTAKE_SIDE          = centimeter_t(55);
 
 bool isControlTaskOk    = false;
 bool isDebugTaskOk      = false;

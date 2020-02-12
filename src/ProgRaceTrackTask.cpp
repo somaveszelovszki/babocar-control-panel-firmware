@@ -171,9 +171,12 @@ const TrackSegments trackSegments = {
 
 struct {
     const TrackSegments::const_iterator segment = trackSegments.begin() + 5;
+    meter_t startDist;
     radian_t orientation  = radian_t(0);
     Trajectory trajectory = Trajectory(cfg::CAR_OPTO_REAR_PIVOT_DIST);
     uint8_t cntr = 0;
+    bool forcedEndManeuverActive = false;
+    meter_t forcedEndManeuverStartDist;
 } overtake;
 
 TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
@@ -188,25 +191,30 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
     static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900);
 
-    static constexpr meter_t BEGIN_SINE_ARC_LENGTH = centimeter_t(150);
-    static constexpr meter_t ACCELERATION_LENGTH   = centimeter_t(70);
-    static constexpr meter_t BRAKE_LENGTH          = centimeter_t(70);
-    static constexpr meter_t END_SINE_ARC_LENGTH   = centimeter_t(150);
-    static constexpr meter_t FAST_SECTION_LENGTH   = OVERTAKE_SECTION_LENGTH - meter_t(1.5f) - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH - END_SINE_ARC_LENGTH;
+    static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(150);
+    static constexpr meter_t BEGIN_SINE_ARC_LENGTH   = centimeter_t(120);
+    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(100);
+    static constexpr meter_t BRAKE_LENGTH            = centimeter_t(50);
+    static constexpr meter_t FAST_SECTION_LENGTH     = OVERTAKE_SECTION_LENGTH - ORIENTATION_FILTER_DIST - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH;
 
     bool finished = false;
 
     if (overtake.trajectory.length() == meter_t(0)) {
 
-        static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(70);
-        if (globals::car.orientedDistance > ORIENTATION_FILTER_DIST) {
+        if (overtake.startDist == meter_t(0)) {
+            overtake.startDist = globals::car.distance;
+        }
 
-            const point2m posDiff = globals::car.pose.pos - prevCarProps.peek_back(static_cast<uint32_t>(ORIENTATION_FILTER_DIST / PREV_CAR_PROPS_RESOLUTION)).pose.pos;
+        const meter_t overtakeDist = globals::car.distance - overtake.startDist;
+
+        if (overtakeDist > ORIENTATION_FILTER_DIST) {
+
+            const point2m posDiff = globals::car.pose.pos - prevCarProps.peek_back(static_cast<uint32_t>(overtakeDist / PREV_CAR_PROPS_RESOLUTION)).pose.pos;
             overtake.orientation = posDiff.getAngle();
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
                 globals::car.pose.pos + vec2m(cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0)).rotate(overtake.orientation),
-                clamp(globals::car.speed, m_per_sec_t(0.8f), globals::speed_OVERTAKE_CURVE)
+                clamp(globals::car.speed, m_per_sec_t(0.5f), globals::speed_OVERTAKE_CURVE)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
@@ -219,31 +227,53 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                 globals::speed_OVERTAKE_STRAIGHT
             });
 
-            overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
-                globals::speed_OVERTAKE_STRAIGHT
-            });
+            for (uint8_t i = 0; i < 10; ++i) {
+                overtake.trajectory.appendLine(Trajectory::config_t{
+                    overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH / 10, centimeter_t(0)).rotate(overtake.orientation),
+                    globals::speed_OVERTAKE_STRAIGHT
+                });
+            }
 
             overtake.trajectory.appendLine(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(BRAKE_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
                 globals::speed_OVERTAKE_CURVE
             });
-
-            overtake.trajectory.appendSineArc(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(END_SINE_ARC_LENGTH, -globals::dist_OVERTAKE_SIDE - centimeter_t(5)).rotate(overtake.orientation),
-                m_per_sec_t(1.2f)
-            }, globals::car.pose.angle, 50);
         }
     }
+
+    static m_per_sec_t prevSpeed;
 
     if (overtake.trajectory.length() > meter_t(0)) {
         controlData = overtake.trajectory.update(globals::car);
         controlData.rearServoEnabled = false;
 
-        finished = overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.pattern.type;
-        if (finished) {
+        if (prevSpeed != controlData.speed) {
+            LOG_DEBUG("speed: %f", controlData.speed.get());
+        }
+
+        if (overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(10)) {
+            overtake.forcedEndManeuverActive = true;
+            overtake.forcedEndManeuverStartDist = globals::car.distance;
             overtake.trajectory.clear();
         }
+    }
+
+    if (overtake.forcedEndManeuverActive) {
+        controlData.speed = globals::speed_OVERTAKE_CURVE;
+        controlData.rearServoEnabled = true;
+        controlData.directControl = true;
+        controlData.frontWheelAngle = degree_t(-17);
+        controlData.rearWheelAngle = degree_t(-17);
+    }
+
+    finished = overtake.forcedEndManeuverActive &&
+               globals::car.distance - overtake.forcedEndManeuverStartDist > centimeter_t(50) &&
+               LinePattern::NONE != detectedLines.pattern.type;
+    if (finished) {
+        overtake.trajectory.clear();
+        overtake.forcedEndManeuverActive = false;
+        overtake.forcedEndManeuverStartDist = meter_t(0);
+        overtake.startDist = meter_t(0);
     }
 
     return finished;
