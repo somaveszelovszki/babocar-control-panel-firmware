@@ -18,7 +18,10 @@ enum class ProgramState : uint8_t {
     FollowSafetyCar   = 5,
     OvertakeSafetyCar = 6,
     Race              = 7,
-    Finish            = 8,
+    Race_segFast2     = 8,
+    Race_segFast3     = 9,
+    Race_segFast4     = 10,
+    Finish            = 11
 };
 
 enum class ProgramTask {
