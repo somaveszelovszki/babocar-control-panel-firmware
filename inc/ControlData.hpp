@@ -15,7 +15,7 @@ struct ControlData {
     // line control
     Line baseline;
     millimeter_t offset;
-    radian_t angle;
+    radian_t angle; // not used
 
     // direct control
     radian_t frontWheelAngle;
