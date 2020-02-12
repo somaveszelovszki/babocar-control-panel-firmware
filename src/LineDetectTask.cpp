@@ -76,15 +76,10 @@ extern "C" void runLineDetectTask(const void *argument) {
         globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected() && rearLineDetectPanelLink.isConnected();
 
         if (frontLineDetectPanelLink.readAvailable(rxDataFront)) {
-            const Lines prevLines = detectedLines.lines.front;
             if (globals::lineDetectionEnabled) {
                 parseLineDetectPanelData(rxDataFront, detectedLines.lines.front);
             } else {
                 detectedLines.lines.front.clear();
-            }
-
-            if (detectedLines.lines.front.size() != prevLines.size()) {
-                LOG_DEBUG("Lines: %d", static_cast<int32_t>(detectedLines.lines.front.size()));
             }
 
             linePatternCalc.update(getActiveTask(globals::programState), detectedLines.lines.front, globals::car.distance);
