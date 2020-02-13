@@ -27,14 +27,14 @@ bool distSensorEnabled              = false;
 bool distServoEnabled               = true;
 float distServoTransferRate         = 3.0f;
 
-m_per_sec_t speed_FAST1             = m_per_sec_t(2.0f);
+m_per_sec_t speed_FAST1             = m_per_sec_t(4.0f);
 m_per_sec_t speed_FAST2             = m_per_sec_t(4.0f);
 m_per_sec_t speed_FAST3             = m_per_sec_t(4.0f);
 m_per_sec_t speed_FAST4             = m_per_sec_t(2.5f);
 m_per_sec_t speed_FAST5             = m_per_sec_t(1.5f);
 m_per_sec_t speed_FAST6             = m_per_sec_t(1.5f);
 
-m_per_sec_t speed_SLOW1             = m_per_sec_t(1.0f);
+m_per_sec_t speed_SLOW1             = m_per_sec_t(1.8f);
 m_per_sec_t speed_SLOW2             = m_per_sec_t(1.8f);
 m_per_sec_t speed_SLOW3             = m_per_sec_t(1.8f);
 m_per_sec_t speed_SLOW4             = m_per_sec_t(1.8f);
