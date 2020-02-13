@@ -23,7 +23,7 @@
 
 using namespace micro;
 
-#define RANDOM_SEGMENT false
+#define RANDOM_SEGMENT true
 
 extern QueueHandle_t detectedLinesQueue;
 extern QueueHandle_t controlQueue;
@@ -529,6 +529,8 @@ Direction onJunctionDetected(radian_t inOri, radian_t outOri, uint8_t numInSegme
         nextManeuver = nextConn->getManeuver(nextConn->getOtherSegment(currentSeg));
     } else if (junc) {
 
+        Junction::segment_map::iterator outSegments = junc->getSideSegments(nextManeuver.orientation);
+
 #if RANDOM_SEGMENT
         const uint32_t numSegs = junc->getSideSegments(nextManeuver.orientation)->second.size();
         const uint32_t r = random(numSegs);
@@ -541,7 +543,6 @@ Direction onJunctionDetected(radian_t inOri, radian_t outOri, uint8_t numInSegme
         }
         Segment **pNextSeg = outSegments->second.get(nextManeuver.direction);
 #else
-        Junction::segment_map::iterator outSegments = junc->getSideSegments(nextManeuver.orientation);
         Segment **pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::RIGHT));
         if (!pNextSeg) {
             pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::CENTER));
