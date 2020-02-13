@@ -138,7 +138,7 @@ ControlData getControl_Slow(const LinePattern& pattern, const Line& mainLine, ui
 
     ControlData controlData;
     controlData.speed = isSectionStart ? globals::speed_SLOW_START : getSpeeds(lap).first;
-    controlData.rampTime = millisecond_t(500);
+    controlData.rampTime = millisecond_t(200);
     controlData.baseline = mainLine;
     controlData.offset = millimeter_t(0);
     controlData.angle = radian_t(0);
@@ -321,7 +321,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 currentSeg = nextSeg;
                 currentSegStartCarProps = globals::car;
                 if (trackSegments.begin() == currentSeg) {
-                    //++lap;
+                    ++lap;
                 }
                 LOG_INFO("Segment %d became active (lap: %d)", static_cast<int32_t>(currentSeg - trackSegments.begin()), static_cast<int32_t>(lap));
             }
@@ -349,7 +349,9 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                     lastDistWithSafetyCar = globals::car.distance;
                 }
 
-                if (overtake.segment == currentSeg && globals::car.distance - detectedLines.pattern.startDist < centimeter_t(50)) {
+                if (overtake.segment == currentSeg &&
+                    ((0 == overtake.cntr && 1 == lap) || (1 == overtake.cntr && 3 == lap)) &&
+                    globals::car.distance - detectedLines.pattern.startDist < centimeter_t(50)) {
                     globals::programState = ProgramState::OvertakeSafetyCar;
                     LOG_DEBUG("Starts overtake");
                 } else if ((trackSegments.begin() == currentSeg && lap > 3) || globals::car.distance - lastDistWithSafetyCar > centimeter_t(80)) {
@@ -372,11 +374,11 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 forceInstantBrake = lap < 4;
                 controlData = currentSeg->getControl(detectedLines.pattern, controlData.baseline, lap, currentSegStartCarProps);
                 if (lap > NUM_LAPS) {
-                    //globals::programState = ProgramState::Finish;
-                    //LOG_DEBUG("Race finished");
-                } else if (lap == 3 && overtake.cntr < 2 && distances.front < (currentSeg->isFast ? centimeter_t(120) : centimeter_t(60))) {
-                    //globals::programState = ProgramState::FollowSafetyCar;
-                    //LOG_DEBUG("Reached safety car, starts following");
+                    globals::programState = ProgramState::Finish;
+                    LOG_DEBUG("Race finished");
+                } else if (lap <= 3 && overtake.cntr < 2 && distances.front < (currentSeg->isFast ? centimeter_t(120) : centimeter_t(60))) {
+                    globals::programState = ProgramState::FollowSafetyCar;
+                    LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
             case ProgramState::Finish:
