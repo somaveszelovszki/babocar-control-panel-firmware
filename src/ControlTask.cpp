@@ -119,9 +119,9 @@ extern "C" void runControlTask(const void *argument) {
                 const bool isFwd = globals::car.speed >= m_per_sec_t(0);
                 const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
                 float P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
-                float D = isBtw(globals::car.speed, m_per_sec_t(1.5f), m_per_sec_t(2.0f)) ? globals::frontLineCtrl_D_fwd_slow : globals::frontLineCtrl_D_fwd;
+                float D = isBtw(globals::car.speed, m_per_sec_t(1.5f), m_per_sec_t(1.9f)) ? globals::frontLineCtrl_D_fwd_slow : globals::frontLineCtrl_D_fwd;
 
-                if (abs(globals::car.speed) < m_per_sec_t(1.5f)) {
+                if (ProgramState::NavigateLabyrinth == globals::programState) {
                     P *= (isFwd && controlData.rearServoEnabled ? 0.6f : 0.8f);
                 }
 
