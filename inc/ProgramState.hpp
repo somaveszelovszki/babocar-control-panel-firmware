@@ -42,6 +42,9 @@ inline ProgramTask getActiveTask(const ProgramState programState) {
     case ProgramState::FollowSafetyCar:
     case ProgramState::OvertakeSafetyCar:
     case ProgramState::Race:
+    case ProgramState::Race_segFast2:
+    case ProgramState::Race_segFast3:
+    case ProgramState::Race_segFast4:
     case ProgramState::Finish:            task = ProgramTask::RaceTrack; break;
     }
     return task;
