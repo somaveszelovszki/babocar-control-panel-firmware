@@ -646,17 +646,17 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         }
     }
 
-    // handles if car is stuck in reverse and drives into a dead-end segment
-    if (globals::speed_LAB_BWD == controlData.speed) {
-        static meter_t lastDistOnLine = globals::car.distance;
-        if (detectedLines.lines.rear.size() > 0) {
-            lastDistOnLine = globals::car.distance;
-        } else if (globals::car.distance - lastDistOnLine > centimeter_t(25)) {
-            controlData.speed = globals::speed_LAB_FWD;
-            controlData.rampTime = millisecond_t(100);
-            reset();
-        }
-    }
+//    // handles if car is stuck in reverse and drives into a dead-end segment
+//    if (globals::speed_LAB_BWD == controlData.speed) {
+//        static meter_t lastDistOnLine = globals::car.distance;
+//        if (detectedLines.lines.rear.size() > 0) {
+//            lastDistOnLine = globals::car.distance;
+//        } else if (globals::car.distance - lastDistOnLine > centimeter_t(25)) {
+//            controlData.speed = globals::speed_LAB_FWD;
+//            controlData.rampTime = millisecond_t(100);
+//            reset();
+//        }
+//    }
 
     if (detectedLines.pattern != prevDetectedLines.pattern) {
 
