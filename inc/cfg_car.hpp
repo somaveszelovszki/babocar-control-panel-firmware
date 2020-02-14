@@ -20,8 +20,8 @@ constexpr micro::radian_t FRONT_SERVO_OFFSET          = micro::degree_t(90.0f); 
 constexpr micro::radian_t FRONT_SERVO_WHEEL_MAX_DELTA = micro::degree_t(25.0f);           // Front wheel max delta angle.
 constexpr float           FRONT_SERVO_WHEEL_TR        = micro::avg(30.0f, 19.0f) / 40.0f; // Front servo-to-wheel transfer rate.
 
-constexpr uint32_t        REAR_SERVO_PWM_0            = 580;                              // Rear servo PWM for 0 degrees.
-constexpr uint32_t        REAR_SERVO_PWM_180          = 2565;                             // Rear servo PWM for 180 degrees.
+constexpr uint32_t        REAR_SERVO_PWM_0            = 570;                              // Rear servo PWM for 0 degrees.
+constexpr uint32_t        REAR_SERVO_PWM_180          = 2555;                             // Rear servo PWM for 180 degrees.
 constexpr micro::radian_t REAR_SERVO_OFFSET           = micro::degree_t(90.0f);           // Rear servo middle position angle.
 constexpr micro::radian_t REAR_SERVO_WHEEL_MAX_DELTA  = micro::degree_t(25.0f);           // Rear wheel max delta angle.
 constexpr float           REAR_SERVO_WHEEL_TR         = micro::avg(30.0f, 19.0f) / 40.0f; // Rear servo-to-wheel transfer rate.
