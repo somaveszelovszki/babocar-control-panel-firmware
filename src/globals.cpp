@@ -41,7 +41,7 @@ m_per_sec_t speed_SLOW4             = m_per_sec_t(1.8f);
 m_per_sec_t speed_SLOW5             = m_per_sec_t(1.8f);
 m_per_sec_t speed_SLOW6             = m_per_sec_t(1.8f);
 
-m_per_sec_t speed_SLOW_START        = m_per_sec_t(1.5f);
+m_per_sec_t speed_SLOW_START        = m_per_sec_t(1.6f);
 
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.1f);
 m_per_sec_t speed_LAB_BWD           = m_per_sec_t(-0.8f);
@@ -51,6 +51,7 @@ m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.6f);
 m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.7f);
 m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(4.0f);
 meter_t dist_OVERTAKE_SIDE          = centimeter_t(55);
+meter_t dist_BRAKE_OFFSET           = centimeter_t(30);
 
 bool isControlTaskOk    = false;
 bool isDebugTaskOk      = false;
@@ -86,6 +87,7 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(speed_OVERTAKE_CURVE);
     REGISTER_GLOBAL(speed_OVERTAKE_STRAIGHT);
     REGISTER_GLOBAL(dist_OVERTAKE_SIDE);
+    REGISTER_GLOBAL(dist_BRAKE_OFFSET);
 
 #undef REGISTER_GLOBAL
 }

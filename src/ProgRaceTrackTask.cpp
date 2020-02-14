@@ -82,7 +82,7 @@ bool hasBecomeActive_Slow(const LinePattern& pattern, const Line&) {
         signDetected = true;
         signStartDist = globals::car.distance;
     }
-    if (signDetected && (forceInstantBrake || globals::car.distance - signStartDist > meter_t(3) - centimeter_t(100) - brakeDist)) {
+    if (signDetected && (forceInstantBrake || globals::car.distance - signStartDist > meter_t(3) - globals::dist_BRAKE_OFFSET - brakeDist)) {
 
         signDetected = false;
         active = true;
@@ -138,11 +138,11 @@ ControlData getControl_Slow(const LinePattern& pattern, const Line& mainLine, ui
 
     ControlData controlData;
     controlData.speed = isSectionStart ? globals::speed_SLOW_START : getSpeeds(lap).first;
-    controlData.rampTime = millisecond_t(200);
+    controlData.rampTime = millisecond_t(500);
     controlData.baseline = mainLine;
     controlData.offset = millimeter_t(0);
     controlData.angle = radian_t(0);
-    controlData.rearServoEnabled = true;
+    controlData.rearServoEnabled = globals::car.distance - startDist > centimeter_t(2);
     return controlData;
 }
 
