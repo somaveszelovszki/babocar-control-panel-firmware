@@ -28,14 +28,14 @@ bool distServoEnabled               = true;
 float distServoTransferRate         = 3.0f;
 
 TrackSpeeds trackSpeeds[NUM_LAPS + 1] = {
-    //     FAST               SLOW_1_4        SLOW_2_BEGIN         SLOW_2_3          SLOW_3_END
-    { m_per_sec_t(3.5f), m_per_sec_t(2.2f), m_per_sec_t(1.3f), m_per_sec_t(2.0f), m_per_sec_t(1.5f) }, // Lap 1
-    { m_per_sec_t(3.5f), m_per_sec_t(2.2f), m_per_sec_t(1.3f), m_per_sec_t(2.2f), m_per_sec_t(1.5f) }, // Lap 2
-    { m_per_sec_t(3.5f), m_per_sec_t(2.2f), m_per_sec_t(1.3f), m_per_sec_t(2.0f), m_per_sec_t(1.5f) }, // Lap 3
-    { m_per_sec_t(5.0f), m_per_sec_t(2.4f), m_per_sec_t(1.3f), m_per_sec_t(2.4f), m_per_sec_t(1.5f) }, // Lap 4
-    { m_per_sec_t(6.5f), m_per_sec_t(2.4f), m_per_sec_t(1.3f), m_per_sec_t(2.4f), m_per_sec_t(1.5f) }, // Lap 5
-    { m_per_sec_t(6.5f), m_per_sec_t(2.4f), m_per_sec_t(1.3f), m_per_sec_t(2.6f), m_per_sec_t(1.5f) }, // Lap 6
-    { m_per_sec_t(7.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f) }  // Finish
+    //     FAST               SLOW_1          SLOW_2_BEGIN          SLOW_2             SLOW_3           SLOW_3_END           SLOW_4
+    { m_per_sec_t(3.5f), m_per_sec_t(1.6f), m_per_sec_t(1.3f), m_per_sec_t(1.8f), m_per_sec_t(1.8f), m_per_sec_t(1.5f), m_per_sec_t(1.6f) }, // Lap 1
+    { m_per_sec_t(3.5f), m_per_sec_t(1.6f), m_per_sec_t(1.3f), m_per_sec_t(1.8f), m_per_sec_t(1.8f), m_per_sec_t(1.5f), m_per_sec_t(1.6f) }, // Lap 2
+    { m_per_sec_t(3.5f), m_per_sec_t(1.6f), m_per_sec_t(1.3f), m_per_sec_t(1.8f), m_per_sec_t(1.8f), m_per_sec_t(1.5f), m_per_sec_t(1.6f) }, // Lap 3
+    { m_per_sec_t(2.5f), m_per_sec_t(1.9f), m_per_sec_t(1.6f), m_per_sec_t(2.2f), m_per_sec_t(1.8f), m_per_sec_t(1.5f), m_per_sec_t(1.6f) }, // Lap 4
+    { m_per_sec_t(6.5f), m_per_sec_t(1.6f), m_per_sec_t(1.3f), m_per_sec_t(1.8f), m_per_sec_t(1.8f), m_per_sec_t(1.5f), m_per_sec_t(1.6f) }, // Lap 5
+    { m_per_sec_t(6.5f), m_per_sec_t(1.6f), m_per_sec_t(1.3f), m_per_sec_t(1.8f), m_per_sec_t(1.8f), m_per_sec_t(1.5f), m_per_sec_t(1.6f) }, // Lap 6
+    { m_per_sec_t(7.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f), m_per_sec_t(0.0f) }  // Finish
 };
 
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.1f);
@@ -43,8 +43,9 @@ m_per_sec_t speed_LAB_BWD           = m_per_sec_t(-0.8f);
 m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
 m_per_sec_t speed_REACH_SAFETY_CAR  = m_per_sec_t(0.8f);
 m_per_sec_t speed_TURN_AROUND       = m_per_sec_t(0.6f);
-m_per_sec_t speed_OVERTAKE_CURVE    = m_per_sec_t(1.7f);
-m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(4.0f);
+m_per_sec_t speed_OVERTAKE_BEGIN    = m_per_sec_t(1.7f);
+m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(4.5f);
+m_per_sec_t speed_OVERTAKE_END      = m_per_sec_t(2.0f);
 meter_t dist_OVERTAKE_SIDE          = centimeter_t(55);
 meter_t dist_BRAKE_OFFSET           = centimeter_t(30);
 

@@ -123,22 +123,45 @@ meter_t getSlowSectionStartDist(const LinePattern& pattern) {
     return startDist;
 }
 
-ControlData getControl_CommonSlow(meter_t slowSectionStartDist, const Line& mainLine) {
+ControlData getControl_CommonSlow(const LinePattern& pattern, meter_t slowSectionStartDist, const Line& mainLine) {
+
+    static bool fastSignDetected = false;
+    static meter_t fastSignStartDist;
+
+    if (LinePattern::ACCELERATE == pattern.type && !fastSignDetected) {
+        fastSignDetected = true;
+        fastSignStartDist = globals::car.distance;
+    }
+
+    if (globals::car.distance - fastSignStartDist > meter_t(2)) {
+        fastSignDetected = false;
+    }
+
     ControlData controlData;
     controlData.rampTime = millisecond_t(500);
     controlData.baseline = mainLine;
     controlData.offset = millimeter_t(0);
     controlData.angle = radian_t(0);
-    controlData.rearServoEnabled = globals::car.distance - slowSectionStartDist > centimeter_t(2);
+    controlData.rearServoEnabled = !fastSignDetected && globals::car.distance - slowSectionStartDist > centimeter_t(2);
     return controlData;
 }
 
-ControlData getControl_Slow_1_4(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow_1(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
 
     const meter_t startDist = getSlowSectionStartDist(pattern);
-    ControlData controlData = getControl_CommonSlow(startDist, mainLine);
+    ControlData controlData = getControl_CommonSlow(pattern, startDist, mainLine);
 
-    controlData.speed = getSpeeds(lap).slow_1_4;
+    controlData.speed = getSpeeds(lap).slow_1;
+
+    return controlData;
+}
+
+ControlData getControl_Slow_4(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
+
+    const meter_t startDist = getSlowSectionStartDist(pattern);
+    ControlData controlData = getControl_CommonSlow(pattern, startDist, mainLine);
+
+    controlData.speed = getSpeeds(lap).slow_4;
 
     return controlData;
 }
@@ -146,11 +169,11 @@ ControlData getControl_Slow_1_4(const LinePattern& pattern, const Line& mainLine
 ControlData getControl_Slow_2(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
 
     const meter_t startDist   = getSlowSectionStartDist(pattern);
-    const bool isSectionStart = globals::car.distance - startDist < centimeter_t(150);
-    ControlData controlData   = getControl_CommonSlow(startDist, mainLine);
+    const bool isSectionStart = globals::car.distance - startDist < centimeter_t(200);
+    ControlData controlData   = getControl_CommonSlow(pattern, startDist, mainLine);
     const TrackSpeeds& speeds = getSpeeds(lap);
 
-    controlData.speed = isSectionStart ? speeds.slow_2_begin : speeds.slow_2_3;
+    controlData.speed = isSectionStart ? speeds.slow_2_begin : speeds.slow_2;
 
     return controlData;
 }
@@ -159,10 +182,10 @@ ControlData getControl_Slow_3(const LinePattern& pattern, const Line& mainLine, 
 
     const meter_t startDist   = getSlowSectionStartDist(pattern);
     const bool isSectionEnd   = globals::car.distance - startDist > centimeter_t(314);
-    ControlData controlData   = getControl_CommonSlow(startDist, mainLine);
+    ControlData controlData   = getControl_CommonSlow(pattern, startDist, mainLine);
     const TrackSpeeds& speeds = getSpeeds(lap);
 
-    controlData.speed = isSectionEnd ? speeds.slow_3_end : speeds.slow_2_3;
+    controlData.speed = isSectionEnd ? speeds.slow_3_end : speeds.slow_3;
 
     return controlData;
 }
@@ -171,14 +194,14 @@ constexpr meter_t PREV_CAR_PROPS_RESOLUTION = centimeter_t(5);
 infinite_buffer<CarProps, static_cast<uint32_t>(meter_t(5) / PREV_CAR_PROPS_RESOLUTION)> prevCarProps;
 
 const TrackSegments trackSegments = {
-    { true,  hasBecomeActive_Fast, getControl_Fast     },
-    { false, hasBecomeActive_Slow, getControl_Slow_1_4 },
-    { true,  hasBecomeActive_Fast, getControl_Fast     },
-    { false, hasBecomeActive_Slow, getControl_Slow_2   },
-    { true,  hasBecomeActive_Fast, getControl_Fast     },
-    { false, hasBecomeActive_Slow, getControl_Slow_3   },
-    { true,  hasBecomeActive_Fast, getControl_Fast     },
-    { false, hasBecomeActive_Slow, getControl_Slow_1_4 }
+    { true,  hasBecomeActive_Fast, getControl_Fast   },
+    { false, hasBecomeActive_Slow, getControl_Slow_1 },
+    { true,  hasBecomeActive_Fast, getControl_Fast   },
+    { false, hasBecomeActive_Slow, getControl_Slow_2 },
+    { true,  hasBecomeActive_Fast, getControl_Fast   },
+    { false, hasBecomeActive_Slow, getControl_Slow_3 },
+    { true,  hasBecomeActive_Fast, getControl_Fast   },
+    { false, hasBecomeActive_Slow, getControl_Slow_4 }
 };
 
 TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
@@ -191,12 +214,12 @@ m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
 
-    static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900);
+    static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900) - centimeter_t(300);
 
-    static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(150);
+    static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(30);
     static constexpr meter_t BEGIN_SINE_ARC_LENGTH   = centimeter_t(120);
-    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(100);
-    static constexpr meter_t BRAKE_LENGTH            = centimeter_t(50);
+    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(70);
+    static constexpr meter_t BRAKE_LENGTH            = centimeter_t(30);
     static constexpr meter_t FAST_SECTION_LENGTH     = OVERTAKE_SECTION_LENGTH - ORIENTATION_FILTER_DIST - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH;
 
     bool finished = false;
@@ -216,12 +239,12 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
                 globals::car.pose.pos + vec2m(cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0)).rotate(overtake.orientation),
-                clamp(globals::car.speed, m_per_sec_t(0.5f), globals::speed_OVERTAKE_CURVE)
+                clamp(globals::car.speed, m_per_sec_t(0.5f), globals::speed_OVERTAKE_BEGIN)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE).rotate(overtake.orientation),
-                globals::speed_OVERTAKE_CURVE
+                globals::speed_OVERTAKE_BEGIN
             }, globals::car.pose.angle, 50);
 
             overtake.trajectory.appendLine(Trajectory::config_t{
@@ -238,7 +261,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
             overtake.trajectory.appendLine(Trajectory::config_t{
                 overtake.trajectory.lastConfig().pos + vec2m(BRAKE_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
-                globals::speed_OVERTAKE_CURVE
+                globals::speed_OVERTAKE_END
             });
         }
     }
@@ -255,7 +278,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
     }
 
     if (overtake.forcedEndManeuverActive) {
-        controlData.speed = globals::speed_OVERTAKE_CURVE;
+        controlData.speed = globals::speed_OVERTAKE_END;
         controlData.rearServoEnabled = true;
         controlData.directControl = true;
         controlData.frontWheelAngle = degree_t(-17);
@@ -406,7 +429,11 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 break;
 
             case ProgramState::Race:
-                forceInstantBrake = lap < 4;
+                forceInstantBrake = lap < 4 && 2 != lap;
+                if (overtake.segment == currentSeg && (1 == lap || 3 == lap)) {
+                    forceSlowSpeed = true;
+                }
+
                 controlData = currentSeg->getControl(detectedLines.pattern, controlData.baseline, lap, currentSegStartCarProps);
                 if (lap > NUM_LAPS) {
                     globals::programState = ProgramState::Finish;

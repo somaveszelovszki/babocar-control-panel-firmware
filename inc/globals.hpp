@@ -42,8 +42,9 @@ extern m_per_sec_t speed_LAB_BWD;
 extern m_per_sec_t speed_LANE_CHANGE;
 extern m_per_sec_t speed_REACH_SAFETY_CAR;
 extern m_per_sec_t speed_TURN_AROUND;
-extern m_per_sec_t speed_OVERTAKE_CURVE;
+extern m_per_sec_t speed_OVERTAKE_BEGIN;
 extern m_per_sec_t speed_OVERTAKE_STRAIGHT;
+extern m_per_sec_t speed_OVERTAKE_END;
 extern meter_t dist_OVERTAKE_SIDE;
 extern meter_t dist_BRAKE_OFFSET;
 
