@@ -271,6 +271,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
     overtake.segment = trackSegments.begin() + 4;
 
     meter_t lastDistWithValidLine;
+    millisecond_t lapStartTime;
 
     while (true) {
         switch(getActiveTask(globals::programState)) {
@@ -296,6 +297,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 }
 
                 lastDistWithValidLine = globals::car.distance;
+                lapStartTime = getTime();
 
                 currentSegStartCarProps = globals::car;
                 prevCarProps.push_back(currentSegStartCarProps);
@@ -329,7 +331,9 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 currentSeg = nextSeg;
                 currentSegStartCarProps = globals::car;
                 if (trackSegments.begin() == currentSeg) {
+                    LOG_INFO("Lap %d finished (time: %f seconds)", static_cast<int32_t>(lap), static_cast<second_t>(getTime() - lapStartTime).get());
                     ++lap;
+                    lapStartTime = getTime();
                 }
                 LOG_INFO("Segment %d became active (lap: %d)", static_cast<int32_t>(currentSeg - trackSegments.begin()), static_cast<int32_t>(lap));
             }
