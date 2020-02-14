@@ -134,7 +134,7 @@ ControlData getControl_Slow(const LinePattern& pattern, const Line& mainLine, ui
     }
 
     const bool isSectionStart = globals::car.distance - startDist < centimeter_t(150) ||
-        globals::car.distance - startDist > centimeter_t(500);
+        globals::car.distance - startDist > centimeter_t(450);
 
     ControlData controlData;
     controlData.speed = isSectionStart ? globals::speed_SLOW_START : getSpeeds(lap).first;
@@ -165,7 +165,7 @@ TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator cu
 }
 
 m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
-    return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+    return map(frontDist.get(), meter_t(0.25f).get(), meter_t(0.8f).get(), m_per_sec_t(-0.05f), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 }
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
@@ -332,7 +332,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 controlData.rampTime = millisecond_t(0);
                 controlData.rearServoEnabled = false;
                 forceInstantBrake = true;
-                if (distances.front > meter_t(0) && safetyCarFollowSpeed(distances.front, false) < controlData.speed) {
+                if (distances.front > meter_t(0) && safetyCarFollowSpeed(distances.front, true) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;
                     LOG_DEBUG("Reached safety car, starts following");
                 }
