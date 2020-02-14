@@ -2,9 +2,12 @@
 
 #include <micro/utils/units.hpp>
 #include <micro/utils/CarProps.hpp>
+#include <micro/utils/TrackSpeeds.hpp>
 #include <ProgramState.hpp>
 
 namespace micro {
+
+constexpr uint8_t NUM_LAPS = 6;
 
 class Params;
 
@@ -31,19 +34,9 @@ extern CarProps car;
 extern bool distSensorEnabled;
 extern bool distServoEnabled;
 extern float distServoTransferRate;
-extern m_per_sec_t speed_FAST1;
-extern m_per_sec_t speed_FAST2;
-extern m_per_sec_t speed_FAST3;
-extern m_per_sec_t speed_FAST4;
-extern m_per_sec_t speed_FAST5;
-extern m_per_sec_t speed_FAST6;
-extern m_per_sec_t speed_SLOW1;
-extern m_per_sec_t speed_SLOW2;
-extern m_per_sec_t speed_SLOW3;
-extern m_per_sec_t speed_SLOW4;
-extern m_per_sec_t speed_SLOW5;
-extern m_per_sec_t speed_SLOW6;
-extern m_per_sec_t speed_SLOW_START;
+
+extern TrackSpeeds trackSpeeds[];
+
 extern m_per_sec_t speed_LAB_FWD;
 extern m_per_sec_t speed_LAB_BWD;
 extern m_per_sec_t speed_LANE_CHANGE;
