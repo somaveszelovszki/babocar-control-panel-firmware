@@ -165,7 +165,7 @@ TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator cu
 }
 
 m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
-    return map(frontDist.get(), meter_t(0.25f).get(), meter_t(0.8f).get(), m_per_sec_t(-0.05f), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+    return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 }
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
@@ -270,11 +270,13 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
     overtake.segment = trackSegments.begin() + 4;
 
+    meter_t lastDistWithValidLine;
+
     while (true) {
         switch(getActiveTask(globals::programState)) {
         case ProgramTask::RaceTrack:
         {
-            static const bool runOnce = [&lap, &currentSeg, &currentSegStartCarProps]() {
+            static const bool runOnce = [&lap, &currentSeg, &currentSegStartCarProps, &lastDistWithValidLine]() {
 
                 if (ProgramState::Race          == globals::programState ||
                     ProgramState::Race_segFast2 == globals::programState ||
@@ -292,6 +294,8 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                     currentSeg = trackSegments.begin();
                     forceSlowSpeed = false;
                 }
+
+                lastDistWithValidLine = globals::car.distance;
 
                 currentSegStartCarProps = globals::car;
                 prevCarProps.push_back(currentSegStartCarProps);
@@ -313,6 +317,10 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
 
             if (globals::car.distance - prevCarProps.peek_back(0).distance >= PREV_CAR_PROPS_RESOLUTION) {
                 prevCarProps.push_back(globals::car);
+            }
+
+            if (LinePattern::NONE != detectedLines.pattern.type) {
+                lastDistWithValidLine = globals::car.distance;
             }
 
             TrackSegments::const_iterator nextSeg = nextSegment(currentSeg);
@@ -380,6 +388,12 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                     globals::programState = ProgramState::FollowSafetyCar;
                     LOG_DEBUG("Reached safety car, starts following");
                 }
+
+                if (globals::car.distance - lastDistWithValidLine > meter_t(2)) {
+                    globals::programState = ProgramState::Error;
+                    LOG_ERROR("An error has occurred. Car stopped.");
+                }
+
                 break;
             case ProgramState::Finish:
             {
@@ -389,10 +403,14 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);
-                    LOG_DEBUG("Stops car");
                 }
                 break;
             }
+
+            case ProgramState::Error:
+                controlData.speed = m_per_sec_t(0);
+                controlData.rampTime = millisecond_t(100);
+                break;
 
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", globals::programState);
@@ -400,7 +418,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             }
 
             if (forceSlowSpeed) {
-                controlData.speed = globals::speed_SLOW1;
+                controlData.speed = min(controlData.speed, globals::speed_SLOW1);
             }
 
             xQueueOverwrite(controlQueue, &controlData);
