@@ -603,7 +603,7 @@ void updateCarOrientation(const DetectedLines& detectedLines) {
     static meter_t lastUpdatedOrientedDistance;
 
     if (globals::car.orientedDistance - lastUpdatedOrientedDistance > centimeter_t(40) &&
-        globals::car.distance - detectedLines.pattern.startDist > centimeter_t(50) &&
+        globals::car.distance - detectedLines.pattern.startDist > centimeter_t(100) &&
         eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(10))) {
         vTaskSuspendAll();
         globals::car.pose.angle = round90(globals::car.pose.angle);
