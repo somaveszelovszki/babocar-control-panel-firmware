@@ -29,7 +29,6 @@ extern float frontLineCtrl_P_bwd;
 extern float frontLineCtrl_D_bwd;
 extern float frontLineCtrl_P_fwd_mul;
 extern float frontLineCtrl_D_fwd;
-extern float frontLineCtrl_D_fwd_slow;
 extern CarProps car;
 extern bool distSensorEnabled;
 extern bool distServoEnabled;

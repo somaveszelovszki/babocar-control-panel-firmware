@@ -60,7 +60,7 @@ bool hasBecomeActive_Fast(const LinePattern& pattern, const Line& mainLine) {
     if (LinePattern::ACCELERATE == pattern.type) {
         signDetected = true;
     }
-    if (signDetected && globals::car.orientedDistance > centimeter_t(50)) {
+    if (signDetected && globals::car.orientedDistance > centimeter_t(25)) {
         signDetected = false;
         active = true;
     }
@@ -214,11 +214,11 @@ m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
 
-    static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900) - centimeter_t(300);
+    static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900) - centimeter_t(250);
 
     static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(30);
     static constexpr meter_t BEGIN_SINE_ARC_LENGTH   = centimeter_t(120);
-    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(70);
+    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(100);
     static constexpr meter_t BRAKE_LENGTH            = centimeter_t(30);
     static constexpr meter_t FAST_SECTION_LENGTH     = OVERTAKE_SECTION_LENGTH - ORIENTATION_FILTER_DIST - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH;
 
@@ -239,7 +239,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
                 globals::car.pose.pos + vec2m(cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0)).rotate(overtake.orientation),
-                clamp(globals::car.speed, m_per_sec_t(0.5f), globals::speed_OVERTAKE_BEGIN)
+                clamp(globals::car.speed, m_per_sec_t(1.0f), globals::speed_OVERTAKE_BEGIN)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
@@ -352,7 +352,6 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             }();
             UNUSED(runOnce);
 
-            globals::distServoEnabled = true;
             globals::distSensorEnabled = true;
 
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
@@ -402,14 +401,13 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 controlData.rampTime = millisecond_t(0);
                 controlData.rearServoEnabled = false;
                 forceInstantBrake = true;
+                globals::distServoEnabled = true;
 
                 if (distances.front < centimeter_t(100)) {
                     lastDistWithSafetyCar = globals::car.distance;
                 }
 
-                if (overtake.segment == currentSeg &&
-                    ((0 == overtake.cntr && 1 == lap) || (1 == overtake.cntr && 3 == lap)) &&
-                    globals::car.distance - detectedLines.pattern.startDist < centimeter_t(50)) {
+                if (overtake.segment == currentSeg && ((0 == overtake.cntr && 1 == lap) || (1 == overtake.cntr && 3 == lap))) {
                     globals::programState = ProgramState::OvertakeSafetyCar;
                     LOG_DEBUG("Starts overtake");
                 } else if ((trackSegments.begin() == currentSeg && lap > 3) || globals::car.distance - lastDistWithSafetyCar > centimeter_t(80)) {
@@ -452,7 +450,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             case ProgramState::Finish:
             {
                 static const meter_t startDist = globals::car.distance;
-                if (globals::car.distance - startDist < meter_t(4.0f)) {
+                if (globals::car.distance - startDist < meter_t(2.0f)) {
                     controlData = currentSeg->getControl(detectedLines.pattern, controlData.baseline, lap, currentSegStartCarProps);
                 } else {
                     controlData.speed = m_per_sec_t(0);

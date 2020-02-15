@@ -121,10 +121,6 @@ extern "C" void runControlTask(const void *argument) {
                 float P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
                 float D = globals::frontLineCtrl_D_fwd;
 
-                if (ProgramState::NavigateLabyrinth == globals::programState) {
-                    P *= (isFwd && controlData.rearServoEnabled ? 0.6f : 0.8f);
-                }
-
                 lineController.setParams(P, D);
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
 
