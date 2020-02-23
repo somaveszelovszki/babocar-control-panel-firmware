@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>car</name>
+	<name>control-panel</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -30,12 +30,12 @@
 		<link>
 			<name>micro-utils</name>
 			<type>2</type>
-			<location>/home/soma/work/catkin_ws/src/robonaut2020/micro-utils</location>
+			<locationURI>PARENT-2-PROJECT_LOC/micro-utils</locationURI>
 		</link>
 		<link>
 			<name>micro-utils-src</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/micro-utils/src</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/micro-utils/src</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

@@ -54,7 +54,7 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#include <micro/utils/types.h>
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
