@@ -23,14 +23,14 @@
 #include "cmsis_os.h"
 #include "dma.h"
 #include "i2c.h"
+#include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <micro/utils/time_init.h>
-#include <cfg_board.h>
+#include <micro/utils/debug.hpp>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,7 +52,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+extern osMessageQId LogQueueHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,9 +107,9 @@ int main(void)
   MX_UART4_Init();
   MX_UART5_Init();
   MX_TIM3_Init();
-  MX_I2C2_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  micro_time_init(tim_System);
+  log_init(&LogQueueHandle);
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -203,7 +203,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  micro_TIM_PeriodElapsedCallback(htim);
+    micro_TIM_PeriodElapsedCallback(htim);
   /* USER CODE END Callback 1 */
 }
 
