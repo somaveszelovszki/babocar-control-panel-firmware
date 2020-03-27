@@ -4,15 +4,45 @@
   * File Name          : freertos.c
   * Description        : Code for freertos applications
   ******************************************************************************
-  * @attention
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
+  * All rights reserved.
   *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
+  * Redistribution and use in source and binary forms, with or without 
+  * modification, are permitted, provided that the following conditions are met:
+  *
+  * 1. Redistribution of source code must retain the above copyright notice, 
+  *    this list of conditions and the following disclaimer.
+  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  *    this list of conditions and the following disclaimer in the documentation
+  *    and/or other materials provided with the distribution.
+  * 3. Neither the name of STMicroelectronics nor the names of other 
+  *    contributors to this software may be used to endorse or promote products 
+  *    derived from this software without specific written permission.
+  * 4. This software, including modifications and/or derivative works of this 
+  *    software, must execute solely and exclusively on microcontroller or
+  *    microprocessor devices manufactured by or for STMicroelectronics.
+  * 5. Redistribution and use of this software other than as permitted under 
+  *    this license is void and will automatically terminate your rights under 
+  *    this license. 
+  *
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+  * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
+  * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */
@@ -26,7 +56,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
-
+#include <micro/utils/types.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,51 +78,39 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId DistSensorTaskHandle;
-uint32_t DistSensorTaskBuffer[ 1024 ];
-osStaticThreadDef_t DistSensorTaskControlBlock;
-osThreadId DebugTaskHandle;
-uint32_t DebugTaskBuffer[ 1024 ];
-osStaticThreadDef_t DebugTaskControlBlock;
+osThreadId IdleTaskHandle;
+uint32_t IdleTaskBuffer[ 128 ];
+osStaticThreadDef_t IdleTaskControlBlock;
 osThreadId ControlTaskHandle;
-uint32_t ControlTaskBuffer[ 1024 ];
+uint32_t ControlTaskBuffer[ 512 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId ProgLabyrinthTaHandle;
-uint32_t ProgLabyrinthTaskBuffer[ 1024 ];
-osStaticThreadDef_t ProgLabyrinthTaskControlBlock;
-osThreadId ProgRaceTrackTaHandle;
-uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
-osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
-osThreadId GyroTaskHandle;
-uint32_t GyroTaskBuffer[ 256 ];
-osStaticThreadDef_t GyroTaskControlBlock;
-osThreadId LineDetectTaskHandle;
-uint32_t LineDetectTaskBuffer[ 1024 ];
-osStaticThreadDef_t LineDetectTaskControlBlock;
-osThreadId StartupTaskHandle;
-uint32_t StartupTaskBuffer[ 256 ];
-osStaticThreadDef_t StartupTaskControlBlock;
+osThreadId CommandTaskHandle;
+uint32_t CommandTaskBuffer[ 1024 ];
+osStaticThreadDef_t CommandTaskControlBlock;
+osThreadId SetupTaskHandle;
+uint32_t SetupTaskBuffer[ 128 ];
+osStaticThreadDef_t SetupTaskControlBlock;
+osMessageQId LogQueueHandle;
+uint8_t LogQueueBuffer[ 16 * sizeof( LogQueueItem_t ) ];
+osStaticMessageQDef_t LogQueueControlBlock;
+osMutexId CarMutexHandle;
+osStaticMutexDef_t CarMutexControlBlock;
+osMutexId FrontLinePositionsMutexHandle;
+osStaticMutexDef_t FrontLinePositionsMutexControlBlock;
+osMutexId RearLinePositionsMutexHandle;
+osStaticMutexDef_t RearLinePositionsMutexControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void runDistSensorTask(const void *argument);
-void runGyroTask(const void *argument);
-void runLineDetectTask(const void *argument);
 void runDebugTask(const void *argument);
 void runControlTask(const void *argument);
-void runProgLabyrinthTask(const void *argument);
-void runProgRaceTrackTask(const void *argument);
-void runStartupTask(const void *argument);
+void runSetupTask(const void *argument);
 /* USER CODE END FunctionPrototypes */
 
-void StartDistSensorTask(void const * argument);
-void StartDebugTask(void const * argument);
+void StartIdleTask(void const * argument);
 void StartControlTask(void const * argument);
-void StartProgLabyrinthTask(void const * argument);
-void StartProgRaceTrackTask(void const * argument);
-void StartGyroTask(void const * argument);
-void StartLineDetectTask(void const * argument);
-void StartStartupTask(void const * argument);
+void StartCommandTask(void const * argument);
+void StartSetupTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -122,6 +140,19 @@ void MX_FREERTOS_Init(void) {
        
   /* USER CODE END Init */
 
+  /* Create the mutex(es) */
+  /* definition and creation of CarMutex */
+  osMutexStaticDef(CarMutex, &CarMutexControlBlock);
+  CarMutexHandle = osMutexCreate(osMutex(CarMutex));
+
+  /* definition and creation of FrontLinePositionsMutex */
+  osMutexStaticDef(FrontLinePositionsMutex, &FrontLinePositionsMutexControlBlock);
+  FrontLinePositionsMutexHandle = osMutexCreate(osMutex(FrontLinePositionsMutex));
+
+  /* definition and creation of RearLinePositionsMutex */
+  osMutexStaticDef(RearLinePositionsMutex, &RearLinePositionsMutexControlBlock);
+  RearLinePositionsMutexHandle = osMutexCreate(osMutex(RearLinePositionsMutex));
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -134,42 +165,31 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* definition and creation of LogQueue */
+  osMessageQStaticDef(LogQueue, 16, LogQueueItem_t, LogQueueBuffer, &LogQueueControlBlock);
+  LogQueueHandle = osMessageCreate(osMessageQ(LogQueue), NULL);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of DistSensorTask */
-  osThreadStaticDef(DistSensorTask, StartDistSensorTask, osPriorityNormal, 0, 1024, DistSensorTaskBuffer, &DistSensorTaskControlBlock);
-  DistSensorTaskHandle = osThreadCreate(osThread(DistSensorTask), NULL);
-
-  /* definition and creation of DebugTask */
-  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
-  DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
+  /* definition and creation of IdleTask */
+  osThreadStaticDef(IdleTask, StartIdleTask, osPriorityIdle, 0, 128, IdleTaskBuffer, &IdleTaskControlBlock);
+  IdleTaskHandle = osThreadCreate(osThread(IdleTask), NULL);
 
   /* definition and creation of ControlTask */
-  osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 1024, ControlTaskBuffer, &ControlTaskControlBlock);
+  osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
-  /* definition and creation of ProgLabyrinthTa */
-  osThreadStaticDef(ProgLabyrinthTa, StartProgLabyrinthTask, osPriorityNormal, 0, 1024, ProgLabyrinthTaskBuffer, &ProgLabyrinthTaskControlBlock);
-  ProgLabyrinthTaHandle = osThreadCreate(osThread(ProgLabyrinthTa), NULL);
+  /* definition and creation of CommandTask */
+  osThreadStaticDef(CommandTask, StartCommandTask, osPriorityLow, 0, 1024, CommandTaskBuffer, &CommandTaskControlBlock);
+  CommandTaskHandle = osThreadCreate(osThread(CommandTask), NULL);
 
-  /* definition and creation of ProgRaceTrackTa */
-  osThreadStaticDef(ProgRaceTrackTa, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
-  ProgRaceTrackTaHandle = osThreadCreate(osThread(ProgRaceTrackTa), NULL);
-
-  /* definition and creation of GyroTask */
-  osThreadStaticDef(GyroTask, StartGyroTask, osPriorityNormal, 0, 256, GyroTaskBuffer, &GyroTaskControlBlock);
-  GyroTaskHandle = osThreadCreate(osThread(GyroTask), NULL);
-
-  /* definition and creation of LineDetectTask */
-  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 1024, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
-  LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
-
-  /* definition and creation of StartupTask */
-  osThreadStaticDef(StartupTask, StartStartupTask, osPriorityLow, 0, 256, StartupTaskBuffer, &StartupTaskControlBlock);
-  StartupTaskHandle = osThreadCreate(osThread(StartupTask), NULL);
+  /* definition and creation of SetupTask */
+  osThreadStaticDef(SetupTask, StartSetupTask, osPriorityNormal, 0, 128, SetupTaskBuffer, &SetupTaskControlBlock);
+  SetupTaskHandle = osThreadCreate(osThread(SetupTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -177,42 +197,28 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_StartDistSensorTask */
+/* USER CODE BEGIN Header_StartIdleTask */
 /**
-  * @brief  Function implementing the DistSensorTask thread.
+  * @brief  Function implementing the IdleTask thread.
   * @param  argument: Not used 
   * @retval None
   */
-/* USER CODE END Header_StartDistSensorTask */
-void StartDistSensorTask(void const * argument)
+/* USER CODE END Header_StartIdleTask */
+void StartIdleTask(void const * argument)
 {
     
     
     
     
     
-    
-    
-    
-    
 
-  /* USER CODE BEGIN StartDistSensorTask */
-  runDistSensorTask(argument);
-  /* USER CODE END StartDistSensorTask */
-}
-
-/* USER CODE BEGIN Header_StartDebugTask */
-/**
-* @brief Function implementing the DebugTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartDebugTask */
-void StartDebugTask(void const * argument)
-{
-  /* USER CODE BEGIN StartDebugTask */
-  runDebugTask(argument);
-  /* USER CODE END StartDebugTask */
+  /* USER CODE BEGIN StartIdleTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartIdleTask */
 }
 
 /* USER CODE BEGIN Header_StartControlTask */
@@ -229,74 +235,36 @@ void StartControlTask(void const * argument)
   /* USER CODE END StartControlTask */
 }
 
-/* USER CODE BEGIN Header_StartProgLabyrinthTask */
+/* USER CODE BEGIN Header_StartCommandTask */
 /**
-* @brief Function implementing the ProgLabyrinthTa thread.
+* @brief Function implementing the CommandTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartProgLabyrinthTask */
-void StartProgLabyrinthTask(void const * argument)
+/* USER CODE END Header_StartCommandTask */
+void StartCommandTask(void const * argument)
 {
-  /* USER CODE BEGIN StartProgLabyrinthTask */
-  runProgLabyrinthTask(argument);
-  /* USER CODE END StartProgLabyrinthTask */
+  /* USER CODE BEGIN StartCommandTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCommandTask */
 }
 
-/* USER CODE BEGIN Header_StartProgRaceTrackTask */
+/* USER CODE BEGIN Header_StartSetupTask */
 /**
-* @brief Function implementing the ProgRaceTrackTa thread.
+* @brief Function implementing the SetupTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartProgRaceTrackTask */
-void StartProgRaceTrackTask(void const * argument)
+/* USER CODE END Header_StartSetupTask */
+void StartSetupTask(void const * argument)
 {
-  /* USER CODE BEGIN StartProgRaceTrackTask */
-  runProgRaceTrackTask(argument);
-  /* USER CODE END StartProgRaceTrackTask */
-}
-
-/* USER CODE BEGIN Header_StartGyroTask */
-/**
-* @brief Function implementing the GyroTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartGyroTask */
-void StartGyroTask(void const * argument)
-{
-  /* USER CODE BEGIN StartGyroTask */
-  runGyroTask(argument);
-  /* USER CODE END StartGyroTask */
-}
-
-/* USER CODE BEGIN Header_StartLineDetectTask */
-/**
-* @brief Function implementing the LineDetectTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartLineDetectTask */
-void StartLineDetectTask(void const * argument)
-{
-  /* USER CODE BEGIN StartLineDetectTask */
-  runLineDetectTask(argument);
-  /* USER CODE END StartLineDetectTask */
-}
-
-/* USER CODE BEGIN Header_StartStartupTask */
-/**
-* @brief Function implementing the StartupTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartStartupTask */
-void StartStartupTask(void const * argument)
-{
-  /* USER CODE BEGIN StartStartupTask */
-  runStartupTask(argument);
-  /* USER CODE END StartStartupTask */
+  /* USER CODE BEGIN StartSetupTask */
+  runSetupTask(argument);
+  /* USER CODE END StartSetupTask */
 }
 
 /* Private application code --------------------------------------------------*/
