@@ -19,13 +19,12 @@ QueueHandle_t distancesQueue;
 static uint8_t distancesQueueStorageBuffer[DISTANCES_QUEUE_LENGTH * sizeof(DistancesData)];
 static StaticQueue_t distancesQueueBuffer;
 
-static hw::VL53L1X_DistanceSensor frontDistSensor(i2c_Dist, 0x52);
+static hw::VL53L1X_DistanceSensor frontDistSensor(i2c_X, 0x52);
 static Timer distSendTimer;
 
 extern "C" void runDistSensorTask(const void *argument) {
 
     distancesQueue = xQueueCreateStatic(DISTANCES_QUEUE_LENGTH, sizeof(DistancesData), distancesQueueStorageBuffer, &distancesQueueBuffer);
-    HAL_GPIO_WritePin(gpio_DistEn, gpioPin_DistEn, GPIO_PIN_RESET);
 
     vTaskDelay(300); // gives time to other tasks to wake up
 

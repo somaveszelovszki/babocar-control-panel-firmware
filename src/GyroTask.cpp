@@ -20,7 +20,7 @@ using namespace micro;
 
 namespace {
 
-hw::MPU9250 gyro(i2c_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+hw::MPU9250 gyro(i2c_X, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 
 class AngleCalc {
 public:
@@ -87,8 +87,6 @@ void updateOrientedDistance() {
 } // namespace
 
 extern "C" void runGyroTask(const void *argument) {
-
-    HAL_GPIO_WritePin(gpio_GyroEn, gpioPin_GyroEn, GPIO_PIN_RESET);
 
     vTaskDelay(300); // gives time to other tasks to wake up
 

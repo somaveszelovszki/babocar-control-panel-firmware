@@ -36,27 +36,24 @@ extern DMA_HandleTypeDef  hdma_uart5_tx;
 extern DMA_HandleTypeDef  hdma_usart6_rx;
 extern DMA_HandleTypeDef  hdma_usart6_tx;
 extern I2C_HandleTypeDef  hi2c1;
-extern I2C_HandleTypeDef  hi2c2;
+extern SPI_HandleTypeDef  hspi1;
 
 #define tim_System (&htim2)
-
-#define tim_SteeringServo            (&htim1)
-#define tim_chnl_FrontServo          TIM_CHANNEL_1
-#define tim_chnl_RearServo           TIM_CHANNEL_2
-
-#define tim_ServoX                   (&htim3)
-#define tim_chnl_ServoX1             TIM_CHANNEL_4
-#define tim_chnl_ServoX2             TIM_CHANNEL_3
 
 #define uart_MotorPanel              (&huart1)
 #define uart_Command                 (&huart2)
 #define uart_RadioModule             (&huart3)
-#define uart_X1                      (&huart4)
+#define uart_DistSensor              (&huart4)
 #define uart_RearLineDetectPanel     (&huart5)
 #define uart_FrontLineDetectPanel    (&huart6)
 
-#define i2c_Gyro                     (&hi2c1)
-#define i2c_Dist                     (&hi2c2)
+#define spi_Gyro                     (&hspi1)
+
+#define i2c_X                        (&hi2c1)
+
+#define gpio_GyroINT                 GPIOB
+#define gpioPin_GyroINT1             GPIO_PIN_0
+#define gpioPin_GyroINT2             GPIO_PIN_1
 
 #define gpio_Led                     GPIOA
 #define gpioPin_Led                  GPIO_PIN_5
@@ -64,12 +61,6 @@ extern I2C_HandleTypeDef  hi2c2;
 #define gpio_Btn                     GPIOC
 #define gpioPin_Btn1                 GPIO_PIN_1
 #define gpioPin_Btn2                 GPIO_PIN_0
-
-#define gpio_GyroEn                  GPIOB
-#define gpioPin_GyroEn               GPIO_PIN_0
-
-#define gpio_DistEn                  GPIOB
-#define gpioPin_DistEn               GPIO_PIN_1
 
 #ifdef __cplusplus
 }

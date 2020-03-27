@@ -30,29 +30,29 @@ MotorPanelLink motorPanelLink(
     millisecond_t(MOTOR_PANEL_LINK_OUT_TIMEOUT_MS),
     millisecond_t(MOTOR_PANEL_LINK_IN_PERIOD_MS));
 
-hw::SteeringServo frontSteeringServo(
-    tim_SteeringServo, tim_chnl_FrontServo,
-    cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180,
-    cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA,
-    cfg::FRONT_SERVO_WHEEL_TR);
-
-hw::SteeringServo rearSteeringServo(
-    tim_SteeringServo, tim_chnl_RearServo,
-    cfg::REAR_SERVO_PWM_0, cfg::REAR_SERVO_PWM_180,
-    cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA,
-    cfg::REAR_SERVO_WHEEL_TR);
-
-hw::Servo frontDistServo(
-    tim_ServoX, tim_chnl_ServoX1,
-    cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180,
-    cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
+//hw::SteeringServo frontSteeringServo(
+//    tim_SteeringServo, tim_chnl_FrontServo,
+//    cfg::FRONT_SERVO_PWM_0, cfg::FRONT_SERVO_PWM_180,
+//    cfg::FRONT_SERVO_OFFSET, cfg::FRONT_SERVO_WHEEL_MAX_DELTA,
+//    cfg::FRONT_SERVO_WHEEL_TR);
+//
+//hw::SteeringServo rearSteeringServo(
+//    tim_SteeringServo, tim_chnl_RearServo,
+//    cfg::REAR_SERVO_PWM_0, cfg::REAR_SERVO_PWM_180,
+//    cfg::REAR_SERVO_OFFSET, cfg::REAR_SERVO_WHEEL_MAX_DELTA,
+//    cfg::REAR_SERVO_WHEEL_TR);
+//
+//hw::Servo frontDistServo(
+//    tim_ServoX, tim_chnl_ServoX1,
+//    cfg::DIST_SERVO_PWM_0, cfg::DIST_SERVO_PWM_180,
+//    cfg::DIST_SERVO_OFFSET, cfg::DIST_SERVO_MAX_DELTA);
 
 Timer frontDistServoUpdateTimer;
 
-meter_t getCarTrajectoryRadius() {
-    const radian_t sumAngle = globals::car.frontWheelAngle - globals::car.rearWheelAngle;
-    return isZero(sumAngle) ? meter_t::infinity() : cfg::CAR_FRONT_REAR_PIVOT_DIST / -tan(sumAngle);
-}
+//meter_t getCarTrajectoryRadius() {
+//    const radian_t sumAngle = globals::car.frontWheelAngle - globals::car.rearWheelAngle;
+//    return isZero(sumAngle) ? meter_t::infinity() : cfg::CAR_FRONT_REAR_PIVOT_DIST / -tan(sumAngle);
+//}
 
 void fillMotorPanelData(motorPanelDataIn_t& txData, m_per_sec_t targetSpeed) {
     txData.controller_P            = globals::motorCtrl_P;
@@ -86,9 +86,9 @@ extern "C" void runControlTask(const void *argument) {
         millisecond_t startTime;
     } ramp;
 
-    frontSteeringServo.writeWheelAngle(radian_t(0));
-    rearSteeringServo.writeWheelAngle(radian_t(0));
-    frontDistServo.write(radian_t(0));
+//    frontSteeringServo.writeWheelAngle(radian_t(0));
+//    rearSteeringServo.writeWheelAngle(radian_t(0));
+//    frontDistServo.write(radian_t(0));
 
     PD_Controller lineController(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow,
         static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
@@ -103,8 +103,8 @@ extern "C" void runControlTask(const void *argument) {
             parseMotorPanelData(rxData);
         }
 
-        globals::car.frontWheelAngle = frontSteeringServo.wheelAngle();
-        globals::car.rearWheelAngle = rearSteeringServo.wheelAngle();
+        //globals::car.frontWheelAngle = frontSteeringServo.wheelAngle();
+        //globals::car.rearWheelAngle = rearSteeringServo.wheelAngle();
 
         const m_per_sec_t prevSpeedRef = controlData.speed;
 
@@ -113,8 +113,8 @@ extern "C" void runControlTask(const void *argument) {
             lastControlDataRecvTime = getTime();
 
             if (controlData.directControl) {
-                frontSteeringServo.writeWheelAngle(controlData.frontWheelAngle);
-                rearSteeringServo.writeWheelAngle(controlData.rearWheelAngle);
+                //frontSteeringServo.writeWheelAngle(controlData.frontWheelAngle);
+                //rearSteeringServo.writeWheelAngle(controlData.rearWheelAngle);
             } else {
                 const bool isFwd = globals::car.speed >= m_per_sec_t(0);
                 const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
@@ -124,8 +124,8 @@ extern "C" void runControlTask(const void *argument) {
                 lineController.setParams(P, D);
                 lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
 
-                frontSteeringServo.writeWheelAngle(isFwd ? controlData.angle + degree_t(lineController.getOutput()) : radian_t(0));
-                rearSteeringServo.writeWheelAngle(controlData.rearServoEnabled ? controlData.angle - degree_t(lineController.getOutput()) : controlData.angle);
+                //frontSteeringServo.writeWheelAngle(isFwd ? controlData.angle + degree_t(lineController.getOutput()) : radian_t(0));
+                //rearSteeringServo.writeWheelAngle(controlData.rearServoEnabled ? controlData.angle - degree_t(lineController.getOutput()) : controlData.angle);
             }
 
         } else if (lastControlDataRecvTime != millisecond_t(0) && getTime() - lastControlDataRecvTime > millisecond_t(1000)) {
@@ -141,7 +141,7 @@ extern "C" void runControlTask(const void *argument) {
         }
 
         if (globals::distServoEnabled && frontDistServoUpdateTimer.checkTimeout()) {
-            frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
+            //frontDistServo.write(frontSteeringServo.wheelAngle() * globals::distServoTransferRate);
         }
 
         if (motorPanelLink.shouldSend()) {

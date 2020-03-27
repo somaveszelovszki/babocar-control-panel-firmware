@@ -24,13 +24,12 @@
 #include "dma.h"
 #include "i2c.h"
 #include "spi.h"
-#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <micro/utils/debug.hpp>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,7 +51,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-extern osMessageQId LogQueueHandle;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,17 +98,15 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
-  MX_TIM1_Init();
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
   MX_USART6_UART_Init();
   MX_I2C1_Init();
   MX_UART4_Init();
   MX_UART5_Init();
-  MX_TIM3_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  log_init(&LogQueueHandle);
+
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
