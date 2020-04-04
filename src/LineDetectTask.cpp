@@ -1,22 +1,17 @@
+#include <micro/panel/LineDetectPanelLinkData.hpp>
+#include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
-#include <micro/utils/timer.hpp>
-#include <micro/sensor/Filter.hpp>
-#include <micro/panel/LineDetectPanelLink.hpp>
-#include <micro/task/common.hpp>
 
 #include <cfg_board.h>
 #include <cfg_car.hpp>
-#include <globals.hpp>
-#include <ControlData.hpp>
-#include <DistancesData.hpp>
 #include <DetectedLines.hpp>
+#include <DistancesData.hpp>
+#include <globals.hpp>
 
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <task.h>
-
-#include <string.h>
 
 using namespace micro;
 
@@ -25,49 +20,47 @@ QueueHandle_t detectedLinesQueue;
 static uint8_t detectedLinesQueueStorageBuffer[DETECTED_LINES_QUEUE_LENGTH * sizeof(DetectedLines)];
 static StaticQueue_t detectedLinesQueueBuffer;
 
-static LineDetectPanelLink frontLineDetectPanelLink(
-    uart_FrontLineDetectPanel,
-    millisecond_t(LINE_DETECT_PANEL_LINK_OUT_TIMEOUT_MS),
-    millisecond_t(LINE_DETECT_PANEL_LINK_IN_PERIOD_MS));
+namespace {
 
-static LineDetectPanelLink rearLineDetectPanelLink(
-    uart_RearLineDetectPanel,
-    millisecond_t(LINE_DETECT_PANEL_LINK_OUT_TIMEOUT_MS),
-    millisecond_t(LINE_DETECT_PANEL_LINK_IN_PERIOD_MS));
+PanelLink<LineDetectOutPanelLinkData, LineDetectInPanelLinkData> frontLineDetectPanelLink(panelLinkRole_t::Master, uart_FrontLineDetectPanel);
+PanelLink<LineDetectOutPanelLinkData, LineDetectInPanelLinkData> rearLineDetectPanelLink(panelLinkRole_t::Master, uart_RearLineDetectPanel);
 
-static LinePatternCalculator linePatternCalc;
-
-static Line mainLine;
-
-static void fillLineDetectPanelData(lineDetectPanelDataIn_t& txData, bool indicatorLedsEnabled) {
-    txData.flags = 0x00;
-    if (indicatorLedsEnabled) txData.flags |= LINE_DETECT_PANEL_FLAG_INDICATOR_LEDS_ENABLED;
+void fillLineDetectPanelData(LineDetectInPanelLinkData& txData, const bool indicatorLedsEnabled, const uint8_t scanRangeRadius, const linePatternDomain_t domain) {
+    txData.indicatorLedsEnabled = indicatorLedsEnabled;
+    txData.scanRangeRadius      = scanRangeRadius;
+    txData.domain               = static_cast<uint8_t>(domain);
+    txData.distance_mm          = static_cast<uint32_t>(static_cast<millimeter_t>(globals::car.distance).get());
 }
 
-static void parseLineDetectPanelData(lineDetectPanelDataOut_t& rxData, Lines& lines, bool mirror = false) {
-    lines.clear();
+void parseLineDetectPanelData(LineDetectOutPanelLinkData& rxData, Lines& lines, LinePattern& pattern, const bool mirror = false) {
 
-    for (uint8_t i = 0; i < MAX_NUM_LINES; ++i) {
-        const trackedLine_t * const l = &rxData.values[i];
-        if (l->id != INVALID_LINE_IDX) {
-            lines.push_back(Line{ millimeter_t(l->pos_mm) * (mirror ? -1 : 1), l->id });
+    lines.clear();
+    for (uint8_t i = 0; i < ARRAY_SIZE(rxData.lines); ++i) {
+        if (rxData.lines[i].id != 0) {
+            lines.insert(Line{ millimeter_t(rxData.lines[i].pos_mm_per16 / 16.0f) * (mirror ? -1 : 1), rxData.lines[i].id });
         } else {
             break;
         }
     }
 
-    lines.removeDuplicates();
+    pattern.type      = static_cast<LinePattern::type_t>(rxData.pattern.type);
+    pattern.dir       = static_cast<Sign>(rxData.pattern.dir);
+    pattern.side      = static_cast<Direction>(rxData.pattern.side);
+    pattern.startDist = millimeter_t(rxData.pattern.startDist_mm);
 }
 
-extern "C" void runLineDetectTask(const void *argument) {
+} // namespace
+
+extern "C" void runLineDetectTask(void) {
 
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
-    lineDetectPanelDataOut_t rxDataFront, rxDataRear;
-    lineDetectPanelDataIn_t txDataFront, txDataRear;
+    LineDetectOutPanelLinkData rxDataFront, rxDataRear;
+    LineDetectInPanelLinkData txDataFront, txDataRear;
     DetectedLines detectedLines;
+    Line mainLine;
 
     while (true) {
         frontLineDetectPanelLink.update();
@@ -75,34 +68,25 @@ extern "C" void runLineDetectTask(const void *argument) {
 
         globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected() && rearLineDetectPanelLink.isConnected();
 
-        if (frontLineDetectPanelLink.readAvailable(rxDataFront)) {
-            if (globals::lineDetectionEnabled) {
-                parseLineDetectPanelData(rxDataFront, detectedLines.lines.front);
-            } else {
-                detectedLines.lines.front.clear();
-            }
+        const bool isFwd = globals::car.speed >= m_per_sec_t(0);
+        const ProgramTask task = getActiveTask(globals::programState);
+        const linePatternDomain_t domain = ProgramTask::RaceTrack == task ? linePatternDomain_t::Race : linePatternDomain_t::Labyrinth;
+        const bool isReducedScanRangeEnabled = ProgramTask::RaceTrack == task && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
+        const uint8_t scanRangeRadius = isReducedScanRangeEnabled ? 10 : 0;
 
-            linePatternCalc.update(getActiveTask(globals::programState), detectedLines.lines.front, globals::car.distance);
-            detectedLines.pattern = linePatternCalc.pattern();
-            detectedLines.isPending = linePatternCalc.isPending();
+        if (frontLineDetectPanelLink.readAvailable(rxDataFront) && rearLineDetectPanelLink.readAvailable(rxDataRear)) {
+            parseLineDetectPanelData(rxDataFront, detectedLines.front.lines, detectedLines.front.pattern, !isFwd);
+            parseLineDetectPanelData(rxDataRear, detectedLines.rear.lines, detectedLines.rear.pattern, isFwd);
             xQueueOverwrite(detectedLinesQueue, &detectedLines);
         }
 
-        if (rearLineDetectPanelLink.readAvailable(rxDataRear)) {
-            if (globals::lineDetectionEnabled) {
-                parseLineDetectPanelData(rxDataRear, detectedLines.lines.rear, true);
-            } else {
-                detectedLines.lines.rear.clear();
-            }
-        }
-
         if (frontLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txDataFront, globals::frontIndicatorLedsEnabled);
+            fillLineDetectPanelData(txDataFront, globals::frontIndicatorLedsEnabled, scanRangeRadius, domain);
             frontLineDetectPanelLink.send(txDataFront);
         }
 
         if (rearLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txDataRear, globals::rearIndicatorLedsEnabled);
+            fillLineDetectPanelData(txDataRear, globals::rearIndicatorLedsEnabled, scanRangeRadius, domain);
             rearLineDetectPanelLink.send(txDataRear);
         }
 

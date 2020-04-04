@@ -1,10 +1,9 @@
-#include <cfg_board.h>
+#include <micro/hw/MPU9250_Gyroscope.hpp>
+#include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/time.hpp>
-#include <micro/hw/MPU9250_Gyroscope.hpp>
-#include <micro/task/common.hpp>
-#include <micro/sensor/Filter.hpp>
 
+#include <cfg_board.h>
 #include <globals.hpp>
 
 #include <stm32f4xx_hal.h>
@@ -86,7 +85,7 @@ void updateOrientedDistance() {
 
 } // namespace
 
-extern "C" void runGyroTask(const void *argument) {
+extern "C" void runGyroTask(void) {
 
     vTaskDelay(300); // gives time to other tasks to wake up
 

@@ -56,7 +56,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
-#include <micro/utils/types.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,6 +108,15 @@ osStaticThreadDef_t DebugTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+
+void runControlTask(void);
+void runGyroTask(void);
+void runLineDetectTask(void);
+void runStartupTask(void);
+void runDistSensorTask(void);
+void runProgLabyrinthTask(void);
+void runProgRaceTrackTask(void);
+void runDebugTask(void);
 
 /* USER CODE END FunctionPrototypes */
 
@@ -247,7 +256,7 @@ void StartIdleTask(void const * argument)
 void StartControlTask(void const * argument)
 {
   /* USER CODE BEGIN StartControlTask */
-  runControlTask(argument);
+  runControlTask();
   /* USER CODE END StartControlTask */
 }
 
@@ -261,11 +270,7 @@ void StartControlTask(void const * argument)
 void StartGyroTask(void const * argument)
 {
   /* USER CODE BEGIN StartGyroTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runGyroTask();
   /* USER CODE END StartGyroTask */
 }
 
@@ -279,11 +284,7 @@ void StartGyroTask(void const * argument)
 void StartLineDetectTask(void const * argument)
 {
   /* USER CODE BEGIN StartLineDetectTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runLineDetectTask();
   /* USER CODE END StartLineDetectTask */
 }
 
@@ -297,11 +298,7 @@ void StartLineDetectTask(void const * argument)
 void StartStartupTask(void const * argument)
 {
   /* USER CODE BEGIN StartStartupTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runStartupTask();
   /* USER CODE END StartStartupTask */
 }
 
@@ -315,11 +312,7 @@ void StartStartupTask(void const * argument)
 void StartDistSensorTask(void const * argument)
 {
   /* USER CODE BEGIN StartDistSensorTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    runDistSensorTask();
   /* USER CODE END StartDistSensorTask */
 }
 
@@ -333,11 +326,7 @@ void StartDistSensorTask(void const * argument)
 void StartProgLabyrinthTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgLabyrinthTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runProgLabyrinthTask();
   /* USER CODE END StartProgLabyrinthTask */
 }
 
@@ -351,11 +340,7 @@ void StartProgLabyrinthTask(void const * argument)
 void StartProgRaceTrackTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgRaceTrackTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runProgRaceTrackTask();
   /* USER CODE END StartProgRaceTrackTask */
 }
 
@@ -369,11 +354,7 @@ void StartProgRaceTrackTask(void const * argument)
 void StartDebugTask(void const * argument)
 {
   /* USER CODE BEGIN StartDebugTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  runDebugTask();
   /* USER CODE END StartDebugTask */
 }
 

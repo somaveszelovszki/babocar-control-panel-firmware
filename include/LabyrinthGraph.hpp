@@ -55,8 +55,8 @@ struct Connection : public Edge<Segment> {
 /* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    typedef micro::unordered_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
-    typedef micro::unordered_map<radian_t, side_segment_map, 2> segment_map;
+    typedef micro::unsorted_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
+    typedef micro::unsorted_map<radian_t, side_segment_map, 2> segment_map;
     typedef micro::vec<std::pair<radian_t, Direction>, 2> segment_info;
 
     Junction() : idx(-1) {}

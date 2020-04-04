@@ -1,16 +1,14 @@
 #pragma once
 
-#include "LinePattern.hpp"
+#include <micro/utils/LinePattern.hpp>
 
 namespace micro {
 
 struct DetectedLines {
     struct {
-        Lines front;
-        Lines rear;
-    } lines;
-    LinePattern pattern;
-    bool isPending = false;
+        Lines lines;
+        LinePattern pattern;
+    } front, rear;
 };
 
 } // namespace micro

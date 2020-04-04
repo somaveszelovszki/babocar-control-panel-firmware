@@ -2,29 +2,31 @@
 #include <cfg_car.hpp>
 #include <micro/debug/params.hpp>
 
-namespace micro {
+using namespace micro;
+
 namespace globals {
 
-ProgramState programState           = ProgramState::INVALID;
-bool useSafetyEnableSignal          = false;
-bool frontIndicatorLedsEnabled      = false;
-bool rearIndicatorLedsEnabled       = true;
-bool lineDetectionEnabled           = true;
-float motorCtrl_P                   = 0.85f;
-float motorCtrl_I                   = 0.04f;
-float motorCtrl_integral_max        = 4.0f;
-float frontLineCtrl_P_slow          = 1.5f; // 1.4 m/s
-float frontLineCtrl_D_slow          = 80.0f;
-float frontLineCtrl_P_fast          = 0.5f; // 3 m/s
-float frontLineCtrl_D_fast          = 40.0f;
-float frontLineCtrl_P_bwd           = 4.4f;
-float frontLineCtrl_D_bwd           = 200.0f;
-float frontLineCtrl_P_fwd_mul       = 15.5f;
-float frontLineCtrl_D_fwd           = 40.0f;
-CarProps car                        = CarProps();
-bool distSensorEnabled              = false;
-bool distServoEnabled               = false;
-float distServoTransferRate         = 3.0f;
+ProgramState programState                       = ProgramState::INVALID;
+bool useSafetyEnableSignal                      = false;
+bool frontIndicatorLedsEnabled                  = false;
+bool rearIndicatorLedsEnabled                   = true;
+float motorCtrl_P                               = 0.85f;
+float motorCtrl_I                               = 0.04f;
+float motorCtrl_integral_max                    = 4.0f;
+float frontLineCtrl_P_slow                      = 1.5f; // 1.4 m/s
+float frontLineCtrl_D_slow                      = 80.0f;
+float frontLineCtrl_P_fast                      = 0.5f; // 3 m/s
+float frontLineCtrl_D_fast                      = 40.0f;
+float frontLineCtrl_P_bwd                       = 4.4f;
+float frontLineCtrl_D_bwd                       = 200.0f;
+float frontLineCtrl_P_fwd_mul                   = 15.5f;
+float frontLineCtrl_D_fwd                       = 40.0f;
+CarProps car                                    = CarProps();
+bool distSensorEnabled                          = false;
+bool distServoEnabled                           = false;
+float distServoTransferRate                     = 1.0f;
+micro::radian_t frontSteeringServoOffset        = degree_t(90); // TODO
+micro::radian_t rearSteeringServoOffset         = degree_t(90); // TODO
 
 TrackSpeeds trackSpeeds[NUM_LAPS + 1] = {
     //     FAST               SLOW_1           SLOW_2_BEGIN          SLOW_2              SLOW_3            SLOW_3_END            SLOW_4
@@ -54,7 +56,7 @@ bool isDistSensorTaskOk = false;
 bool isGyroTaskOk       = false;
 bool isLineDetectTaskOk = false;
 
-void registerGlobalParams(Params& params) {
+void registerGlobalParams(micro::Params& params) {
 
 #define REGISTER_GLOBAL(name) params.registerParam(#name, &name)
 
@@ -65,10 +67,9 @@ void registerGlobalParams(Params& params) {
     REGISTER_GLOBAL(frontLineCtrl_D_fwd);
     REGISTER_GLOBAL(car);
 
-    params.registerParam("trackSpeeds", &trackSpeeds[3]);
+    //params.registerParam("trackSpeeds", &trackSpeeds[3]);
 
 #undef REGISTER_GLOBAL
 }
 
 }  // namespace globals
-}  // namespace micro

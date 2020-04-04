@@ -46,10 +46,3 @@ extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
         micro_Command_Uart_TxCpltCallback();
     }
 }
-
-/* @brief Callback function for timer period elapsed event.
- * @param htim Pointer to the timer handle.
- **/
-extern "C" void micro_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    micro::Timer::updateAll();
-}

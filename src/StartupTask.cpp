@@ -1,6 +1,5 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/time.hpp>
-#include <micro/task/common.hpp>
 
 #include <cfg_board.h>
 #include <globals.hpp>
@@ -33,7 +32,7 @@ void waitStartSignal() {
 
 } // namespace
 
-extern "C" void runStartupTask(const void *argument) {
+extern "C" void runStartupTask(void) {
     millisecond_t lastButtonClickTime = getTime();
     uint32_t buttonClick = 0;
     GPIO_PinState prevButtonState = GPIO_PIN_SET;

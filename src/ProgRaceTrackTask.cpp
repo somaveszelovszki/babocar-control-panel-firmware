@@ -1,23 +1,20 @@
-#include <micro/task/common.hpp>
-#include <micro/utils/log.hpp>
-#include <micro/utils/updatable.hpp>
+#include <micro/container/infinite_buffer.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/sensor/Filter.hpp>
+#include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
+#include <micro/utils/log.hpp>
 #include <micro/utils/trajectory.hpp>
-#include <micro/container/infinite_buffer.hpp>
+#include <micro/utils/updatable.hpp>
 
-#include <DetectedLines.hpp>
-#include <ControlData.hpp>
-#include <DistancesData.hpp>
 #include <cfg_board.h>
 #include <cfg_car.hpp>
+#include <DetectedLines.hpp>
+#include <DistancesData.hpp>
 #include <globals.hpp>
 
 #include <FreeRTOS.h>
-#include <micro/panel/LineDetectPanelLink.hpp>
-#include <micro/panel/MotorPanelLink.hpp>
 #include <task.h>
 #include <queue.h>
 
@@ -238,29 +235,29 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
             overtake.orientation = posDiff.getAngle();
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
-                globals::car.pose.pos + vec2m(cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0)).rotate(overtake.orientation),
+                globals::car.pose.pos + vec2m{ cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0) }.rotate(overtake.orientation),
                 clamp(globals::car.speed, m_per_sec_t(1.0f), globals::speed_OVERTAKE_BEGIN)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE).rotate(overtake.orientation),
+                overtake.trajectory.lastConfig().pos + vec2m{ BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
                 globals::speed_OVERTAKE_BEGIN
             }, globals::car.pose.angle, 50);
 
             overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(ACCELERATION_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
+                overtake.trajectory.lastConfig().pos + vec2m{ ACCELERATION_LENGTH, centimeter_t(0) }.rotate(overtake.orientation),
                 globals::speed_OVERTAKE_STRAIGHT
             });
 
             for (uint8_t i = 0; i < 10; ++i) {
                 overtake.trajectory.appendLine(Trajectory::config_t{
-                    overtake.trajectory.lastConfig().pos + vec2m(FAST_SECTION_LENGTH / 10, centimeter_t(0)).rotate(overtake.orientation),
+                    overtake.trajectory.lastConfig().pos + vec2m{ FAST_SECTION_LENGTH / 10, centimeter_t(0) }.rotate(overtake.orientation),
                     globals::speed_OVERTAKE_STRAIGHT
                 });
             }
 
             overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m(BRAKE_LENGTH, centimeter_t(0)).rotate(overtake.orientation),
+                overtake.trajectory.lastConfig().pos + vec2m{ BRAKE_LENGTH, centimeter_t(0) }.rotate(overtake.orientation),
                 globals::speed_OVERTAKE_END
             });
         }
@@ -287,7 +284,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
     finished = overtake.forcedEndManeuverActive &&
                globals::car.distance - overtake.forcedEndManeuverStartDist > centimeter_t(50) &&
-               LinePattern::NONE != detectedLines.pattern.type;
+               LinePattern::NONE != detectedLines.front.pattern.type;
     if (finished) {
         overtake.trajectory.clear();
         overtake.forcedEndManeuverActive = false;
@@ -300,7 +297,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
 } // namespace
 
-extern "C" void runProgRaceTrackTask(const void *argument) {
+extern "C" void runProgRaceTrackTask(void) {
 
     vTaskDelay(500); // gives time to other tasks to wake up
 
@@ -358,7 +355,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             xQueuePeek(distancesQueue, &distances, 0);
 
             controlData.directControl = false;
-            micro::updateMainLine(detectedLines.lines.front, controlData.baseline);
+            micro::updateMainLine(detectedLines.front.lines, controlData.baseline);
             controlData.angle = degree_t(0);
             controlData.offset = millimeter_t(0);
 
@@ -366,12 +363,12 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                 prevCarProps.push_back(globals::car);
             }
 
-            if (LinePattern::NONE != detectedLines.pattern.type) {
+            if (LinePattern::NONE != detectedLines.front.pattern.type) {
                 lastDistWithValidLine = globals::car.distance;
             }
 
             TrackSegments::const_iterator nextSeg = nextSegment(currentSeg);
-            if (nextSeg->hasBecomeActive(detectedLines.pattern, controlData.baseline)) {
+            if (nextSeg->hasBecomeActive(detectedLines.front.pattern, controlData.baseline)) {
                 forceSlowSpeed = false;
                 currentSeg = nextSeg;
                 currentSegStartCarProps = globals::car;
@@ -432,7 +429,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
                     forceSlowSpeed = true;
                 }
 
-                controlData = currentSeg->getControl(detectedLines.pattern, controlData.baseline, lap, currentSegStartCarProps);
+                controlData = currentSeg->getControl(detectedLines.front.pattern, controlData.baseline, lap, currentSegStartCarProps);
                 if (lap > NUM_LAPS) {
                     globals::programState = ProgramState::Finish;
                     LOG_DEBUG("Race finished");
@@ -451,7 +448,7 @@ extern "C" void runProgRaceTrackTask(const void *argument) {
             {
                 static const meter_t startDist = globals::car.distance;
                 if (globals::car.distance - startDist < meter_t(2.0f)) {
-                    controlData = currentSeg->getControl(detectedLines.pattern, controlData.baseline, lap, currentSegStartCarProps);
+                    controlData = currentSeg->getControl(detectedLines.front.pattern, controlData.baseline, lap, currentSegStartCarProps);
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);

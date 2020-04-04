@@ -1,13 +1,11 @@
-#include <cfg_board.h>
-#include <micro/task/common.hpp>
-#include <micro/container/vec.hpp>
 #include <micro/container/ring_buffer.hpp>
-#include <micro/utils/log.hpp>
-#include <micro/utils/convert.hpp>
-#include <micro/utils/arrays.hpp>
-#include <micro/utils/timer.hpp>
+#include <micro/container/vec.hpp>
 #include <micro/debug/params.hpp>
+#include <micro/utils/convert.hpp>
+#include <micro/utils/log.hpp>
+#include <micro/utils/timer.hpp>
 
+#include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
@@ -19,43 +17,47 @@
 
 using namespace micro;
 
-#define MAX_RX_BUFFER_SIZE  1024
-
 #define LOG_QUEUE_LENGTH    16
 QueueHandle_t logQueue;
 static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
 static StaticQueue_t logQueueBuffer;
 
-static ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 6> rxBuffer;
-static char txLog[LOG_MSG_MAX_SIZE];
-static microsecond_t txEndTime;
+namespace {
+
+constexpr uint32_t MAX_RX_BUFFER_SIZE = 1024;
+
+ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 6> rxBuffer;
+char txLog[LOG_MSG_MAX_SIZE];
+microsecond_t txEndTime;
 
 #if SERIAL_DEBUG_ENABLED
-static char inCmd[MAX_RX_BUFFER_SIZE];
-static char debugParamsStr[MAX_RX_BUFFER_SIZE];
-static Params debugParams;
-static Timer debugParamsSendTimer;
+char inCmd[MAX_RX_BUFFER_SIZE];
+char debugParamsStr[MAX_RX_BUFFER_SIZE];
+micro::Params debugParams;
 #endif // SERIAL_DEBUG_ENABLED
-
-static Timer ledBlinkTimer;
 
 static void transmit(const char * const data, const uint32_t length) {
     HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), length);
     txEndTime = getExactTime() + length * second_t(1) / (uart_Command->Init.BaudRate / 12);
 }
 
-extern "C" void runDebugTask(const void *argument) {
+} // namespace
+
+extern "C" void runDebugTask(void) {
     logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
+    log_init(logQueue);
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
 #if SERIAL_DEBUG_ENABLED
-    globals::registerGlobalParams(debugParams);
+    //globals::registerGlobalParams(debugParams);
+    Timer debugParamsSendTimer;
     debugParamsSendTimer.start(millisecond_t(500));
 #endif // SERIAL_DEBUG_ENABLED
 
+    Timer ledBlinkTimer;
     ledBlinkTimer.start(millisecond_t(250));
 
     globals::isDebugTaskOk = true;

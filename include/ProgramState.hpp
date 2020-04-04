@@ -2,8 +2,6 @@
 
 #include <micro/utils/types.hpp>
 
-namespace micro {
-
 enum class ProgramState : uint8_t {
     // Start states
     INVALID           = 0,
@@ -51,5 +49,3 @@ inline ProgramTask getActiveTask(const ProgramState programState) {
     }
     return task;
 }
-
-} // namespace micro

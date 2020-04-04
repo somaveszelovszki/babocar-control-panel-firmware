@@ -1,12 +1,11 @@
+#include <micro/hw/VL53L1X_DistanceSensor.hpp>
+#include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
-#include <micro/hw/VL53L1X_DistanceSensor.hpp>
-#include <micro/task/common.hpp>
-#include <micro/sensor/Filter.hpp>
 
 #include <cfg_board.h>
-#include <globals.hpp>
 #include <DistancesData.hpp>
+#include <globals.hpp>
 
 #include <FreeRTOS.h>
 #include <queue.h>
@@ -22,7 +21,7 @@ static StaticQueue_t distancesQueueBuffer;
 static hw::VL53L1X_DistanceSensor frontDistSensor(i2c_X, 0x52);
 static Timer distSendTimer;
 
-extern "C" void runDistSensorTask(const void *argument) {
+extern "C" void runDistSensorTask(void) {
 
     distancesQueue = xQueueCreateStatic(DISTANCES_QUEUE_LENGTH, sizeof(DistancesData), distancesQueueStorageBuffer, &distancesQueueBuffer);
 

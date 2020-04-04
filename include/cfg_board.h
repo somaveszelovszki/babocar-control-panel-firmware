@@ -14,9 +14,7 @@ extern "C" {
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_usart.h"
 
-extern TIM_HandleTypeDef  htim1;
 extern TIM_HandleTypeDef  htim2;
-extern TIM_HandleTypeDef  htim3;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
