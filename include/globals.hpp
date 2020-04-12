@@ -13,8 +13,8 @@ namespace globals {
 
 extern ProgramState programState;
 extern bool useSafetyEnableSignal;
-extern bool frontIndicatorLedsEnabled;
-extern bool rearIndicatorLedsEnabled;
+extern bool indicatorLedsEnabled;
+extern uint8_t reducedLineDetectScanRangeRadius;
 extern float motorCtrl_P;
 extern float motorCtrl_I;
 extern float motorCtrl_integral_max;

@@ -1,12 +1,11 @@
-#include <micro/panel/LineDetectPanelLinkData.hpp>
-#include <micro/sensor/Filter.hpp>
+#include <micro/panel/vehicleCanTypes.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
+#include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <DetectedLines.hpp>
-#include <DistancesData.hpp>
 #include <globals.hpp>
 
 #include <FreeRTOS.h>
@@ -22,31 +21,27 @@ static StaticQueue_t detectedLinesQueueBuffer;
 
 namespace {
 
-PanelLink<LineDetectOutPanelLinkData, LineDetectInPanelLinkData> frontLineDetectPanelLink(panelLinkRole_t::Master, uart_FrontLineDetectPanel);
-PanelLink<LineDetectOutPanelLinkData, LineDetectInPanelLinkData> rearLineDetectPanelLink(panelLinkRole_t::Master, uart_RearLineDetectPanel);
+DetectedLines detectedLines;
 
-void fillLineDetectPanelData(LineDetectInPanelLinkData& txData, const bool indicatorLedsEnabled, const uint8_t scanRangeRadius, const linePatternDomain_t domain) {
-    txData.indicatorLedsEnabled = indicatorLedsEnabled;
-    txData.scanRangeRadius      = scanRangeRadius;
-    txData.domain               = static_cast<uint8_t>(domain);
-    txData.distance_mm          = static_cast<uint32_t>(static_cast<millimeter_t>(globals::car.distance).get());
-}
+void parseVehicleCanData(const uint32_t id, const uint8_t * const data) {
 
-void parseLineDetectPanelData(LineDetectOutPanelLinkData& rxData, Lines& lines, LinePattern& pattern, const bool mirror = false) {
+    switch (id) {
+    case can::FrontLines::id():
+        reinterpret_cast<const can::FrontLines*>(data)->acquire(detectedLines.front.lines);
+        break;
 
-    lines.clear();
-    for (uint8_t i = 0; i < ARRAY_SIZE(rxData.lines); ++i) {
-        if (rxData.lines[i].id != 0) {
-            lines.insert(Line{ millimeter_t(rxData.lines[i].pos_mm_per16 / 16.0f) * (mirror ? -1 : 1), rxData.lines[i].id });
-        } else {
-            break;
-        }
+    case can::RearLines::id():
+        reinterpret_cast<const can::RearLines*>(data)->acquire(detectedLines.rear.lines);
+        break;
+
+    case can::FrontLinePattern::id():
+        reinterpret_cast<const can::FrontLinePattern*>(data)->acquire(detectedLines.front.pattern);
+        break;
+
+    case can::RearLinePattern::id():
+        reinterpret_cast<const can::RearLinePattern*>(data)->acquire(detectedLines.rear.pattern);
+        break;
     }
-
-    pattern.type      = static_cast<LinePattern::type_t>(rxData.pattern.type);
-    pattern.dir       = static_cast<Sign>(rxData.pattern.dir);
-    pattern.side      = static_cast<Direction>(rxData.pattern.side);
-    pattern.startDist = millimeter_t(rxData.pattern.startDist_mm);
 }
 
 } // namespace
@@ -57,53 +52,42 @@ extern "C" void runLineDetectTask(void) {
 
     vTaskDelay(10); // gives time to other tasks to wake up
 
-    LineDetectOutPanelLinkData rxDataFront, rxDataRear;
-    LineDetectInPanelLinkData txDataFront, txDataRear;
-    DetectedLines detectedLines;
-    Line mainLine;
+    CAN_RxHeaderTypeDef rxHeader;
+    alignas(8) uint8_t rxData[8];
+    uint32_t txMailbox = 0;
+
+    Timer lineDetectControlTimer(can::LineDetectControl::period());
+    WatchdogTimer vehicleCanWatchdog(millisecond_t(15));
 
     while (true) {
-        frontLineDetectPanelLink.update();
-        rearLineDetectPanelLink.update();
 
-        globals::isLineDetectTaskOk = frontLineDetectPanelLink.isConnected() && rearLineDetectPanelLink.isConnected();
+        globals::isLineDetectTaskOk = !vehicleCanWatchdog.hasTimedOut();
 
-        const bool isFwd = globals::car.speed >= m_per_sec_t(0);
-        const ProgramTask task = getActiveTask(globals::programState);
-        const linePatternDomain_t domain = ProgramTask::RaceTrack == task ? linePatternDomain_t::Race : linePatternDomain_t::Labyrinth;
-        const bool isReducedScanRangeEnabled = ProgramTask::RaceTrack == task && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
-        const uint8_t scanRangeRadius = isReducedScanRangeEnabled ? 10 : 0;
+        if (HAL_CAN_GetRxFifoFillLevel(can_Vehicle, canRxFifo_Vehicle)) {
+            if (HAL_OK == HAL_CAN_GetRxMessage(can_Vehicle, canRxFifo_Vehicle, &rxHeader, rxData)) {
+                parseVehicleCanData(rxHeader.StdId, rxData);
+                vehicleCanWatchdog.reset();
 
-        if (frontLineDetectPanelLink.readAvailable(rxDataFront) && rearLineDetectPanelLink.readAvailable(rxDataRear)) {
-            parseLineDetectPanelData(rxDataFront, detectedLines.front.lines, detectedLines.front.pattern, !isFwd);
-            parseLineDetectPanelData(rxDataRear, detectedLines.rear.lines, detectedLines.rear.pattern, isFwd);
-            xQueueOverwrite(detectedLinesQueue, &detectedLines);
+                if (can::FrontLines::id() == rxHeader.StdId) {
+                    xQueueOverwrite(detectedLinesQueue, &detectedLines);
+                }
+            }
         }
 
-        if (frontLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txDataFront, globals::frontIndicatorLedsEnabled, scanRangeRadius, domain);
-            frontLineDetectPanelLink.send(txDataFront);
-        }
+        if (lineDetectControlTimer.checkTimeout()) {
+            const bool isFwd                     = globals::car.speed >= m_per_sec_t(0);
+            const bool isRace                    = ProgramTask::RaceTrack == getActiveTask(globals::programState);
+            const linePatternDomain_t domain     = isRace ? linePatternDomain_t::Race : linePatternDomain_t::Labyrinth;
+            const bool isReducedScanRangeEnabled = isRace && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
+            const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? globals::reducedLineDetectScanRangeRadius : 0;
 
-        if (rearLineDetectPanelLink.shouldSend()) {
-            fillLineDetectPanelData(txDataRear, globals::rearIndicatorLedsEnabled, scanRangeRadius, domain);
-            rearLineDetectPanelLink.send(txDataRear);
+            CAN_TxHeaderTypeDef txHeader = micro::can::buildHeader<can::LineDetectControl>();
+            can::LineDetectControl lineDetectControl(globals::indicatorLedsEnabled, scanRangeRadius, domain);
+            HAL_CAN_AddTxMessage(can_Vehicle, &txHeader, reinterpret_cast<uint8_t*>(&lineDetectControl), &txMailbox);
         }
 
         vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);
-}
-
-/* @brief Callback for front line detect panel UART RxCplt - called when receive finishes.
- */
-void micro_FrontLineDetectPanel_Uart_RxCpltCallback() {
-    frontLineDetectPanelLink.onNewRxData();
-}
-
-/* @brief Callback for rear line detect panel UART RxCplt - called when receive finishes.
- */
-void micro_RearLineDetectPanel_Uart_RxCpltCallback() {
-    rearLineDetectPanelLink.onNewRxData();
 }

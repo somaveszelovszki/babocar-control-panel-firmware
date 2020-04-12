@@ -8,6 +8,7 @@ struct DetectedLines {
     struct {
         Lines lines;
         LinePattern pattern;
+        bool isPatternPending;
     } front, rear;
 };
 

@@ -155,5 +155,9 @@
 			<name>Middlewares/FreeRTOS/stream_buffer.c</name>
 			<type>1</type>
 			<location>/home/soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.24.1/Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c</location>
+		</link><link>
+			<name>Drivers/STM32F4xx_HAL_Driver/stm32f4xx_hal_can.c</name>
+			<type>1</type>
+			<location>/home/soma/STM32Cube/Repository/STM32Cube_FW_F4_V1.24.1/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c</location>
 		</link></linkedResources>
 </projectDescription>

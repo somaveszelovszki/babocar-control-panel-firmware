@@ -123,7 +123,3 @@ void micro_Command_Uart_RxCpltCallback(const uint32_t leftBytes) {
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 }
-
-/* @brief Callback for Serial UART TxCplt - called when transmit finishes.
- */
-void micro_Command_Uart_TxCpltCallback() {}

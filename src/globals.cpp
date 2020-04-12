@@ -8,8 +8,8 @@ namespace globals {
 
 ProgramState programState                       = ProgramState::INVALID;
 bool useSafetyEnableSignal                      = false;
-bool frontIndicatorLedsEnabled                  = false;
-bool rearIndicatorLedsEnabled                   = true;
+bool indicatorLedsEnabled                       = true;
+uint8_t reducedLineDetectScanRangeRadius        = 10;
 float motorCtrl_P                               = 0.85f;
 float motorCtrl_I                               = 0.04f;
 float motorCtrl_integral_max                    = 4.0f;
