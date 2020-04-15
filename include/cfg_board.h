@@ -16,22 +16,22 @@ extern CAN_HandleTypeDef  hcan1;
 extern I2C_HandleTypeDef  hi2c1;
 extern SPI_HandleTypeDef  hspi1;
 extern TIM_HandleTypeDef  htim2;
-extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart5;
+extern UART_HandleTypeDef huart6;
 
 #define can_Vehicle             (&hcan1)
 #define canRxFifo_Vehicle       CAN_RX_FIFO0
 
 #define i2c_X                   (&hi2c1)
 
-#define uart_FrontDistSensor    (&huart1)
+#define uart_FrontDistSensor    (&huart4)
 #define uart_Command            (&huart2)
 #define uart_RadioModule        (&huart3)
-#define uart_RearDistSensor     (&huart4)
-#define uart_X                  (&huart5)
+#define uart_RearDistSensor     (&huart5)
+#define uart_X                  (&huart6)
 
 #define gpio_GyroINT            GPIOB
 #define gpioPin_GyroINT1        GPIO_PIN_0
