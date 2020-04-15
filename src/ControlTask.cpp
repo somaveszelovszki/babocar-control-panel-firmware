@@ -82,21 +82,22 @@ extern "C" void runControlTask(void) {
         if (xQueueReceive(controlQueue, &controlData, 0)) {
             controlDataWatchdog.reset();
 
-            if (controlData.directControl) {
-                frontWheelTargetAngle = controlData.frontWheelAngle;
-                rearWheelTargetAngle = controlData.rearWheelAngle;
-            } else {
+            if (ControlData::controlType_t::Direct == controlData.controlType) {
+                frontWheelTargetAngle = controlData.directControl.frontWheelAngle;
+                rearWheelTargetAngle = controlData.directControl.rearWheelAngle;
+
+            } else if (ControlData::controlType_t::Line == controlData.controlType) {
                 // TODO separate line and orientation control for front and rear servo?
-                const bool isFwd = globals::car.speed >= m_per_sec_t(0);
-                const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
-                float P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
-                float D = globals::frontLineCtrl_D_fwd;
-
-                lineController.setParams(P, D);
-                lineController.run(static_cast<centimeter_t>(controlData.baseline.pos - controlData.offset).get());
-
-                frontWheelTargetAngle = isFwd ? controlData.angle + degree_t(lineController.getOutput()) : radian_t(0);
-                rearWheelTargetAngle = controlData.rearServoEnabled ? controlData.angle - degree_t(lineController.getOutput()) : controlData.angle;
+//                const bool isFwd = globals::car.speed >= m_per_sec_t(0);
+//                const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
+//                float P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
+//                float D = globals::frontLineCtrl_D_fwd;
+//
+//                lineController.setParams(P, D);
+//                lineController.run(static_cast<centimeter_t>(controlData.baseline.pose.pos - controlData.offset).get());
+//
+//                frontWheelTargetAngle = isFwd ? controlData.baseline.angle + degree_t(lineController.getOutput()) : radian_t(0);
+//                rearWheelTargetAngle = controlData.rearServoEnabled ? controlData.angle - degree_t(lineController.getOutput()) : controlData.angle;
             }
 
             frontDistSensorServoTargetAngle = frontWheelTargetAngle * globals::distServoTransferRate;
@@ -114,7 +115,7 @@ extern "C" void runControlTask(void) {
 
         if (lateralControlTimer.checkTimeout()) {
             CAN_TxHeaderTypeDef txHeader = micro::can::buildHeader<can::LateralControl>();
-            can::LateralControl lateralControl(controlData.frontWheelAngle, controlData.rearWheelAngle, radian_t(0));
+            can::LateralControl lateralControl(frontWheelTargetAngle, rearWheelTargetAngle, radian_t(0));
             HAL_CAN_AddTxMessage(can_Vehicle, &txHeader, reinterpret_cast<uint8_t*>(&lateralControl), &txMailbox);
         }
 

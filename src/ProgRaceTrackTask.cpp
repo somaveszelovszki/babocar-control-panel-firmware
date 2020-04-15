@@ -31,8 +31,8 @@ constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
 
 struct TrackSegment {
     bool isFast;
-    std::function<bool(const LinePattern&, const Line&)> hasBecomeActive;
-    std::function<ControlData(const LinePattern&, const Line&, uint8_t, const CarProps&)> getControl;
+    std::function<bool(const LinePattern&, const MainLine&)> hasBecomeActive;
+    std::function<ControlData(const LinePattern&, const MainLine&, uint8_t, const CarProps&)> getControl;
 };
 
 typedef vec<TrackSegment, 10> TrackSegments;
@@ -40,17 +40,15 @@ typedef vec<TrackSegment, 10> TrackSegments;
 struct {
     TrackSegments::const_iterator segment;
     meter_t startDist;
-    radian_t orientation  = radian_t(0);
-    Trajectory trajectory = Trajectory(cfg::CAR_OPTO_REAR_PIVOT_DIST);
+    radian_t orientation;
+    Trajectory trajectory;
     uint8_t cntr = 0;
-    bool forcedEndManeuverActive = false;
-    meter_t forcedEndManeuverStartDist;
 } overtake;
 
 bool forceInstantBrake = true;
 bool forceSlowSpeed = false;
 
-bool hasBecomeActive_Fast(const LinePattern& pattern, const Line& mainLine) {
+bool hasBecomeActive_Fast(const LinePattern& pattern, const MainLine& mainLine) {
     static bool signDetected = false;
 
     bool active = false;
@@ -64,7 +62,7 @@ bool hasBecomeActive_Fast(const LinePattern& pattern, const Line& mainLine) {
     return active;
 }
 
-bool hasBecomeActive_Slow(const LinePattern& pattern, const Line&) {
+bool hasBecomeActive_Slow(const LinePattern& pattern, const MainLine&) {
     static constexpr m_per_sec2_t MAX_DECELERATION = m_per_sec2_t(4);
 
     static bool signDetected = false;
@@ -89,11 +87,11 @@ const TrackSpeeds& getSpeeds(uint8_t lap) {
     return globals::trackSpeeds[lap - 1];
 }
 
-ControlData getControl_Fast(const LinePattern&, const Line& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Fast(const LinePattern&, const MainLine& mainLine, uint8_t lap, const CarProps&) {
 
     static bool enabled = true;
 
-    if (enabled && abs(mainLine.pos) > centimeter_t(8)) {
+    if (enabled && abs(mainLine.centerLine.pos) > centimeter_t(8)) {
         enabled = false;
     } else if (!enabled && globals::car.orientedDistance > centimeter_t(50)) {
         enabled = true;
@@ -102,12 +100,12 @@ ControlData getControl_Fast(const LinePattern&, const Line& mainLine, uint8_t la
     const TrackSpeeds& speeds = getSpeeds(lap);
 
     ControlData controlData;
-    controlData.speed = enabled ? speeds.fast : m_per_sec_t(1.5f);
-    controlData.rampTime = millisecond_t(800);
-    controlData.baseline = mainLine;
-    controlData.offset = millimeter_t(0);
-    controlData.angle = radian_t(0);
-    controlData.rearServoEnabled = false;
+    controlData.speed                = enabled ? speeds.fast : m_per_sec_t(1.5f);
+    controlData.rampTime             = millisecond_t(800);
+    controlData.controlType          = ControlData::controlType_t::Line;
+    controlData.lineControl.baseline = mainLine.centerLine;
+    controlData.lineControl.offset   = millimeter_t(0);
+    controlData.lineControl.angle    = radian_t(0);
     return controlData;
 }
 
@@ -120,7 +118,7 @@ meter_t getSlowSectionStartDist(const LinePattern& pattern) {
     return startDist;
 }
 
-ControlData getControl_CommonSlow(const LinePattern& pattern, meter_t slowSectionStartDist, const Line& mainLine) {
+ControlData getControl_CommonSlow(const LinePattern& pattern, meter_t slowSectionStartDist, const MainLine& mainLine) {
 
     static bool fastSignDetected = false;
     static meter_t fastSignStartDist;
@@ -135,15 +133,15 @@ ControlData getControl_CommonSlow(const LinePattern& pattern, meter_t slowSectio
     }
 
     ControlData controlData;
-    controlData.rampTime = millisecond_t(500);
-    controlData.baseline = mainLine;
-    controlData.offset = millimeter_t(0);
-    controlData.angle = radian_t(0);
-    controlData.rearServoEnabled = !fastSignDetected && globals::car.distance - slowSectionStartDist > centimeter_t(2);
+    controlData.rampTime             = millisecond_t(500);
+    controlData.controlType          = ControlData::controlType_t::Line;
+    controlData.lineControl.baseline = mainLine.centerLine;
+    controlData.lineControl.offset   = millimeter_t(0);
+    controlData.lineControl.angle    = radian_t(0);
     return controlData;
 }
 
-ControlData getControl_Slow_1(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow_1(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
 
     const meter_t startDist = getSlowSectionStartDist(pattern);
     ControlData controlData = getControl_CommonSlow(pattern, startDist, mainLine);
@@ -153,7 +151,7 @@ ControlData getControl_Slow_1(const LinePattern& pattern, const Line& mainLine, 
     return controlData;
 }
 
-ControlData getControl_Slow_4(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow_4(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
 
     const meter_t startDist = getSlowSectionStartDist(pattern);
     ControlData controlData = getControl_CommonSlow(pattern, startDist, mainLine);
@@ -163,7 +161,7 @@ ControlData getControl_Slow_4(const LinePattern& pattern, const Line& mainLine, 
     return controlData;
 }
 
-ControlData getControl_Slow_2(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow_2(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
 
     const meter_t startDist   = getSlowSectionStartDist(pattern);
     const bool isSectionStart = globals::car.distance - startDist < centimeter_t(200);
@@ -175,7 +173,7 @@ ControlData getControl_Slow_2(const LinePattern& pattern, const Line& mainLine, 
     return controlData;
 }
 
-ControlData getControl_Slow_3(const LinePattern& pattern, const Line& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow_3(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
 
     const meter_t startDist   = getSlowSectionStartDist(pattern);
     const bool isSectionEnd   = globals::car.distance - startDist > centimeter_t(314);
@@ -214,10 +212,11 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
     static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(900) - centimeter_t(250);
 
     static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(30);
-    static constexpr meter_t BEGIN_SINE_ARC_LENGTH   = centimeter_t(120);
-    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(100);
+    static constexpr meter_t BEGIN_SINE_ARC_LENGTH   = centimeter_t(150);
+    static constexpr meter_t ACCELERATION_LENGTH     = centimeter_t(50);
     static constexpr meter_t BRAKE_LENGTH            = centimeter_t(30);
-    static constexpr meter_t FAST_SECTION_LENGTH     = OVERTAKE_SECTION_LENGTH - ORIENTATION_FILTER_DIST - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH;
+    static constexpr meter_t END_SINE_ARC_LENGTH     = centimeter_t(150);
+    static constexpr meter_t FAST_SECTION_LENGTH     = OVERTAKE_SECTION_LENGTH - ORIENTATION_FILTER_DIST - BEGIN_SINE_ARC_LENGTH - ACCELERATION_LENGTH - BRAKE_LENGTH - END_SINE_ARC_LENGTH;
 
     bool finished = false;
 
@@ -235,61 +234,62 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
             overtake.orientation = posDiff.getAngle();
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
-                globals::car.pose.pos + vec2m{ cfg::CAR_OPTO_REAR_PIVOT_DIST, centimeter_t(0) }.rotate(overtake.orientation),
+                globals::car.pose,
                 clamp(globals::car.speed, m_per_sec_t(1.0f), globals::speed_OVERTAKE_BEGIN)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m{ BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
+                Pose{
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
+                    overtake.orientation
+                },
                 globals::speed_OVERTAKE_BEGIN
-            }, globals::car.pose.angle, 50);
+            }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI);
 
             overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m{ ACCELERATION_LENGTH, centimeter_t(0) }.rotate(overtake.orientation),
+                Pose{
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ ACCELERATION_LENGTH, centimeter_t(0) }.rotate(overtake.orientation),
+                    overtake.orientation
+                },
                 globals::speed_OVERTAKE_STRAIGHT
             });
 
             for (uint8_t i = 0; i < 10; ++i) {
                 overtake.trajectory.appendLine(Trajectory::config_t{
-                    overtake.trajectory.lastConfig().pos + vec2m{ FAST_SECTION_LENGTH / 10, centimeter_t(0) }.rotate(overtake.orientation),
+                    Pose{
+                        overtake.trajectory.lastConfig().pose.pos + vec2m{ FAST_SECTION_LENGTH / 10, centimeter_t(0) }.rotate(overtake.orientation),
+                        overtake.orientation
+                    },
                     globals::speed_OVERTAKE_STRAIGHT
                 });
             }
 
             overtake.trajectory.appendLine(Trajectory::config_t{
-                overtake.trajectory.lastConfig().pos + vec2m{ BRAKE_LENGTH, centimeter_t(0) }.rotate(overtake.orientation),
+                Pose{
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ BRAKE_LENGTH, centimeter_t(0) }.rotate(overtake.orientation),
+                    overtake.orientation
+                },
                 globals::speed_OVERTAKE_END
             });
+
+            overtake.trajectory.appendSineArc(Trajectory::config_t{
+                Pose{
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ END_SINE_ARC_LENGTH, -globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
+                    overtake.orientation
+                },
+                globals::speed_OVERTAKE_BEGIN
+            }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI_2);
         }
     }
 
     if (overtake.trajectory.length() > meter_t(0)) {
         controlData = overtake.trajectory.update(globals::car);
-        controlData.rearServoEnabled = false;
 
-        if (overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(10)) {
-            overtake.forcedEndManeuverActive = true;
-            overtake.forcedEndManeuverStartDist = globals::car.distance;
+        finished = overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(30) && LinePattern::NONE != detectedLines.front.pattern.type;
+        if (finished) {
             overtake.trajectory.clear();
+            overtake.startDist = meter_t(0);
         }
-    }
-
-    if (overtake.forcedEndManeuverActive) {
-        controlData.speed = globals::speed_OVERTAKE_END;
-        controlData.rearServoEnabled = true;
-        controlData.directControl = true;
-        controlData.frontWheelAngle = degree_t(-17);
-        controlData.rearWheelAngle = degree_t(-17);
-    }
-
-    finished = overtake.forcedEndManeuverActive &&
-               globals::car.distance - overtake.forcedEndManeuverStartDist > centimeter_t(50) &&
-               LinePattern::NONE != detectedLines.front.pattern.type;
-    if (finished) {
-        overtake.trajectory.clear();
-        overtake.forcedEndManeuverActive = false;
-        overtake.forcedEndManeuverStartDist = meter_t(0);
-        overtake.startDist = meter_t(0);
     }
 
     return finished;
@@ -304,6 +304,8 @@ extern "C" void runProgRaceTrackTask(void) {
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
     DistancesData distances;
+
+    MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
     uint8_t lap;
     TrackSegments::const_iterator currentSeg;
@@ -354,10 +356,7 @@ extern "C" void runProgRaceTrackTask(void) {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
-            controlData.directControl = false;
-            micro::updateMainLine(detectedLines.front.lines, controlData.baseline);
-            controlData.angle = degree_t(0);
-            controlData.offset = millimeter_t(0);
+            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
 
             if (globals::car.distance - prevCarProps.peek_back(0).distance >= PREV_CAR_PROPS_RESOLUTION) {
                 prevCarProps.push_back(globals::car);
@@ -368,7 +367,7 @@ extern "C" void runProgRaceTrackTask(void) {
             }
 
             TrackSegments::const_iterator nextSeg = nextSegment(currentSeg);
-            if (nextSeg->hasBecomeActive(detectedLines.front.pattern, controlData.baseline)) {
+            if (nextSeg->hasBecomeActive(detectedLines.front.pattern, mainLine)) {
                 forceSlowSpeed = false;
                 currentSeg = nextSeg;
                 currentSegStartCarProps = globals::car;
@@ -384,7 +383,6 @@ extern "C" void runProgRaceTrackTask(void) {
             case ProgramState::ReachSafetyCar:
                 controlData.speed = globals::speed_REACH_SAFETY_CAR;
                 controlData.rampTime = millisecond_t(0);
-                controlData.rearServoEnabled = false;
                 forceInstantBrake = true;
                 if (distances.front > meter_t(0) && safetyCarFollowSpeed(distances.front, true) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;
@@ -396,7 +394,6 @@ extern "C" void runProgRaceTrackTask(void) {
                 static meter_t lastDistWithSafetyCar;
                 controlData.speed = safetyCarFollowSpeed(distances.front, currentSeg->isFast);
                 controlData.rampTime = millisecond_t(0);
-                controlData.rearServoEnabled = false;
                 forceInstantBrake = true;
                 globals::distServoEnabled = true;
 
@@ -429,7 +426,7 @@ extern "C" void runProgRaceTrackTask(void) {
                     forceSlowSpeed = true;
                 }
 
-                controlData = currentSeg->getControl(detectedLines.front.pattern, controlData.baseline, lap, currentSegStartCarProps);
+                controlData = currentSeg->getControl(detectedLines.front.pattern, mainLine, lap, currentSegStartCarProps);
                 if (lap > NUM_LAPS) {
                     globals::programState = ProgramState::Finish;
                     LOG_DEBUG("Race finished");
@@ -448,7 +445,7 @@ extern "C" void runProgRaceTrackTask(void) {
             {
                 static const meter_t startDist = globals::car.distance;
                 if (globals::car.distance - startDist < meter_t(2.0f)) {
-                    controlData = currentSeg->getControl(detectedLines.front.pattern, controlData.baseline, lap, currentSegStartCarProps);
+                    controlData = currentSeg->getControl(detectedLines.front.pattern, mainLine, lap, currentSegStartCarProps);
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);

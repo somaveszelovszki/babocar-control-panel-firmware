@@ -42,7 +42,7 @@ struct {
     Segment *seg          = nullptr;
     Junction *lastJunc    = nullptr;
     Maneuver lastManeuver = { radian_t(0), Direction::CENTER };
-    Trajectory trajectory = Trajectory(cfg::CAR_OPTO_CENTER_DIST);
+    Trajectory trajectory;
 } laneChange;
 
 enum class Y_turnState {
@@ -610,7 +610,7 @@ void updateCarOrientation(const DetectedLines& detectedLines) {
     }
 }
 
-bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, ControlData& controlData) {
+bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, MainLine& mainLine, ControlData& controlData) {
 
     static uint8_t numInSegments;
     static Direction inSegmentDir;
@@ -619,10 +619,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
     static struct {
         Direction dir = Direction::CENTER;
         bool enabled = false;
-        Line prevLine;
     } forcedManeuver;
-
-    static constexpr millimeter_t FORCED_DISAPPEAR_POS = centimeter_t(8);
 
     static const bool runOnce = [&controlData]() {
         reset();
@@ -637,12 +634,12 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     updateCarOrientation(detectedLines);
 
-    if (LinePattern::SINGLE_LINE == detectedLines.front.pattern.type && forcedManeuver.enabled) {
-        if (abs(forcedManeuver.prevLine.pos) < FORCED_DISAPPEAR_POS) {
-            forcedManeuver.enabled = false;
-            LOG_DEBUG("Force maneuver disabled");
-        }
+    if (forcedManeuver.enabled && LinePattern::SINGLE_LINE == detectedLines.front.pattern.type) {
+        forcedManeuver.enabled = false;
+        LOG_DEBUG("Force maneuver disabled");
     }
+
+    controlData.controlType = ControlData::controlType_t::Line;
 
 //    // handles if car is stuck in reverse and drives into a dead-end segment
 //    if (globals::speed_LAB_BWD == controlData.speed) {
@@ -681,14 +678,17 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
                 // if the car is going backwards, mirrored pattern sides are detected
                 if (currentSeg->isDeadEnd) {
-                    inSegmentDir = -inSegmentDir;
-                    controlData.speed = globals::speed_LAB_FWD;
+                    inSegmentDir         = -inSegmentDir;
+                    controlData.speed    = globals::speed_LAB_FWD;
                     controlData.rampTime = millisecond_t(1000);
                 }
 
                 // follows center line in junctions
                 if (3 == detectedLines.front.lines.size()) {
-                    controlData.baseline = detectedLines.front.lines[1];
+                    mainLine.frontLine = detectedLines.front.lines[1];
+                }
+                if (3 == detectedLines.rear.lines.size()) {
+                    mainLine.rearLine = detectedLines.rear.lines[1];
                 }
 
             } else if (Sign::POSITIVE == detectedLines.front.pattern.dir) {
@@ -713,7 +713,6 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
                 forcedManeuver.dir = onJunctionDetected(inOri, outOri, numInSegments, inSegmentDir, numSegments);
                 forcedManeuver.enabled = true;
-                forcedManeuver.prevLine = Line();
                 LOG_DEBUG("Forced maneuver: %s", to_string(forcedManeuver.dir));
             }
             break;
@@ -754,38 +753,30 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         static constexpr millimeter_t MAX_LINE_JUMP = centimeter_t(3.5f);
 
         // updates the main line (if an error occurs, keeps previous line)
-        switch (forcedManeuver.dir) {
-        case Direction::LEFT:
-            if (detectedLines.front.lines.size() >= 1) {
-                controlData.baseline = detectedLines.front.lines[0];
+        if (detectedLines.front.lines.size() && detectedLines.rear.lines.size()) {
+            switch (forcedManeuver.dir) {
+            case Direction::LEFT:
+                mainLine.frontLine = detectedLines.front.lines[0];
+                mainLine.rearLine  = *detectedLines.rear.lines.back();
+                break;
+            case Direction::CENTER:
+                mainLine.frontLine = detectedLines.front.lines.size() == 1 ? detectedLines.front.lines[0] : detectedLines.front.lines[1];
+                mainLine.rearLine  = detectedLines.rear.lines.size()  == 1 ? detectedLines.rear.lines[0]  : detectedLines.rear.lines[1];
+                break;
+            case Direction::RIGHT:
+                mainLine.frontLine = *detectedLines.front.lines.back();
+                mainLine.rearLine  = detectedLines.rear.lines[0];
+                break;
             }
-            if (forcedManeuver.prevLine.pos < -FORCED_DISAPPEAR_POS &&
-                abs(forcedManeuver.prevLine.pos - controlData.baseline.pos) > MAX_LINE_JUMP) {
-                controlData.baseline = forcedManeuver.prevLine;
-            }
-            break;
-        case Direction::CENTER:
-            if (detectedLines.front.lines.size() == 1) {
-                controlData.baseline = detectedLines.front.lines[0];
-            } else if (detectedLines.front.lines.size() == 3) {
-                controlData.baseline = detectedLines.front.lines[1];
-            }
-            break;
-        case Direction::RIGHT:
-            if (detectedLines.front.lines.size() >= 2) {
-                controlData.baseline = *detectedLines.front.lines.back();
-            }
-            if (forcedManeuver.prevLine.pos > FORCED_DISAPPEAR_POS &&
-                abs(forcedManeuver.prevLine.pos - controlData.baseline.pos) > MAX_LINE_JUMP) {
-                controlData.baseline = forcedManeuver.prevLine;
-            }
-            break;
         }
-
-        forcedManeuver.prevLine = controlData.baseline;
     }
 
-    controlData.rearServoEnabled = controlData.speed < m_per_sec_t(0) || forcedManeuver.enabled;
+    mainLine.updateCenterLine(globals::car.speed >= m_per_sec_t(0));
+
+    controlData.controlType          = ControlData::controlType_t::Line;
+    controlData.lineControl.baseline = mainLine.centerLine;
+    controlData.lineControl.offset   = millimeter_t(0);
+    controlData.lineControl.angle    = degree_t(0);
 
     return finished;
 }
@@ -800,29 +791,35 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
             if (Sign::POSITIVE == detectedLines.front.pattern.dir) {
 
                 laneChange.trajectory.setStartConfig(Trajectory::config_t{
-                    globals::car.pose.pos + vec2m{ cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0) }.rotate(globals::car.pose.angle),
+                    globals::car.pose,
                     globals::speed_LANE_CHANGE
                 }, globals::car.distance);
 
                 laneChange.trajectory.appendSineArc(Trajectory::config_t{
-                    laneChange.trajectory.lastConfig().pos + vec2m{ centimeter_t(80), -LANE_DISTANCE }.rotate(globals::car.pose.angle),
-                    globals::speed_LANE_CHANGE
-                }, globals::car.pose.angle, 30);
+                    Pose{
+                        laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(80), -LANE_DISTANCE }.rotate(globals::car.pose.angle),
+                        globals::car.pose.angle
+                    },
+                    globals::speed_LANE_CHANGE,
+                }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
 
             } else if (Sign::NEGATIVE == detectedLines.front.pattern.dir) {
 
                 laneChange.trajectory.setStartConfig(Trajectory::config_t{
-                    globals::car.pose.pos + vec2m{ cfg::CAR_OPTO_CENTER_DIST, centimeter_t(0) }.rotate(globals::car.pose.angle),
+                    globals::car.pose,
                     globals::speed_LANE_CHANGE
                 }, globals::car.distance);
 
                 laneChange.trajectory.appendCircle(
-                    laneChange.trajectory.lastConfig().pos + vec2m{ centimeter_t(0), LANE_DISTANCE / 2 }.rotate(globals::car.pose.angle),
+                    laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(0), LANE_DISTANCE / 2 }.rotate(globals::car.pose.angle),
                     PI,
                     globals::speed_LANE_CHANGE, 30);
 
                 laneChange.trajectory.appendLine(Trajectory::config_t{
-                    laneChange.trajectory.lastConfig().pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(globals::car.pose.angle + PI),
+                    Pose{
+                        laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(globals::car.pose.angle + PI),
+                        globals::car.pose.angle
+                    },
                     globals::speed_LANE_CHANGE
                 });
 
@@ -833,7 +830,6 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
     }
 
     controlData = laneChange.trajectory.update(globals::car);
-    controlData.rearServoEnabled = true;
 
     const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.front.pattern.type;
     if (finished) {
@@ -862,6 +858,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
+    MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
     while (true) {
         switch (getActiveTask(globals::programState)) {
@@ -871,22 +868,11 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
 
-                controlData.directControl = false;
-
-                if (globals::car.speed >= m_per_sec_t(0)) {
-                    micro::updateMainLine(detectedLines.front.lines, controlData.baseline);
-                } else if (3 == detectedLines.rear.lines.size() && micro::areClose(detectedLines.rear.lines)) {
-                    controlData.baseline = avg(detectedLines.rear.lines);
-                } else {
-                    micro::updateMainLine(detectedLines.rear.lines, controlData.baseline);
-                }
-
-                controlData.angle = degree_t(0);
-                controlData.offset = millimeter_t(0);
+                micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
 
                 switch (globals::programState) {
                 case ProgramState::NavigateLabyrinth:
-                    if (navigateLabyrinth(prevDetectedLines, detectedLines, controlData)) {
+                    if (navigateLabyrinth(prevDetectedLines, detectedLines, mainLine, controlData)) {
                         globals::programState = ProgramState::LaneChange;
                     }
                     break;
