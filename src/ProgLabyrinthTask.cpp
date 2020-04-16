@@ -838,18 +838,6 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
     return finished;
 }
 
-Line avg(const Lines& lines) {
-    Line line;
-    for (const Line& l : lines) {
-        line.pos += l.pos;
-    }
-
-    if (lines.size()) {
-        line.pos /= lines.size();
-    }
-    return line;
-}
-
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
