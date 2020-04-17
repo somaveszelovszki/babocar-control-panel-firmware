@@ -1,4 +1,4 @@
-#include <micro/panel/vehicleCanTypes.hpp>
+#include <micro/panel/CanManager.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
@@ -21,58 +21,40 @@ static StaticQueue_t detectedLinesQueueBuffer;
 
 namespace {
 
-DetectedLines detectedLines;
-
-void parseVehicleCanData(const uint32_t id, const uint8_t * const data) {
-
-    switch (id) {
-    case can::FrontLines::id():
-        reinterpret_cast<const can::FrontLines*>(data)->acquire(detectedLines.front.lines);
-        break;
-
-    case can::RearLines::id():
-        reinterpret_cast<const can::RearLines*>(data)->acquire(detectedLines.rear.lines);
-        break;
-
-    case can::FrontLinePattern::id():
-        reinterpret_cast<const can::FrontLinePattern*>(data)->acquire(detectedLines.front.pattern);
-        break;
-
-    case can::RearLinePattern::id():
-        reinterpret_cast<const can::RearLinePattern*>(data)->acquire(detectedLines.rear.pattern);
-        break;
-    }
-}
-
 } // namespace
 
 extern "C" void runLineDetectTask(void) {
 
     detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
-    vTaskDelay(10); // gives time to other tasks to wake up
+    DetectedLines detectedLines;
 
-    CAN_RxHeaderTypeDef rxHeader;
-    alignas(8) uint8_t rxData[8];
-    uint32_t txMailbox = 0;
+    CanManager canManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(15));
+
+    canManager.registerHandler(can::FrontLines::id(), [&detectedLines] (const uint8_t * const data) {
+        reinterpret_cast<const can::FrontLines*>(data)->acquire(detectedLines.front.lines);
+        xQueueOverwrite(detectedLinesQueue, &detectedLines);
+    });
+
+    canManager.registerHandler(can::RearLines::id(), [&detectedLines] (const uint8_t * const data) {
+        reinterpret_cast<const can::RearLines*>(data)->acquire(detectedLines.rear.lines);
+    });
+
+    canManager.registerHandler(can::FrontLinePattern::id(), [&detectedLines] (const uint8_t * const data) {
+        reinterpret_cast<const can::FrontLinePattern*>(data)->acquire(detectedLines.front.pattern);
+    });
+
+    canManager.registerHandler(can::RearLinePattern::id(), [&detectedLines] (const uint8_t * const data) {
+        reinterpret_cast<const can::RearLinePattern*>(data)->acquire(detectedLines.rear.pattern);
+    });
 
     Timer lineDetectControlTimer(can::LineDetectControl::period());
-    WatchdogTimer vehicleCanWatchdog(millisecond_t(15));
 
     while (true) {
 
-        globals::isLineDetectTaskOk = !vehicleCanWatchdog.hasTimedOut();
+        globals::isLineDetectTaskOk = !canManager.hasRxTimedOut();
 
-        if (HAL_CAN_GetRxFifoFillLevel(can_Vehicle, canRxFifo_Vehicle)) {
-            if (HAL_OK == HAL_CAN_GetRxMessage(can_Vehicle, canRxFifo_Vehicle, &rxHeader, rxData)) {
-                parseVehicleCanData(rxHeader.StdId, rxData);
-                vehicleCanWatchdog.reset();
-
-                if (can::FrontLines::id() == rxHeader.StdId) {
-                    xQueueOverwrite(detectedLinesQueue, &detectedLines);
-                }
-            }
-        }
+        canManager.handleIncomingFrames();
 
         if (lineDetectControlTimer.checkTimeout()) {
             const bool isFwd                     = globals::car.speed >= m_per_sec_t(0);
@@ -81,9 +63,7 @@ extern "C" void runLineDetectTask(void) {
             const bool isReducedScanRangeEnabled = isRace && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
             const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? globals::reducedLineDetectScanRangeRadius : 0;
 
-            CAN_TxHeaderTypeDef txHeader = micro::can::buildHeader<can::LineDetectControl>();
-            can::LineDetectControl lineDetectControl(globals::indicatorLedsEnabled, scanRangeRadius, domain);
-            HAL_CAN_AddTxMessage(can_Vehicle, &txHeader, reinterpret_cast<uint8_t*>(&lineDetectControl), &txMailbox);
+            canManager.send(can::LineDetectControl(globals::indicatorLedsEnabled, scanRangeRadius, domain));
         }
 
         vTaskDelay(1);

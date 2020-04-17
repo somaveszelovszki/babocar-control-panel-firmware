@@ -1,6 +1,6 @@
 #include <micro/control/PD_Controller.hpp>
 #include <micro/hw/SteeringServo.hpp>
-#include <micro/panel/vehicleCanTypes.hpp>
+#include <micro/panel/CanManager.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
@@ -25,7 +25,7 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-void parseVehicleCanData(const uint32_t id, const uint8_t * const data) {
+void handleVehicleCanData(const uint32_t id, const uint8_t * const data) {
 
     switch (id) {
     case can::LateralState::id(): {
@@ -55,28 +55,31 @@ extern "C" void runControlTask(void) {
     radian_t rearWheelTargetAngle;
     radian_t frontDistSensorServoTargetAngle;
 
-    PD_Controller lineController(globals::frontLineCtrl_P_slow, globals::frontLineCtrl_D_slow,
-        static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get());
-
-    CAN_RxHeaderTypeDef rxHeader;
-    alignas(8) uint8_t rxData[8];
-    uint32_t txMailbox = 0;
+    PID_Controller lineController(globals::frontLineCtrl_P_slow, 0.0f, globals::frontLineCtrl_D_slow, 0.0f,
+        static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), 0.0f);
 
     Timer longitudinalControlTimer(can::LongitudinalControl::period());
     Timer lateralControlTimer(can::LateralControl::period());
 
-    WatchdogTimer vehicleCanWatchdog(millisecond_t(15));
+    CanManager canManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
+
+    canManager.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
+        radian_t frontSteeringServoAngle, rearSteeringServoAngle, frontDistSensorServoAngle;
+        reinterpret_cast<const can::LateralState*>(data)->acquire(frontSteeringServoAngle, rearSteeringServoAngle, frontDistSensorServoAngle);
+        globals::car.frontWheelAngle = frontSteeringServoAngle * cfg::SERVO_WHEEL_TRANSFER_RATE;
+        globals::car.rearWheelAngle  = rearSteeringServoAngle * cfg::SERVO_WHEEL_TRANSFER_RATE;
+    });
+
+    canManager.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
+        reinterpret_cast<const can::LongitudinalState*>(data)->acquire(globals::car.speed, globals::car.distance);
+    });
+
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
 
     while (true) {
-        globals::isControlTaskOk = !vehicleCanWatchdog.hasTimedOut();;
+        globals::isControlTaskOk = !canManager.hasRxTimedOut();
 
-        if (HAL_CAN_GetRxFifoFillLevel(can_Vehicle, canRxFifo_Vehicle)) {
-            if (HAL_OK == HAL_CAN_GetRxMessage(can_Vehicle, canRxFifo_Vehicle, &rxHeader, rxData)) {
-                parseVehicleCanData(rxHeader.StdId, rxData);
-                vehicleCanWatchdog.reset();
-            }
-        }
+        canManager.handleIncomingFrames();
 
         // if no control data is received for a given period, stops motor for safety reasons
         if (xQueueReceive(controlQueue, &controlData, 0)) {
@@ -108,15 +111,11 @@ extern "C" void runControlTask(void) {
         }
 
         if (longitudinalControlTimer.checkTimeout()) {
-            CAN_TxHeaderTypeDef txHeader = micro::can::buildHeader<can::LongitudinalControl>();
-            can::LongitudinalControl longitudinalControl(controlData.speed, globals::useSafetyEnableSignal, controlData.rampTime);
-            HAL_CAN_AddTxMessage(can_Vehicle, &txHeader, reinterpret_cast<uint8_t*>(&longitudinalControl), &txMailbox);
+            canManager.send(can::LongitudinalControl(controlData.speed, globals::useSafetyEnableSignal, controlData.rampTime));
         }
 
         if (lateralControlTimer.checkTimeout()) {
-            CAN_TxHeaderTypeDef txHeader = micro::can::buildHeader<can::LateralControl>();
-            can::LateralControl lateralControl(frontWheelTargetAngle, rearWheelTargetAngle, radian_t(0));
-            HAL_CAN_AddTxMessage(can_Vehicle, &txHeader, reinterpret_cast<uint8_t*>(&lateralControl), &txMailbox);
+            canManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, radian_t(0)));
         }
 
         vTaskDelay(1);
