@@ -48,6 +48,8 @@ extern UART_HandleTypeDef huart6;
 
 #define tim_System              (&htim2)
 
+#define PANEL_VERSION           0x05
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
