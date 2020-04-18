@@ -299,7 +299,9 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
 extern "C" void runProgRaceTrackTask(void) {
 
-    vTaskDelay(500); // gives time to other tasks to wake up
+    micro::waitReady(detectedLinesQueue);
+    micro::waitReady(controlQueue);
+    micro::waitReady(distancesQueue);
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;

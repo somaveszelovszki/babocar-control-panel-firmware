@@ -19,7 +19,7 @@
 using namespace micro;
 
 #define CONTROL_QUEUE_LENGTH 1
-QueueHandle_t controlQueue;
+QueueHandle_t controlQueue = nullptr;
 static uint8_t controlQueueStorageBuffer[CONTROL_QUEUE_LENGTH * sizeof(ControlData)];
 static StaticQueue_t controlQueueBuffer;
 
@@ -30,7 +30,7 @@ namespace {
 extern "C" void runControlTask(void) {
     controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
 
-    vTaskDelay(10); // gives time to other tasks to wake up
+    micro::waitReady(controlQueue);
 
     ControlData controlData;
 

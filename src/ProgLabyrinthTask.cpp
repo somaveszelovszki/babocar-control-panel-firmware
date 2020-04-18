@@ -842,7 +842,8 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
 
-    vTaskDelay(100); // gives time to other tasks and panels to wake up
+    micro::waitReady(detectedLinesQueue);
+    micro::waitReady(controlQueue);
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
