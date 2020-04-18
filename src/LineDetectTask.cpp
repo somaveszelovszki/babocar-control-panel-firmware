@@ -15,7 +15,7 @@
 using namespace micro;
 
 #define DETECTED_LINES_QUEUE_LENGTH 1
-QueueHandle_t detectedLinesQueue;
+QueueHandle_t detectedLinesQueue = nullptr;
 static uint8_t detectedLinesQueueStorageBuffer[DETECTED_LINES_QUEUE_LENGTH * sizeof(DetectedLines)];
 static StaticQueue_t detectedLinesQueueBuffer;
 

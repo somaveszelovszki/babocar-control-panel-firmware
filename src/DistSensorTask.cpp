@@ -14,7 +14,7 @@
 using namespace micro;
 
 #define DISTANCES_QUEUE_LENGTH 1
-QueueHandle_t distancesQueue;
+QueueHandle_t distancesQueue = nullptr;
 static uint8_t distancesQueueStorageBuffer[DISTANCES_QUEUE_LENGTH * sizeof(DistancesData)];
 static StaticQueue_t distancesQueueBuffer;
 
