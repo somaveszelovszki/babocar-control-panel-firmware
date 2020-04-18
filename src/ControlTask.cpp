@@ -16,6 +16,8 @@
 #include <queue.h>
 #include <task.h>
 
+#include <algorithm>
+
 using namespace micro;
 
 #define CONTROL_QUEUE_LENGTH 1
@@ -25,6 +27,51 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
+PID_Controller linePosController(globals::linePosCtrl_P, 0.0f, globals::linePosCtrl_D, 0.0f,
+    static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+
+PID_Controller lineAngleController(globals::lineAngleCtrl_P, 0.0f, globals::lineAngleCtrl_D, 0.0f,
+    static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+
+radian_t frontWheelTargetAngle;
+radian_t rearWheelTargetAngle;
+radian_t frontDistSensorServoTargetAngle;
+
+void calcTargetAngles(const ControlData& controlData) {
+    switch (controlData.controlType) {
+
+    case ControlData::controlType_t::Direct:
+        frontWheelTargetAngle = controlData.directControl.frontWheelAngle;
+        rearWheelTargetAngle = controlData.directControl.rearWheelAngle;
+        break;
+
+    case ControlData::controlType_t::Line: {
+        // separate line position and angle control for front and rear servos
+        const float speed = max(abs(globals::car.speed), m_per_sec_t(1.0f)).get();
+
+        linePosController.tune(globals::linePosCtrl_P / speed, 0.0f, globals::linePosCtrl_D, 0.0f);
+        linePosController.update(static_cast<centimeter_t>(controlData.lineControl.baseline.pos - controlData.lineControl.offset).get());
+        frontWheelTargetAngle = controlData.lineControl.angle + degree_t(linePosController.output());
+
+        lineAngleController.tune(globals::lineAngleCtrl_P / speed, 0.0f, globals::lineAngleCtrl_D, 0.0f);
+        lineAngleController.update(static_cast<degree_t>(controlData.lineControl.baseline.angle - controlData.lineControl.angle).get());
+        rearWheelTargetAngle = controlData.lineControl.angle + degree_t(lineAngleController.output());
+
+        // if the car is going backwards, the front and rear target wheel angles need to be swapped
+        if (globals::car.speed < m_per_sec_t(0)) {
+            std::swap(frontWheelTargetAngle, rearWheelTargetAngle);
+        }
+
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    frontDistSensorServoTargetAngle = frontWheelTargetAngle * globals::distServoTransferRate;
+}
+
 } // namespace
 
 extern "C" void runControlTask(void) {
@@ -33,13 +80,6 @@ extern "C" void runControlTask(void) {
     micro::waitReady(controlQueue);
 
     ControlData controlData;
-
-    radian_t frontWheelTargetAngle;
-    radian_t rearWheelTargetAngle;
-    radian_t frontDistSensorServoTargetAngle;
-
-    PID_Controller lineController(globals::frontLineCtrl_P_slow, 0.0f, globals::frontLineCtrl_D_slow, 0.0f,
-        static_cast<degree_t>(-cfg::FRONT_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_WHEEL_MAX_DELTA).get(), 0.0f);
 
     Timer longitudinalControlTimer(can::LongitudinalControl::period());
     Timer lateralControlTimer(can::LateralControl::period());
@@ -65,26 +105,7 @@ extern "C" void runControlTask(void) {
         // if no control data is received for a given period, stops motor for safety reasons
         if (xQueueReceive(controlQueue, &controlData, 0)) {
             controlDataWatchdog.reset();
-
-            if (ControlData::controlType_t::Direct == controlData.controlType) {
-                frontWheelTargetAngle = controlData.directControl.frontWheelAngle;
-                rearWheelTargetAngle = controlData.directControl.rearWheelAngle;
-
-            } else if (ControlData::controlType_t::Line == controlData.controlType) {
-                // TODO separate line and orientation control for front and rear servo?
-//                const bool isFwd = globals::car.speed >= m_per_sec_t(0);
-//                const float speed = max(globals::car.speed, m_per_sec_t(2.0f)).get();
-//                float P = globals::frontLineCtrl_P_fwd_mul / (speed * speed * speed);
-//                float D = globals::frontLineCtrl_D_fwd;
-//
-//                lineController.setParams(P, D);
-//                lineController.run(static_cast<centimeter_t>(controlData.baseline.pose.pos - controlData.offset).get());
-//
-//                frontWheelTargetAngle = isFwd ? controlData.baseline.angle + degree_t(lineController.getOutput()) : radian_t(0);
-//                rearWheelTargetAngle = controlData.rearServoEnabled ? controlData.angle - degree_t(lineController.getOutput()) : controlData.angle;
-            }
-
-            frontDistSensorServoTargetAngle = frontWheelTargetAngle * globals::distServoTransferRate;
+            calcTargetAngles(controlData);
 
         } else if (controlDataWatchdog.hasTimedOut()) {
             controlData.speed = m_per_sec_t(0);

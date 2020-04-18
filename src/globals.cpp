@@ -13,14 +13,10 @@ uint8_t reducedLineDetectScanRangeRadius = 10;
 float motorCtrl_P                        = 0.85f;
 float motorCtrl_I                        = 0.04f;
 float motorCtrl_integral_max             = 4.0f;
-float frontLineCtrl_P_slow               = 1.5f; // 1.4 m/s
-float frontLineCtrl_D_slow               = 80.0f;
-float frontLineCtrl_P_fast               = 0.5f; // 3 m/s
-float frontLineCtrl_D_fast               = 40.0f;
-float frontLineCtrl_P_bwd                = 4.4f;
-float frontLineCtrl_D_bwd                = 200.0f;
-float frontLineCtrl_P_fwd_mul            = 15.5f;
-float frontLineCtrl_D_fwd                = 40.0f;
+float linePosCtrl_P                      = 1.5f;
+float linePosCtrl_D                      = 80.0f;
+float lineAngleCtrl_P                    = 0.0f;
+float lineAngleCtrl_D                    = 0.0f;
 CarProps car                             = CarProps();
 bool distServoEnabled                    = false;
 float distServoTransferRate              = 1.0f;
@@ -34,8 +30,8 @@ TrackSpeeds trackSpeeds[NUM_LAPS + 1] = {
     { m_per_sec_t(4.5f), m_per_sec_t(1.8f),  m_per_sec_t(1.8f), m_per_sec_t(2.0f),  m_per_sec_t(2.0f),  m_per_sec_t(1.7f),  m_per_sec_t(1.8f)  }, // Lap 2
     { m_per_sec_t(3.5f), m_per_sec_t(1.8f),  m_per_sec_t(1.8f), m_per_sec_t(2.0f),  m_per_sec_t(2.0f),  m_per_sec_t(1.7f),  m_per_sec_t(1.8f)  }, // Lap 3
     { m_per_sec_t(5.0f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.2f),  m_per_sec_t(2.1f),  m_per_sec_t(1.7f),  m_per_sec_t(1.95f) }, // Lap 4
-    { m_per_sec_t(5.8f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.3f),  m_per_sec_t(2.25f), m_per_sec_t(1.8f),  m_per_sec_t(1.95f) }, // Lap 4
-    { m_per_sec_t(6.5f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.3f),  m_per_sec_t(2.25f), m_per_sec_t(1.8f),  m_per_sec_t(1.95f) }, // Lap 4
+    { m_per_sec_t(5.8f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.3f),  m_per_sec_t(2.25f), m_per_sec_t(1.8f),  m_per_sec_t(1.95f) }, // Lap 5
+    { m_per_sec_t(6.5f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.3f),  m_per_sec_t(2.25f), m_per_sec_t(1.8f),  m_per_sec_t(1.95f) }, // Lap 6
     { m_per_sec_t(7.0f), m_per_sec_t(0.0f),  m_per_sec_t(0.0f), m_per_sec_t(0.0f),  m_per_sec_t(0.0f),  m_per_sec_t(0.0f),  m_per_sec_t(0.0f)  }  // Finish
 };
 
@@ -63,8 +59,10 @@ void registerGlobalParams(micro::Params& params) {
     REGISTER_GLOBAL(motorCtrl_P);
     REGISTER_GLOBAL(motorCtrl_I);
     REGISTER_GLOBAL(motorCtrl_integral_max);
-    REGISTER_GLOBAL(frontLineCtrl_P_fwd_mul);
-    REGISTER_GLOBAL(frontLineCtrl_D_fwd);
+    REGISTER_GLOBAL(linePosCtrl_P);
+    REGISTER_GLOBAL(linePosCtrl_D);
+    REGISTER_GLOBAL(lineAngleCtrl_P);
+    REGISTER_GLOBAL(lineAngleCtrl_D);
     REGISTER_GLOBAL(car);
 
     //params.registerParam("trackSpeeds", &trackSpeeds[3]);
