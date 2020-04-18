@@ -27,11 +27,11 @@ extern float frontLineCtrl_D_bwd;
 extern float frontLineCtrl_P_fwd_mul;
 extern float frontLineCtrl_D_fwd;
 extern micro::CarProps car;
-extern bool distSensorEnabled;
 extern bool distServoEnabled;
 extern float distServoTransferRate;
-extern micro::radian_t frontSteeringServoOffset;
-extern micro::radian_t rearSteeringServoOffset;
+extern micro::radian_t frontWheelOffset;
+extern micro::radian_t rearWheelOffset;
+extern micro::radian_t frontDistSensorServoOffset;
 
 extern TrackSpeeds trackSpeeds[];
 

@@ -1,4 +1,4 @@
-#include <micro/control/PD_Controller.hpp>
+#include <micro/control/PID_Controller.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/sensor/Filter.hpp>
@@ -25,23 +25,6 @@ static StaticQueue_t controlQueueBuffer;
 
 namespace {
 
-void handleVehicleCanData(const uint32_t id, const uint8_t * const data) {
-
-    switch (id) {
-    case can::LateralState::id(): {
-        radian_t frontSteeringServoAngle, rearSteeringServoAngle, frontDistSensorServoAngle;
-        reinterpret_cast<const can::LateralState*>(data)->acquire(frontSteeringServoAngle, rearSteeringServoAngle, frontDistSensorServoAngle);
-        globals::car.frontWheelAngle = frontSteeringServoAngle * cfg::SERVO_WHEEL_TRANSFER_RATE;
-        globals::car.rearWheelAngle  = rearSteeringServoAngle * cfg::SERVO_WHEEL_TRANSFER_RATE;
-        break;
-    }
-
-    case can::LongitudinalState::id():
-        reinterpret_cast<const can::LongitudinalState*>(data)->acquire(globals::car.speed, globals::car.distance);
-        break;
-    }
-}
-
 } // namespace
 
 extern "C" void runControlTask(void) {
@@ -56,7 +39,7 @@ extern "C" void runControlTask(void) {
     radian_t frontDistSensorServoTargetAngle;
 
     PID_Controller lineController(globals::frontLineCtrl_P_slow, 0.0f, globals::frontLineCtrl_D_slow, 0.0f,
-        static_cast<degree_t>(-cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_SERVO_WHEEL_MAX_DELTA).get(), 0.0f);
+        static_cast<degree_t>(-cfg::FRONT_WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::FRONT_WHEEL_MAX_DELTA).get(), 0.0f);
 
     Timer longitudinalControlTimer(can::LongitudinalControl::period());
     Timer lateralControlTimer(can::LateralControl::period());
@@ -64,10 +47,8 @@ extern "C" void runControlTask(void) {
     CanManager canManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
 
     canManager.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
-        radian_t frontSteeringServoAngle, rearSteeringServoAngle, frontDistSensorServoAngle;
-        reinterpret_cast<const can::LateralState*>(data)->acquire(frontSteeringServoAngle, rearSteeringServoAngle, frontDistSensorServoAngle);
-        globals::car.frontWheelAngle = frontSteeringServoAngle * cfg::SERVO_WHEEL_TRANSFER_RATE;
-        globals::car.rearWheelAngle  = rearSteeringServoAngle * cfg::SERVO_WHEEL_TRANSFER_RATE;
+        radian_t frontDistSensorServoAngle;
+        reinterpret_cast<const can::LateralState*>(data)->acquire(globals::car.frontWheelAngle, globals::car.rearWheelAngle, frontDistSensorServoAngle);
     });
 
     canManager.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
@@ -115,7 +96,7 @@ extern "C" void runControlTask(void) {
         }
 
         if (lateralControlTimer.checkTimeout()) {
-            canManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, radian_t(0)));
+            canManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
         }
 
         vTaskDelay(1);

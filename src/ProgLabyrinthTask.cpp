@@ -852,7 +852,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
         switch (getActiveTask(globals::programState)) {
             case ProgramTask::Labyrinth:
                 globals::distServoEnabled = false;
-                globals::distSensorEnabled = false;
 
                 xQueuePeek(detectedLinesQueue, &detectedLines, 0);
 

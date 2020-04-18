@@ -351,8 +351,6 @@ extern "C" void runProgRaceTrackTask(void) {
             }();
             UNUSED(runOnce);
 
-            globals::distSensorEnabled = true;
-
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
