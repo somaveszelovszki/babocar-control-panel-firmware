@@ -25,14 +25,16 @@ micro::radian_t rearWheelOffset          = micro::radian_t(90);
 micro::radian_t extraServoOffset         = micro::radian_t(90);
 
 TrackSpeeds trackSpeeds[NUM_LAPS + 1] = {
-    //     FAST               SLOW_1           SLOW_2_BEGIN          SLOW_2              SLOW_3            SLOW_3_END            SLOW_4
-    { m_per_sec_t(3.5f), m_per_sec_t(1.8f),  m_per_sec_t(1.8f), m_per_sec_t(2.0f),  m_per_sec_t(2.0f),  m_per_sec_t(1.7f),  m_per_sec_t(1.8f)  }, // Lap 1
-    { m_per_sec_t(4.5f), m_per_sec_t(1.8f),  m_per_sec_t(1.8f), m_per_sec_t(2.0f),  m_per_sec_t(2.0f),  m_per_sec_t(1.7f),  m_per_sec_t(1.8f)  }, // Lap 2
-    { m_per_sec_t(3.5f), m_per_sec_t(1.8f),  m_per_sec_t(1.8f), m_per_sec_t(2.0f),  m_per_sec_t(2.0f),  m_per_sec_t(1.7f),  m_per_sec_t(1.8f)  }, // Lap 3
-    { m_per_sec_t(5.0f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.2f),  m_per_sec_t(2.1f),  m_per_sec_t(1.7f),  m_per_sec_t(1.95f) }, // Lap 4
-    { m_per_sec_t(5.8f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.3f),  m_per_sec_t(2.25f), m_per_sec_t(1.8f),  m_per_sec_t(1.95f) }, // Lap 5
-    { m_per_sec_t(6.5f), m_per_sec_t(2.05f), m_per_sec_t(1.8f), m_per_sec_t(2.3f),  m_per_sec_t(2.25f), m_per_sec_t(1.8f),  m_per_sec_t(1.95f) }, // Lap 6
-    { m_per_sec_t(7.0f), m_per_sec_t(0.0f),  m_per_sec_t(0.0f), m_per_sec_t(0.0f),  m_per_sec_t(0.0f),  m_per_sec_t(0.0f),  m_per_sec_t(0.0f)  }  // Finish
+
+//  ||  fast   ||        slow1       ||            slow2              ||            slow3              ||        slow4       ||
+//  ||  (all)  || prepare     round  || prepare     begin      round  || prepare     begin      round  || prepare     round  ||
+    { { 3.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f } }, // Lap 1
+    { { 4.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f } }, // Lap 2
+    { { 3.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f } }, // Lap 3
+    { { 5.00f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.20f }, { 2.10f }, { 2.10f }, { 1.70f }, { 1.95f }, { 1.95f } }, // Lap 4
+    { { 5.80f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.25f }, { 2.25f }, { 1.80f }, { 1.95f }, { 1.95f } }, // Lap 5
+    { { 6.50f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.25f }, { 2.25f }, { 1.80f }, { 1.95f }, { 1.95f } }, // Lap 6
+    { { 7.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f } }  // Finish
 };
 
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.1f);

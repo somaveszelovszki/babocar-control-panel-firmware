@@ -26,16 +26,17 @@ extern QueueHandle_t distancesQueue;
 
 namespace {
 
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.3f);
-constexpr m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
+constexpr m_per_sec_t MAX_SPEED_SAFETY_CAR_SLOW = m_per_sec_t(1.3f);
+constexpr m_per_sec_t MAX_SPEED_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
+constexpr meter_t PREV_CAR_PROPS_RESOLUTION     = centimeter_t(5);
 
 struct TrackSegment {
     bool isFast;
     std::function<bool(const LinePattern&, const MainLine&)> hasBecomeActive;
-    std::function<ControlData(const LinePattern&, const MainLine&, uint8_t, const CarProps&)> getControl;
+    std::function<ControlData(const LinePattern&, const MainLine&)> getControl;
 };
 
-typedef vec<TrackSegment, 10> TrackSegments;
+typedef vec<TrackSegment, 20> TrackSegments;
 
 struct {
     TrackSegments::const_iterator segment;
@@ -45,16 +46,29 @@ struct {
     uint8_t cntr = 0;
 } overtake;
 
+struct {
+    uint8_t lap;
+    TrackSegments::const_iterator trackSeg;
+    CarProps segStartCarProps;
+} currentSeg;
+
+infinite_buffer<CarProps, static_cast<uint32_t>(meter_t(5) / PREV_CAR_PROPS_RESOLUTION)> prevCarProps;
+
 bool forceInstantBrake = true;
 bool forceSlowSpeed = false;
 
 bool hasBecomeActive_Fast(const LinePattern& pattern, const MainLine& mainLine) {
     static bool signDetected = false;
+    static meter_t lastSignDist = meter_t(0);
 
     bool active = false;
     if (LinePattern::ACCELERATE == pattern.type) {
         signDetected = true;
+        lastSignDist = globals::car.distance;
+    } else if (globals::car.distance - lastSignDist > meter_t(5)) {
+        signDetected = false;
     }
+
     if (signDetected && globals::car.orientedDistance > centimeter_t(25)) {
         signDetected = false;
         active = true;
@@ -62,46 +76,62 @@ bool hasBecomeActive_Fast(const LinePattern& pattern, const MainLine& mainLine) 
     return active;
 }
 
-bool hasBecomeActive_Slow(const LinePattern& pattern, const MainLine&) {
-    static constexpr m_per_sec2_t MAX_DECELERATION = m_per_sec2_t(4);
+bool hasBecomeActive_Slow1_prepare(const LinePattern& pattern, const MainLine&) {
+    return LinePattern::BRAKE == pattern.type;
+}
 
-    static bool signDetected = false;
-    static meter_t signStartDist;
+bool hasBecomeActive_Slow1(const LinePattern& pattern, const MainLine&) {
+    return globals::car.distance - currentSeg.segStartCarProps.distance > meter_t(3);
+}
 
-    const meter_t brakeDist = meter_t(0.5f * globals::car.speed.get() * globals::car.speed.get() / MAX_DECELERATION.get());
+bool hasBecomeActive_Slow2_prepare(const LinePattern& pattern, const MainLine&) {
+    return LinePattern::BRAKE == pattern.type;
+}
 
-    bool active = false;
-    if (LinePattern::BRAKE == pattern.type && !signDetected) {
-        signDetected = true;
-        signStartDist = globals::car.distance;
-    }
-    if (signDetected && (forceInstantBrake || globals::car.distance - signStartDist > meter_t(3) - globals::dist_BRAKE_OFFSET - brakeDist)) {
+bool hasBecomeActive_Slow2_begin(const LinePattern& pattern, const MainLine&) {
+    return globals::car.distance - currentSeg.segStartCarProps.distance > meter_t(3);
+}
 
-        signDetected = false;
-        active = true;
-    }
-    return active;
+bool hasBecomeActive_Slow2_round(const LinePattern& pattern, const MainLine& mainLine) {
+    return globals::car.distance - currentSeg.segStartCarProps.distance > centimeter_t(120);
+}
+
+bool hasBecomeActive_Slow3_prepare(const LinePattern& pattern, const MainLine&) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow3_round(const LinePattern& pattern, const MainLine&) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow3_end(const LinePattern& pattern, const MainLine&) {
+    return globals::car.distance - currentSeg.segStartCarProps.distance > meter_t(1) * PI.get();
+}
+
+bool hasBecomeActive_Slow4_prepare(const LinePattern& pattern, const MainLine&) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow4(const LinePattern& pattern, const MainLine&) {
+    return globals::car.distance - currentSeg.segStartCarProps.distance > meter_t(3);
 }
 
 const TrackSpeeds& getSpeeds(uint8_t lap) {
     return globals::trackSpeeds[lap - 1];
 }
 
-ControlData getControl_Fast(const LinePattern&, const MainLine& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_CommonFast(const MainLine& mainLine) {
+    static bool fastSpeedEnabled = true;
 
-    static bool enabled = true;
-
-    if (enabled && abs(mainLine.centerLine.pos) > centimeter_t(8)) {
-        enabled = false;
-    } else if (!enabled && globals::car.orientedDistance > centimeter_t(50)) {
-        enabled = true;
+    if (fastSpeedEnabled && abs(mainLine.centerLine.pos) > centimeter_t(8)) {
+        fastSpeedEnabled = false;
+    } else if (!fastSpeedEnabled && globals::car.orientedDistance > centimeter_t(50)) {
+        fastSpeedEnabled = true;
     }
 
-    const TrackSpeeds& speeds = getSpeeds(lap);
-
     ControlData controlData;
-    controlData.speed                = enabled ? speeds.fast : m_per_sec_t(1.5f);
-    controlData.rampTime             = millisecond_t(800);
+    controlData.speed                = fastSpeedEnabled && !forceSlowSpeed ? getSpeeds(currentSeg.lap).fast : m_per_sec_t(2.0f);
+    controlData.rampTime             = millisecond_t(500);
     controlData.controlType          = ControlData::controlType_t::Line;
     controlData.lineControl.baseline = mainLine.centerLine;
     controlData.lineControl.offset   = millimeter_t(0);
@@ -109,29 +139,7 @@ ControlData getControl_Fast(const LinePattern&, const MainLine& mainLine, uint8_
     return controlData;
 }
 
-meter_t getSlowSectionStartDist(const LinePattern& pattern) {
-
-    static meter_t startDist = globals::car.distance;
-    if (LinePattern::BRAKE == pattern.type) {
-        startDist = globals::car.distance;
-    }
-    return startDist;
-}
-
-ControlData getControl_CommonSlow(const LinePattern& pattern, meter_t slowSectionStartDist, const MainLine& mainLine) {
-
-    static bool fastSignDetected = false;
-    static meter_t fastSignStartDist;
-
-    if (LinePattern::ACCELERATE == pattern.type && !fastSignDetected) {
-        fastSignDetected = true;
-        fastSignStartDist = globals::car.distance;
-    }
-
-    if (globals::car.distance - fastSignStartDist > meter_t(2)) {
-        fastSignDetected = false;
-    }
-
+ControlData getControl_CommonSlow(const LinePattern& pattern, const MainLine& mainLine) {
     ControlData controlData;
     controlData.rampTime             = millisecond_t(500);
     controlData.controlType          = ControlData::controlType_t::Line;
@@ -141,62 +149,126 @@ ControlData getControl_CommonSlow(const LinePattern& pattern, meter_t slowSectio
     return controlData;
 }
 
-ControlData getControl_Slow_1(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
-
-    const meter_t startDist = getSlowSectionStartDist(pattern);
-    ControlData controlData = getControl_CommonSlow(pattern, startDist, mainLine);
-
-    controlData.speed = getSpeeds(lap).slow_1;
+ControlData getControl_Fast1(const LinePattern&, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonFast(mainLine);
 
     return controlData;
 }
 
-ControlData getControl_Slow_4(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow1_prepare(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(pattern, mainLine);
 
-    const meter_t startDist = getSlowSectionStartDist(pattern);
-    ControlData controlData = getControl_CommonSlow(pattern, startDist, mainLine);
-
-    controlData.speed = getSpeeds(lap).slow_4;
+    controlData.speed = getSpeeds(currentSeg.lap).slow1_prepare;
 
     return controlData;
 }
 
-ControlData getControl_Slow_2(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
+ControlData getControl_Slow1_round(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(pattern, mainLine);
 
-    const meter_t startDist   = getSlowSectionStartDist(pattern);
-    const bool isSectionStart = globals::car.distance - startDist < centimeter_t(200);
-    ControlData controlData   = getControl_CommonSlow(pattern, startDist, mainLine);
-    const TrackSpeeds& speeds = getSpeeds(lap);
-
-    controlData.speed = isSectionStart ? speeds.slow_2_begin : speeds.slow_2;
+    controlData.speed = getSpeeds(currentSeg.lap).slow1_round;
 
     return controlData;
 }
 
-ControlData getControl_Slow_3(const LinePattern& pattern, const MainLine& mainLine, uint8_t lap, const CarProps&) {
-
-    const meter_t startDist   = getSlowSectionStartDist(pattern);
-    const bool isSectionEnd   = globals::car.distance - startDist > centimeter_t(314);
-    ControlData controlData   = getControl_CommonSlow(pattern, startDist, mainLine);
-    const TrackSpeeds& speeds = getSpeeds(lap);
-
-    controlData.speed = isSectionEnd ? speeds.slow_3_end : speeds.slow_3;
+ControlData getControl_Fast2(const LinePattern&, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonFast(mainLine);
 
     return controlData;
 }
 
-constexpr meter_t PREV_CAR_PROPS_RESOLUTION = centimeter_t(5);
-infinite_buffer<CarProps, static_cast<uint32_t>(meter_t(5) / PREV_CAR_PROPS_RESOLUTION)> prevCarProps;
+ControlData getControl_Slow2_prepare(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow2_begin;
+
+    return controlData;
+}
+
+
+ControlData getControl_Slow2_begin(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow2_begin;
+
+    return controlData;
+}
+
+ControlData getControl_Slow2_round(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow2_round;
+
+    return controlData;
+}
+
+ControlData getControl_Fast3(const LinePattern&, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonFast(mainLine);
+
+    return controlData;
+}
+
+ControlData getControl_Slow3_prepare(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow3_round;
+
+    return controlData;
+}
+
+ControlData getControl_Slow3_round(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow3_round;
+
+    return controlData;
+}
+
+ControlData getControl_Slow3_end(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow3_end;
+
+    return controlData;
+}
+
+ControlData getControl_Fast4(const LinePattern&, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonFast(mainLine);
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_prepare(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow4_prepare;
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_round(const LinePattern& pattern, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(pattern, mainLine);
+
+    controlData.speed = getSpeeds(currentSeg.lap).slow4_round;
+
+    return controlData;
+}
 
 const TrackSegments trackSegments = {
-    { true,  hasBecomeActive_Fast, getControl_Fast   },
-    { false, hasBecomeActive_Slow, getControl_Slow_1 },
-    { true,  hasBecomeActive_Fast, getControl_Fast   },
-    { false, hasBecomeActive_Slow, getControl_Slow_2 },
-    { true,  hasBecomeActive_Fast, getControl_Fast   },
-    { false, hasBecomeActive_Slow, getControl_Slow_3 },
-    { true,  hasBecomeActive_Fast, getControl_Fast   },
-    { false, hasBecomeActive_Slow, getControl_Slow_4 }
+    { true,  hasBecomeActive_Fast,          getControl_Fast1         },
+    { false, hasBecomeActive_Slow1_prepare, getControl_Slow1_prepare },
+    { false, hasBecomeActive_Slow1,         getControl_Slow1_round   },
+    { true,  hasBecomeActive_Fast,          getControl_Fast2         },
+    { false, hasBecomeActive_Slow2_prepare, getControl_Slow2_prepare },
+    { false, hasBecomeActive_Slow2_begin,   getControl_Slow2_begin   },
+    { false, hasBecomeActive_Slow2_round,   getControl_Slow2_round   },
+    { true,  hasBecomeActive_Fast,          getControl_Fast3         },
+    { false, hasBecomeActive_Slow3_prepare, getControl_Slow3_prepare },
+    { false, hasBecomeActive_Slow3_round,   getControl_Slow3_round   },
+    { false, hasBecomeActive_Slow3_end,     getControl_Slow3_end     },
+    { true,  hasBecomeActive_Fast,          getControl_Fast4         },
+    { false, hasBecomeActive_Slow4_prepare, getControl_Slow4_prepare },
+    { false, hasBecomeActive_Slow4,         getControl_Slow4_round   }
 };
 
 TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
@@ -204,7 +276,7 @@ TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator cu
 }
 
 m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
-    return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+    return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? MAX_SPEED_SAFETY_CAR_FAST : MAX_SPEED_SAFETY_CAR_SLOW);
 }
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
@@ -309,10 +381,6 @@ extern "C" void runProgRaceTrackTask(void) {
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    uint8_t lap;
-    TrackSegments::const_iterator currentSeg;
-    CarProps currentSegStartCarProps;
-
     overtake.segment = trackSegments.begin() + 4;
 
     meter_t lastDistWithValidLine;
@@ -322,15 +390,15 @@ extern "C" void runProgRaceTrackTask(void) {
         switch(getActiveTask(globals::programState)) {
         case ProgramTask::RaceTrack:
         {
-            static const bool runOnce = [&lap, &currentSeg, &currentSegStartCarProps, &lastDistWithValidLine, &lapStartTime]() {
+            static const bool runOnce = [&lastDistWithValidLine, &lapStartTime]() {
 
                 if (ProgramState::Race          == globals::programState ||
                     ProgramState::Race_segFast2 == globals::programState ||
                     ProgramState::Race_segFast3 == globals::programState ||
                     ProgramState::Race_segFast4 == globals::programState) {
 
-                    lap = 3;
-                    currentSeg = ProgramState::Race          == globals::programState ? trackSegments.begin() :
+                    currentSeg.lap = 3;
+                    currentSeg.trackSeg = ProgramState::Race == globals::programState ? trackSegments.begin() :
                                  ProgramState::Race_segFast2 == globals::programState ? trackSegments.begin() + 2 :
                                  ProgramState::Race_segFast3 == globals::programState ? trackSegments.begin() + 4 :
                                  trackSegments.begin() + 6;
@@ -338,16 +406,16 @@ extern "C" void runProgRaceTrackTask(void) {
                     globals::programState = ProgramState::Race;
                     forceSlowSpeed = true;
                 } else {
-                    lap = 1;
-                    currentSeg = trackSegments.begin();
+                    currentSeg.lap = 1;
+                    currentSeg.trackSeg = trackSegments.begin();
                     forceSlowSpeed = false;
                 }
 
                 lastDistWithValidLine = globals::car.distance;
                 lapStartTime = getTime();
 
-                currentSegStartCarProps = globals::car;
-                prevCarProps.push_back(currentSegStartCarProps);
+                currentSeg.segStartCarProps = globals::car;
+                prevCarProps.push_back(currentSeg.segStartCarProps);
                 forceInstantBrake = true;
                 return true;
             }();
@@ -366,17 +434,17 @@ extern "C" void runProgRaceTrackTask(void) {
                 lastDistWithValidLine = globals::car.distance;
             }
 
-            TrackSegments::const_iterator nextSeg = nextSegment(currentSeg);
+            TrackSegments::const_iterator nextSeg = nextSegment(currentSeg.trackSeg);
             if (nextSeg->hasBecomeActive(detectedLines.front.pattern, mainLine)) {
                 forceSlowSpeed = false;
-                currentSeg = nextSeg;
-                currentSegStartCarProps = globals::car;
-                if (trackSegments.begin() == currentSeg) {
-                    LOG_INFO("Lap %d finished (time: %f seconds)", static_cast<int32_t>(lap), static_cast<second_t>(getTime() - lapStartTime).get());
-                    ++lap;
+                currentSeg.trackSeg = nextSeg;
+                currentSeg.segStartCarProps = globals::car;
+                if (trackSegments.begin() == currentSeg.trackSeg) {
+                    LOG_INFO("Lap %d finished (time: %f seconds)", static_cast<int32_t>(currentSeg.lap), static_cast<second_t>(getTime() - lapStartTime).get());
+                    ++currentSeg.lap;
                     lapStartTime = getTime();
                 }
-                LOG_INFO("Segment %d became active (lap: %d)", static_cast<int32_t>(currentSeg - trackSegments.begin()), static_cast<int32_t>(lap));
+                LOG_INFO("Segment %d became active (lap: %d)", static_cast<int32_t>(currentSeg.trackSeg - trackSegments.begin()), static_cast<int32_t>(currentSeg.lap));
             }
 
             switch (globals::programState) {
@@ -392,7 +460,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case ProgramState::FollowSafetyCar:
                 static meter_t lastDistWithSafetyCar;
-                controlData.speed = safetyCarFollowSpeed(distances.front, currentSeg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distances.front, currentSeg.trackSeg->isFast);
                 controlData.rampTime = millisecond_t(0);
                 forceInstantBrake = true;
                 globals::distServoEnabled = true;
@@ -401,17 +469,17 @@ extern "C" void runProgRaceTrackTask(void) {
                     lastDistWithSafetyCar = globals::car.distance;
                 }
 
-                if (overtake.segment == currentSeg && ((0 == overtake.cntr && 1 == lap) || (1 == overtake.cntr && 3 == lap))) {
+                if (overtake.segment == currentSeg.trackSeg && ((0 == overtake.cntr && 1 == currentSeg.lap) || (1 == overtake.cntr && 3 == currentSeg.lap))) {
                     globals::programState = ProgramState::OvertakeSafetyCar;
                     LOG_DEBUG("Starts overtake");
-                } else if ((trackSegments.begin() == currentSeg && lap > 3) || globals::car.distance - lastDistWithSafetyCar > centimeter_t(80)) {
+                } else if ((trackSegments.begin() == currentSeg.trackSeg && currentSeg.lap > 3) || globals::car.distance - lastDistWithSafetyCar > centimeter_t(80)) {
                     globals::programState = ProgramState::Race;
                     LOG_DEBUG("Safety car left the track, starts race");
                 }
                 break;
 
             case ProgramState::OvertakeSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distances.front, currentSeg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distances.front, currentSeg.trackSeg->isFast);
                 forceInstantBrake = true;
                 if (overtakeSafetyCar(detectedLines, controlData)) {
                     ++overtake.cntr;
@@ -421,16 +489,16 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case ProgramState::Race:
-                forceInstantBrake = lap < 4 && 2 != lap;
-                if (overtake.segment == currentSeg && (1 == lap || 3 == lap)) {
+                forceInstantBrake = currentSeg.lap < 4 && 2 != currentSeg.lap;
+                if (overtake.segment == currentSeg.trackSeg && (1 == currentSeg.lap || 3 == currentSeg.lap)) {
                     forceSlowSpeed = true;
                 }
 
-                controlData = currentSeg->getControl(detectedLines.front.pattern, mainLine, lap, currentSegStartCarProps);
-                if (lap > NUM_LAPS) {
+                controlData = currentSeg.trackSeg->getControl(detectedLines.front.pattern, mainLine);
+                if (currentSeg.lap > NUM_LAPS) {
                     globals::programState = ProgramState::Finish;
                     LOG_DEBUG("Race finished");
-                } else if (lap <= 3 && overtake.cntr < 2 && distances.front < (currentSeg->isFast ? centimeter_t(120) : centimeter_t(60))) {
+                } else if (currentSeg.lap <= 3 && overtake.cntr < 2 && distances.front < (currentSeg.trackSeg->isFast ? centimeter_t(120) : centimeter_t(60))) {
                     globals::programState = ProgramState::FollowSafetyCar;
                     LOG_DEBUG("Reached safety car, starts following");
                 }
@@ -445,7 +513,7 @@ extern "C" void runProgRaceTrackTask(void) {
             {
                 static const meter_t startDist = globals::car.distance;
                 if (globals::car.distance - startDist < meter_t(2.0f)) {
-                    controlData = currentSeg->getControl(detectedLines.front.pattern, mainLine, lap, currentSegStartCarProps);
+                    controlData = currentSeg.trackSeg->getControl(detectedLines.front.pattern, mainLine);
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);
@@ -461,10 +529,6 @@ extern "C" void runProgRaceTrackTask(void) {
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", globals::programState);
                 break;
-            }
-
-            if (forceSlowSpeed) {
-                controlData.speed = min(controlData.speed, m_per_sec_t(1.5f));
             }
 
             xQueueOverwrite(controlQueue, &controlData);
