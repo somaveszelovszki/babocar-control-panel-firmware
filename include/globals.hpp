@@ -40,7 +40,6 @@ extern micro::m_per_sec_t speed_OVERTAKE_BEGIN;
 extern micro::m_per_sec_t speed_OVERTAKE_STRAIGHT;
 extern micro::m_per_sec_t speed_OVERTAKE_END;
 extern micro::meter_t dist_OVERTAKE_SIDE;
-extern micro::meter_t dist_BRAKE_OFFSET;
 
 extern bool isControlTaskOk;
 extern bool isDebugTaskOk;
