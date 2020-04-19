@@ -214,18 +214,18 @@ ControlData getControl_Slow4_round(const TrackInfo& trackInfo, const MainLine& m
 } // namespace
 
 const TrackSegments trackSegments = {
-    { true,  hasBecomeActive_Fast,          getControl_Fast1         },
-    { false, hasBecomeActive_Slow1_prepare, getControl_Slow1_prepare },
-    { false, hasBecomeActive_Slow1_round,   getControl_Slow1_round   },
-    { true,  hasBecomeActive_Fast,          getControl_Fast2         },
-    { false, hasBecomeActive_Slow2_prepare, getControl_Slow2_prepare },
-    { false, hasBecomeActive_Slow2_begin,   getControl_Slow2_begin   },
-    { false, hasBecomeActive_Slow2_round,   getControl_Slow2_round   },
-    { true,  hasBecomeActive_Fast,          getControl_Fast3         },
-    { false, hasBecomeActive_Slow3_prepare, getControl_Slow3_prepare },
-    { false, hasBecomeActive_Slow3_round,   getControl_Slow3_round   },
-    { false, hasBecomeActive_Slow3_end,     getControl_Slow3_end     },
-    { true,  hasBecomeActive_Fast,          getControl_Fast4         },
-    { false, hasBecomeActive_Slow4_prepare, getControl_Slow4_prepare },
-    { false, hasBecomeActive_Slow4_round,   getControl_Slow4_round   }
+    { true,  meter_t(5.6f), hasBecomeActive_Fast,          getControl_Fast1         },
+    { false, meter_t(3.3f), hasBecomeActive_Slow1_prepare, getControl_Slow1_prepare },
+    { false, meter_t(1.7f), hasBecomeActive_Slow1_round,   getControl_Slow1_round   },
+    { true,  meter_t(6.6f), hasBecomeActive_Fast,          getControl_Fast2         },
+    { false, meter_t(3.1f), hasBecomeActive_Slow2_prepare, getControl_Slow2_prepare },
+    { false, meter_t(1.6f), hasBecomeActive_Slow2_begin,   getControl_Slow2_begin   },
+    { false, meter_t(3.2f), hasBecomeActive_Slow2_round,   getControl_Slow2_round   },
+    { true,  meter_t(6.9f), hasBecomeActive_Fast,          getControl_Fast3         },
+    { false, meter_t(3.0f), hasBecomeActive_Slow3_prepare, getControl_Slow3_prepare },
+    { false, meter_t(3.2f), hasBecomeActive_Slow3_round,   getControl_Slow3_round   },
+    { false, meter_t(1.6f), hasBecomeActive_Slow3_end,     getControl_Slow3_end     },
+    { true,  meter_t(6.6f), hasBecomeActive_Fast,          getControl_Fast4         },
+    { false, meter_t(3.2f), hasBecomeActive_Slow4_prepare, getControl_Slow4_prepare },
+    { false, meter_t(1.7f), hasBecomeActive_Slow4_round,   getControl_Slow4_round   }
 };

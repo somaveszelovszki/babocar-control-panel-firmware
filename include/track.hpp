@@ -32,6 +32,7 @@ struct TrackInfo;
 
 struct TrackSegment {
     bool isFast;
+    micro::meter_t length;
     std::function<bool(const TrackInfo&, const micro::LinePattern&)> hasBecomeActive;
     std::function<micro::ControlData(const TrackInfo&, const micro::MainLine&)> getControl;
 };
