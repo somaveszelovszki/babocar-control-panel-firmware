@@ -120,7 +120,7 @@ Junction* findExistingJunction(const point2m& pos, radian_t inOri, radian_t outO
 
     struct JunctionDist {
         Junction *junc = nullptr;
-        meter_t dist = meter_t::infinity();
+        meter_t dist = micro::numeric_limits<meter_t>::infinity();
     };
 
     LOG_DEBUG("pos: (%f, %f)", pos.X.get(), pos.Y.get());

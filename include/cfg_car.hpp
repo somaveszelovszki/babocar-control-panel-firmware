@@ -1,7 +1,6 @@
 #pragma once
 
 #include <micro/utils/units.hpp>
-#include <micro/math/unit_utils.hpp>
 
 namespace cfg {
 

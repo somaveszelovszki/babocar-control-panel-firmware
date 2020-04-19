@@ -100,7 +100,7 @@ extern "C" void runGyroTask(void) {
 
     while (true) {
         const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
-        if (gyroData.Z != rad_per_sec_t::infinity()) {
+        if (gyroData.Z != micro::numeric_limits<rad_per_sec_t>::infinity()) {
             if (gyroData.Z != rad_per_sec_t(0)) {
                 lastNonZeroAngVelTime = getTime();
             }
