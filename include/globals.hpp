@@ -2,10 +2,9 @@
 
 #include <micro/utils/units.hpp>
 #include <micro/utils/CarProps.hpp>
-#include <TrackSpeeds.hpp>
-#include <ProgramState.hpp>
 
-constexpr uint8_t NUM_LAPS = 6;
+#include <ProgramState.hpp>
+#include <track.hpp>
 
 class Params;
 
@@ -30,6 +29,7 @@ extern micro::radian_t rearWheelOffset;
 extern micro::radian_t frontDistSensorServoOffset;
 
 extern TrackSpeeds trackSpeeds[];
+extern BrakeOffsets brakeOffsets[];
 
 extern micro::m_per_sec_t speed_LAB_FWD;
 extern micro::m_per_sec_t speed_LAB_BWD;

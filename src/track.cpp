@@ -1,6 +1,6 @@
 #include <globals.hpp>
-#include <TrackSegments.hpp>
-#include <TrackSpeeds.hpp>
+#include <track.hpp>
+#include <track.hpp>
 
 using namespace micro;
 
@@ -8,6 +8,10 @@ namespace {
 
 const TrackSpeeds& getSpeeds(uint8_t lap) {
     return globals::trackSpeeds[lap - 1];
+}
+
+const BrakeOffsets& getBrakeOffsets(uint8_t lap) {
+    return globals::brakeOffsets[lap - 1];
 }
 
 bool hasBecomeActive_Fast(const TrackInfo& trackInfo, const LinePattern& pattern) {
@@ -98,21 +102,22 @@ ControlData getControl_CommonSlow(const TrackInfo& trackInfo, const MainLine& ma
     return controlData;
 }
 
-ControlData getControl_Fast1(const TrackInfo& trackInfo, const LinePattern&, const MainLine& mainLine) {
+ControlData getControl_Fast1(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonFast(trackInfo, mainLine);
 
     return controlData;
 }
 
-ControlData getControl_Slow1_prepare(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow1_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
-    controlData.speed = getSpeeds(trackInfo.lap).slow1_prepare;
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow1 ? speeds.slow1_prepare : speeds.fast;
 
     return controlData;
 }
 
-ControlData getControl_Slow1_round(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow1_round(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow1_round;
@@ -120,13 +125,23 @@ ControlData getControl_Slow1_round(const TrackInfo& trackInfo, const LinePattern
     return controlData;
 }
 
-ControlData getControl_Fast2(const TrackInfo& trackInfo, const LinePattern&, const MainLine& mainLine) {
+ControlData getControl_Fast2(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonFast(trackInfo, mainLine);
 
     return controlData;
 }
 
-ControlData getControl_Slow2_prepare(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow2_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
+
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow2 ? speeds.slow2_prepare : speeds.fast;
+
+    return controlData;
+}
+
+
+ControlData getControl_Slow2_begin(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow2_begin;
@@ -134,16 +149,7 @@ ControlData getControl_Slow2_prepare(const TrackInfo& trackInfo, const LinePatte
     return controlData;
 }
 
-
-ControlData getControl_Slow2_begin(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
-    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
-
-    controlData.speed = getSpeeds(trackInfo.lap).slow2_begin;
-
-    return controlData;
-}
-
-ControlData getControl_Slow2_round(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow2_round(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow2_round;
@@ -151,13 +157,22 @@ ControlData getControl_Slow2_round(const TrackInfo& trackInfo, const LinePattern
     return controlData;
 }
 
-ControlData getControl_Fast3(const TrackInfo& trackInfo, const LinePattern&, const MainLine& mainLine) {
+ControlData getControl_Fast3(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonFast(trackInfo, mainLine);
 
     return controlData;
 }
 
-ControlData getControl_Slow3_prepare(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow3_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
+
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow3 ? speeds.slow3_prepare : speeds.fast;
+
+    return controlData;
+}
+
+ControlData getControl_Slow3_round(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow3_round;
@@ -165,15 +180,7 @@ ControlData getControl_Slow3_prepare(const TrackInfo& trackInfo, const LinePatte
     return controlData;
 }
 
-ControlData getControl_Slow3_round(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
-    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
-
-    controlData.speed = getSpeeds(trackInfo.lap).slow3_round;
-
-    return controlData;
-}
-
-ControlData getControl_Slow3_end(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow3_end(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow3_end;
@@ -181,21 +188,22 @@ ControlData getControl_Slow3_end(const TrackInfo& trackInfo, const LinePattern& 
     return controlData;
 }
 
-ControlData getControl_Fast4(const TrackInfo& trackInfo, const LinePattern&, const MainLine& mainLine) {
+ControlData getControl_Fast4(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonFast(trackInfo, mainLine);
 
     return controlData;
 }
 
-ControlData getControl_Slow4_prepare(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow4_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
-    controlData.speed = getSpeeds(trackInfo.lap).slow4_prepare;
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow4 ? speeds.slow4_prepare : speeds.fast;
 
     return controlData;
 }
 
-ControlData getControl_Slow4_round(const TrackInfo& trackInfo, const LinePattern& pattern, const MainLine& mainLine) {
+ControlData getControl_Slow4_round(const TrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow4_round;

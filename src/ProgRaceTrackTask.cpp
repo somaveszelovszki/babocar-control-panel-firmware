@@ -10,15 +10,16 @@
 
 #include <cfg_board.h>
 #include <cfg_car.hpp>
+#include <cfg_track.hpp>
 #include <DetectedLines.hpp>
 #include <DistancesData.hpp>
 #include <globals.hpp>
-#include <TrackSegments.hpp>
-#include <TrackSpeeds.hpp>
+#include <track.hpp>
 
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
+#include <track.hpp>
 
 using namespace micro;
 
@@ -42,15 +43,15 @@ struct {
 
 infinite_buffer<CarProps, static_cast<uint32_t>(meter_t(5) / PREV_CAR_PROPS_RESOLUTION)> prevCarProps;
 
-bool forceInstantBrake = true;
-bool forceSlowSpeed = false;
+bool forceSlowSpeed    = false;
+Sign speedSign         = Sign::POSITIVE;
 
 TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
     return trackSegments.back() == currentSeg ? trackSegments.begin() : currentSeg + 1;
 }
 
 m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
-    return map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? MAX_SPEED_SAFETY_CAR_FAST : MAX_SPEED_SAFETY_CAR_SLOW);
+    return speedSign * map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? MAX_SPEED_SAFETY_CAR_FAST : MAX_SPEED_SAFETY_CAR_SLOW);
 }
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
@@ -149,7 +150,7 @@ extern "C" void runProgRaceTrackTask(void) {
         switch(getActiveTask(globals::programState)) {
         case ProgramTask::RaceTrack:
         {
-            static const bool runOnce = [&trackInfo, &lastDistWithValidLine, &lapStartTime]() {
+            static const bool runOnce = [&trackInfo, &lastDistWithValidLine, &lapStartTime, &mainLine]() {
 
                 if (ProgramState::Race          == globals::programState ||
                     ProgramState::Race_segFast2 == globals::programState ||
@@ -174,8 +175,8 @@ extern "C" void runProgRaceTrackTask(void) {
                 lapStartTime = getTime();
 
                 trackInfo.segStartCarProps = globals::car;
+                trackInfo.segStartLine = mainLine.centerLine;
                 prevCarProps.push_back(trackInfo.segStartCarProps);
-                forceInstantBrake = true;
                 return true;
             }();
             UNUSED(runOnce);
@@ -204,6 +205,8 @@ extern "C" void runProgRaceTrackTask(void) {
                 forceSlowSpeed = false;
                 trackInfo.seg = nextSeg;
                 trackInfo.segStartCarProps = globals::car;
+                trackInfo.segStartLine = mainLine.centerLine;
+
                 if (trackSegments.begin() == trackInfo.seg) {
                     LOG_INFO("Lap %d finished (time: %f seconds)", static_cast<int32_t>(trackInfo.lap), static_cast<second_t>(getTime() - lapStartTime).get());
                     ++trackInfo.lap;
@@ -216,7 +219,6 @@ extern "C" void runProgRaceTrackTask(void) {
             case ProgramState::ReachSafetyCar:
                 controlData.speed = globals::speed_REACH_SAFETY_CAR;
                 controlData.rampTime = millisecond_t(0);
-                forceInstantBrake = true;
                 if (distances.front > meter_t(0) && safetyCarFollowSpeed(distances.front, true) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;
                     LOG_DEBUG("Reached safety car, starts following");
@@ -227,7 +229,6 @@ extern "C" void runProgRaceTrackTask(void) {
                 static meter_t lastDistWithSafetyCar;
                 controlData.speed = safetyCarFollowSpeed(distances.front, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
-                forceInstantBrake = true;
                 globals::distServoEnabled = true;
 
                 if (distances.front < centimeter_t(100)) {
@@ -245,7 +246,6 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case ProgramState::OvertakeSafetyCar:
                 controlData.speed = safetyCarFollowSpeed(distances.front, trackInfo.seg->isFast);
-                forceInstantBrake = true;
                 if (overtakeSafetyCar(detectedLines, controlData)) {
                     ++overtake.cntr;
                     globals::programState = ProgramState::Race;
@@ -254,13 +254,12 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case ProgramState::Race:
-                forceInstantBrake = trackInfo.lap < 4 && 2 != trackInfo.lap;
                 if (overtake.segment == trackInfo.seg && (1 == trackInfo.lap || 3 == trackInfo.lap)) {
                     forceSlowSpeed = true;
                 }
 
-                controlData = trackInfo.seg->getControl(trackInfo, detectedLines.front.pattern, mainLine);
-                if (trackInfo.lap > NUM_LAPS) {
+                controlData = trackInfo.seg->getControl(trackInfo, mainLine);
+                if (trackInfo.lap > cfg::NUM_RACE_LAPS) {
                     globals::programState = ProgramState::Finish;
                     LOG_DEBUG("Race finished");
                 } else if (trackInfo.lap <= 3 && overtake.cntr < 2 && distances.front < (trackInfo.seg->isFast ? centimeter_t(120) : centimeter_t(60))) {
@@ -278,7 +277,7 @@ extern "C" void runProgRaceTrackTask(void) {
             {
                 static const meter_t startDist = globals::car.distance;
                 if (globals::car.distance - startDist < meter_t(2.0f)) {
-                    controlData = trackInfo.seg->getControl(trackInfo, detectedLines.front.pattern, mainLine);
+                    controlData = trackInfo.seg->getControl(trackInfo, mainLine);
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);

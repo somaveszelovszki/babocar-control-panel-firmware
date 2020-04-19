@@ -1,5 +1,6 @@
 #include <globals.hpp>
 #include <cfg_car.hpp>
+#include <cfg_track.hpp>
 #include <micro/debug/params.hpp>
 
 using namespace micro;
@@ -24,7 +25,7 @@ micro::radian_t frontWheelOffset         = micro::radian_t(90);
 micro::radian_t rearWheelOffset          = micro::radian_t(90);
 micro::radian_t extraServoOffset         = micro::radian_t(90);
 
-TrackSpeeds trackSpeeds[NUM_LAPS + 1] = {
+TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
 
 //  ||  fast   ||        slow1       ||            slow2              ||            slow3              ||        slow4       ||
 //  ||  (all)  || prepare     round  || prepare     begin      round  || prepare     begin      round  || prepare     round  ||
@@ -35,6 +36,16 @@ TrackSpeeds trackSpeeds[NUM_LAPS + 1] = {
     { { 5.80f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.25f }, { 2.25f }, { 1.80f }, { 1.95f }, { 1.95f } }, // Lap 5
     { { 6.50f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.25f }, { 2.25f }, { 1.80f }, { 1.95f }, { 1.95f } }, // Lap 6
     { { 7.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f } }  // Finish
+};
+
+BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS] = {
+    //     slow1            slow2            slow3            slow4
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 1
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 2
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 3
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 4
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 5
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }  // Lap 6
 };
 
 m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.1f);
