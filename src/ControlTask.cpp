@@ -50,12 +50,12 @@ void calcTargetAngles(const ControlData& controlData) {
         const float speed = max(abs(globals::car.speed), m_per_sec_t(1.0f)).get();
 
         linePosController.tune(globals::linePosCtrl_P / speed, 0.0f, globals::linePosCtrl_D, 0.0f);
-        linePosController.update(static_cast<centimeter_t>(controlData.lineControl.baseline.pos - controlData.lineControl.offset).get());
-        frontWheelTargetAngle = controlData.lineControl.angle + degree_t(linePosController.output());
+        linePosController.update(static_cast<centimeter_t>(controlData.lineControl.baseline.pos + controlData.lineControl.offset).get());
+        frontWheelTargetAngle = degree_t(linePosController.output()) - controlData.lineControl.angle;
 
         lineAngleController.tune(globals::lineAngleCtrl_P / speed, 0.0f, globals::lineAngleCtrl_D, 0.0f);
-        lineAngleController.update(static_cast<degree_t>(controlData.lineControl.baseline.angle - controlData.lineControl.angle).get());
-        rearWheelTargetAngle = controlData.lineControl.angle + degree_t(lineAngleController.output());
+        lineAngleController.update(static_cast<degree_t>(controlData.lineControl.baseline.angle + controlData.lineControl.angle).get());
+        rearWheelTargetAngle = degree_t(lineAngleController.output()) + controlData.lineControl.angle;
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
         if (globals::car.speed < m_per_sec_t(0)) {
