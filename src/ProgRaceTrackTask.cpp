@@ -125,6 +125,18 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
     return finished;
 }
 
+TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const ProgramState programState) {
+    TrackSegments::const_iterator segment = trackSegments.end();
+    switch (programState) {
+    case ProgramState::Race:          segment = trackSegments.begin();      break;
+    case ProgramState::Race_segFast2: segment = trackSegments.begin() + 3;  break;
+    case ProgramState::Race_segFast3: segment = trackSegments.begin() + 8;  break;
+    case ProgramState::Race_segFast4: segment = trackSegments.begin() + 13; break;
+    default:                          segment = trackSegments.end();        break;
+    }
+    return segment;
+}
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(void) {
@@ -141,7 +153,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     TrackInfo trackInfo;
 
-    overtake.segment = trackSegments.begin() + 4;
+    overtake.segment = getFastSegment(trackSegments, ProgramState::Race_segFast3);
 
     meter_t lastDistWithValidLine;
     millisecond_t lapStartTime;
@@ -152,20 +164,11 @@ extern "C" void runProgRaceTrackTask(void) {
         {
             static const bool runOnce = [&trackInfo, &lastDistWithValidLine, &lapStartTime, &mainLine]() {
 
-                if (ProgramState::Race          == globals::programState ||
-                    ProgramState::Race_segFast2 == globals::programState ||
-                    ProgramState::Race_segFast3 == globals::programState ||
-                    ProgramState::Race_segFast4 == globals::programState) {
-
+                if ((trackInfo.seg = getFastSegment(trackSegments, globals::programState)) != trackSegments.end()) { // race
                     trackInfo.lap = 3;
-                    trackInfo.seg = ProgramState::Race == globals::programState ? trackSegments.begin() :
-                           ProgramState::Race_segFast2 == globals::programState ? trackSegments.begin() + 2 :
-                           ProgramState::Race_segFast3 == globals::programState ? trackSegments.begin() + 4 :
-                                                                                  trackSegments.begin() + 6;
-
                     globals::programState = ProgramState::Race;
                     forceSlowSpeed = true;
-                } else {
+                } else { // reach safety car
                     trackInfo.lap = 1;
                     trackInfo.seg = trackSegments.begin();
                     forceSlowSpeed = false;
