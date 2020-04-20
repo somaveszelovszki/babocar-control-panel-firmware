@@ -4,23 +4,24 @@
 
 enum class ProgramState : uint8_t {
     // Start states
-    INVALID           = 0,
-    WaitStartSignal   = 1,
+    INVALID              = 0,
+    WaitStartSignal      = 1,
 
     // Labyrinth states
-    NavigateLabyrinth = 2,
-    LaneChange        = 3,
+    NavigateLabyrinth    = 2,
+    LaneChange           = 3,
 
     // RaceTrack states
-    ReachSafetyCar    = 4,
-    FollowSafetyCar   = 5,
-    OvertakeSafetyCar = 6,
-    Race              = 7,
-    Race_segFast2     = 8,
-    Race_segFast3     = 9,
-    Race_segFast4     = 10,
-    Finish            = 11,
-    Error             = 12
+    ReachSafetyCar       = 4,
+    FollowSafetyCar      = 5,
+    OvertakeSafetyCar    = 6,
+    Race                 = 7,
+    Race_segFast2        = 8,
+    Race_segFast3        = 9,
+    Race_segFast4        = 10,
+    TurnAround           = 11,
+    Finish               = 12,
+    Error                = 13
 };
 
 enum class ProgramTask {
@@ -44,6 +45,7 @@ inline ProgramTask getActiveTask(const ProgramState programState) {
     case ProgramState::Race_segFast2:
     case ProgramState::Race_segFast3:
     case ProgramState::Race_segFast4:
+    case ProgramState::TurnAround:
     case ProgramState::Finish:
     case ProgramState::Error:             task = ProgramTask::RaceTrack; break;
     }

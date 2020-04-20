@@ -35,7 +35,6 @@ extern micro::m_per_sec_t speed_LAB_FWD;
 extern micro::m_per_sec_t speed_LAB_BWD;
 extern micro::m_per_sec_t speed_LANE_CHANGE;
 extern micro::m_per_sec_t speed_REACH_SAFETY_CAR;
-extern micro::m_per_sec_t speed_TURN_AROUND;
 extern micro::m_per_sec_t speed_OVERTAKE_BEGIN;
 extern micro::m_per_sec_t speed_OVERTAKE_STRAIGHT;
 extern micro::m_per_sec_t speed_OVERTAKE_END;
