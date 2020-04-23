@@ -5,10 +5,14 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
 
+#include <cfg_track.hpp>
+
 #include <functional>
 
 struct TrackSpeeds {
     micro::m_per_sec_t fast;
+
+#if TRACK == RACE_TRACK
     micro::m_per_sec_t slow1_prepare;
     micro::m_per_sec_t slow1_round;
     micro::m_per_sec_t slow2_prepare;
@@ -21,6 +25,22 @@ struct TrackSpeeds {
     micro::m_per_sec_t slow3_end;
     micro::m_per_sec_t slow4_prepare;
     micro::m_per_sec_t slow4_round;
+#elif TRACK == TEST_TRACK
+    micro::m_per_sec_t slow1_prepare;
+    micro::m_per_sec_t slow1_chicane;
+    micro::m_per_sec_t slow2_prepare;
+    micro::m_per_sec_t slow2_begin_chicane;
+    micro::m_per_sec_t slow2_round_begin;
+    micro::m_per_sec_t slow2_round_end;
+    micro::m_per_sec_t slow2_end_chicane;
+    micro::m_per_sec_t slow3_prepare;
+    micro::m_per_sec_t slow3_chicane;
+    micro::m_per_sec_t slow4_prepare;
+    micro::m_per_sec_t slow4_begin_chicane;
+    micro::m_per_sec_t slow4_round_begin;
+    micro::m_per_sec_t slow4_round_end;
+    micro::m_per_sec_t slow4_end_chicane;
+#endif
 };
 
 struct BrakeOffsets {

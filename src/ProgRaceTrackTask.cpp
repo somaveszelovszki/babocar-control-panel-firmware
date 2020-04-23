@@ -213,10 +213,18 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
 TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const ProgramState programState) {
     TrackSegments::const_iterator segment = trackSegments.end();
     switch (programState) {
+
+#if TRACK == RACE_TRACK
     case ProgramState::Race:          segment = trackSegments.begin();      break;
     case ProgramState::Race_segFast2: segment = trackSegments.begin() + 3;  break;
     case ProgramState::Race_segFast3: segment = trackSegments.begin() + 8;  break;
     case ProgramState::Race_segFast4: segment = trackSegments.begin() + 13; break;
+#elif TRACK == TEST_TRACK
+    case ProgramState::Race:          segment = trackSegments.begin();      break;
+    case ProgramState::Race_segFast2: segment = trackSegments.begin() + 3;  break;
+    case ProgramState::Race_segFast3: segment = trackSegments.begin() + 8;  break;
+    case ProgramState::Race_segFast4: segment = trackSegments.begin() + 13; break;
+#endif
     default:                          segment = trackSegments.end();        break;
     }
     return segment;
@@ -270,6 +278,8 @@ extern "C" void runProgRaceTrackTask(void) {
             xQueuePeek(detectedLinesQueue, &detectedLines, 0);
             xQueuePeek(distancesQueue, &distances, 0);
 
+            const meter_t distFromBehindSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
+
             micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
 
             // sets default lateral control
@@ -304,7 +314,7 @@ extern "C" void runProgRaceTrackTask(void) {
             case ProgramState::ReachSafetyCar:
                 controlData.speed = globals::speed_REACH_SAFETY_CAR;
                 controlData.rampTime = millisecond_t(0);
-                if (distances.front > meter_t(0) && safetyCarFollowSpeed(distances.front, true) < controlData.speed) {
+                if (distFromBehindSafetyCar > meter_t(0) && safetyCarFollowSpeed(distFromBehindSafetyCar, true) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;
                     LOG_DEBUG("Reached safety car, starts following");
                 }
@@ -312,11 +322,11 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case ProgramState::FollowSafetyCar:
                 static meter_t lastDistWithSafetyCar;
-                controlData.speed = safetyCarFollowSpeed(distances.front, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromBehindSafetyCar, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
                 globals::distServoEnabled = true;
 
-                if (distances.front < centimeter_t(100)) {
+                if (distFromBehindSafetyCar < centimeter_t(100)) {
                     lastDistWithSafetyCar = globals::car.distance;
                 }
 
@@ -330,7 +340,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case ProgramState::OvertakeSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distances.front, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromBehindSafetyCar, trackInfo.seg->isFast);
                 if (overtakeSafetyCar(detectedLines, controlData)) {
                     ++overtake.cntr;
                     globals::programState = ProgramState::Race;
@@ -346,11 +356,12 @@ extern "C" void runProgRaceTrackTask(void) {
 
                 } else if (trackInfo.lap <= 3 &&
                            overtake.cntr < 2 &&
-                           distances.front < (trackInfo.seg->isFast ? centimeter_t(120) : centimeter_t(60))) {
+                           distFromBehindSafetyCar < (trackInfo.seg->isFast ? centimeter_t(120) : centimeter_t(60))) {
                     globals::programState = ProgramState::FollowSafetyCar;
                     LOG_DEBUG("Reached safety car, starts following");
 
-                } else if (trackInfo.lap == 3 &&
+                } else if (Sign::NEGATIVE == speedSign &&
+                           trackInfo.lap == 3 &&
                            trackInfo.seg == getFastSegment(trackSegments, ProgramState::Race_segFast3) &&
                            globals::car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
                     globals::programState = ProgramState::TurnAround;

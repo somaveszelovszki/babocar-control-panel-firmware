@@ -1,6 +1,5 @@
 #include <globals.hpp>
 #include <track.hpp>
-#include <track.hpp>
 
 using namespace micro;
 
@@ -17,6 +16,10 @@ const BrakeOffsets& getBrakeOffsets(uint8_t lap) {
 template <typename T>
 T mapByTrackSegDistance(const TrackInfo& trackInfo, const T& start, const T& end) {
     return map(globals::car.distance.get(), trackInfo.segStartCarProps.distance.get(), (trackInfo.segStartCarProps.distance + trackInfo.seg->length).get(), start, end);
+}
+
+radian_t getFixOrientationLineAngle(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    return trackInfo.segStartCarProps.pose.angle - globals::car.pose.angle - mainLine.centerLine.angle;
 }
 
 bool hasBecomeActive_Fast(const TrackInfo& trackInfo, const LinePattern& pattern) {
@@ -38,6 +41,8 @@ bool hasBecomeActive_Fast(const TrackInfo& trackInfo, const LinePattern& pattern
     return active;
 }
 
+#if TRACK == RACE_TRACK
+
 bool hasBecomeActive_Slow1_prepare(const TrackInfo& trackInfo, const LinePattern& pattern) {
     return LinePattern::BRAKE == pattern.type;
 }
@@ -55,7 +60,7 @@ bool hasBecomeActive_Slow2_begin(const TrackInfo& trackInfo, const LinePattern& 
 }
 
 bool hasBecomeActive_Slow2_round_begin(const TrackInfo& trackInfo, const LinePattern& pattern) {
-    return globals::car.distance - trackInfo.segStartCarProps.distance > centimeter_t(120);
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
 bool hasBecomeActive_Slow2_round_end(const TrackInfo& trackInfo, const LinePattern& pattern) {
@@ -86,6 +91,66 @@ bool hasBecomeActive_Slow4_round(const TrackInfo& trackInfo, const LinePattern& 
     return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
+#elif TRACK == TEST_TRACK
+
+bool hasBecomeActive_Slow1_prepare(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow1_chicane(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow2_prepare(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow2_begin_chicane(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow2_round_begin(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow2_round_end(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow2_end_chicane(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow3_prepare(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow3_chicane(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow4_prepare(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return LinePattern::BRAKE == pattern.type;
+}
+
+bool hasBecomeActive_Slow4_begin_chicane(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow4_round_begin(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow4_round_end(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+bool hasBecomeActive_Slow4_end_chicane(const TrackInfo& trackInfo, const LinePattern& pattern) {
+    return globals::car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+}
+
+#endif
+
 ControlData getControl_CommonFast(const TrackInfo& trackInfo, const MainLine& mainLine) {
     static bool fastSpeedEnabled = true;
 
@@ -114,6 +179,8 @@ ControlData getControl_CommonSlow(const TrackInfo& trackInfo, const MainLine& ma
     controlData.lineControl.angle    = radian_t(0);
     return controlData;
 }
+
+#if TRACK == RACE_TRACK
 
 ControlData getControl_Fast1(const TrackInfo& trackInfo, const MainLine& mainLine) {
     return  getControl_CommonFast(trackInfo, mainLine);
@@ -256,23 +323,209 @@ ControlData getControl_Slow4_round(const TrackInfo& trackInfo, const MainLine& m
     return controlData;
 }
 
+#elif TRACK == TEST_TRACK
+
+ControlData getControl_Fast1(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    return  getControl_CommonFast(trackInfo, mainLine);
+}
+
+ControlData getControl_Fast2(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    return  getControl_CommonFast(trackInfo, mainLine);
+}
+
+ControlData getControl_Fast3(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    return  getControl_CommonFast(trackInfo, mainLine);
+}
+
+ControlData getControl_Fast4(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    return  getControl_CommonFast(trackInfo, mainLine);
+}
+
+ControlData getControl_Slow1_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
+
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow1 ? speeds.slow1_prepare : speeds.fast;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow1_chicane(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow1_chicane;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = getFixOrientationLineAngle(trackInfo, mainLine);
+
+    return controlData;
+}
+
+ControlData getControl_Slow2_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
+
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow2 ? speeds.slow2_prepare : speeds.fast;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow2_begin_chicane(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow2_begin_chicane;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow2_round_begin(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow2_round_begin;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(-12));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(0));
+
+    return controlData;
+}
+
+ControlData getControl_Slow2_round_end(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow2_round_end;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow2_end_chicane(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow2_end_chicane;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = getFixOrientationLineAngle(trackInfo, mainLine);
+
+    return controlData;
+}
+
+ControlData getControl_Slow3_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
+
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow3 ? speeds.slow3_prepare : speeds.fast;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow3_chicane(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow3_chicane;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = getFixOrientationLineAngle(trackInfo, mainLine);
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_prepare(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+    const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
+
+    controlData.speed = globals::car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow4 ? speeds.slow4_prepare : speeds.fast;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_begin_chicane(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow4_begin_chicane;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_round_begin(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow4_round_begin;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(-12));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(0));
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_round_end(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData   = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow4_round_end;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = mapByTrackSegDistance<radian_t>(trackInfo, trackInfo.segStartLine.angle, degree_t(15));
+
+    return controlData;
+}
+
+ControlData getControl_Slow4_end_chicane(const TrackInfo& trackInfo, const MainLine& mainLine) {
+    ControlData controlData = getControl_CommonSlow(trackInfo, mainLine);
+
+    controlData.speed = getSpeeds(trackInfo.lap).slow4_end_chicane;
+    controlData.lineControl.offset = mapByTrackSegDistance<millimeter_t>(trackInfo, trackInfo.segStartLine.pos, centimeter_t(0));
+    controlData.lineControl.angle  = getFixOrientationLineAngle(trackInfo, mainLine);
+
+    return controlData;
+}
+
+#endif
+
 } // namespace
 
 const TrackSegments trackSegments = {
-    { true,  meter_t(5.6f), hasBecomeActive_Fast,              getControl_Fast1             },
-    { false, meter_t(3.3f), hasBecomeActive_Slow1_prepare,     getControl_Slow1_prepare     },
-    { false, meter_t(1.7f), hasBecomeActive_Slow1_round,       getControl_Slow1_round       },
-    { true,  meter_t(6.6f), hasBecomeActive_Fast,              getControl_Fast2             },
-    { false, meter_t(3.1f), hasBecomeActive_Slow2_prepare,     getControl_Slow2_prepare     },
-    { false, meter_t(1.6f), hasBecomeActive_Slow2_begin,       getControl_Slow2_begin       },
-    { false, meter_t(1.6f), hasBecomeActive_Slow2_round_begin, getControl_Slow2_round_begin },
-    { false, meter_t(1.6f), hasBecomeActive_Slow2_round_end,   getControl_Slow2_round_end   },
-    { true,  meter_t(6.9f), hasBecomeActive_Fast,              getControl_Fast3             },
-    { false, meter_t(3.0f), hasBecomeActive_Slow3_prepare,     getControl_Slow3_prepare     },
-    { false, meter_t(1.6f), hasBecomeActive_Slow3_round_begin, getControl_Slow3_round_begin },
-    { false, meter_t(1.6f), hasBecomeActive_Slow3_round_end,   getControl_Slow3_round_end   },
-    { false, meter_t(1.6f), hasBecomeActive_Slow3_end,         getControl_Slow3_end         },
-    { true,  meter_t(6.6f), hasBecomeActive_Fast,              getControl_Fast4             },
-    { false, meter_t(3.2f), hasBecomeActive_Slow4_prepare,     getControl_Slow4_prepare     },
-    { false, meter_t(1.7f), hasBecomeActive_Slow4_round,       getControl_Slow4_round       }
+#if TRACK == RACE_TRACK
+    { true,  meter_t(5.6f), hasBecomeActive_Fast,                getControl_Fast1               },
+    { false, meter_t(3.3f), hasBecomeActive_Slow1_prepare,       getControl_Slow1_prepare       },
+    { false, meter_t(1.7f), hasBecomeActive_Slow1_round,         getControl_Slow1_round         },
+    { true,  meter_t(6.6f), hasBecomeActive_Fast,                getControl_Fast2               },
+    { false, meter_t(3.1f), hasBecomeActive_Slow2_prepare,       getControl_Slow2_prepare       },
+    { false, meter_t(1.6f), hasBecomeActive_Slow2_begin,         getControl_Slow2_begin         },
+    { false, meter_t(1.6f), hasBecomeActive_Slow2_round_begin,   getControl_Slow2_round_begin   },
+    { false, meter_t(1.6f), hasBecomeActive_Slow2_round_end,     getControl_Slow2_round_end     },
+    { true,  meter_t(6.9f), hasBecomeActive_Fast,                getControl_Fast3               },
+    { false, meter_t(3.0f), hasBecomeActive_Slow3_prepare,       getControl_Slow3_prepare       },
+    { false, meter_t(1.6f), hasBecomeActive_Slow3_round_begin,   getControl_Slow3_round_begin   },
+    { false, meter_t(1.6f), hasBecomeActive_Slow3_round_end,     getControl_Slow3_round_end     },
+    { false, meter_t(1.6f), hasBecomeActive_Slow3_end,           getControl_Slow3_end           },
+    { true,  meter_t(6.6f), hasBecomeActive_Fast,                getControl_Fast4               },
+    { false, meter_t(3.2f), hasBecomeActive_Slow4_prepare,       getControl_Slow4_prepare       },
+    { false, meter_t(1.7f), hasBecomeActive_Slow4_round,         getControl_Slow4_round         }
+#elif TRACK == TEST_TRACK
+    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast1               },
+    { false, meter_t(0.0f), hasBecomeActive_Slow1_prepare,       getControl_Slow1_prepare       },
+    { false, meter_t(0.0f), hasBecomeActive_Slow1_chicane,       getControl_Slow1_chicane       },
+    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast2               },
+    { false, meter_t(0.0f), hasBecomeActive_Slow2_prepare,       getControl_Slow2_prepare       },
+    { false, meter_t(0.0f), hasBecomeActive_Slow2_begin_chicane, getControl_Slow2_begin_chicane },
+    { false, meter_t(0.0f), hasBecomeActive_Slow2_round_begin,   getControl_Slow2_round_begin   },
+    { false, meter_t(0.0f), hasBecomeActive_Slow2_round_end,     getControl_Slow2_round_end     },
+    { false, meter_t(0.0f), hasBecomeActive_Slow2_end_chicane,   getControl_Slow2_end_chicane   },
+    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast3               },
+    { false, meter_t(0.0f), hasBecomeActive_Slow3_prepare,       getControl_Slow3_prepare       },
+    { false, meter_t(0.0f), hasBecomeActive_Slow3_chicane,       getControl_Slow3_chicane       },
+    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast4               },
+    { false, meter_t(0.0f), hasBecomeActive_Slow4_prepare,       getControl_Slow4_prepare       },
+    { false, meter_t(0.0f), hasBecomeActive_Slow4_begin_chicane, getControl_Slow4_begin_chicane },
+    { false, meter_t(0.0f), hasBecomeActive_Slow4_round_begin,   getControl_Slow4_round_begin   },
+    { false, meter_t(0.0f), hasBecomeActive_Slow4_round_end,     getControl_Slow4_round_end     },
+    { false, meter_t(0.0f), hasBecomeActive_Slow4_end_chicane,   getControl_Slow4_end_chicane   }
+#endif
+
 };
