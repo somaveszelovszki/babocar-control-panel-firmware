@@ -210,24 +210,24 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
     return turnaroundState_t::Inactive == turnaround.state;
 }
 
-TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const ProgramState programState) {
-    TrackSegments::const_iterator segment = trackSegments.end();
-    switch (programState) {
-
-#if TRACK == RACE_TRACK
-    case ProgramState::Race:          segment = trackSegments.begin();      break;
-    case ProgramState::Race_segFast2: segment = trackSegments.begin() + 3;  break;
-    case ProgramState::Race_segFast3: segment = trackSegments.begin() + 8;  break;
-    case ProgramState::Race_segFast4: segment = trackSegments.begin() + 13; break;
-#elif TRACK == TEST_TRACK
-    case ProgramState::Race:          segment = trackSegments.begin();      break;
-    case ProgramState::Race_segFast2: segment = trackSegments.begin() + 3;  break;
-    case ProgramState::Race_segFast3: segment = trackSegments.begin() + 8;  break;
-    case ProgramState::Race_segFast4: segment = trackSegments.begin() + 13; break;
-#endif
-    default:                          segment = trackSegments.end();        break;
+TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const uint32_t fastSeg) {
+    TrackSegments::const_iterator it = trackSegments.begin();
+    uint32_t numFastSegs = 0;
+    for (; it != trackSegments.end(); ++it) {
+        if (it->isFast && ++numFastSegs == fastSeg) {
+            break;
+        }
     }
-    return segment;
+    return it;
+}
+
+TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const ProgramState programState) {
+    return getFastSegment(trackSegments,
+        ProgramState::Race          == programState ? 1 :
+        ProgramState::Race_segFast2 == programState ? 2 :
+        ProgramState::Race_segFast3 == programState ? 3 :
+        ProgramState::Race_segFast4 == programState ? 4 : micro::numeric_limits<uint32_t>::max()
+    );
 }
 
 } // namespace
@@ -246,7 +246,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     TrackInfo trackInfo;
 
-    overtake.segment = getFastSegment(trackSegments, ProgramState::Race_segFast3);
+    overtake.segment = getFastSegment(trackSegments, 3);
 
     meter_t lastDistWithValidLine;
     millisecond_t lapStartTime;
@@ -362,7 +362,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
                 } else if (Sign::NEGATIVE == speedSign &&
                            trackInfo.lap == 3 &&
-                           trackInfo.seg == getFastSegment(trackSegments, ProgramState::Race_segFast3) &&
+                           trackInfo.seg == getFastSegment(trackSegments, 3) &&
                            globals::car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
                     globals::programState = ProgramState::TurnAround;
                     LOG_DEBUG("Starts turn-around.");
