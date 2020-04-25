@@ -6,7 +6,6 @@
 #include <micro/utils/timer.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/trajectory.hpp>
-#include <micro/utils/updatable.hpp>
 
 #include <cfg_board.h>
 #include <cfg_car.hpp>
