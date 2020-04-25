@@ -1,7 +1,6 @@
 #include <micro/container/ring_buffer.hpp>
 #include <micro/container/vec.hpp>
 #include <micro/debug/params.hpp>
-#include <micro/utils/convert.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
