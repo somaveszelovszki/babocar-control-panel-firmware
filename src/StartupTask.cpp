@@ -1,5 +1,5 @@
 #include <micro/utils/log.hpp>
-#include <micro/utils/time.hpp>
+#include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
 #include <globals.hpp>

@@ -1,7 +1,7 @@
 #include <micro/hw/MPU9250_Gyroscope.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
-#include <micro/utils/time.hpp>
+#include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
 #include <globals.hpp>
@@ -93,37 +93,22 @@ extern "C" void runGyroTask(void) {
 
     globals::isGyroTaskOk = true;
 
-    microsecond_t prevReadTime = micro::getExactTime();
-    meter_t prevDist = globals::car.distance;
-
+    millisecond_t prevReadTime = getTime();
     millisecond_t lastNonZeroAngVelTime = getTime();
 
     while (true) {
         const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
         if (gyroData.Z != micro::numeric_limits<rad_per_sec_t>::infinity()) {
+            prevReadTime = getTime();
+
             if (gyroData.Z != rad_per_sec_t(0)) {
                 lastNonZeroAngVelTime = getTime();
             }
-            globals::isGyroTaskOk = getTime() - lastNonZeroAngVelTime < millisecond_t(100);
 
-            const microsecond_t now = getExactTime();
-
-            const radian_t d_angle = gyroData.Z * (now - prevReadTime);
-
-            vTaskSuspendAll();
-            const meter_t d_dist = sgn(globals::car.speed) * (globals::car.distance - prevDist);
-
-            globals::car.pose.angle += d_angle / 2;
-            globals::car.pose.pos.X += d_dist * cos(globals::car.pose.angle);
-            globals::car.pose.pos.Y += d_dist * sin(globals::car.pose.angle);
-            globals::car.pose.angle = normalize360(globals::car.pose.angle + d_angle / 2);
-
+            globals::car.yawRate = gyroData.Z;
             updateOrientedDistance();
 
-            prevDist = globals::car.distance;
-            xTaskResumeAll();
-
-            prevReadTime = now;
+            globals::isGyroTaskOk = getTime() - lastNonZeroAngVelTime < millisecond_t(100);
 
         } else if (getTime() - prevReadTime > millisecond_t(400)) {
             globals::isGyroTaskOk = false;

@@ -9,6 +9,7 @@
 #include <micro/utils/updatable.hpp>
 
 #include <cfg_board.h>
+#include <cfg_micro.hpp>
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
@@ -61,7 +62,6 @@ void calcTargetAngles(const ControlData& controlData) {
         if (globals::car.speed < m_per_sec_t(0)) {
             std::swap(frontWheelTargetAngle, rearWheelTargetAngle);
         }
-
         break;
     }
 
@@ -72,6 +72,26 @@ void calcTargetAngles(const ControlData& controlData) {
     frontDistSensorServoTargetAngle = frontWheelTargetAngle * globals::distServoTransferRate;
 }
 
+void updateCarProps() {
+    static microsecond_t prevUpdateTime = getTime();
+    static meter_t prevDist = globals::car.distance;
+
+    const microsecond_t now = getExactTime();
+
+    vTaskSuspendAll();
+    const meter_t d_dist      = sgn(globals::car.speed) * (globals::car.distance - prevDist);
+    const radian_t d_angle    = globals::car.yawRate * (now - prevUpdateTime);
+    const radian_t speedAngle = globals::car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST);
+
+    globals::car.pose.angle += d_angle / 2;
+    globals::car.pose.pos.X += d_dist * cos(speedAngle);
+    globals::car.pose.pos.Y += d_dist * sin(speedAngle);
+    globals::car.pose.angle = normalize360(globals::car.pose.angle + d_angle / 2);
+
+    prevDist = globals::car.distance;
+    xTaskResumeAll();
+}
+
 } // namespace
 
 extern "C" void runControlTask(void) {
@@ -80,10 +100,6 @@ extern "C" void runControlTask(void) {
     micro::waitReady(controlQueue);
 
     ControlData controlData;
-
-    Timer longitudinalControlTimer(can::LongitudinalControl::period());
-    Timer lateralControlTimer(can::LateralControl::period());
-
     CanManager canManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
 
     canManager.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
@@ -95,6 +111,9 @@ extern "C" void runControlTask(void) {
         reinterpret_cast<const can::LongitudinalState*>(data)->acquire(globals::car.speed, globals::car.distance);
     });
 
+    Timer longitudinalControlTimer(can::LongitudinalControl::period());
+    Timer lateralControlTimer(can::LateralControl::period());
+    Timer carPropsUpdateTimer(millisecond_t(5));
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
 
     while (true) {
@@ -118,6 +137,10 @@ extern "C" void runControlTask(void) {
 
         if (lateralControlTimer.checkTimeout()) {
             canManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
+        }
+
+        if (carPropsUpdateTimer.checkTimeout()) {
+            updateCarProps();
         }
 
         vTaskDelay(1);
