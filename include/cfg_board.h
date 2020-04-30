@@ -22,10 +22,22 @@ extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart6;
 
+#define GYRO_MPU9250            1
+#define GYRO_LSM6DSO            2
+#define GYRO_BOARD              GYRO_LSM6DSO
+
+#if GYRO_BOARD == GYRO_MPU9250
+#define i2c_Gyro                (&hi2c1)
+
+#elif GYRO_BOARD == GYRO_LSM6DSO
+#define i2c_X                   (&hi2c1)
+#define spi_Gyro                (&hspi1)
+#define csGpio_Gyro             GPIOB
+#define csGpioPin_Gyro          5
+#endif
+
 #define can_Vehicle             (&hcan1)
 #define canRxFifo_Vehicle       CAN_RX_FIFO0
-
-#define i2c_X                   (&hi2c1)
 
 #define uart_FrontDistSensor    (&huart4)
 #define uart_Command            (&huart2)
@@ -44,17 +56,9 @@ extern UART_HandleTypeDef huart6;
 #define gpioPin_Btn1            GPIO_PIN_1
 #define gpioPin_Btn2            GPIO_PIN_0
 
-#define spi_Gyro                (&hspi1)
-#define csGpio_Gyro             GPIOA
-#define csGpioPin_Gyro          127
-
 #define tim_System              (&htim2)
 
 #define PANEL_VERSION           0x05
-
-#define GYRO_MPU9250            1
-#define GYRO_LSM6DSO            2
-#define GYRO_BOARD              GYRO_LSM6DSO
 
 #ifdef __cplusplus
 }
