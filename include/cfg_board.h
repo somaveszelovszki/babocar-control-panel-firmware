@@ -45,10 +45,16 @@ extern UART_HandleTypeDef huart6;
 #define gpioPin_Btn2            GPIO_PIN_0
 
 #define spi_Gyro                (&hspi1)
+#define csGpio_Gyro             GPIOA
+#define csGpioPin_Gyro          127
 
 #define tim_System              (&htim2)
 
 #define PANEL_VERSION           0x05
+
+#define GYRO_MPU9250            1
+#define GYRO_LSM6DSO            2
+#define GYRO_BOARD              GYRO_LSM6DSO
 
 #ifdef __cplusplus
 }

@@ -1,9 +1,15 @@
+#include <cfg_board.h>
+
+#if GYRO_BOARD == GYRO_MPU9250
 #include <micro/hw/MPU9250_Gyroscope.hpp>
+#elif GYRO_BOARD == GYRO_LSM6DSO
+#include <micro/hw/LSM6DSO_Gyroscope.hpp>
+#endif
+
 #include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.h>
 #include <globals.hpp>
 
 #include <stm32f4xx_hal.h>
@@ -19,7 +25,11 @@ using namespace micro;
 
 namespace {
 
-hw::MPU9250 gyro(i2c_X, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+#if GYRO_BOARD == GYRO_MPU9250
+hw::MPU9250_Gyroscope gyro(i2c_X, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+#elif GYRO_BOARD == GYRO_LSM6DSO
+hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro);
+#endif
 
 class AngleCalc {
 public:

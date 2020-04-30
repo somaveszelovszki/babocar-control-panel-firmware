@@ -34,7 +34,7 @@ void parseDistSensorPanelData(const DistSensorPanelOutData& rxData, const bool i
 }
 
 void fillDistSensorPanelData(DistSensorPanelInData& txData) {
-    txData.filterSize = 3;
+    UNUSED(txData);
 }
 
 } // namespace
