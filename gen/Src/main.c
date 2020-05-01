@@ -31,6 +31,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <micro/panel/panelVersion.h>
+#include <micro/utils/time_init.h>
 #include <cfg_board.h>
 /* USER CODE END Includes */
 
@@ -94,6 +95,8 @@ int main(void)
   if (PANEL_VERSION != panelVersion_get()) {
       Error_Handler();
   }
+
+  micro_time_init(tim_System);
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
