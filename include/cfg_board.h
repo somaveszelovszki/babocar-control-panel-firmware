@@ -14,6 +14,7 @@ extern "C" {
 
 extern CAN_HandleTypeDef  hcan1;
 extern I2C_HandleTypeDef  hi2c1;
+extern I2C_HandleTypeDef  hi2c3;
 extern SPI_HandleTypeDef  hspi1;
 extern TIM_HandleTypeDef  htim2;
 extern UART_HandleTypeDef huart2;
@@ -30,11 +31,12 @@ extern UART_HandleTypeDef huart6;
 #define i2c_Gyro                (&hi2c1)
 
 #elif GYRO_BOARD == GYRO_LSM6DSO
-#define i2c_X                   (&hi2c1)
 #define spi_Gyro                (&hspi1)
 #define csGpio_Gyro             GPIOB
 #define csGpioPin_Gyro          5
 #endif
+
+#define i2c_X                   (&hi2c3)
 
 #define can_Vehicle             (&hcan1)
 #define canRxFifo_Vehicle       CAN_RX_FIFO0
