@@ -5,6 +5,7 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
+#include <micro/utils/task.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
