@@ -78,9 +78,9 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId IdleTaskHandle;
-uint32_t IdleTaskBuffer[ 128 ];
-osStaticThreadDef_t IdleTaskControlBlock;
+osThreadId DebugTaskHandle;
+uint32_t DebugTaskBuffer[ 1024 ];
+osStaticThreadDef_t DebugTaskControlBlock;
 osThreadId ControlTaskHandle;
 uint32_t ControlTaskBuffer[ 512 ];
 osStaticThreadDef_t ControlTaskControlBlock;
@@ -102,13 +102,11 @@ osStaticThreadDef_t TaskProgLabyrinthControlBlock;
 osThreadId ProgRaceTrackTaskHandle;
 uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
 osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
-osThreadId DebugTaskHandle;
-uint32_t DebugTaskBuffer[ 1024 ];
-osStaticThreadDef_t DebugTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
+void runDebugTask(void);
 void runControlTask(void);
 void runGyroTask(void);
 void runLineDetectTask(void);
@@ -116,11 +114,10 @@ void runStartupTask(void);
 void runDistSensorTask(void);
 void runProgLabyrinthTask(void);
 void runProgRaceTrackTask(void);
-void runDebugTask(void);
 
 /* USER CODE END FunctionPrototypes */
 
-void StartIdleTask(void const * argument);
+void StartDebugTask(void const * argument);
 void StartControlTask(void const * argument);
 void StartGyroTask(void const * argument);
 void StartLineDetectTask(void const * argument);
@@ -128,7 +125,6 @@ void StartStartupTask(void const * argument);
 void StartDistSensorTask(void const * argument);
 void StartProgLabyrinthTask(void const * argument);
 void StartProgRaceTrackTask(void const * argument);
-void StartDebugTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -175,9 +171,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of IdleTask */
-  osThreadStaticDef(IdleTask, StartIdleTask, osPriorityIdle, 0, 128, IdleTaskBuffer, &IdleTaskControlBlock);
-  IdleTaskHandle = osThreadCreate(osThread(IdleTask), NULL);
+  /* definition and creation of DebugTask */
+  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
+  DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
   /* definition and creation of ControlTask */
   osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
@@ -207,24 +203,20 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(ProgRaceTrackTask, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
   ProgRaceTrackTaskHandle = osThreadCreate(osThread(ProgRaceTrackTask), NULL);
 
-  /* definition and creation of DebugTask */
-  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
-  DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
-
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
 }
 
-/* USER CODE BEGIN Header_StartIdleTask */
+/* USER CODE BEGIN Header_StartDebugTask */
 /**
-  * @brief  Function implementing the IdleTask thread.
-  * @param  argument: Not used 
-  * @retval None
-  */
-/* USER CODE END Header_StartIdleTask */
-void StartIdleTask(void const * argument)
+* @brief Function implementing the DebugTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDebugTask */
+void StartDebugTask(void const * argument)
 {
     
     
@@ -235,15 +227,10 @@ void StartIdleTask(void const * argument)
     
     
     
-    
 
-  /* USER CODE BEGIN StartIdleTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartIdleTask */
+  /* USER CODE BEGIN StartDebugTask */
+  runDebugTask();
+  /* USER CODE END StartDebugTask */
 }
 
 /* USER CODE BEGIN Header_StartControlTask */
@@ -342,20 +329,6 @@ void StartProgRaceTrackTask(void const * argument)
   /* USER CODE BEGIN StartProgRaceTrackTask */
   runProgRaceTrackTask();
   /* USER CODE END StartProgRaceTrackTask */
-}
-
-/* USER CODE BEGIN Header_StartDebugTask */
-/**
-* @brief Function implementing the DebugTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartDebugTask */
-void StartDebugTask(void const * argument)
-{
-  /* USER CODE BEGIN StartDebugTask */
-  runDebugTask();
-  /* USER CODE END StartDebugTask */
 }
 
 /* Private application code --------------------------------------------------*/
