@@ -97,14 +97,14 @@ void updateOrientedDistance() {
 
 extern "C" void runGyroTask(void) {
 
-    vTaskDelay(300); // gives time to other tasks to wake up
-
     gyro.initialize();
 
     globals::isGyroTaskOk = true;
 
     millisecond_t prevReadTime = getTime();
     millisecond_t lastNonZeroAngVelTime = getTime();
+
+    Timer sendTimer(millisecond_t(100));
 
     while (true) {
         const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
@@ -120,13 +120,18 @@ extern "C" void runGyroTask(void) {
 
             globals::isGyroTaskOk = getTime() - lastNonZeroAngVelTime < millisecond_t(100);
 
-        } else if (getTime() - prevReadTime > millisecond_t(400)) {
+            if (sendTimer.checkTimeout()) {
+                LOG_DEBUG("%f, %f, %f deg/s", static_cast<deg_per_sec_t>(gyroData.X).get(), static_cast<deg_per_sec_t>(gyroData.Y).get(), static_cast<deg_per_sec_t>(gyroData.Z).get());
+            }
+
+        } else if (getTime() - prevReadTime > millisecond_t(1000)) {
             globals::isGyroTaskOk = false;
             gyro.initialize();
+            LOG_DEBUG("Gyro timed out");
             prevReadTime = getExactTime();
         }
 
-        vTaskDelay(1);
+        vTaskDelay(10);
     }
 
     vTaskDelete(nullptr);
