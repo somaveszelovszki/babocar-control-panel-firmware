@@ -140,3 +140,7 @@ extern "C" void runGyroTask(void) {
 
     vTaskDelete(nullptr);
 }
+
+void micro_Gyro_CommCpltCallback() {
+    gyro.onCommFinished();
+}
