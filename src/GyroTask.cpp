@@ -25,8 +25,12 @@ using namespace micro;
 
 namespace {
 
+#define GYRO_MPU9250    1
+#define GYRO_LSM6DSO    2
+#define GYRO_BOARD      GYRO_MPU9250
+
 #if GYRO_BOARD == GYRO_MPU9250
-hw::MPU9250_Gyroscope gyro(i2c_X, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 #elif GYRO_BOARD == GYRO_LSM6DSO
 hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro);
 #endif

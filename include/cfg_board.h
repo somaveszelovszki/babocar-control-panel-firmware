@@ -23,18 +23,9 @@ extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart6;
 
-#define GYRO_MPU9250            1
-#define GYRO_LSM6DSO            2
-#define GYRO_BOARD              GYRO_LSM6DSO
-
-#if GYRO_BOARD == GYRO_MPU9250
-#define i2c_Gyro                (&hi2c1)
-
-#elif GYRO_BOARD == GYRO_LSM6DSO
 #define spi_Gyro                (&hspi1)
 #define csGpio_Gyro             GPIOB
 #define csGpioPin_Gyro          5
-#endif
 
 #define i2c_X                   (&hi2c3)
 
