@@ -5,7 +5,6 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
 #include <micro/utils/log.hpp>
-#include <micro/utils/task.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 
@@ -18,6 +17,7 @@
 #include <track.hpp>
 
 #include <FreeRTOS.h>
+#include <micro/port/task.hpp>
 #include <task.h>
 #include <queue.h>
 #include <track.hpp>
@@ -92,7 +92,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
                 Pose{ globals::car.pose.pos, overtake.orientation },
-                clamp(globals::car.speed, m_per_sec_t(1.0f), globals::speed_OVERTAKE_BEGIN)
+                speedSign * clamp(globals::car.speed, m_per_sec_t(1.0f), globals::speed_OVERTAKE_BEGIN)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
@@ -100,7 +100,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                     overtake.trajectory.lastConfig().pose.pos + vec2m{ BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
                     overtake.orientation
                 },
-                globals::speed_OVERTAKE_BEGIN
+                speedSign * globals::speed_OVERTAKE_BEGIN
             }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI);
 
             // TODO this should work without the for cycle
@@ -110,7 +110,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                         overtake.trajectory.lastConfig().pose.pos + vec2m{ fastSectionLength / 10, centimeter_t(0) }.rotate(overtake.orientation),
                         overtake.orientation
                     },
-                    globals::speed_OVERTAKE_STRAIGHT
+                    speedSign * globals::speed_OVERTAKE_STRAIGHT
                 });
             }
 
@@ -119,7 +119,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                     overtake.trajectory.lastConfig().pose.pos + vec2m{ END_SINE_ARC_LENGTH, -globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
                     overtake.orientation
                 },
-                globals::speed_OVERTAKE_BEGIN
+                speedSign * globals::speed_OVERTAKE_END
             }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI_2);
         }
     }
@@ -285,9 +285,8 @@ extern "C" void runProgRaceTrackTask(void) {
 
             // sets default lateral control
             controlData.controlType          = ControlData::controlType_t::Line;
-            controlData.lineControl.baseline = mainLine.centerLine;
-            controlData.lineControl.offset   = millimeter_t(0);
-            controlData.lineControl.angle    = radian_t(0);
+            controlData.lineControl.actual   = mainLine.centerLine;
+            controlData.lineControl.desired  = { millimeter_t(0), radian_t(0) };
 
             if (globals::car.distance - prevCarProps.peek_back(0).distance >= PREV_CAR_PROPS_RESOLUTION) {
                 prevCarProps.push_back(globals::car);
@@ -355,8 +354,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 // the first 3 laps are dedicated to the safety-car follow task,
                 // changing the line offset and angle might ruin the car's capability to detect the safety car
                 if (trackInfo.lap <= 3) {
-                    controlData.lineControl.offset = millimeter_t(0);
-                    controlData.lineControl.angle  = radian_t(0);
+                    controlData.lineControl.desired = { millimeter_t(0), radian_t(0) };
                 }
 
                 if (trackInfo.lap > cfg::NUM_RACE_LAPS) {

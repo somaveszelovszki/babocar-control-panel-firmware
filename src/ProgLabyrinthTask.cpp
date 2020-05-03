@@ -1,7 +1,6 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
-#include <micro/utils/task.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
@@ -17,6 +16,7 @@
 #include <stm32f4xx_hal_uart.h>
 
 #include <FreeRTOS.h>
+#include <micro/port/task.hpp>
 #include <task.h>
 #include <queue.h>
 
@@ -774,10 +774,9 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     mainLine.updateCenterLine(globals::car.speed >= m_per_sec_t(0));
 
-    controlData.controlType          = ControlData::controlType_t::Line;
-    controlData.lineControl.baseline = mainLine.centerLine;
-    controlData.lineControl.offset   = millimeter_t(0);
-    controlData.lineControl.angle    = degree_t(0);
+    controlData.controlType         = ControlData::controlType_t::Line;
+    controlData.lineControl.actual  = mainLine.centerLine;
+    controlData.lineControl.desired = { millimeter_t(0), radian_t(0) };
 
     return finished;
 }

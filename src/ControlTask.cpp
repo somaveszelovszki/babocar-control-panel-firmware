@@ -5,7 +5,6 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
-#include <micro/utils/task.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
@@ -14,6 +13,7 @@
 #include <globals.hpp>
 
 #include <FreeRTOS.h>
+#include <micro/port/task.hpp>
 #include <queue.h>
 #include <task.h>
 
@@ -51,12 +51,12 @@ void calcTargetAngles(const ControlData& controlData) {
         const float speed = max(abs(globals::car.speed), m_per_sec_t(1.0f)).get();
 
         linePosController.tune(globals::linePosCtrl_P / speed, 0.0f, globals::linePosCtrl_D, 0.0f);
-        linePosController.update(static_cast<centimeter_t>(controlData.lineControl.baseline.pos + controlData.lineControl.offset).get());
-        frontWheelTargetAngle = degree_t(linePosController.output()) - controlData.lineControl.angle;
+        linePosController.update(static_cast<centimeter_t>(controlData.lineControl.actual.pos - controlData.lineControl.desired.pos).get());
+        frontWheelTargetAngle = degree_t(linePosController.output()) + controlData.lineControl.desired.angle;
 
         lineAngleController.tune(globals::lineAngleCtrl_P / speed, 0.0f, globals::lineAngleCtrl_D, 0.0f);
-        lineAngleController.update(static_cast<degree_t>(controlData.lineControl.baseline.angle + controlData.lineControl.angle).get());
-        rearWheelTargetAngle = degree_t(lineAngleController.output()) + controlData.lineControl.angle;
+        lineAngleController.update(static_cast<degree_t>(controlData.lineControl.actual.angle - controlData.lineControl.desired.angle).get());
+        rearWheelTargetAngle = degree_t(lineAngleController.output()) - controlData.lineControl.desired.angle;
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
         if (globals::car.speed < m_per_sec_t(0)) {
