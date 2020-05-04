@@ -8,7 +8,6 @@
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
-#include <cfg_micro.hpp>
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
