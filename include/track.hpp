@@ -14,7 +14,8 @@ struct TrackSpeeds {
 
 #if TRACK == RACE_TRACK
     micro::m_per_sec_t slow1_prepare;
-    micro::m_per_sec_t slow1_round;
+    micro::m_per_sec_t slow1_round_begin;
+    micro::m_per_sec_t slow1_round_end;
     micro::m_per_sec_t slow2_prepare;
     micro::m_per_sec_t slow2_begin;
     micro::m_per_sec_t slow2_round_begin;
@@ -24,7 +25,8 @@ struct TrackSpeeds {
     micro::m_per_sec_t slow3_round_end;
     micro::m_per_sec_t slow3_end;
     micro::m_per_sec_t slow4_prepare;
-    micro::m_per_sec_t slow4_round;
+    micro::m_per_sec_t slow4_round_begin;
+    micro::m_per_sec_t slow4_round_end;
 #elif TRACK == TEST_TRACK
     micro::m_per_sec_t slow1_prepare;
     micro::m_per_sec_t slow1_chicane;
