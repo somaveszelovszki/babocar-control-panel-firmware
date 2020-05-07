@@ -74,7 +74,7 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN CAN1_MspInit 1 */
-
+    HAL_CAN_Start(&hcan1);
   /* USER CODE END CAN1_MspInit 1 */
   }
 }
