@@ -17,6 +17,7 @@ extern void micro_RadioModule_Uart_RxCpltCallback();
 extern void micro_FrontDistSensor_Uart_RxCpltCallback();
 extern void micro_RearDistSensor_Uart_RxCpltCallback();
 extern void micro_Gyro_CommCpltCallback();
+extern void micro_Vehicle_Can_RxFifoMsgPendingCallback();
 
 /* @brief Internal callback - called when UAR receive finishes.
  * @param huart Pointer to the UART handle.
@@ -51,5 +52,11 @@ extern "C" void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
 extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
     if (hspi == spi_Gyro) {
         micro_Gyro_CommCpltCallback();
+    }
+}
+
+extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+    if (hcan == can_Vehicle) {
+        micro_Vehicle_Can_RxFifoMsgPendingCallback();
     }
 }
