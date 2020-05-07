@@ -1,6 +1,7 @@
 #include <micro/control/PID_Controller.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/panel/CanManager.hpp>
+#include <micro/port/task.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
@@ -11,14 +12,9 @@
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
-#include <FreeRTOS.h>
-#include <micro/port/task.hpp>
-#include <queue.h>
-#include <task.h>
-
-#include <algorithm>
-
 using namespace micro;
+
+CanManager vehicleCanManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
 
 #define CONTROL_QUEUE_LENGTH 1
 QueueHandle_t controlQueue = nullptr;
@@ -99,16 +95,19 @@ extern "C" void runControlTask(void) {
     micro::waitReady(controlQueue);
 
     ControlData controlData;
-    CanManager canManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
+    canFrame_t rxCanFrame;
+    CanFrameHandler vehicleCanFrameHandler;
 
-    canManager.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
+    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
         radian_t frontDistSensorServoAngle;
         reinterpret_cast<const can::LateralState*>(data)->acquire(globals::car.frontWheelAngle, globals::car.rearWheelAngle, frontDistSensorServoAngle);
     });
 
-    canManager.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
+    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
         reinterpret_cast<const can::LongitudinalState*>(data)->acquire(globals::car.speed, globals::car.distance);
     });
+
+    const CanManager::subscriberId_t vehicleCanSubsciberId = vehicleCanManager.registerSubscriber(vehicleCanFrameHandler.identifiers());
 
     Timer longitudinalControlTimer(can::LongitudinalControl::period());
     Timer lateralControlTimer(can::LateralControl::period());
@@ -116,9 +115,11 @@ extern "C" void runControlTask(void) {
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
 
     while (true) {
-        globals::isControlTaskOk = !canManager.hasRxTimedOut();
+        globals::isControlTaskOk = !vehicleCanManager.hasRxTimedOut();
 
-        canManager.handleIncomingFrames();
+        if (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
+            vehicleCanFrameHandler.handleFrame(rxCanFrame);
+        }
 
         // if no control data is received for a given period, stops motor for safety reasons
         if (xQueueReceive(controlQueue, &controlData, 0)) {
@@ -131,11 +132,11 @@ extern "C" void runControlTask(void) {
         }
 
         if (longitudinalControlTimer.checkTimeout()) {
-            canManager.send(can::LongitudinalControl(controlData.speed, globals::useSafetyEnableSignal, controlData.rampTime));
+            vehicleCanManager.send(can::LongitudinalControl(controlData.speed, globals::useSafetyEnableSignal, controlData.rampTime));
         }
 
         if (lateralControlTimer.checkTimeout()) {
-            canManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
+            vehicleCanManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
         }
 
         if (carPropsUpdateTimer.checkTimeout()) {
@@ -146,4 +147,9 @@ extern "C" void runControlTask(void) {
     }
 
     vTaskDelete(nullptr);
+}
+
+
+void micro_Vehicle_Can_RxFifoMsgPendingCallback() {
+    vehicleCanManager.onFrameReceived();
 }
