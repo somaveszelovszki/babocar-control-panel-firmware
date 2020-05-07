@@ -75,6 +75,7 @@ bool isDebugTaskOk      = false;
 bool isDistSensorTaskOk = false;
 bool isGyroTaskOk       = false;
 bool isLineDetectTaskOk = false;
+bool isVehicleCanTaskOk = false;
 
 void registerGlobalParams(micro::Params& params) {
 

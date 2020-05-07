@@ -45,6 +45,7 @@ extern bool isDebugTaskOk;
 extern bool isDistSensorTaskOk;
 extern bool isGyroTaskOk;
 extern bool isLineDetectTaskOk;
+extern bool isVehicleCanTaskOk;
 
 void registerGlobalParams(Params& params);
 
@@ -53,7 +54,8 @@ inline bool areAllTasksOk(void) {
            isDebugTaskOk &&
            isDistSensorTaskOk &&
            isGyroTaskOk &&
-           isLineDetectTaskOk;
+           isLineDetectTaskOk &&
+           isVehicleCanTaskOk;
 }
 
 } // namespace globals
