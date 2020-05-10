@@ -108,7 +108,7 @@ extern "C" void runGyroTask(void) {
     millisecond_t prevReadTime = getTime();
     millisecond_t lastNonZeroAngVelTime = getTime();
 
-    Timer sendTimer(millisecond_t(100));
+    Timer sendTimer(millisecond_t(50));
 
     while (true) {
         const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
@@ -125,17 +125,17 @@ extern "C" void runGyroTask(void) {
             globals::isGyroTaskOk = getTime() - lastNonZeroAngVelTime < millisecond_t(100);
 
             if (sendTimer.checkTimeout()) {
-                LOG_DEBUG("%f, %f, %f deg/s", static_cast<deg_per_sec_t>(gyroData.X).get(), static_cast<deg_per_sec_t>(gyroData.Y).get(), static_cast<deg_per_sec_t>(gyroData.Z).get());
+                LOG_DEBUG("orientation: %f deg/s", static_cast<deg_per_sec_t>(gyroData.Z).get());
             }
 
-        } else if (getTime() - prevReadTime > millisecond_t(1000)) {
+        } else if (getTime() - prevReadTime > millisecond_t(50)) {
             globals::isGyroTaskOk = false;
+            LOG_ERROR("Gyro timed out");
             gyro.initialize();
-            LOG_DEBUG("Gyro timed out");
             prevReadTime = getExactTime();
         }
 
-        vTaskDelay(10);
+        vTaskDelay(2);
     }
 
     vTaskDelete(nullptr);
