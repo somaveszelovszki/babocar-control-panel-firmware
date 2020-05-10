@@ -25,7 +25,7 @@ extern UART_HandleTypeDef huart6;
 
 #define spi_Gyro                (&hspi1)
 #define csGpio_Gyro             GPIOB
-#define csGpioPin_Gyro          5
+#define csGpioPin_Gyro          GPIO_PIN_5
 
 #define i2c_X                   (&hi2c3)
 
