@@ -51,7 +51,7 @@ extern "C" void runDebugTask(void) {
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
 #if SERIAL_DEBUG_ENABLED
-    //globals::registerGlobalParams(debugParams);
+    globals::registerGlobalParams(debugParams);
     Timer debugParamsSendTimer;
     debugParamsSendTimer.start(millisecond_t(500));
 #endif // SERIAL_DEBUG_ENABLED
@@ -109,8 +109,6 @@ extern "C" void runDebugTask(void) {
 //            if (!globals::isGyroTaskOk)       LOG_DEBUG("GyroTask not OK");
         }
     }
-
-    vTaskDelete(nullptr);
 }
 
 /* @brief Callback for Serial UART RxCplt - called when receive finishes.

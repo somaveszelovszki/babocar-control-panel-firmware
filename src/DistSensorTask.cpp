@@ -80,10 +80,8 @@ extern "C" void runDistSensorTask(void) {
             rearDistSensorPanelLink.send(txData);
         }
 
-        vTaskDelay(1);
+        os_delay(1);
     }
-
-    vTaskDelete(nullptr);
 }
 
 

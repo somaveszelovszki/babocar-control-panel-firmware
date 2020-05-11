@@ -1,11 +1,9 @@
+#include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
 #include <globals.hpp>
-
-#include <FreeRTOS.h>
-#include <task.h>
 
 using namespace micro;
 
@@ -46,7 +44,7 @@ extern "C" void runStartupTask(void) {
             LOG_DEBUG("Click! (%d)", buttonClick);
         }
         prevButtonState = buttonState;
-        vTaskDelay(50);
+        os_delay(50);
     }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);

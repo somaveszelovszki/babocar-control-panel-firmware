@@ -411,16 +411,13 @@ extern "C" void runProgRaceTrackTask(void) {
 
             xQueueOverwrite(controlQueue, &controlData);
             prevDetectedLines = detectedLines;
-
-            vTaskDelay(2);
             break;
         }
 
         default:
-            vTaskDelay(20);
             break;
         }
-    }
 
-    vTaskDelete(nullptr);
+        os_delay(2);
+    }
 }
