@@ -24,8 +24,8 @@ using namespace micro;
 
 #define RANDOM_SEGMENT true
 
-extern QueueHandle_t detectedLinesQueue;
-extern QueueHandle_t controlQueue;
+extern queue_t<DetectedLines, 1> detectedLinesQueue;
+extern queue_t<ControlData, 1> controlQueue;
 
 extern queue_t<radian_t, 1> yawUpdateQueue;
 
@@ -822,9 +822,6 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
 
-    micro::waitReady(detectedLinesQueue);
-    micro::waitReady(controlQueue);
-
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
@@ -834,7 +831,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             case ProgramTask::Labyrinth:
                 globals::distServoEnabled = false;
 
-                xQueuePeek(detectedLinesQueue, &detectedLines, 0);
+                detectedLinesQueue.peek(detectedLines, millisecond_t(0));
 
                 micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
 
@@ -854,7 +851,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     break;
                 }
 
-                xQueueOverwrite(controlQueue, &controlData);
+                controlQueue.overwrite(controlData);
                 prevDetectedLines = detectedLines;
                 break;
 

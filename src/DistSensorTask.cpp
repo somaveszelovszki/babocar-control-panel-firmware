@@ -13,10 +13,7 @@
 
 using namespace micro;
 
-#define DISTANCES_QUEUE_LENGTH 1
-QueueHandle_t distancesQueue = nullptr;
-static uint8_t distancesQueueStorageBuffer[DISTANCES_QUEUE_LENGTH * sizeof(DistancesData)];
-static StaticQueue_t distancesQueueBuffer;
+queue_t<DistancesData, 1> distancesQueue;
 
 namespace {
 
@@ -41,10 +38,6 @@ void fillDistSensorPanelData(DistSensorPanelInData& txData) {
 
 extern "C" void runDistSensorTask(void) {
 
-    distancesQueue = xQueueCreateStatic(DISTANCES_QUEUE_LENGTH, sizeof(DistancesData), distancesQueueStorageBuffer, &distancesQueueBuffer);
-
-    vTaskDelay(300); // gives time to other tasks to wake up
-
     DistSensorPanelOutData rxData;
     DistSensorPanelInData txData;
 
@@ -67,7 +60,7 @@ extern "C" void runDistSensorTask(void) {
         }
 
         if (updated) {
-            xQueueOverwrite(distancesQueue, &distances);
+            distancesQueue.overwrite(distances);
         }
 
         if (frontDistSensorPanelLink.shouldSend()) {

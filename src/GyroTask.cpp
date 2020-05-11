@@ -94,7 +94,7 @@ extern "C" void runGyroTask(void) {
             if (!micro::isinf(gyroData.X) && !micro::isinf(accelData.X)) {
 
                 radian_t yawUpdate;
-                if (yawUpdateQueue.receive(yawUpdate)) {
+                if (yawUpdateQueue.receive(yawUpdate, millisecond_t(0))) {
                     madgwick.reset({ madgwick.roll(), madgwick.pitch(), yawUpdate });
                 }
 

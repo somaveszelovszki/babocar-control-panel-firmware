@@ -16,18 +16,13 @@ using namespace micro;
 
 extern CanManager vehicleCanManager;
 
-#define DETECTED_LINES_QUEUE_LENGTH 1
-QueueHandle_t detectedLinesQueue = nullptr;
-static uint8_t detectedLinesQueueStorageBuffer[DETECTED_LINES_QUEUE_LENGTH * sizeof(DetectedLines)];
-static StaticQueue_t detectedLinesQueueBuffer;
+queue_t<DetectedLines, 1> detectedLinesQueue;
 
 namespace {
 
 } // namespace
 
 extern "C" void runLineDetectTask(void) {
-
-    detectedLinesQueue = xQueueCreateStatic(DETECTED_LINES_QUEUE_LENGTH, sizeof(DetectedLines), detectedLinesQueueStorageBuffer, &detectedLinesQueueBuffer);
 
     DetectedLines detectedLines;
 
@@ -36,7 +31,7 @@ extern "C" void runLineDetectTask(void) {
 
     vehicleCanFrameHandler.registerHandler(can::FrontLines::id(), [&detectedLines] (const uint8_t * const data) {
         reinterpret_cast<const can::FrontLines*>(data)->acquire(detectedLines.front.lines);
-        xQueueOverwrite(detectedLinesQueue, &detectedLines);
+        detectedLinesQueue.overwrite(detectedLines);
     });
 
     vehicleCanFrameHandler.registerHandler(can::RearLines::id(), [&detectedLines] (const uint8_t * const data) {
@@ -73,8 +68,6 @@ extern "C" void runLineDetectTask(void) {
             vehicleCanManager.send(can::LineDetectControl(globals::indicatorLedsEnabled, scanRangeRadius, domain));
         }
 
-        vTaskDelay(1);
+        os_delay(1);
     }
-
-    vTaskDelete(nullptr);
 }

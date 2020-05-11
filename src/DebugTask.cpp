@@ -1,6 +1,7 @@
 #include <micro/container/ring_buffer.hpp>
 #include <micro/container/vec.hpp>
 #include <micro/debug/params.hpp>
+#include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
@@ -8,18 +9,11 @@
 #include <cfg_car.hpp>
 #include <globals.hpp>
 
-#include <FreeRTOS.h>
-#include <queue.h>
-#include <task.h>
-
 #include <cstring>
 
 using namespace micro;
 
-#define LOG_QUEUE_LENGTH    16
-QueueHandle_t logQueue;
-static uint8_t logQueueStorageBuffer[LOG_QUEUE_LENGTH * LOG_MSG_MAX_SIZE];
-static StaticQueue_t logQueueBuffer;
+queue_t<char[LOG_MSG_MAX_SIZE], LOG_QUEUE_MAX_SIZE> logQueue;
 
 namespace {
 
@@ -43,10 +37,7 @@ static void transmit(const char * const data, const uint32_t length) {
 } // namespace
 
 extern "C" void runDebugTask(void) {
-    logQueue = xQueueCreateStatic(LOG_QUEUE_LENGTH, LOG_MSG_MAX_SIZE, logQueueStorageBuffer, &logQueueBuffer);
     log_init(logQueue);
-
-    vTaskDelay(10); // gives time to other tasks to wake up
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
@@ -95,7 +86,7 @@ extern "C" void runDebugTask(void) {
 #endif // SERIAL_DEBUG_ENABLED
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        if (getExactTime() > txEndTime && xQueueReceive(logQueue, txLog, 1)) {
+        if (getExactTime() > txEndTime && logQueue.receive(txLog, millisecond_t(1))) {
             transmit(txLog, strlen(txLog));
         }
 

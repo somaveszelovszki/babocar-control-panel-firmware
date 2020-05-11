@@ -24,9 +24,9 @@
 
 using namespace micro;
 
-extern QueueHandle_t detectedLinesQueue;
-extern QueueHandle_t controlQueue;
-extern QueueHandle_t distancesQueue;
+extern queue_t<DetectedLines, 1> detectedLinesQueue;
+extern queue_t<ControlData, 1> controlQueue;
+extern queue_t<DistancesData, 1> distancesQueue;
 
 namespace {
 
@@ -235,10 +235,6 @@ TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments,
 
 extern "C" void runProgRaceTrackTask(void) {
 
-    micro::waitReady(detectedLinesQueue);
-    micro::waitReady(controlQueue);
-    micro::waitReady(distancesQueue);
-
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
     DistancesData distances;
@@ -276,8 +272,8 @@ extern "C" void runProgRaceTrackTask(void) {
             }();
             UNUSED(runOnce);
 
-            xQueuePeek(detectedLinesQueue, &detectedLines, 0);
-            xQueuePeek(distancesQueue, &distances, 0);
+            detectedLinesQueue.peek(detectedLines, millisecond_t(0));
+            distancesQueue.peek(distances, millisecond_t(0));
 
             const meter_t distFromBehindSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
 
@@ -409,7 +405,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
             }
 
-            xQueueOverwrite(controlQueue, &controlData);
+            controlQueue.overwrite(controlData);
             prevDetectedLines = detectedLines;
             break;
         }

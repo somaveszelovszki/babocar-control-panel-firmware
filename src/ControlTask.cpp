@@ -16,10 +16,7 @@ using namespace micro;
 
 CanManager vehicleCanManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
 
-#define CONTROL_QUEUE_LENGTH 1
-QueueHandle_t controlQueue = nullptr;
-static uint8_t controlQueueStorageBuffer[CONTROL_QUEUE_LENGTH * sizeof(ControlData)];
-static StaticQueue_t controlQueueBuffer;
+queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
@@ -70,7 +67,6 @@ void calcTargetAngles(const ControlData& controlData) {
 } // namespace
 
 extern "C" void runControlTask(void) {
-    controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
 
     ControlData controlData;
     canFrame_t rxCanFrame;
@@ -100,7 +96,7 @@ extern "C" void runControlTask(void) {
         }
 
         // if no control data is received for a given period, stops motor for safety reasons
-        if (xQueueReceive(controlQueue, &controlData, 0)) {
+        if (controlQueue.receive(controlData, millisecond_t(0))) {
             controlDataWatchdog.reset();
             calcTargetAngles(controlData);
 
