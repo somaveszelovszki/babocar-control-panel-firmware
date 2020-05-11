@@ -53,6 +53,10 @@ extern UART_HandleTypeDef huart6;
 
 #define PANEL_VERSION           0x05
 
+#define GYRO_MPU9250            1
+#define GYRO_LSM6DSO            2
+#define GYRO_BOARD              GYRO_MPU9250
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

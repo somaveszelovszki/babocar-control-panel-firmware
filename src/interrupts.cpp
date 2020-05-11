@@ -17,6 +17,7 @@ extern void micro_RadioModule_Uart_RxCpltCallback();
 extern void micro_FrontDistSensor_Uart_RxCpltCallback();
 extern void micro_RearDistSensor_Uart_RxCpltCallback();
 extern void micro_Gyro_CommCpltCallback();
+extern void micro_Gyro_DataReadyCallback();
 extern void micro_Vehicle_Can_RxFifoMsgPendingCallback();
 
 /* @brief Internal callback - called when UAR receive finishes.
@@ -60,3 +61,10 @@ extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
         micro_Vehicle_Can_RxFifoMsgPendingCallback();
     }
 }
+
+extern "C" void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == GPIO_PIN_0) {
+        micro_Gyro_DataReadyCallback();
+    }
+}
+

@@ -6,95 +6,73 @@
 #include <micro/hw/LSM6DSO_Gyroscope.hpp>
 #endif
 
+#include <micro/port/task.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
+#include <cfg_car.hpp>
 #include <globals.hpp>
 
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_gpio.h>
 
-#include <FreeRTOS.h>
-#include <queue.h>
-#include <task.h>
-
-#include <utility>
+#include <micro/sensor/MadgwickAHRS.hpp>
 
 using namespace micro;
 
+queue_t<radian_t, 1> yawUpdateQueue;
+
 namespace {
 
-#define GYRO_MPU9250    1
-#define GYRO_LSM6DSO    2
-#define GYRO_BOARD      GYRO_MPU9250
-
 #if GYRO_BOARD == GYRO_MPU9250
-hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_250DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_500DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 #elif GYRO_BOARD == GYRO_LSM6DSO
 hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro);
 #endif
 
-class AngleCalc {
-public:
-    struct MagNormalization {
-        gauss_t min_;
-        gauss_t max_;
+semaphore_t dataReadySemaphore;
 
-        void update(const gauss_t value) {
-            if (this->min_ == gauss_t(0) || value < this->min_) {
-                this->min_ = value;
-            }
-            if (this->max_ == gauss_t(0) || value > this->max_) {
-                this->max_ = value;
-            }
-        }
-
-        float apply(gauss_t mag) const {
-            return map(mag, this->min_, this->max_, -1.0f, 1.0f);
-        }
-    };
-
-    explicit AngleCalc(const point2<MagNormalization>& defaultNorm = { {}, {} }) : norm(defaultNorm) {}
-
-    radian_t getAngle(const point3<gauss_t>& mag, bool updateNorm) {
-
-        if (updateNorm) {
-            norm.X.update(mag.X);
-            norm.Y.update(mag.Y);
-        }
-
-        return micro::atan2(norm.Y.apply(mag.Y), norm.X.apply(mag.X));
-    }
-
-    bool isCalibrated() const {
-        return abs(this->norm.X.max_ - this->norm.X.min_) > gauss_t(200) &&
-               abs(this->norm.Y.max_ - this->norm.Y.min_) > gauss_t(200);
-    }
-
-private:
-    point2<MagNormalization> norm;
-    point2<std::pair<gauss_t, gauss_t>> boundaries;
-};
-
-AngleCalc DEFAULT_ANGLE_CALC({
-    { gauss_t(-460), gauss_t(-26) },
-    { gauss_t(295),  gauss_t(693) }
-});
-
-AngleCalc angleCalc;
-
-void updateOrientedDistance() {
+void updateCarOrientedDistance(CarProps& car) {
     static meter_t orientedSectionStartDist;
     static radian_t orientation;
 
-    const bool isOriented = eqWithOverflow360(globals::car.pose.angle, orientation, degree_t(4));
+    const bool isOriented = eqWithOverflow360(car.pose.angle, orientation, degree_t(3));
     if (!isOriented) {
-        orientedSectionStartDist = globals::car.distance;
-        orientation = globals::car.pose.angle;
+        orientedSectionStartDist = car.distance;
+        orientation = car.pose.angle;
     }
 
-    globals::car.orientedDistance = globals::car.distance - orientedSectionStartDist;
+    car.orientedDistance = car.distance - orientedSectionStartDist;
+}
+
+void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
+
+    static radian_t prevYaw = { 0 };
+    static meter_t prevDist = { 0 };
+
+    vTaskSuspendAll();
+    CarProps car = globals::car;
+    xTaskResumeAll();
+
+    const meter_t d_dist      = sgn(car.speed) * (car.distance - prevDist);
+    const radian_t d_angle    = normalizePM180(yaw - prevYaw);
+    const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST);
+
+    car.pose.angle += d_angle / 2;
+    car.pose.pos.X += d_dist * cos(speedAngle);
+    car.pose.pos.Y += d_dist * sin(speedAngle);
+    car.pose.angle  = normalize360(car.pose.angle + d_angle / 2);
+    car.yawRate     = yawRate;
+
+    updateCarOrientedDistance(car);
+
+    vTaskSuspendAll();
+    globals::car = car;
+    xTaskResumeAll();
+
+    prevDist = car.distance;
+    prevYaw  = yaw;
 }
 
 } // namespace
@@ -102,45 +80,43 @@ void updateOrientedDistance() {
 extern "C" void runGyroTask(void) {
 
     gyro.initialize();
-
-    globals::isGyroTaskOk = true;
-
-    millisecond_t prevReadTime = getTime();
-    millisecond_t lastNonZeroAngVelTime = getTime();
-
-    Timer sendTimer(millisecond_t(50));
+    MadgwickAHRS madgwick(gyro.gyroMeanError().Z.get());
 
     while (true) {
-        const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
-        if (gyroData.Z != micro::numeric_limits<rad_per_sec_t>::infinity()) {
-            prevReadTime = getTime();
+        bool success = false;
 
-            if (gyroData.Z != rad_per_sec_t(0)) {
-                lastNonZeroAngVelTime = getTime();
+        if (dataReadySemaphore.take(millisecond_t(50))) {
+
+            const millisecond_t sampleTime = getExactTime();
+            const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
+            const point3<m_per_sec2_t> accelData = gyro.readAccelData();
+
+            if (!micro::isinf(gyroData.X) && !micro::isinf(accelData.X)) {
+
+                radian_t yawUpdate;
+                if (yawUpdateQueue.receive(yawUpdate)) {
+                    madgwick.reset({ madgwick.roll(), madgwick.pitch(), yawUpdate });
+                }
+
+                madgwick.update(sampleTime, gyroData, accelData);
+                updateCarProps(gyroData.Z, madgwick.yaw());
+                globals::isGyroTaskOk = true;
+                success = true;
             }
+        }
 
-            globals::car.yawRate = gyroData.Z;
-            updateOrientedDistance();
-
-            globals::isGyroTaskOk = getTime() - lastNonZeroAngVelTime < millisecond_t(100);
-
-            if (sendTimer.checkTimeout()) {
-                LOG_DEBUG("orientation: %f deg/s", static_cast<deg_per_sec_t>(gyroData.Z).get());
-            }
-
-        } else if (getTime() - prevReadTime > millisecond_t(50)) {
+        if (!success) {
             globals::isGyroTaskOk = false;
             LOG_ERROR("Gyro timed out");
             gyro.initialize();
-            prevReadTime = getExactTime();
         }
-
-        vTaskDelay(2);
     }
-
-    vTaskDelete(nullptr);
 }
 
 void micro_Gyro_CommCpltCallback() {
     gyro.onCommFinished();
+}
+
+void micro_Gyro_DataReadyCallback() {
+    dataReadySemaphore.give();
 }

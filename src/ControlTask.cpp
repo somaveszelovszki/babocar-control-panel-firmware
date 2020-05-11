@@ -67,32 +67,10 @@ void calcTargetAngles(const ControlData& controlData) {
     frontDistSensorServoTargetAngle = frontWheelTargetAngle * globals::distServoTransferRate;
 }
 
-void updateCarProps() {
-    static microsecond_t prevUpdateTime = getTime();
-    static meter_t prevDist = globals::car.distance;
-
-    const microsecond_t now = getExactTime();
-
-    vTaskSuspendAll();
-    const meter_t d_dist      = sgn(globals::car.speed) * (globals::car.distance - prevDist);
-    const radian_t d_angle    = globals::car.yawRate * (now - prevUpdateTime);
-    const radian_t speedAngle = globals::car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST);
-
-    globals::car.pose.angle += d_angle / 2;
-    globals::car.pose.pos.X += d_dist * cos(speedAngle);
-    globals::car.pose.pos.Y += d_dist * sin(speedAngle);
-    globals::car.pose.angle = normalize360(globals::car.pose.angle + d_angle / 2);
-
-    prevDist = globals::car.distance;
-    xTaskResumeAll();
-}
-
 } // namespace
 
 extern "C" void runControlTask(void) {
     controlQueue = xQueueCreateStatic(CONTROL_QUEUE_LENGTH, sizeof(ControlData), controlQueueStorageBuffer, &controlQueueBuffer);
-
-    micro::waitReady(controlQueue);
 
     ControlData controlData;
     canFrame_t rxCanFrame;
@@ -111,8 +89,8 @@ extern "C" void runControlTask(void) {
 
     Timer longitudinalControlTimer(can::LongitudinalControl::period());
     Timer lateralControlTimer(can::LateralControl::period());
-    Timer carPropsUpdateTimer(millisecond_t(5));
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
+    Timer sendTimer(millisecond_t(50));
 
     while (true) {
         globals::isControlTaskOk = !vehicleCanManager.hasRxTimedOut();
@@ -139,16 +117,13 @@ extern "C" void runControlTask(void) {
             vehicleCanManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
         }
 
-        if (carPropsUpdateTimer.checkTimeout()) {
-            updateCarProps();
+        if (sendTimer.checkTimeout()) {
+            LOG_DEBUG("orientation: %f deg", static_cast<degree_t>(globals::car.pose.angle).get());
         }
 
-        vTaskDelay(1);
+        os_delay(1);
     }
-
-    vTaskDelete(nullptr);
 }
-
 
 void micro_Vehicle_Can_RxFifoMsgPendingCallback() {
     vehicleCanManager.onFrameReceived();

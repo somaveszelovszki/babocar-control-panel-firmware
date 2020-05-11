@@ -27,6 +27,8 @@ using namespace micro;
 extern QueueHandle_t detectedLinesQueue;
 extern QueueHandle_t controlQueue;
 
+extern queue_t<radian_t, 1> yawUpdateQueue;
+
 namespace {
 
 vec<Segment, 2 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segments.
@@ -604,9 +606,8 @@ void updateCarOrientation(const DetectedLines& detectedLines) {
     if (globals::car.orientedDistance - lastUpdatedOrientedDistance > centimeter_t(40) &&
         globals::car.distance - detectedLines.front.pattern.startDist > centimeter_t(100) &&
         eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(10))) {
-        vTaskSuspendAll();
-        globals::car.pose.angle = round90(globals::car.pose.angle);
-        xTaskResumeAll();
+
+        yawUpdateQueue.overwrite(round90(globals::car.pose.angle));
         lastUpdatedOrientedDistance = globals::car.orientedDistance;
     }
 }
@@ -615,7 +616,6 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     static uint8_t numInSegments;
     static Direction inSegmentDir;
-    static meter_t lastOriUpdateDist;
 
     static struct {
         Direction dir = Direction::CENTER;
@@ -624,7 +624,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
     static const bool runOnce = [&controlData]() {
         reset();
-        globals::car.pose.angle = radian_t(0);
+        yawUpdateQueue.overwrite(radian_t(0));
         controlData.speed = globals::speed_LAB_FWD;
         controlData.rampTime = millisecond_t(500);
         return true;
@@ -641,18 +641,6 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
     }
 
     controlData.controlType = ControlData::controlType_t::Line;
-
-//    // handles if car is stuck in reverse and drives into a dead-end segment
-//    if (globals::speed_LAB_BWD == controlData.speed) {
-//        static meter_t lastDistOnLine = globals::car.distance;
-//        if (detectedLines.rear.lines.size() > 0) {
-//            lastDistOnLine = globals::car.distance;
-//        } else if (globals::car.distance - lastDistOnLine > centimeter_t(25)) {
-//            controlData.speed = globals::speed_LAB_FWD;
-//            controlData.rampTime = millisecond_t(100);
-//            reset();
-//        }
-//    }
 
     if (detectedLines.front.pattern != prevDetectedLines.front.pattern) {
 
@@ -740,14 +728,6 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
         default:
             break;
         }
-    }
-
-    if (globals::car.orientedDistance > centimeter_t(50) &&
-        eqWithOverflow360(globals::car.pose.angle, round90(globals::car.pose.angle), degree_t(10)) &&
-        globals::car.distance - lastOriUpdateDist > centimeter_t(50)) {
-
-        globals::car.pose.angle = round90(globals::car.pose.angle);
-        lastOriUpdateDist = globals::car.distance;
     }
 
     if (forcedManeuver.enabled) {
@@ -879,12 +859,9 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
 
             default:
-                vTaskDelay(20);
                 break;
         }
 
-        vTaskDelay(2);
+        os_delay(2);
     }
-
-    vTaskDelete(nullptr);
 }
