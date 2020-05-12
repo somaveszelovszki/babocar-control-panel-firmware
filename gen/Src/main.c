@@ -30,9 +30,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <micro/panel/panelVersion.h>
-#include <micro/utils/time_init.h>
-#include <cfg_board.h>
+#include <system_init.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -92,11 +90,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-  if (PANEL_VERSION != panelVersion_get()) {
-      Error_Handler();
-  }
-
-  micro_time_init(tim_System);
+  system_init();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -105,7 +99,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   MX_SPI1_Init();
-  MX_CAN1_Init();
+  //MX_CAN1_Init();
   MX_I2C3_Init();
   MX_UART4_Init();
   MX_UART5_Init();

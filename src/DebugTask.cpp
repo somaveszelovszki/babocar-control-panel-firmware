@@ -37,8 +37,6 @@ static void transmit(const char * const data, const uint32_t length) {
 } // namespace
 
 extern "C" void runDebugTask(void) {
-    log_init(logQueue);
-
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
 
 #if SERIAL_DEBUG_ENABLED
