@@ -17,6 +17,8 @@ queue_t<char[LOG_MSG_MAX_SIZE], LOG_QUEUE_MAX_SIZE> logQueue;
 
 namespace {
 
+constexpr char PARAMS_START_SEQ[] = "[P]";
+
 constexpr uint32_t MAX_RX_BUFFER_SIZE = 1024;
 
 ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 6> rxBuffer;
@@ -65,20 +67,16 @@ extern "C" void runDebugTask(void) {
 
             rxBuffer.updateTail(1);
 
-            if (!strncmp(inCmd, "[P]", 3)) {
-                debugParams.deserializeAll(&inCmd[3], len - 3);
+            if (!strncmp(inCmd, PARAMS_START_SEQ, ARRAY_SIZE(PARAMS_START_SEQ))) {
+                debugParams.deserializeAll(&inCmd[ARRAY_SIZE(PARAMS_START_SEQ)], len - ARRAY_SIZE(PARAMS_START_SEQ));
                 LOG_INFO("Params updated from server");
             }
         }
 
         if (getExactTime() > txEndTime && debugParamsSendTimer.checkTimeout()) {
-            strncpy(debugParamsStr, "[P]", 3);
-            uint32_t len = 3 + debugParams.serializeAll(debugParamsStr + 3, MAX_RX_BUFFER_SIZE - (3 + 4));
-            debugParamsStr[len++] = '$';
-            debugParamsStr[len++] = '\r';
-            debugParamsStr[len++] = '\n';
-            debugParamsStr[len++] = '\0';
-
+            uint32_t len = strncpy_until(debugParamsStr, PARAMS_START_SEQ, ARRAY_SIZE(PARAMS_START_SEQ));
+            len += debugParams.serializeAll(&debugParamsStr[len], MAX_RX_BUFFER_SIZE - len - ARRAY_SIZE(LOG_SEPARATOR_SEQ));
+            len += strncpy(&debugParamsStr[len], LOG_SEPARATOR_SEQ, ARRAY_SIZE(LOG_SEPARATOR_SEQ));
             transmit(debugParamsStr, len);
         }
 #endif // SERIAL_DEBUG_ENABLED
