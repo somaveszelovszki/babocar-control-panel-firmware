@@ -79,7 +79,7 @@ bool isVehicleCanTaskOk = false;
 
 void registerGlobalParams(micro::Params& params) {
 
-#define REGISTER_GLOBAL(name) params.registerParam(#name, &name)
+#define REGISTER_GLOBAL(name) params.registerParam(#name, name)
 
     REGISTER_GLOBAL(motorCtrl_P);
     REGISTER_GLOBAL(motorCtrl_I);
