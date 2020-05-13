@@ -1,3 +1,4 @@
+#include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/panel/CanManager.hpp>
@@ -20,11 +21,34 @@ queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
-PID_Controller linePosController(globals::linePosCtrl_P, 0.0f, globals::linePosCtrl_D, 0.0f,
-    static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+sorted_map<m_per_sec_t, PID_Params, 10> linePosControllerParams = {
+    // speed        P      I      D
+    { { 0.0f }, { 0.00f, 0.00f,  0.00f } },
+    { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
+    { { 1.5f }, { 1.10f, 0.00f, 80.00f } },
+    { { 2.0f }, { 0.75f, 0.00f, 80.00f } },
+    { { 2.5f }, { 0.60f, 0.00f, 80.00f } },
+    { { 3.0f }, { 0.50f, 0.00f, 80.00f } },
+    { { 4.0f }, { 0.40f, 0.00f, 80.00f } },
+    { { 6.0f }, { 0.25f, 0.00f, 80.00f } },
+    { { 9.0f }, { 0.17f, 0.00f, 80.00f } }
+};
 
-PID_Controller lineAngleController(globals::lineAngleCtrl_P, 0.0f, globals::lineAngleCtrl_D, 0.0f,
-    static_cast<degree_t>(-cfg::WHEEL_MAX_DELTA).get(), static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+sorted_map<m_per_sec_t, PID_Params, 10> lineAngleControllerParams = {
+    // speed        P      I      D
+    { { 0.0f }, { 0.00f, 0.00f,  0.00f } },
+    { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
+    { { 1.5f }, { 1.10f, 0.00f, 80.00f } },
+    { { 2.0f }, { 0.75f, 0.00f, 80.00f } },
+    { { 2.5f }, { 0.60f, 0.00f, 80.00f } },
+    { { 3.0f }, { 0.50f, 0.00f, 80.00f } },
+    { { 4.0f }, { 0.40f, 0.00f, 80.00f } },
+    { { 6.0f }, { 0.25f, 0.00f, 80.00f } },
+    { { 9.0f }, { 0.17f, 0.00f, 80.00f } }
+};
+
+PID_Controller linePosController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+PID_Controller lineAngleController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
 
 radian_t frontWheelTargetAngle;
 radian_t rearWheelTargetAngle;
@@ -40,13 +64,12 @@ void calcTargetAngles(const ControlData& controlData) {
 
     case ControlData::controlType_t::Line: {
         // separate line position and angle control for front and rear servos
-        const float speed = max(abs(globals::car.speed), m_per_sec_t(1.0f)).get();
 
-        linePosController.tune(globals::linePosCtrl_P / speed, 0.0f, globals::linePosCtrl_D, 0.0f);
+        linePosController.tune(linePosControllerParams.lerp(globals::car.speed));
         linePosController.update(static_cast<centimeter_t>(controlData.lineControl.actual.pos - controlData.lineControl.desired.pos).get());
         frontWheelTargetAngle = degree_t(linePosController.output()) + controlData.lineControl.desired.angle;
 
-        lineAngleController.tune(globals::lineAngleCtrl_P / speed, 0.0f, globals::lineAngleCtrl_D, 0.0f);
+        lineAngleController.tune(lineAngleControllerParams.lerp(globals::car.speed));
         lineAngleController.update(static_cast<degree_t>(controlData.lineControl.actual.angle - controlData.lineControl.desired.angle).get());
         rearWheelTargetAngle = degree_t(lineAngleController.output()) - controlData.lineControl.desired.angle;
 
