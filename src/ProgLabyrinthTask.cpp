@@ -542,11 +542,11 @@ Direction onJunctionDetected(radian_t inOri, radian_t outOri, uint8_t numInSegme
         } else {
             nextManeuver.direction = static_cast<Direction>(r);
         }
-        Segment **pNextSeg = outSegments->second.get(nextManeuver.direction);
+        Segment **pNextSeg = outSegments->second.at(nextManeuver.direction);
 #else
-        Segment **pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::RIGHT));
+        Segment **pNextSeg = outSegments->second.at((nextManeuver.direction = Direction::RIGHT));
         if (!pNextSeg) {
-            pNextSeg = outSegments->second.get((nextManeuver.direction = Direction::CENTER));
+            pNextSeg = outSegments->second.at((nextManeuver.direction = Direction::CENTER));
         }
 #endif
 

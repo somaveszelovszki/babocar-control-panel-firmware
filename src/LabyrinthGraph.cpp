@@ -33,12 +33,12 @@ Status Junction::addSegment(Segment *seg, radian_t orientation, Direction dir) {
         segment_map::iterator sideSegments = this->getSideSegments(orientation);
 
         if (sideSegments == this->segments.end()) {
-            this->segments.put(orientation, side_segment_map());
+            this->segments.emplace(orientation, side_segment_map());
             sideSegments = this->getSideSegments(orientation);
         }
 
-        if (!sideSegments->second.get(dir)) {
-            sideSegments->second.put(dir, seg);
+        if (!sideSegments->second.at(dir)) {
+            sideSegments->second.emplace(dir, seg);
             result = Status::OK;
         } else {
             result = Status::INVALID_DATA;
@@ -58,7 +58,7 @@ Segment* Junction::getSegment(radian_t orientation, Direction dir) {
     segment_map::const_iterator sideSegments = this->getSideSegments(orientation);
 
     if (sideSegments != this->segments.end()) {
-        Segment * const * seg = sideSegments->second.get(dir);
+        Segment * const * seg = sideSegments->second.at(dir);
         if (seg) {
             if (!(*seg)) {
                 LOG_ERROR("Junction %d: side segment in orientation: %fdeg and direction: %s is nullptr",
