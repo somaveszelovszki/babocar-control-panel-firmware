@@ -10,19 +10,9 @@ ProgramState programState                = ProgramState::INVALID;
 bool useSafetyEnableSignal               = false;
 bool indicatorLedsEnabled                = true;
 uint8_t reducedLineDetectScanRangeRadius = 10;
-float motorCtrl_P                        = 0.85f;
-float motorCtrl_I                        = 0.04f;
-float motorCtrl_integral_max             = 4.0f;
-float linePosCtrl_P                      = 1.5f;
-float linePosCtrl_D                      = 80.0f;
-float lineAngleCtrl_P                    = 0.0f;
-float lineAngleCtrl_D                    = 0.0f;
 CarProps car                             = CarProps();
 bool distServoEnabled                    = false;
 float distServoTransferRate              = 1.0f;
-micro::radian_t frontWheelOffset         = micro::radian_t(90);
-micro::radian_t rearWheelOffset          = micro::radian_t(90);
-micro::radian_t extraServoOffset         = micro::radian_t(90);
 
 TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
 
@@ -59,15 +49,6 @@ BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS] = {
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 5
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }  // Lap 6
 };
-
-m_per_sec_t speed_LAB_FWD           = m_per_sec_t(1.1f);
-m_per_sec_t speed_LAB_BWD           = m_per_sec_t(-0.8f);
-m_per_sec_t speed_LANE_CHANGE       = m_per_sec_t(0.8f);
-m_per_sec_t speed_REACH_SAFETY_CAR  = m_per_sec_t(0.8f);
-m_per_sec_t speed_OVERTAKE_BEGIN    = m_per_sec_t(2.6f);
-m_per_sec_t speed_OVERTAKE_STRAIGHT = m_per_sec_t(3.5f);
-m_per_sec_t speed_OVERTAKE_END      = m_per_sec_t(1.8f);
-meter_t dist_OVERTAKE_SIDE          = centimeter_t(60);
 
 bool isControlTaskOk    = false;
 bool isDebugTaskOk      = false;

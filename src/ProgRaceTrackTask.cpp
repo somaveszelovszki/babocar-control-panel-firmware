@@ -30,9 +30,15 @@ extern queue_t<DistancesData, 1> distancesQueue;
 
 namespace {
 
-constexpr m_per_sec_t MAX_SPEED_SAFETY_CAR_SLOW = m_per_sec_t(1.3f);
-constexpr m_per_sec_t MAX_SPEED_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
-constexpr meter_t PREV_CAR_PROPS_RESOLUTION     = centimeter_t(5);
+constexpr meter_t PREV_CAR_PROPS_RESOLUTION = centimeter_t(5);
+
+m_per_sec_t maxSpeed_SAFETY_CAR_SLOW = m_per_sec_t(1.3f);
+m_per_sec_t maxSpeed_SAFETY_CAR_FAST = m_per_sec_t(1.8f);
+m_per_sec_t speed_REACH_SAFETY_CAR   = m_per_sec_t(0.8f);
+m_per_sec_t speed_OVERTAKE_BEGIN     = m_per_sec_t(2.6f);
+m_per_sec_t speed_OVERTAKE_STRAIGHT  = m_per_sec_t(3.5f);
+m_per_sec_t speed_OVERTAKE_END       = m_per_sec_t(1.8f);
+meter_t     dist_OVERTAKE_SIDE       = centimeter_t(60);
 
 struct {
     TrackSegments::const_iterator segment;
@@ -63,7 +69,7 @@ TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator cu
 }
 
 m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
-    return speedSign * map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? MAX_SPEED_SAFETY_CAR_FAST : MAX_SPEED_SAFETY_CAR_SLOW);
+    return speedSign * map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 }
 
 bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
@@ -92,15 +98,15 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
                 Pose{ globals::car.pose.pos, overtake.orientation },
-                speedSign * clamp(globals::car.speed, m_per_sec_t(1.0f), globals::speed_OVERTAKE_BEGIN)
+                speedSign * clamp(globals::car.speed, m_per_sec_t(1.0f), speed_OVERTAKE_BEGIN)
             }, globals::car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
                 Pose{
-                    overtake.trajectory.lastConfig().pose.pos + vec2m{ BEGIN_SINE_ARC_LENGTH, globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ BEGIN_SINE_ARC_LENGTH, dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
                     overtake.orientation
                 },
-                speedSign * globals::speed_OVERTAKE_BEGIN
+                speedSign * speed_OVERTAKE_BEGIN
             }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI);
 
             // TODO this should work without the for cycle
@@ -110,16 +116,16 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                         overtake.trajectory.lastConfig().pose.pos + vec2m{ fastSectionLength / 10, centimeter_t(0) }.rotate(overtake.orientation),
                         overtake.orientation
                     },
-                    speedSign * globals::speed_OVERTAKE_STRAIGHT
+                    speedSign * speed_OVERTAKE_STRAIGHT
                 });
             }
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
                 Pose{
-                    overtake.trajectory.lastConfig().pose.pos + vec2m{ END_SINE_ARC_LENGTH, -globals::dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ END_SINE_ARC_LENGTH, -dist_OVERTAKE_SIDE }.rotate(overtake.orientation),
                     overtake.orientation
                 },
-                speedSign * globals::speed_OVERTAKE_END
+                speedSign * speed_OVERTAKE_END
             }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI_2);
         }
     }
@@ -308,7 +314,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             switch (globals::programState) {
             case ProgramState::ReachSafetyCar:
-                controlData.speed = globals::speed_REACH_SAFETY_CAR;
+                controlData.speed = speed_REACH_SAFETY_CAR;
                 controlData.rampTime = millisecond_t(0);
                 if (distFromBehindSafetyCar > meter_t(0) && safetyCarFollowSpeed(distFromBehindSafetyCar, true) < controlData.speed) {
                     globals::programState = ProgramState::FollowSafetyCar;

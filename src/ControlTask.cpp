@@ -21,6 +21,19 @@ queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
+PID_Params prevMotorControllerParams, motorControllerParams = { 0.85f, 0.04f, 0.0f };
+
+struct ServoOffsets {
+    micro::radian_t frontWheel;
+    micro::radian_t rearWheel;
+    micro::radian_t extraServo;
+
+    bool operator==(const ServoOffsets& other) const { return frontWheel == other.frontWheel && rearWheel == other.rearWheel && extraServo == other.extraServo; }
+    bool operator!=(const ServoOffsets& other) const { return !(*this == other); }
+};
+
+ServoOffsets prevServoOffsets, servoOffsets = { degree_t(90), degree_t(90), degree_t(90) };
+
 sorted_map<m_per_sec_t, PID_Params, 10> linePosControllerParams = {
     // speed        P      I      D
     { { 0.0f }, { 0.00f, 0.00f,  0.00f } },
@@ -134,6 +147,18 @@ extern "C" void runControlTask(void) {
 
         if (lateralControlTimer.checkTimeout()) {
             vehicleCanManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
+        }
+
+        if (motorControllerParams != prevMotorControllerParams) {
+            vehicleCanManager.send(can::SetMotorControlParams(motorControllerParams.P, motorControllerParams.D));
+            prevMotorControllerParams = motorControllerParams;
+        }
+
+        if (servoOffsets != prevServoOffsets) {
+            vehicleCanManager.send(can::SetFrontWheelParams(servoOffsets.frontWheel, cfg::WHEEL_MAX_DELTA));
+            vehicleCanManager.send(can::SetRearWheelParams(servoOffsets.rearWheel, cfg::WHEEL_MAX_DELTA));
+            vehicleCanManager.send(can::SetExtraServoParams(servoOffsets.extraServo, cfg::DIST_SENSOR_SERVO_MAX_DELTA));
+            prevServoOffsets = servoOffsets;
         }
 
         if (sendTimer.checkTimeout()) {

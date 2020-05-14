@@ -1,3 +1,4 @@
+#include <micro/port/task.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
@@ -15,11 +16,6 @@
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_uart.h>
 
-#include <FreeRTOS.h>
-#include <micro/port/task.hpp>
-#include <task.h>
-#include <queue.h>
-
 using namespace micro;
 
 #define RANDOM_SEGMENT true
@@ -30,6 +26,10 @@ extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<radian_t, 1> yawUpdateQueue;
 
 namespace {
+
+m_per_sec_t speed_LAB_FWD     = m_per_sec_t(1.1f);
+m_per_sec_t speed_LAB_BWD     = m_per_sec_t(-0.8f);
+m_per_sec_t speed_LANE_CHANGE = m_per_sec_t(0.8f);
 
 vec<Segment, 2 * cfg::MAX_NUM_LAB_SEGMENTS> segments;               // The segments.
 vec<Junction, 2 * cfg::MAX_NUM_LAB_SEGMENTS> junctions;             // The junctions - at most the number of segments.
@@ -625,7 +625,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
     static const bool runOnce = [&controlData]() {
         reset();
         yawUpdateQueue.overwrite(radian_t(0));
-        controlData.speed = globals::speed_LAB_FWD;
+        controlData.speed = speed_LAB_FWD;
         controlData.rampTime = millisecond_t(500);
         return true;
     }();
@@ -668,7 +668,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
                 // if the car is going backwards, mirrored pattern sides are detected
                 if (currentSeg->isDeadEnd) {
                     inSegmentDir         = -inSegmentDir;
-                    controlData.speed    = globals::speed_LAB_FWD;
+                    controlData.speed    = speed_LAB_FWD;
                     controlData.rampTime = millisecond_t(1000);
                 }
 
@@ -709,7 +709,7 @@ bool navigateLabyrinth(const DetectedLines& prevDetectedLines, const DetectedLin
 
         case LinePattern::DEAD_END:
             currentSeg->isDeadEnd = true;
-            controlData.speed = globals::speed_LAB_BWD;
+            controlData.speed = speed_LAB_BWD;
             controlData.rampTime = millisecond_t(400);
             break;
 
@@ -772,7 +772,7 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
                 laneChange.trajectory.setStartConfig(Trajectory::config_t{
                     globals::car.pose,
-                    globals::speed_LANE_CHANGE
+                    speed_LANE_CHANGE
                 }, globals::car.distance);
 
                 laneChange.trajectory.appendSineArc(Trajectory::config_t{
@@ -780,27 +780,27 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
                         laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(80), -LANE_DISTANCE }.rotate(globals::car.pose.angle),
                         globals::car.pose.angle
                     },
-                    globals::speed_LANE_CHANGE,
+                    speed_LANE_CHANGE,
                 }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
 
             } else if (Sign::NEGATIVE == detectedLines.front.pattern.dir) {
 
                 laneChange.trajectory.setStartConfig(Trajectory::config_t{
                     globals::car.pose,
-                    globals::speed_LANE_CHANGE
+                    speed_LANE_CHANGE
                 }, globals::car.distance);
 
                 laneChange.trajectory.appendCircle(
                     laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(0), LANE_DISTANCE / 2 }.rotate(globals::car.pose.angle),
                     PI,
-                    globals::speed_LANE_CHANGE, 30);
+                    speed_LANE_CHANGE, 30);
 
                 laneChange.trajectory.appendLine(Trajectory::config_t{
                     Pose{
                         laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(globals::car.pose.angle + PI),
                         globals::car.pose.angle
                     },
-                    globals::speed_LANE_CHANGE
+                    speed_LANE_CHANGE
                 });
 
             }
