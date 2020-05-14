@@ -1,7 +1,6 @@
 #include <globals.hpp>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
-#include <micro/debug/params.hpp>
 
 using namespace micro;
 
@@ -76,23 +75,5 @@ bool isDistSensorTaskOk = false;
 bool isGyroTaskOk       = false;
 bool isLineDetectTaskOk = false;
 bool isVehicleCanTaskOk = false;
-
-void registerGlobalParams(micro::Params& params) {
-
-#define REGISTER_GLOBAL(name) params.registerParam(#name, name)
-
-    REGISTER_GLOBAL(motorCtrl_P);
-    REGISTER_GLOBAL(motorCtrl_I);
-    REGISTER_GLOBAL(motorCtrl_integral_max);
-    REGISTER_GLOBAL(linePosCtrl_P);
-    REGISTER_GLOBAL(linePosCtrl_D);
-    REGISTER_GLOBAL(lineAngleCtrl_P);
-    REGISTER_GLOBAL(lineAngleCtrl_D);
-    REGISTER_GLOBAL(car);
-
-    //params.registerParam("trackSpeeds", &trackSpeeds[3]);
-
-#undef REGISTER_GLOBAL
-}
 
 }  // namespace globals

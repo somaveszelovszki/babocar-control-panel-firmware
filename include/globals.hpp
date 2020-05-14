@@ -6,8 +6,6 @@
 #include <ProgramState.hpp>
 #include <track.hpp>
 
-class Params;
-
 namespace globals {
 
 extern ProgramState programState;
@@ -46,8 +44,6 @@ extern bool isDistSensorTaskOk;
 extern bool isGyroTaskOk;
 extern bool isLineDetectTaskOk;
 extern bool isVehicleCanTaskOk;
-
-void registerGlobalParams(Params& params);
 
 inline bool areAllTasksOk(void) {
     return isControlTaskOk &&

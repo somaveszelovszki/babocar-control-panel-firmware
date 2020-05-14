@@ -6,43 +6,38 @@
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
-#include <cfg_car.hpp>
 #include <globals.hpp>
 
 #include <cstring>
 
 using namespace micro;
 
+extern Params params;
+
 queue_t<char[LOG_MSG_MAX_SIZE], LOG_QUEUE_MAX_SIZE> logQueue;
 
 namespace {
 
-constexpr char PARAMS_START_SEQ[] = "[P]";
+#define SERIAL_DEBUG_ENABLED true
 
-constexpr uint32_t MAX_RX_BUFFER_SIZE = 1024;
+constexpr uint32_t MAX_BUFFER_SIZE = 1024;
 
-ring_buffer<uint8_t[MAX_RX_BUFFER_SIZE], 6> rxBuffer;
+ring_buffer<uint8_t[MAX_BUFFER_SIZE], 6> rxBuffer;
 char txLog[LOG_MSG_MAX_SIZE];
-microsecond_t txEndTime;
+semaphore_t txSemaphore;
 
-#if SERIAL_DEBUG_ENABLED
-char inCmd[MAX_RX_BUFFER_SIZE];
-char debugParamsStr[MAX_RX_BUFFER_SIZE];
-micro::Params debugParams;
-#endif // SERIAL_DEBUG_ENABLED
-
-static void transmit(const char * const data, const uint32_t length) {
-    HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), length);
-    txEndTime = getExactTime() + length * second_t(1) / (uart_Command->Init.BaudRate / 12);
+static void transmit(const char * const data) {
+    HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
+    txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
 }
 
 } // namespace
 
 extern "C" void runDebugTask(void) {
-    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
+    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_BUFFER_SIZE);
 
 #if SERIAL_DEBUG_ENABLED
-    globals::registerGlobalParams(debugParams);
+    char paramsStr[MAX_BUFFER_SIZE];
     Timer debugParamsSendTimer;
     debugParamsSendTimer.start(millisecond_t(500));
 #endif // SERIAL_DEBUG_ENABLED
@@ -56,34 +51,20 @@ extern "C" void runDebugTask(void) {
     while (true) {
 #if SERIAL_DEBUG_ENABLED
         if (rxBuffer.size() > 0) {
-            const char * const rxData = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
-
-            uint32_t len = 0;
-            for (; len < MAX_RX_BUFFER_SIZE; ++len) {
-                const char c = rxData[len];
-                if ('$' == c) break;
-                inCmd[len] = c;
-            }
-
+            const char * const inCmd = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
             rxBuffer.updateTail(1);
-
-            if (!strncmp(inCmd, PARAMS_START_SEQ, ARRAY_SIZE(PARAMS_START_SEQ))) {
-                debugParams.deserializeAll(&inCmd[ARRAY_SIZE(PARAMS_START_SEQ)], len - ARRAY_SIZE(PARAMS_START_SEQ));
-                LOG_INFO("Params updated from server");
-            }
+            params.deserializeAll(inCmd, MAX_BUFFER_SIZE);
         }
 
-        if (getExactTime() > txEndTime && debugParamsSendTimer.checkTimeout()) {
-            uint32_t len = strncpy_until(debugParamsStr, PARAMS_START_SEQ, ARRAY_SIZE(PARAMS_START_SEQ));
-            len += debugParams.serializeAll(&debugParamsStr[len], MAX_RX_BUFFER_SIZE - len - ARRAY_SIZE(LOG_SEPARATOR_SEQ));
-            len += strncpy(&debugParamsStr[len], LOG_SEPARATOR_SEQ, ARRAY_SIZE(LOG_SEPARATOR_SEQ));
-            transmit(debugParamsStr, len);
+        if (debugParamsSendTimer.checkTimeout()) {
+            params.serializeAll(paramsStr, MAX_BUFFER_SIZE);
+            transmit(paramsStr);
         }
 #endif // SERIAL_DEBUG_ENABLED
 
         // receives all available messages coming from the tasks and adds them to the buffer vector
-        if (getExactTime() > txEndTime && logQueue.receive(txLog, millisecond_t(1))) {
-            transmit(txLog, strlen(txLog));
+        if (logQueue.receive(txLog, millisecond_t(1))) {
+            transmit(txLog);
         }
 
         ledBlinkTimer.setPeriod(millisecond_t(globals::areAllTasksOk() ? 500 : 250));
@@ -98,12 +79,13 @@ extern "C" void runDebugTask(void) {
     }
 }
 
-/* @brief Callback for Serial UART RxCplt - called when receive finishes.
- */
-void micro_Command_Uart_RxCpltCallback(const uint32_t leftBytes) {
-    if (MAX_RX_BUFFER_SIZE > leftBytes) {
+void micro_Command_Uart_RxCpltCallback() {
+    if (MAX_BUFFER_SIZE > uart_Command->hdmarx->Instance->NDTR) {
         rxBuffer.updateHead(1);
     }
+    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_BUFFER_SIZE);
+}
 
-    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_RX_BUFFER_SIZE);
+void micro_Command_Uart_TxCpltCallback() {
+    txSemaphore.give();
 }
