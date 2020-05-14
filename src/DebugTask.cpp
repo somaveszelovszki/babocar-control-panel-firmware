@@ -1,5 +1,4 @@
 #include <micro/container/ring_buffer.hpp>
-#include <micro/container/vec.hpp>
 #include <micro/debug/params.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
@@ -7,8 +6,6 @@
 
 #include <cfg_board.h>
 #include <globals.hpp>
-
-#include <cstring>
 
 using namespace micro;
 
@@ -26,7 +23,7 @@ ring_buffer<uint8_t[MAX_BUFFER_SIZE], 6> rxBuffer;
 char txLog[LOG_MSG_MAX_SIZE];
 semaphore_t txSemaphore;
 
-static void transmit(const char * const data) {
+void transmit(const char * const data) {
     HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
     txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
 }
