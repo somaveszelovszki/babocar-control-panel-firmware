@@ -9,15 +9,7 @@
 namespace globals {
 
 extern ProgramState programState;
-extern bool useSafetyEnableSignal;
-extern bool indicatorLedsEnabled;
-extern uint8_t reducedLineDetectScanRangeRadius;
 extern micro::CarProps car;
-extern bool distServoEnabled;
-extern float distServoTransferRate;
-
-extern TrackSpeeds trackSpeeds[];
-extern BrakeOffsets brakeOffsets[];
 
 extern bool isControlTaskOk;
 extern bool isDebugTaskOk;

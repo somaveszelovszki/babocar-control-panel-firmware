@@ -829,10 +829,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     while (true) {
         switch (getActiveTask(globals::programState)) {
             case ProgramTask::Labyrinth:
-                globals::distServoEnabled = false;
-
                 detectedLinesQueue.peek(detectedLines, millisecond_t(0));
-
                 micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
 
                 switch (globals::programState) {

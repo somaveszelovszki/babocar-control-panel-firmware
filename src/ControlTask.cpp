@@ -97,7 +97,7 @@ void calcTargetAngles(const ControlData& controlData) {
         break;
     }
 
-    frontDistSensorServoTargetAngle = frontWheelTargetAngle * globals::distServoTransferRate;
+    frontDistSensorServoTargetAngle = cfg::DIST_SENSOR_SERVO_ENABLED ? frontWheelTargetAngle * cfg::DIST_SENSOR_SERVO_TRANSFER_RATE : radian_t(0);
 }
 
 } // namespace
@@ -142,7 +142,7 @@ extern "C" void runControlTask(void) {
         }
 
         if (longitudinalControlTimer.checkTimeout()) {
-            vehicleCanManager.send(can::LongitudinalControl(controlData.speed, globals::useSafetyEnableSignal, controlData.rampTime));
+            vehicleCanManager.send(can::LongitudinalControl(controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime));
         }
 
         if (lateralControlTimer.checkTimeout()) {

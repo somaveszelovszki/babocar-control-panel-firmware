@@ -252,13 +252,14 @@ extern "C" void runProgRaceTrackTask(void) {
     overtake.segment = getFastSegment(trackSegments, 3);
 
     meter_t lastDistWithValidLine;
+    meter_t lastDistWithSafetyCar;
     millisecond_t lapStartTime;
 
     while (true) {
         switch(getActiveTask(globals::programState)) {
         case ProgramTask::RaceTrack:
         {
-            static const bool runOnce = [&trackInfo, &lastDistWithValidLine, &lapStartTime, &mainLine]() {
+            static const bool runOnce = [&trackInfo, &lastDistWithValidLine, &lastDistWithSafetyCar, &lapStartTime, &mainLine]() {
 
                 if ((trackInfo.seg = getFastSegment(trackSegments, globals::programState)) != trackSegments.end()) { // race
                     trackInfo.lap = 3;
@@ -269,6 +270,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 }
 
                 lastDistWithValidLine = globals::car.distance;
+                lastDistWithSafetyCar = globals::car.distance;
                 lapStartTime = getTime();
 
                 trackInfo.segStartCarProps = globals::car;
@@ -323,10 +325,8 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case ProgramState::FollowSafetyCar:
-                static meter_t lastDistWithSafetyCar;
                 controlData.speed = safetyCarFollowSpeed(distFromBehindSafetyCar, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
-                globals::distServoEnabled = true;
 
                 if (distFromBehindSafetyCar < centimeter_t(100)) {
                     lastDistWithSafetyCar = globals::car.distance;

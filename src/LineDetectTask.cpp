@@ -63,9 +63,9 @@ extern "C" void runLineDetectTask(void) {
             const bool isRace                    = ProgramTask::RaceTrack == getActiveTask(globals::programState);
             const linePatternDomain_t domain     = isRace ? linePatternDomain_t::Race : linePatternDomain_t::Labyrinth;
             const bool isReducedScanRangeEnabled = isRace && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
-            const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? globals::reducedLineDetectScanRangeRadius : 0;
+            const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0;
 
-            vehicleCanManager.send(can::LineDetectControl(globals::indicatorLedsEnabled, scanRangeRadius, domain));
+            vehicleCanManager.send(can::LineDetectControl(cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain));
         }
 
         os_delay(1);
