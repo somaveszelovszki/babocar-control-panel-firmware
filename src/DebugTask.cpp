@@ -1,5 +1,6 @@
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/params.hpp>
+#include <micro/debug/taskMonitor.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
@@ -28,9 +29,32 @@ void transmit(const char * const data) {
     txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
 }
 
+void monitorTasks() {
+    static Timer ledBlinkTimer(millisecond_t(250));
+
+    const TaskMonitor::taskStates_t failingTasks = TaskMonitor::instance().failingTasks();
+    ledBlinkTimer.setPeriod(millisecond_t(failingTasks.size() > 0 ? 500 : 250));
+
+    if (failingTasks.size()) {
+        char msg[LOG_MSG_MAX_SIZE];
+        uint32_t idx = 0;
+        for (TaskMonitor::taskStates_t::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
+            idx += strncpy_until(&msg[idx], it->details.pcTaskName, min(static_cast<uint32_t>(configMAX_TASK_NAME_LEN), MAX_BUFFER_SIZE - idx));
+            if (it != failingTasks.back()) {
+                idx += strncpy_until(&msg[idx], ", ", sizeof(", "), MAX_BUFFER_SIZE - idx);
+            }
+        }
+        msg[idx] = '\0';
+        LOG_ERROR("Failing tasks: %s", msg);
+    }
+}
+
 } // namespace
 
 extern "C" void runDebugTask(void) {
+
+    TaskMonitor::instance().registerTask();
+
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_BUFFER_SIZE);
 
 #if SERIAL_DEBUG_ENABLED
@@ -39,10 +63,6 @@ extern "C" void runDebugTask(void) {
     debugParamsSendTimer.start(millisecond_t(500));
 #endif // SERIAL_DEBUG_ENABLED
 
-    Timer ledBlinkTimer;
-    ledBlinkTimer.start(millisecond_t(250));
-
-    globals::isDebugTaskOk = true;
     LOG_DEBUG("Debug task initialized");
 
     while (true) {
@@ -64,15 +84,9 @@ extern "C" void runDebugTask(void) {
             transmit(txLog);
         }
 
-        ledBlinkTimer.setPeriod(millisecond_t(globals::areAllTasksOk() ? 500 : 250));
-        if (ledBlinkTimer.checkTimeout()) {
-            HAL_GPIO_TogglePin(gpio_Led, gpioPin_Led);
-//            if (!globals::isControlTaskOk)    LOG_DEBUG("ControlTask not OK");
-//            if (!globals::isDebugTaskOk)      LOG_DEBUG("DebugTask not OK");
-//            if (!globals::isDistSensorTaskOk) LOG_DEBUG("DistSensorTask not OK");
-//            if (!globals::isLineDetectTaskOk) LOG_DEBUG("LineDetectTask not OK");
-//            if (!globals::isGyroTaskOk)       LOG_DEBUG("GyroTask not OK");
-        }
+        monitorTasks();
+
+        TaskMonitor::instance().notify(true);
     }
 }
 

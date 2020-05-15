@@ -1,3 +1,4 @@
+#include <micro/debug/taskMonitor.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
@@ -822,6 +823,8 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
 
+    TaskMonitor::instance().registerTask();
+
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
@@ -856,6 +859,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
         }
 
+        TaskMonitor::instance().notify(true);
         os_delay(2);
     }
 }

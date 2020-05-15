@@ -1,18 +1,18 @@
+#include <micro/debug/taskMonitor.hpp>
+#include <micro/port/task.hpp>
+#include <micro/sensor/Filter.hpp>
+#include <micro/utils/log.hpp>
+#include <micro/utils/timer.hpp>
+
 #include <cfg_board.h>
+#include <cfg_car.hpp>
+#include <globals.hpp>
 
 #if GYRO_BOARD == GYRO_MPU9250
 #include <micro/hw/MPU9250_Gyroscope.hpp>
 #elif GYRO_BOARD == GYRO_LSM6DSO
 #include <micro/hw/LSM6DSO_Gyroscope.hpp>
 #endif
-
-#include <micro/port/task.hpp>
-#include <micro/sensor/Filter.hpp>
-#include <micro/utils/log.hpp>
-#include <micro/utils/timer.hpp>
-
-#include <cfg_car.hpp>
-#include <globals.hpp>
 
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_gpio.h>
@@ -79,6 +79,8 @@ void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
 
 extern "C" void runGyroTask(void) {
 
+    TaskMonitor::instance().registerTask();
+
     gyro.initialize();
     MadgwickAHRS madgwick(gyro.gyroMeanError().Z.get());
 
@@ -100,16 +102,16 @@ extern "C" void runGyroTask(void) {
 
                 madgwick.update(sampleTime, gyroData, accelData);
                 updateCarProps(gyroData.Z, madgwick.yaw());
-                globals::isGyroTaskOk = true;
                 success = true;
             }
         }
 
         if (!success) {
-            globals::isGyroTaskOk = false;
             LOG_ERROR("Gyro timed out");
             gyro.initialize();
         }
+
+        TaskMonitor::instance().notify(success);
     }
 }
 

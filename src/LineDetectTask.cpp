@@ -1,3 +1,4 @@
+#include <micro/debug/taskMonitor.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
@@ -23,6 +24,8 @@ namespace {
 } // namespace
 
 extern "C" void runLineDetectTask(void) {
+
+    TaskMonitor::instance().registerTask();
 
     DetectedLines detectedLines;
 
@@ -51,9 +54,6 @@ extern "C" void runLineDetectTask(void) {
     Timer lineDetectControlTimer(can::LineDetectControl::period());
 
     while (true) {
-
-        globals::isLineDetectTaskOk = !vehicleCanManager.hasRxTimedOut();
-
         if (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
@@ -68,6 +68,7 @@ extern "C" void runLineDetectTask(void) {
             vehicleCanManager.send(can::LineDetectControl(cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain));
         }
 
+        TaskMonitor::instance().notify(!vehicleCanManager.hasRxTimedOut());
         os_delay(1);
     }
 }

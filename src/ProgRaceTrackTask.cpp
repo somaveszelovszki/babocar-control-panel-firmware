@@ -1,4 +1,5 @@
 #include <micro/container/infinite_buffer.hpp>
+#include <micro/debug/taskMonitor.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/sensor/Filter.hpp>
@@ -241,6 +242,8 @@ TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments,
 
 extern "C" void runProgRaceTrackTask(void) {
 
+    TaskMonitor::instance().registerTask();
+
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
     DistancesData distances;
@@ -420,6 +423,7 @@ extern "C" void runProgRaceTrackTask(void) {
             break;
         }
 
+        TaskMonitor::instance().notify(true);
         os_delay(2);
     }
 }

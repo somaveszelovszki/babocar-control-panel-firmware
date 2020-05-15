@@ -1,3 +1,4 @@
+#include <micro/debug/taskMonitor.hpp>
 #include <micro/panel/PanelLink.hpp>
 #include <micro/panel/DistSensorPanelData.hpp>
 #include <micro/utils/log.hpp>
@@ -38,12 +39,12 @@ void fillDistSensorPanelData(DistSensorPanelInData& txData) {
 
 extern "C" void runDistSensorTask(void) {
 
+    TaskMonitor::instance().registerTask();
+
     DistSensorPanelOutData rxData;
     DistSensorPanelInData txData;
 
     while (true) {
-        globals::isDistSensorTaskOk = frontDistSensorPanelLink.isConnected() && rearDistSensorPanelLink.isConnected();
-
         frontDistSensorPanelLink.update();
         rearDistSensorPanelLink.update();
 
@@ -73,6 +74,7 @@ extern "C" void runDistSensorTask(void) {
             rearDistSensorPanelLink.send(txData);
         }
 
+        TaskMonitor::instance().notify(frontDistSensorPanelLink.isConnected() && rearDistSensorPanelLink.isConnected());
         os_delay(1);
     }
 }
