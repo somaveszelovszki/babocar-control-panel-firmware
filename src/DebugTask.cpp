@@ -1,7 +1,7 @@
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/params.hpp>
-#include <micro/debug/taskMonitor.hpp>
+#include <micro/debug/SystemManager.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/str_utils.hpp>
@@ -29,12 +29,12 @@ void transmit(const char * const data) {
 bool monitorTasks() {
     static Timer failureLogTimer(millisecond_t(100));
 
-    const TaskMonitor::taskStates_t failingTasks = TaskMonitor::instance().failingTasks();
+    const SystemManager::taskStates_t failingTasks = SystemManager::instance().failingTasks();
 
     if (failingTasks.size() && failureLogTimer.checkTimeout()) {
         char msg[LOG_MSG_MAX_SIZE];
         uint32_t idx = 0;
-        for (TaskMonitor::taskStates_t::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
+        for (SystemManager::taskStates_t::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
             idx += strncpy_until(&msg[idx], it->details.pcTaskName, min(static_cast<uint32_t>(configMAX_TASK_NAME_LEN), LOG_MSG_MAX_SIZE - idx));
             if (it != failingTasks.back()) {
                 idx += strncpy_until(&msg[idx], ", ", sizeof(", "), LOG_MSG_MAX_SIZE - idx);
@@ -51,7 +51,7 @@ bool monitorTasks() {
 
 extern "C" void runDebugTask(void) {
 
-    TaskMonitor::instance().registerTask();
+    SystemManager::instance().registerTask();
 
     HAL_UART_Receive_DMA(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
 
@@ -75,7 +75,7 @@ extern "C" void runDebugTask(void) {
         }
 
         debugLed.update(monitorTasks());
-        TaskMonitor::instance().notify(true);
+        SystemManager::instance().notify(true);
         os_delay(1);
     }
 }

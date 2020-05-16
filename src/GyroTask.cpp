@@ -1,4 +1,4 @@
-#include <micro/debug/taskMonitor.hpp>
+#include <micro/debug/SystemManager.hpp>
 #include <micro/port/task.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/utils/log.hpp>
@@ -79,7 +79,7 @@ void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
 
 extern "C" void runGyroTask(void) {
 
-    TaskMonitor::instance().registerTask();
+    SystemManager::instance().registerTask();
 
     gyro.initialize();
     MadgwickAHRS madgwick(gyro.gyroMeanError().Z.get());
@@ -111,7 +111,7 @@ extern "C" void runGyroTask(void) {
             gyro.initialize();
         }
 
-        TaskMonitor::instance().notify(success);
+        SystemManager::instance().notify(success);
     }
 }
 

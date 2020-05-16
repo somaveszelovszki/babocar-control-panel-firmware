@@ -1,4 +1,4 @@
-#include <micro/debug/taskMonitor.hpp>
+#include <micro/debug/SystemManager.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
@@ -823,7 +823,7 @@ bool changeLane(const DetectedLines& detectedLines, ControlData& controlData) {
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
 
-    TaskMonitor::instance().registerTask();
+    SystemManager::instance().registerTask();
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
@@ -859,7 +859,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
         }
 
-        TaskMonitor::instance().notify(true);
+        SystemManager::instance().notify(true);
         os_delay(2);
     }
 }

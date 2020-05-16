@@ -1,6 +1,6 @@
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
-#include <micro/debug/taskMonitor.hpp>
+#include <micro/debug/SystemManager.hpp>
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/task.hpp>
@@ -105,7 +105,7 @@ void calcTargetAngles(const ControlData& controlData) {
 
 extern "C" void runControlTask(void) {
 
-    TaskMonitor::instance().registerTask();
+    SystemManager::instance().registerTask();
 
     ControlData controlData;
     canFrame_t rxCanFrame;
@@ -166,7 +166,7 @@ extern "C" void runControlTask(void) {
             LOG_DEBUG("orientation: %f deg", static_cast<degree_t>(globals::car.pose.angle).get());
         }
 
-        TaskMonitor::instance().notify(!vehicleCanManager.hasRxTimedOut() && !controlDataWatchdog.hasTimedOut());
+        SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && !controlDataWatchdog.hasTimedOut());
         os_delay(1);
     }
 }
