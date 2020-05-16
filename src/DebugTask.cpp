@@ -12,27 +12,26 @@
 
 using namespace micro;
 
-queue_t<char[LOG_MSG_MAX_SIZE], LOG_QUEUE_MAX_SIZE> logQueue;
-
 namespace {
 
-#define SERIAL_DEBUG_ENABLED true
+constexpr uint32_t MAX_PARAMS_BUFFER_SIZE = 1024;
 
-constexpr uint32_t MAX_BUFFER_SIZE = 1024;
-
-ring_buffer<uint8_t[MAX_BUFFER_SIZE], 6> rxBuffer;
-char txLog[LOG_MSG_MAX_SIZE];
+ring_buffer<uint8_t[MAX_PARAMS_BUFFER_SIZE], 3> rxBuffer;
+Log::message_t txLog;
+char paramsStr[MAX_PARAMS_BUFFER_SIZE];
 semaphore_t txSemaphore;
 
 void transmit(const char * const data) {
-    HAL_UART_Transmit_DMA(uart_Command, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
+    HAL_UART_Transmit_DMA(uart_Debug, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
     txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
 }
 
 bool monitorTasks() {
+    static Timer failureLogTimer(millisecond_t(100));
+
     const TaskMonitor::taskStates_t failingTasks = TaskMonitor::instance().failingTasks();
 
-    if (failingTasks.size()) {
+    if (failingTasks.size() && failureLogTimer.checkTimeout()) {
         char msg[LOG_MSG_MAX_SIZE];
         uint32_t idx = 0;
         for (TaskMonitor::taskStates_t::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
@@ -54,47 +53,38 @@ extern "C" void runDebugTask(void) {
 
     TaskMonitor::instance().registerTask();
 
-    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_BUFFER_SIZE);
+    HAL_UART_Receive_DMA(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
 
     DebugLed debugLed(gpio_Led, gpioPin_Led);
-
-#if SERIAL_DEBUG_ENABLED
-    char paramsStr[MAX_BUFFER_SIZE];
-    Timer debugParamsSendTimer;
-    debugParamsSendTimer.start(millisecond_t(500));
-#endif // SERIAL_DEBUG_ENABLED
-
-    LOG_DEBUG("Debug task initialized");
+    Timer debugParamsSendTimer(millisecond_t(500));
 
     while (true) {
-#if SERIAL_DEBUG_ENABLED
         if (rxBuffer.size() > 0) {
             const char * const inCmd = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
             rxBuffer.updateTail(1);
-            Params::instance().deserializeAll(inCmd, MAX_BUFFER_SIZE);
+            Params::instance().deserializeAll(inCmd, MAX_PARAMS_BUFFER_SIZE);
         }
 
         if (debugParamsSendTimer.checkTimeout()) {
-            Params::instance().serializeAll(paramsStr, MAX_BUFFER_SIZE);
+            Params::instance().serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE);
             transmit(paramsStr);
         }
-#endif // SERIAL_DEBUG_ENABLED
 
-        // receives all available messages coming from the tasks and adds them to the buffer vector
-        if (logQueue.receive(txLog, millisecond_t(1))) {
+        if (Log::instance().receive(txLog)) {
             transmit(txLog);
         }
 
         debugLed.update(monitorTasks());
         TaskMonitor::instance().notify(true);
+        os_delay(1);
     }
 }
 
 void micro_Command_Uart_RxCpltCallback() {
-    if (MAX_BUFFER_SIZE > uart_Command->hdmarx->Instance->NDTR) {
+    if (MAX_PARAMS_BUFFER_SIZE > uart_Debug->hdmarx->Instance->NDTR) {
         rxBuffer.updateHead(1);
     }
-    HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_BUFFER_SIZE);
+    HAL_UART_Receive_DMA(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
 }
 
 void micro_Command_Uart_TxCpltCallback() {

@@ -23,20 +23,8 @@ extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart6;
 
-#define spi_Gyro                (&hspi1)
-#define csGpio_Gyro             GPIOB
-#define csGpioPin_Gyro          GPIO_PIN_5
-
-#define i2c_X                   (&hi2c3)
-
 #define can_Vehicle             (&hcan1)
 #define canRxFifo_Vehicle       CAN_RX_FIFO0
-
-#define uart_FrontDistSensor    (&huart4)
-#define uart_Command            (&huart2)
-#define uart_RadioModule        (&huart3)
-#define uart_RearDistSensor     (&huart5)
-#define uart_X                  (&huart6)
 
 #define gpio_GyroINT            GPIOB
 #define gpioPin_GyroINT1        GPIO_PIN_0
@@ -49,7 +37,19 @@ extern UART_HandleTypeDef huart6;
 #define gpioPin_Btn1            GPIO_PIN_1
 #define gpioPin_Btn2            GPIO_PIN_0
 
+#define i2c_X                   (&hi2c3)
+
+#define spi_Gyro                (&hspi1)
+#define csGpio_Gyro             GPIOB
+#define csGpioPin_Gyro          GPIO_PIN_5
+
 #define tim_System              (&htim2)
+
+#define uart_FrontDistSensor    (&huart4)
+#define uart_Debug              (&huart2)
+#define uart_RadioModule        (&huart3)
+#define uart_RearDistSensor     (&huart5)
+#define uart_X                  (&huart6)
 
 #define PANEL_VERSION           0x05
 

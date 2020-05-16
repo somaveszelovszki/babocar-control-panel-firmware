@@ -22,7 +22,7 @@ extern void micro_Gyro_DataReadyCallback();
 extern void micro_Vehicle_Can_RxFifoMsgPendingCallback();
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == uart_Command) {
+    if (huart == uart_Debug) {
         micro_Command_Uart_RxCpltCallback();
     } else if (huart == uart_RadioModule) {
         micro_RadioModule_Uart_RxCpltCallback();
@@ -34,7 +34,7 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == uart_Command) {
+    if (huart == uart_Debug) {
         micro_Command_Uart_TxCpltCallback();
     }
 }
