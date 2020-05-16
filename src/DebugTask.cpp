@@ -1,16 +1,16 @@
 #include <micro/container/ring_buffer.hpp>
+#include <micro/debug/DebugLed.hpp>
 #include <micro/debug/params.hpp>
 #include <micro/debug/taskMonitor.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
+#include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
 #include <globals.hpp>
 
 using namespace micro;
-
-extern Params params;
 
 queue_t<char[LOG_MSG_MAX_SIZE], LOG_QUEUE_MAX_SIZE> logQueue;
 
@@ -29,24 +29,23 @@ void transmit(const char * const data) {
     txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
 }
 
-void monitorTasks() {
-    static Timer ledBlinkTimer(millisecond_t(250));
-
+bool monitorTasks() {
     const TaskMonitor::taskStates_t failingTasks = TaskMonitor::instance().failingTasks();
-    ledBlinkTimer.setPeriod(millisecond_t(failingTasks.size() > 0 ? 500 : 250));
 
     if (failingTasks.size()) {
         char msg[LOG_MSG_MAX_SIZE];
         uint32_t idx = 0;
         for (TaskMonitor::taskStates_t::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
-            idx += strncpy_until(&msg[idx], it->details.pcTaskName, min(static_cast<uint32_t>(configMAX_TASK_NAME_LEN), MAX_BUFFER_SIZE - idx));
+            idx += strncpy_until(&msg[idx], it->details.pcTaskName, min(static_cast<uint32_t>(configMAX_TASK_NAME_LEN), LOG_MSG_MAX_SIZE - idx));
             if (it != failingTasks.back()) {
-                idx += strncpy_until(&msg[idx], ", ", sizeof(", "), MAX_BUFFER_SIZE - idx);
+                idx += strncpy_until(&msg[idx], ", ", sizeof(", "), LOG_MSG_MAX_SIZE - idx);
             }
         }
         msg[idx] = '\0';
         LOG_ERROR("Failing tasks: %s", msg);
     }
+
+    return failingTasks.size() == 0;
 }
 
 } // namespace
@@ -56,6 +55,8 @@ extern "C" void runDebugTask(void) {
     TaskMonitor::instance().registerTask();
 
     HAL_UART_Receive_DMA(uart_Command, *rxBuffer.getWritableBuffer(), MAX_BUFFER_SIZE);
+
+    DebugLed debugLed(gpio_Led, gpioPin_Led);
 
 #if SERIAL_DEBUG_ENABLED
     char paramsStr[MAX_BUFFER_SIZE];
@@ -70,11 +71,11 @@ extern "C" void runDebugTask(void) {
         if (rxBuffer.size() > 0) {
             const char * const inCmd = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
             rxBuffer.updateTail(1);
-            params.deserializeAll(inCmd, MAX_BUFFER_SIZE);
+            Params::instance().deserializeAll(inCmd, MAX_BUFFER_SIZE);
         }
 
         if (debugParamsSendTimer.checkTimeout()) {
-            params.serializeAll(paramsStr, MAX_BUFFER_SIZE);
+            Params::instance().serializeAll(paramsStr, MAX_BUFFER_SIZE);
             transmit(paramsStr);
         }
 #endif // SERIAL_DEBUG_ENABLED
@@ -84,8 +85,7 @@ extern "C" void runDebugTask(void) {
             transmit(txLog);
         }
 
-        monitorTasks();
-
+        debugLed.update(monitorTasks());
         TaskMonitor::instance().notify(true);
     }
 }
