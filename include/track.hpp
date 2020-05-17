@@ -57,8 +57,8 @@ struct TrackInfo;
 struct TrackSegment {
     bool isFast;
     micro::meter_t length;
-    std::function<bool(const TrackInfo&, const micro::LinePattern&)> hasBecomeActive;
-    std::function<micro::ControlData(const TrackInfo&, const micro::MainLine&)> getControl;
+    std::function<bool(const micro::CarProps&, const TrackInfo&, const micro::LinePattern&)> hasBecomeActive;
+    std::function<micro::ControlData(const micro::CarProps&, const TrackInfo&, const micro::MainLine&)> getControl;
 };
 
 typedef micro::vec<TrackSegment, 20> TrackSegments;

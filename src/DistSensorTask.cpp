@@ -6,7 +6,6 @@
 
 #include <cfg_board.h>
 #include <DistancesData.hpp>
-#include <globals.hpp>
 
 #include <FreeRTOS.h>
 #include <queue.h>

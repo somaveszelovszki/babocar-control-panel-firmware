@@ -5,6 +5,7 @@
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/task.hpp>
 #include <micro/sensor/Filter.hpp>
+#include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
@@ -12,9 +13,10 @@
 
 #include <cfg_board.h>
 #include <cfg_car.hpp>
-#include <globals.hpp>
 
 using namespace micro;
+
+extern queue_t<CarProps, 1> carPropsQueue;
 
 CanManager vehicleCanManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
 
@@ -68,7 +70,7 @@ radian_t frontWheelTargetAngle;
 radian_t rearWheelTargetAngle;
 radian_t frontDistSensorServoTargetAngle;
 
-void calcTargetAngles(const ControlData& controlData) {
+void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     switch (controlData.controlType) {
 
     case ControlData::controlType_t::Direct:
@@ -79,16 +81,16 @@ void calcTargetAngles(const ControlData& controlData) {
     case ControlData::controlType_t::Line: {
         // separate line position and angle control for front and rear servos
 
-        linePosController.tune(linePosControllerParams.lerp(globals::car.speed));
+        linePosController.tune(linePosControllerParams.lerp(car.speed));
         linePosController.update(static_cast<centimeter_t>(controlData.lineControl.actual.pos - controlData.lineControl.desired.pos).get());
         frontWheelTargetAngle = degree_t(linePosController.output()) + controlData.lineControl.desired.angle;
 
-        lineAngleController.tune(lineAngleControllerParams.lerp(globals::car.speed));
+        lineAngleController.tune(lineAngleControllerParams.lerp(car.speed));
         lineAngleController.update(static_cast<degree_t>(controlData.lineControl.actual.angle - controlData.lineControl.desired.angle).get());
         rearWheelTargetAngle = degree_t(lineAngleController.output()) - controlData.lineControl.desired.angle;
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
-        if (globals::car.speed < m_per_sec_t(0)) {
+        if (car.speed < m_per_sec_t(0)) {
             std::swap(frontWheelTargetAngle, rearWheelTargetAngle);
         }
         break;
@@ -111,31 +113,26 @@ extern "C" void runControlTask(void) {
     canFrame_t rxCanFrame;
     CanFrameHandler vehicleCanFrameHandler;
 
-    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
-        radian_t frontDistSensorServoAngle;
-        reinterpret_cast<const can::LateralState*>(data)->acquire(globals::car.frontWheelAngle, globals::car.rearWheelAngle, frontDistSensorServoAngle);
-    });
-
-    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::LongitudinalState*>(data)->acquire(globals::car.speed, globals::car.distance);
-    });
+    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const) {});
+    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const) {});
 
     const CanManager::subscriberId_t vehicleCanSubsciberId = vehicleCanManager.registerSubscriber(vehicleCanFrameHandler.identifiers());
 
     Timer longitudinalControlTimer(can::LongitudinalControl::period());
     Timer lateralControlTimer(can::LateralControl::period());
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
-    Timer sendTimer(millisecond_t(50));
 
     while (true) {
-        if (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
+        while (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
 
         // if no control data is received for a given period, stops motor for safety reasons
         if (controlQueue.receive(controlData, millisecond_t(0))) {
             controlDataWatchdog.reset();
-            calcTargetAngles(controlData);
+            CarProps car;
+            carPropsQueue.peek(car, millisecond_t(0));
+            calcTargetAngles(car, controlData);
 
         } else if (controlDataWatchdog.hasTimedOut()) {
             controlData.speed = m_per_sec_t(0);
@@ -160,10 +157,6 @@ extern "C" void runControlTask(void) {
             vehicleCanManager.send(can::SetRearWheelParams(servoOffsets.rearWheel, cfg::WHEEL_MAX_DELTA));
             vehicleCanManager.send(can::SetExtraServoParams(servoOffsets.extraServo, cfg::DIST_SENSOR_SERVO_MAX_DELTA));
             prevServoOffsets = servoOffsets;
-        }
-
-        if (sendTimer.checkTimeout()) {
-            LOG_DEBUG("orientation: %f deg", static_cast<degree_t>(globals::car.pose.angle).get());
         }
 
         SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && !controlDataWatchdog.hasTimedOut());

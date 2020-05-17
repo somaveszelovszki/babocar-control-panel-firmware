@@ -3,6 +3,7 @@
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/sensor/Filter.hpp>
+#include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
 #include <micro/utils/log.hpp>
@@ -14,7 +15,6 @@
 #include <cfg_track.hpp>
 #include <DetectedLines.hpp>
 #include <DistancesData.hpp>
-#include <globals.hpp>
 #include <track.hpp>
 
 #include <FreeRTOS.h>
@@ -25,6 +25,7 @@
 
 using namespace micro;
 
+extern queue_t<CarProps, 1> carPropsQueue;
 extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 extern queue_t<DetectedLines, 1> detectedLinesQueue;
 extern queue_t<ControlData, 1> controlQueue;
@@ -74,7 +75,7 @@ m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
     return speedSign * map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 }
 
-bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlData) {
+bool overtakeSafetyCar(const CarProps& car, const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr meter_t OVERTAKE_SECTION_LENGTH = centimeter_t(700);
     static constexpr meter_t ORIENTATION_FILTER_DIST = centimeter_t(50);
@@ -87,21 +88,21 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
     if (overtake.trajectory.length() == meter_t(0)) {
 
         if (overtake.startDist == meter_t(0)) {
-            overtake.startDist = globals::car.distance;
+            overtake.startDist = car.distance;
         }
 
-        const meter_t overtakeDist = globals::car.distance - overtake.startDist;
+        const meter_t overtakeDist = car.distance - overtake.startDist;
 
         if (overtakeDist > ORIENTATION_FILTER_DIST) {
 
-            const point2m posDiff           = globals::car.pose.pos - prevCarProps.peek_back(static_cast<uint32_t>(overtakeDist / PREV_CAR_PROPS_RESOLUTION)).pose.pos;
+            const point2m posDiff           = car.pose.pos - prevCarProps.peek_back(static_cast<uint32_t>(overtakeDist / PREV_CAR_PROPS_RESOLUTION)).pose.pos;
             const meter_t fastSectionLength = FAST_SECTION_MAX_LENGTH - overtakeDist;
             overtake.orientation            = posDiff.getAngle();
 
             overtake.trajectory.setStartConfig(Trajectory::config_t{
-                Pose{ globals::car.pose.pos, overtake.orientation },
-                speedSign * clamp(globals::car.speed, m_per_sec_t(1.0f), speed_OVERTAKE_BEGIN)
-            }, globals::car.distance);
+                Pose{ car.pose.pos, overtake.orientation },
+                speedSign * clamp(car.speed, m_per_sec_t(1.0f), speed_OVERTAKE_BEGIN)
+            }, car.distance);
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
                 Pose{
@@ -109,7 +110,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                     overtake.orientation
                 },
                 speedSign * speed_OVERTAKE_BEGIN
-            }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI);
+            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI);
 
             // TODO this should work without the for cycle
             for (uint8_t i = 0; i < 10; ++i) {
@@ -128,12 +129,12 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
                     overtake.orientation
                 },
                 speedSign * speed_OVERTAKE_END
-            }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI_2);
+            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI_2);
         }
     }
 
     if (overtake.trajectory.length() > meter_t(0)) {
-        controlData = overtake.trajectory.update(globals::car);
+        controlData = overtake.trajectory.update(car);
 
         finished = overtake.trajectory.length() - overtake.trajectory.coveredDistance() < centimeter_t(30) && LinePattern::NONE != detectedLines.front.pattern.type;
         if (finished) {
@@ -145,7 +146,7 @@ bool overtakeSafetyCar(const DetectedLines& detectedLines, ControlData& controlD
     return finished;
 }
 
-bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
+bool turnAround(const CarProps& car, const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr meter_t TURN_AROUND_RADIUS = centimeter_t(35);
     static constexpr meter_t SINE_ARC_LENGTH    = centimeter_t(100);
@@ -162,7 +163,7 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
         controlData.speed    = m_per_sec_t(0);
         controlData.rampTime = second_t(1);
 
-        if (abs(globals::car.speed) < m_per_sec_t(0.05f)) {
+        if (abs(car.speed) < m_per_sec_t(0.05f)) {
             turnaround.state = turnaroundState_t::FollowTrajectory;
         }
         break;
@@ -172,33 +173,33 @@ bool turnAround(const DetectedLines& detectedLines, ControlData& controlData) {
             speedSign = -speedSign; // changes speed sign in order to turn around
 
             turnaround.trajectory.setStartConfig(Trajectory::config_t{
-                globals::car.pose,
+                car.pose,
                 speedSign * speed_TURN_AROUND
-            }, globals::car.distance);
+            }, car.distance);
 
             turnaround.trajectory.appendSineArc(Trajectory::config_t{
                 Pose{
-                    overtake.trajectory.lastConfig().pose.pos + vec2m{ SINE_ARC_LENGTH, -TURN_AROUND_RADIUS }.rotate(globals::car.pose.angle),
-                    globals::car.pose.angle
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ SINE_ARC_LENGTH, -TURN_AROUND_RADIUS }.rotate(car.pose.angle),
+                    car.pose.angle
                 },
                 speedSign * speed_TURN_AROUND
-            }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
+            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
 
             turnaround.trajectory.appendCircle(
-                turnaround.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(0), TURN_AROUND_RADIUS }.rotate(globals::car.pose.angle),
+                turnaround.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(0), TURN_AROUND_RADIUS }.rotate(car.pose.angle),
                 PI,
                 speedSign * speed_TURN_AROUND, 30);
 
             turnaround.trajectory.appendSineArc(Trajectory::config_t{
                 Pose{
-                    overtake.trajectory.lastConfig().pose.pos + vec2m{ SINE_ARC_LENGTH, TURN_AROUND_RADIUS }.rotate(globals::car.pose.angle + PI),
-                    globals::car.pose.angle
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ SINE_ARC_LENGTH, TURN_AROUND_RADIUS }.rotate(car.pose.angle + PI),
+                    car.pose.angle
                 },
                 speedSign * speed_TURN_AROUND
-            }, globals::car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
+            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
         }
 
-        controlData = turnaround.trajectory.update(globals::car);
+        controlData = turnaround.trajectory.update(car);
 
         if (turnaround.trajectory.length() - turnaround.trajectory.coveredDistance() < centimeter_t(30) && LinePattern::NONE != detectedLines.front.pattern.type) {
             turnaround.trajectory.clear();
@@ -263,7 +264,10 @@ extern "C" void runProgRaceTrackTask(void) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::ReachSafetyCar), enum_cast(cfg::ProgramState::Error))) {
 
-            static const bool runOnce = [&trackInfo, &lastDistWithValidLine, &lastDistWithSafetyCar, &lapStartTime, &mainLine, &programState]() {
+            CarProps car;
+            carPropsQueue.peek(car, millisecond_t(0));
+
+            static const bool runOnce = [&car, &trackInfo, &lastDistWithValidLine, &lastDistWithSafetyCar, &lapStartTime, &mainLine, &programState]() {
 
                 if ((trackInfo.seg = getFastSegment(trackSegments, programState)) != trackSegments.end()) { // race
                     trackInfo.lap = 3;
@@ -273,11 +277,11 @@ extern "C" void runProgRaceTrackTask(void) {
                     trackInfo.seg = trackSegments.begin();
                 }
 
-                lastDistWithValidLine = globals::car.distance;
-                lastDistWithSafetyCar = globals::car.distance;
+                lastDistWithValidLine = car.distance;
+                lastDistWithSafetyCar = car.distance;
                 lapStartTime = getTime();
 
-                trackInfo.segStartCarProps = globals::car;
+                trackInfo.segStartCarProps = car;
                 trackInfo.segStartLine = mainLine.centerLine;
                 prevCarProps.push_back(trackInfo.segStartCarProps);
                 return true;
@@ -290,25 +294,25 @@ extern "C" void runProgRaceTrackTask(void) {
 
             const meter_t distFromBehindSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
 
-            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
+            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, car.speed >= m_per_sec_t(0));
 
             // sets default lateral control
             controlData.controlType          = ControlData::controlType_t::Line;
             controlData.lineControl.actual   = mainLine.centerLine;
             controlData.lineControl.desired  = { millimeter_t(0), radian_t(0) };
 
-            if (globals::car.distance - prevCarProps.peek_back(0).distance >= PREV_CAR_PROPS_RESOLUTION) {
-                prevCarProps.push_back(globals::car);
+            if (car.distance - prevCarProps.peek_back(0).distance >= PREV_CAR_PROPS_RESOLUTION) {
+                prevCarProps.push_back(car);
             }
 
             if (LinePattern::NONE != detectedLines.front.pattern.type) {
-                lastDistWithValidLine = globals::car.distance;
+                lastDistWithValidLine = car.distance;
             }
 
             TrackSegments::const_iterator nextSeg = nextSegment(trackInfo.seg);
-            if (nextSeg->hasBecomeActive(trackInfo, detectedLines.front.pattern)) {
+            if (nextSeg->hasBecomeActive(car, trackInfo, detectedLines.front.pattern)) {
                 trackInfo.seg = nextSeg;
-                trackInfo.segStartCarProps = globals::car;
+                trackInfo.segStartCarProps = car;
                 trackInfo.segStartLine = mainLine.centerLine;
 
                 if (trackSegments.begin() == trackInfo.seg) {
@@ -334,13 +338,13 @@ extern "C" void runProgRaceTrackTask(void) {
                 controlData.rampTime = millisecond_t(0);
 
                 if (distFromBehindSafetyCar < centimeter_t(100)) {
-                    lastDistWithSafetyCar = globals::car.distance;
+                    lastDistWithSafetyCar = car.distance;
                 }
 
                 if (overtake.segment == trackInfo.seg && ((0 == overtake.cntr && 1 == trackInfo.lap) || (1 == overtake.cntr && 3 == trackInfo.lap))) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::OvertakeSafetyCar));
                     LOG_DEBUG("Starts overtake");
-                } else if ((trackSegments.begin() == trackInfo.seg && trackInfo.lap > 3) || globals::car.distance - lastDistWithSafetyCar > centimeter_t(80)) {
+                } else if ((trackSegments.begin() == trackInfo.seg && trackInfo.lap > 3) || car.distance - lastDistWithSafetyCar > centimeter_t(80)) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                     LOG_DEBUG("Safety car left the track, starts race");
                 }
@@ -348,7 +352,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::OvertakeSafetyCar:
                 controlData.speed = safetyCarFollowSpeed(distFromBehindSafetyCar, trackInfo.seg->isFast);
-                if (overtakeSafetyCar(detectedLines, controlData)) {
+                if (overtakeSafetyCar(car, detectedLines, controlData)) {
                     ++overtake.cntr;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                     LOG_DEBUG("Overtake finished, starts race");
@@ -356,7 +360,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Race:
-                controlData = trackInfo.seg->getControl(trackInfo, mainLine);
+                controlData = trackInfo.seg->getControl(car, trackInfo, mainLine);
 
                 // the first 3 laps are dedicated to the safety-car follow task,
                 // changing the line offset and angle might ruin the car's capability to detect the safety car
@@ -377,28 +381,28 @@ extern "C" void runProgRaceTrackTask(void) {
                 } else if (Sign::NEGATIVE == speedSign &&
                            trackInfo.lap == 3 &&
                            trackInfo.seg == getFastSegment(trackSegments, 3) &&
-                           globals::car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
+                           car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::TurnAround));
                     LOG_DEBUG("Starts turn-around.");
                 }
 
-                if (globals::car.distance - lastDistWithValidLine > meter_t(2)) {
+                if (car.distance - lastDistWithValidLine > meter_t(2)) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Error));
                     LOG_ERROR("An error has occurred. Car stopped.");
                 }
                 break;
 
             case cfg::ProgramState::TurnAround:
-                if (turnAround(detectedLines, controlData)) {
+                if (turnAround(car, detectedLines, controlData)) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                 }
                 break;
 
             case cfg::ProgramState::Finish:
             {
-                static const meter_t startDist = globals::car.distance;
-                if (globals::car.distance - startDist < meter_t(2.0f)) {
-                    controlData = trackInfo.seg->getControl(trackInfo, mainLine);
+                static const meter_t startDist = car.distance;
+                if (car.distance - startDist < meter_t(2.0f)) {
+                    controlData = trackInfo.seg->getControl(car, trackInfo, mainLine);
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);

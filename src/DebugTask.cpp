@@ -8,7 +8,6 @@
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
-#include <globals.hpp>
 
 using namespace micro;
 

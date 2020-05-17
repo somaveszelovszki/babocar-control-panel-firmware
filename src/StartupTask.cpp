@@ -5,7 +5,6 @@
 
 #include <cfg_board.h>
 #include <cfg_track.hpp>
-#include <globals.hpp>
 
 using namespace micro;
 

@@ -1,5 +1,6 @@
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
+#include <micro/utils/CarProps.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
@@ -7,7 +8,6 @@
 #include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <DetectedLines.hpp>
-#include <globals.hpp>
 
 #include <FreeRTOS.h>
 #include <queue.h>
@@ -17,6 +17,7 @@ using namespace micro;
 
 extern CanManager vehicleCanManager;
 
+extern queue_t<CarProps, 1> carPropsQueue;
 queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 queue_t<DetectedLines, 1> detectedLinesQueue;
 
@@ -55,7 +56,10 @@ extern "C" void runLineDetectTask(void) {
     Timer lineDetectControlTimer(can::LineDetectControl::period());
 
     while (true) {
-        if (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
+        CarProps car;
+        carPropsQueue.peek(car, millisecond_t(0));
+
+        while (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
 
@@ -63,7 +67,7 @@ extern "C" void runLineDetectTask(void) {
             linePatternDomain_t domain = linePatternDomain_t::Labyrinth;
             linePatternDomainQueue.receive(domain, millisecond_t(0));
 
-            const bool isFwd                     = globals::car.speed >= m_per_sec_t(0);
+            const bool isFwd                     = car.speed >= m_per_sec_t(0);
             const bool isRace                    = linePatternDomain_t::Race == domain;
             const bool isReducedScanRangeEnabled = isRace && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
             const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0;
