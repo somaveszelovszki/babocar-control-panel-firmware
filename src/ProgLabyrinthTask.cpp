@@ -1,5 +1,7 @@
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/task.hpp>
+#include <micro/math/numeric.hpp>
+#include <micro/math/unit_utils.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
@@ -21,6 +23,7 @@ using namespace micro;
 
 #define RANDOM_SEGMENT true
 
+extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 extern queue_t<DetectedLines, 1> detectedLinesQueue;
 extern queue_t<ControlData, 1> controlQueue;
 
@@ -830,33 +833,31 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
     while (true) {
-        switch (getActiveTask(globals::programState)) {
-            case ProgramTask::Labyrinth:
-                detectedLinesQueue.peek(detectedLines, millisecond_t(0));
-                micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
+        const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
+        if (isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::NavigateLabyrinth), enum_cast(cfg::ProgramState::LaneChange))) {
 
-                switch (globals::programState) {
-                case ProgramState::NavigateLabyrinth:
-                    if (navigateLabyrinth(prevDetectedLines, detectedLines, mainLine, controlData)) {
-                        globals::programState = ProgramState::LaneChange;
-                    }
-                    break;
+            linePatternDomainQueue.overwrite(linePatternDomain_t::Labyrinth);
+            detectedLinesQueue.peek(detectedLines, millisecond_t(0));
+            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, globals::car.speed >= m_per_sec_t(0));
 
-                case ProgramState::LaneChange:
-                    if (changeLane(detectedLines, controlData)) {
-                        globals::programState = ProgramState::ReachSafetyCar;
-                    }
-                    break;
-                default:
-                    break;
+            switch (programState) {
+            case cfg::ProgramState::NavigateLabyrinth:
+                if (navigateLabyrinth(prevDetectedLines, detectedLines, mainLine, controlData)) {
+                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::LaneChange));
                 }
-
-                controlQueue.overwrite(controlData);
-                prevDetectedLines = detectedLines;
                 break;
 
+            case cfg::ProgramState::LaneChange:
+                if (changeLane(detectedLines, controlData)) {
+                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::ReachSafetyCar));
+                }
+                break;
             default:
                 break;
+            }
+
+            controlQueue.overwrite(controlData);
+            prevDetectedLines = detectedLines;
         }
 
         SystemManager::instance().notify(true);

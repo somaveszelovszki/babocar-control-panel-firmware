@@ -17,6 +17,7 @@ using namespace micro;
 
 extern CanManager vehicleCanManager;
 
+queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 queue_t<DetectedLines, 1> detectedLinesQueue;
 
 namespace {
@@ -59,9 +60,11 @@ extern "C" void runLineDetectTask(void) {
         }
 
         if (lineDetectControlTimer.checkTimeout()) {
+            linePatternDomain_t domain = linePatternDomain_t::Labyrinth;
+            linePatternDomainQueue.receive(domain, millisecond_t(0));
+
             const bool isFwd                     = globals::car.speed >= m_per_sec_t(0);
-            const bool isRace                    = ProgramTask::RaceTrack == getActiveTask(globals::programState);
-            const linePatternDomain_t domain     = isRace ? linePatternDomain_t::Race : linePatternDomain_t::Labyrinth;
+            const bool isRace                    = linePatternDomain_t::Race == domain;
             const bool isReducedScanRangeEnabled = isRace && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
             const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0;
 

@@ -6,7 +6,6 @@ using namespace micro;
 
 namespace globals {
 
-ProgramState programState                = ProgramState::INVALID;
 CarProps car                             = CarProps();
 
 }  // namespace globals

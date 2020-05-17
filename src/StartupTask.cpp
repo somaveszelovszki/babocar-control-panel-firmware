@@ -1,8 +1,10 @@
+#include <micro/debug/SystemManager.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.h>
+#include <cfg_track.hpp>
 #include <globals.hpp>
 
 using namespace micro;
@@ -48,12 +50,11 @@ extern "C" void runStartupTask(void) {
     }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
+    SystemManager::instance().setProgramState(buttonClick);
 
-    globals::programState = static_cast<ProgramState>(buttonClick);
-
-    if (ProgramState::WaitStartSignal == globals::programState) {
+    if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {
         waitStartSignal();
-        globals::programState = ProgramState::NavigateLabyrinth;
+        SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::NavigateLabyrinth));
     }
 
     vTaskDelete(nullptr);
