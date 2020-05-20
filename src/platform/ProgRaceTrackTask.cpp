@@ -3,6 +3,8 @@
 #include <micro/hw/SteeringServo.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/sensor/Filter.hpp>
+#include <micro/port/queue.hpp>
+#include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>

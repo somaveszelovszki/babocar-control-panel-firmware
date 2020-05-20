@@ -1,4 +1,5 @@
 #include <micro/debug/SystemManager.hpp>
+#include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/math/unit_utils.hpp>

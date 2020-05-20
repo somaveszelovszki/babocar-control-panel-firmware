@@ -1,5 +1,7 @@
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
+#include <micro/port/queue.hpp>
+#include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/Line.hpp>
