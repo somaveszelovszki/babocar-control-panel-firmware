@@ -1,4 +1,4 @@
-#include <cfg_board.h>
+#include <cfg_board.hpp>
 #include <micro/utils/timer.hpp>
 
 #include "stm32f4xx_hal.h"
@@ -22,43 +22,43 @@ extern void micro_Gyro_DataReadyCallback();
 extern void micro_Vehicle_Can_RxFifoMsgPendingCallback();
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == uart_Debug) {
+    if (huart == uart_Debug.handle) {
         micro_Command_Uart_RxCpltCallback();
-    } else if (huart == uart_RadioModule) {
+    } else if (huart == uart_RadioModule.handle) {
         micro_RadioModule_Uart_RxCpltCallback();
-    } else if (huart == uart_FrontDistSensor) {
+    } else if (huart == uart_FrontDistSensor.handle) {
         micro_FrontDistSensor_Uart_RxCpltCallback();
-    } else if (huart == uart_RearDistSensor) {
+    } else if (huart == uart_RearDistSensor.handle) {
         micro_RearDistSensor_Uart_RxCpltCallback();
     }
 }
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == uart_Debug) {
+    if (huart == uart_Debug.handle) {
         micro_Command_Uart_TxCpltCallback();
     }
 }
 
 extern "C" void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi == spi_Gyro) {
+    if (hspi == spi_Gyro.handle) {
         micro_Gyro_CommCpltCallback();
     }
 }
 
 extern "C" void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi == spi_Gyro) {
+    if (hspi == spi_Gyro.handle) {
         micro_Gyro_CommCpltCallback();
     }
 }
 
 extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
-    if (hspi == spi_Gyro) {
+    if (hspi == spi_Gyro.handle) {
         micro_Gyro_CommCpltCallback();
     }
 }
 
 extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-    if (hcan == can_Vehicle) {
+    if (hcan == can_Vehicle.handle) {
         micro_Vehicle_Can_RxFifoMsgPendingCallback();
     }
 }

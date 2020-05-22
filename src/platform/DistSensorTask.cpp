@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/PanelLink.hpp>
 #include <micro/panel/DistSensorPanelData.hpp>
@@ -6,7 +7,6 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.h>
 #include <DistancesData.hpp>
 
 #include <FreeRTOS.h>
@@ -19,8 +19,8 @@ queue_t<DistancesData, 1> distancesQueue;
 
 namespace {
 
-PanelLink<DistSensorPanelOutData, DistSensorPanelInData> frontDistSensorPanelLink(panelLinkRole_t::Master, uart_FrontDistSensor);
-PanelLink<DistSensorPanelOutData, DistSensorPanelInData> rearDistSensorPanelLink(panelLinkRole_t::Master, uart_RearDistSensor);
+PanelLink<DistSensorPanelOutData, DistSensorPanelInData> frontDistSensorPanelLink(panelLinkRole_t::Master, { uart_FrontDistSensor });
+PanelLink<DistSensorPanelOutData, DistSensorPanelInData> rearDistSensorPanelLink(panelLinkRole_t::Master, { uart_RearDistSensor });
 
 DistancesData distances;
 
@@ -76,7 +76,7 @@ extern "C" void runDistSensorTask(void) {
         }
 
         SystemManager::instance().notify(frontDistSensorPanelLink.isConnected() && rearDistSensorPanelLink.isConnected());
-        os_delay(1);
+        os_sleep(millisecond_t(1));
     }
 }
 

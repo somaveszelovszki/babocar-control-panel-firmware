@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/container/infinite_buffer.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/hw/SteeringServo.hpp>
@@ -12,7 +13,6 @@
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 
-#include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <DetectedLines.hpp>
@@ -427,6 +427,6 @@ extern "C" void runProgRaceTrackTask(void) {
         }
 
         SystemManager::instance().notify(true);
-        os_delay(2);
+        os_sleep(millisecond_t(2));
     }
 }

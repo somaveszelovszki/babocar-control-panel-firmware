@@ -35,7 +35,6 @@
 									<listOptionValue builtIn="false" value="STM32F446xx"/>
 									<listOptionValue builtIn="false" value="USE_HAL_DRIVER"/>
 									<listOptionValue builtIn="false" value="USE_RTOS_SYSTICK"/>
-									<listOptionValue builtIn="false" value="BSP_LIB_HAL"/>
 									<listOptionValue builtIn="false" value="OS_FREERTOS"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.paths.1025814706" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
@@ -69,7 +68,6 @@
 									<listOptionValue builtIn="false" value="STM32F446xx"/>
 									<listOptionValue builtIn="false" value="USE_HAL_DRIVER"/>
 									<listOptionValue builtIn="false" value="USE_RTOS_SYSTICK"/>
-									<listOptionValue builtIn="false" value="BSP_LIB_HAL"/>
 									<listOptionValue builtIn="false" value="OS_FREERTOS"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.include.paths.1363037955" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">

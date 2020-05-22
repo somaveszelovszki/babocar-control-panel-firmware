@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
@@ -10,7 +11,6 @@
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
 
-#include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <DetectedLines.hpp>
@@ -853,6 +853,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
         }
 
         SystemManager::instance().notify(true);
-        os_delay(2);
+        os_sleep(millisecond_t(2));
     }
 }

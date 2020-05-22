@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/params.hpp>
@@ -8,7 +9,6 @@
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.h>
 
 using namespace micro;
 
@@ -22,7 +22,7 @@ char paramsStr[MAX_PARAMS_BUFFER_SIZE];
 semaphore_t txSemaphore;
 
 void transmit(const char * const data) {
-    HAL_UART_Transmit_DMA(uart_Debug, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
+    uart_transmit(uart_Debug, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
     txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
 }
 
@@ -53,9 +53,9 @@ extern "C" void runDebugTask(void) {
 
     SystemManager::instance().registerTask();
 
-    HAL_UART_Receive_DMA(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
+    uart_receive(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
 
-    DebugLed debugLed(gpio_Led, gpioPin_Led);
+    DebugLed debugLed(gpio_Led);
     Timer debugParamsSendTimer(millisecond_t(500));
 
     while (true) {
@@ -76,15 +76,15 @@ extern "C" void runDebugTask(void) {
 
         debugLed.update(monitorTasks());
         SystemManager::instance().notify(true);
-        os_delay(1);
+        os_sleep(millisecond_t(1));
     }
 }
 
 void micro_Command_Uart_RxCpltCallback() {
-    if (MAX_PARAMS_BUFFER_SIZE > uart_Debug->hdmarx->Instance->NDTR) {
+    if (MAX_PARAMS_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
         rxBuffer.updateHead(1);
     }
-    HAL_UART_Receive_DMA(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
+    uart_receive(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
 }
 
 void micro_Command_Uart_TxCpltCallback() {

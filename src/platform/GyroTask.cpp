@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/semaphore.hpp>
@@ -8,7 +9,6 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.h>
 #include <cfg_car.hpp>
 
 #if GYRO_BOARD == GYRO_MPU9250
@@ -35,9 +35,9 @@ namespace {
 CarProps car;
 
 #if GYRO_BOARD == GYRO_MPU9250
-hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_500DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_500DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 #elif GYRO_BOARD == GYRO_LSM6DSO
-hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro, csGpioPin_Gyro);
+hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro);
 #endif
 
 semaphore_t dataReadySemaphore;
@@ -147,7 +147,7 @@ extern "C" void runGyroTask(void) {
         }
 
         SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && getTime() - lastValidGyroDataTime < millisecond_t(50));
-        os_delay(1);
+        os_sleep(millisecond_t(1));
     }
 }
 

@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/SystemManager.hpp>
@@ -12,14 +13,13 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.h>
 #include <cfg_car.hpp>
 
 using namespace micro;
 
 extern queue_t<CarProps, 1> carPropsQueue;
 
-CanManager vehicleCanManager(can_Vehicle, canRxFifo_Vehicle, millisecond_t(50));
+CanManager vehicleCanManager(can_Vehicle, millisecond_t(50));
 
 queue_t<ControlData, 1> controlQueue;
 
@@ -161,7 +161,7 @@ extern "C" void runControlTask(void) {
         }
 
         SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && !controlDataWatchdog.hasTimedOut());
-        os_delay(1);
+        os_sleep(millisecond_t(1));
     }
 }
 

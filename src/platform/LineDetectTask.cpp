@@ -1,3 +1,4 @@
+#include <cfg_board.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
@@ -7,7 +8,6 @@
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.h>
 #include <cfg_car.hpp>
 #include <DetectedLines.hpp>
 
@@ -78,6 +78,6 @@ extern "C" void runLineDetectTask(void) {
         }
 
         SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut());
-        os_delay(1);
+        os_sleep(millisecond_t(1));
     }
 }
