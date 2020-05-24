@@ -73,8 +73,8 @@ TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator cu
     return trackSegments.back() == currentSeg ? trackSegments.begin() : currentSeg + 1;
 }
 
-m_per_sec_t safetyCarFollowSpeed(meter_t frontDist, bool isFast) {
-    return speedSign * map(frontDist.get(), meter_t(0.3f).get(), meter_t(0.8f).get(), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
+m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, bool isFast) {
+    return speedSign * map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? maxSpeed_SAFETY_CAR_FAST : maxSpeed_SAFETY_CAR_SLOW);
 }
 
 bool overtakeSafetyCar(const CarProps& car, const DetectedLines& detectedLines, ControlData& controlData) {
@@ -114,16 +114,13 @@ bool overtakeSafetyCar(const CarProps& car, const DetectedLines& detectedLines, 
                 speedSign * speed_OVERTAKE_BEGIN
             }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 50, radian_t(0), PI);
 
-            // TODO this should work without the for cycle
-            for (uint8_t i = 0; i < 10; ++i) {
-                overtake.trajectory.appendLine(Trajectory::config_t{
-                    Pose{
-                        overtake.trajectory.lastConfig().pose.pos + vec2m{ fastSectionLength / 10, centimeter_t(0) }.rotate(overtake.orientation),
-                        overtake.orientation
-                    },
-                    speedSign * speed_OVERTAKE_STRAIGHT
-                });
-            }
+            overtake.trajectory.appendLine(Trajectory::config_t{
+                Pose{
+                    overtake.trajectory.lastConfig().pose.pos + vec2m{ fastSectionLength, centimeter_t(0) }.rotate(overtake.orientation),
+                    overtake.orientation
+                },
+                speedSign * speed_OVERTAKE_STRAIGHT
+            });
 
             overtake.trajectory.appendSineArc(Trajectory::config_t{
                 Pose{
@@ -294,7 +291,7 @@ extern "C" void runProgRaceTrackTask(void) {
             detectedLinesQueue.peek(detectedLines, millisecond_t(0));
             distancesQueue.peek(distances, millisecond_t(0));
 
-            const meter_t distFromBehindSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
+            const meter_t distFromSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
 
             micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, car.speed >= m_per_sec_t(0));
 
@@ -329,17 +326,17 @@ extern "C" void runProgRaceTrackTask(void) {
             case cfg::ProgramState::ReachSafetyCar:
                 controlData.speed = speed_REACH_SAFETY_CAR;
                 controlData.rampTime = millisecond_t(0);
-                if (distFromBehindSafetyCar > meter_t(0) && safetyCarFollowSpeed(distFromBehindSafetyCar, true) < controlData.speed) {
+                if (safetyCarFollowSpeed(distFromSafetyCar, true) < controlData.speed) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
 
             case cfg::ProgramState::FollowSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distFromBehindSafetyCar, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
 
-                if (distFromBehindSafetyCar < centimeter_t(100)) {
+                if (distFromSafetyCar < centimeter_t(100)) {
                     lastDistWithSafetyCar = car.distance;
                 }
 
@@ -353,7 +350,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::OvertakeSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distFromBehindSafetyCar, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, trackInfo.seg->isFast);
                 if (overtakeSafetyCar(car, detectedLines, controlData)) {
                     ++overtake.cntr;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
@@ -376,7 +373,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
                 } else if (trackInfo.lap <= 3 &&
                            overtake.cntr < 2 &&
-                           distFromBehindSafetyCar < (trackInfo.seg->isFast ? centimeter_t(120) : centimeter_t(60))) {
+                           distFromSafetyCar < (trackInfo.seg->isFast ? centimeter_t(120) : centimeter_t(60))) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
