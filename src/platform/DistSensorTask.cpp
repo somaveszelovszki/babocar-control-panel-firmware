@@ -9,10 +9,6 @@
 
 #include <DistancesData.hpp>
 
-#include <FreeRTOS.h>
-#include <queue.h>
-#include <task.h>
-
 using namespace micro;
 
 queue_t<DistancesData, 1> distancesQueue;

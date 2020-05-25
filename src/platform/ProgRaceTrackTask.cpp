@@ -19,12 +19,6 @@
 #include <DistancesData.hpp>
 #include <track.hpp>
 
-#include <FreeRTOS.h>
-#include <micro/port/task.hpp>
-#include <task.h>
-#include <queue.h>
-#include <track.hpp>
-
 using namespace micro;
 
 extern queue_t<CarProps, 1> carPropsQueue;

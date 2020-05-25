@@ -1,4 +1,3 @@
-#include <cfg_board.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
@@ -8,12 +7,9 @@
 #include <micro/utils/Line.hpp>
 #include <micro/utils/timer.hpp>
 
+#include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <DetectedLines.hpp>
-
-#include <FreeRTOS.h>
-#include <queue.h>
-#include <task.h>
 
 using namespace micro;
 

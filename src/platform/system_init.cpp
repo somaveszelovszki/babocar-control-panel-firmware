@@ -1,7 +1,7 @@
-#include <cfg_board.hpp>
 #include <micro/panel/panelVersion.hpp>
 #include <micro/port/timer.hpp>
 
+#include <cfg_board.hpp>
 #include <system_init.h>
 
 #include <FreeRTOS.h>
