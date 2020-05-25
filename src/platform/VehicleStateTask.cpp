@@ -77,7 +77,7 @@ void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
 
 } // namespace
 
-extern "C" void runGyroTask(void) {
+extern "C" void runVehicleStateTask(void) {
 
     SystemManager::instance().registerTask();
 

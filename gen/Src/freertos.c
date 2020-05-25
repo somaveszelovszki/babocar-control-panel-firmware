@@ -84,11 +84,11 @@ osStaticThreadDef_t DebugTaskControlBlock;
 osThreadId ControlTaskHandle;
 uint32_t ControlTaskBuffer[ 512 ];
 osStaticThreadDef_t ControlTaskControlBlock;
-osThreadId GyroTaskHandle;
-uint32_t GyroTaskBuffer[ 512 ];
-osStaticThreadDef_t GyroTaskControlBlock;
+osThreadId VehicleStateTaskHandle;
+uint32_t VehicleStateTaskBuffer[ 512 ];
+osStaticThreadDef_t VehicleStateTaskControlBlock;
 osThreadId LineDetectTaskHandle;
-uint32_t LineDetectTaskBuffer[ 1024 ];
+uint32_t LineDetectTaskBuffer[ 512 ];
 osStaticThreadDef_t LineDetectTaskControlBlock;
 osThreadId StartupTaskHandle;
 uint32_t StartupTaskBuffer[ 512 ];
@@ -108,7 +108,7 @@ osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
 
 void runDebugTask(void);
 void runControlTask(void);
-void runGyroTask(void);
+void runVehicleStateTask(void);
 void runLineDetectTask(void);
 void runStartupTask(void);
 void runDistSensorTask(void);
@@ -119,7 +119,7 @@ void runProgRaceTrackTask(void);
 
 void StartDebugTask(void const * argument);
 void StartControlTask(void const * argument);
-void StartGyroTask(void const * argument);
+void StartVehicleStateTask(void const * argument);
 void StartLineDetectTask(void const * argument);
 void StartStartupTask(void const * argument);
 void StartDistSensorTask(void const * argument);
@@ -188,19 +188,19 @@ void MX_FREERTOS_Init(void) {
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
   /* definition and creation of ControlTask */
-  osThreadStaticDef(ControlTask, StartControlTask, osPriorityNormal, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
+  osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
-  /* definition and creation of GyroTask */
-  osThreadStaticDef(GyroTask, StartGyroTask, osPriorityNormal, 0, 512, GyroTaskBuffer, &GyroTaskControlBlock);
-  GyroTaskHandle = osThreadCreate(osThread(GyroTask), NULL);
+  /* definition and creation of VehicleStateTask */
+  osThreadStaticDef(VehicleStateTask, StartVehicleStateTask, osPriorityNormal, 0, 512, VehicleStateTaskBuffer, &VehicleStateTaskControlBlock);
+  VehicleStateTaskHandle = osThreadCreate(osThread(VehicleStateTask), NULL);
 
   /* definition and creation of LineDetectTask */
-  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityNormal, 0, 1024, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
+  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 512, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
   LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
 
   /* definition and creation of StartupTask */
-  osThreadStaticDef(StartupTask, StartStartupTask, osPriorityBelowNormal, 0, 512, StartupTaskBuffer, &StartupTaskControlBlock);
+  osThreadStaticDef(StartupTask, StartStartupTask, osPriorityLow, 0, 512, StartupTaskBuffer, &StartupTaskControlBlock);
   StartupTaskHandle = osThreadCreate(osThread(StartupTask), NULL);
 
   /* definition and creation of DistSensorTask */
@@ -259,18 +259,18 @@ void StartControlTask(void const * argument)
   /* USER CODE END StartControlTask */
 }
 
-/* USER CODE BEGIN Header_StartGyroTask */
+/* USER CODE BEGIN Header_StartVehicleStateTask */
 /**
-* @brief Function implementing the GyroTask thread.
+* @brief Function implementing the VehicleStateTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartGyroTask */
-void StartGyroTask(void const * argument)
+/* USER CODE END Header_StartVehicleStateTask */
+void StartVehicleStateTask(void const * argument)
 {
-  /* USER CODE BEGIN StartGyroTask */
-  runGyroTask();
-  /* USER CODE END StartGyroTask */
+  /* USER CODE BEGIN StartVehicleStateTask */
+  runVehicleStateTask();
+  /* USER CODE END StartVehicleStateTask */
 }
 
 /* USER CODE BEGIN Header_StartLineDetectTask */
