@@ -117,7 +117,7 @@ extern "C" void runGyroTask(void) {
 
         radian_t orientation;
         if (carOrientationUpdateQueue.receive(orientation, millisecond_t(0))) {
-            LOG_DEBUG("Car orientation updated: %f -> %f [deg]", static_cast<degree_t>(car.pose.angle), static_cast<degree_t>(orientation));
+            LOG_DEBUG("Car orientation updated: %f -> %f [deg]", static_cast<degree_t>(car.pose.angle).get(), static_cast<degree_t>(orientation).get());
             car.pose.angle = orientation;
             madgwick.reset({ madgwick.roll(), madgwick.pitch(), orientation });
         }
