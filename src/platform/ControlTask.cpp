@@ -40,7 +40,7 @@ ServoOffsets prevServoOffsets, servoOffsets = { degree_t(90), degree_t(90), degr
 
 sorted_map<m_per_sec_t, PID_Params, 10> linePosControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 0.00f, 0.00f,  0.00f } },
+    { { 0.0f }, { 1.50f, 0.00f, 80.00f } },
     { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
     { { 1.5f }, { 1.10f, 0.00f, 80.00f } },
     { { 2.0f }, { 0.75f, 0.00f, 80.00f } },
@@ -53,7 +53,7 @@ sorted_map<m_per_sec_t, PID_Params, 10> linePosControllerParams = {
 
 sorted_map<m_per_sec_t, PID_Params, 10> lineAngleControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 0.00f, 0.00f,  0.00f } },
+    { { 0.0f }, { 1.50f, 0.00f, 80.00f } },
     { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
     { { 1.5f }, { 1.10f, 0.00f, 80.00f } },
     { { 2.0f }, { 0.75f, 0.00f, 80.00f } },
