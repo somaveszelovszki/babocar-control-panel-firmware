@@ -15,6 +15,7 @@
 #include <cfg_track.hpp>
 #include <DetectedLines.hpp>
 #include <LabyrinthGraph.hpp>
+#include <LabyrinthGraphBuilder.hpp>
 
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_uart.h>
@@ -40,13 +41,10 @@ m_per_sec_t speed_LAB_FWD     = m_per_sec_t(1.1f);
 m_per_sec_t speed_LAB_BWD     = m_per_sec_t(-0.8f);
 m_per_sec_t speed_LANE_CHANGE = m_per_sec_t(0.8f);
 
-vec<Segment, cfg::NUM_LAB_SEGMENTS> segments;               // The segments.
-vec<Junction, cfg::NUM_LAB_SEGMENTS> junctions;             // The junctions - at most the number of segments.
-vec<Connection, cfg::NUM_LAB_SEGMENTS * 2> connections;     // The connections - 2 times the number of junctions.
+LabyrinthGraph graph = buildLabyrinthGraph();
 
 Segment *currentSeg = nullptr;
 Connection *prevConn = nullptr;
-Connection *prevPrevConn = nullptr;
 
 millisecond_t endTime;
 
@@ -107,81 +105,9 @@ Route getRoute(const Segment *dest, const Junction *lastRouteJunc = nullptr, con
     return shortestRoute ? *shortestRoute : Route();
 }
 
-Segment* createNewSegment() {
-    Segment *seg = segments.push_back(Segment());
-    if (seg) {
-        seg->name      = segments.size() >= 27 ? 'a' + static_cast<char>(segments.size() - 27) : 'A' + static_cast<char>(segments.size() - 1);
-        seg->length    = meter_t(0);
-        seg->isDeadEnd = false;
-        seg->isActive  = true;
-    }
-    return seg;
-}
-
-void addSegments(Junction * const junc, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
-
-    junc->addSegment(currentSeg, inOri, inSegmentDir);
-
-    switch (numInSegments) {
-    case 2:
-        junc->addSegment(createNewSegment(), inOri, inSegmentDir == Direction::LEFT ? Direction::RIGHT : Direction::LEFT);
-        break;
-    case 3:
-        switch (inSegmentDir) {
-        case Direction::LEFT:
-            junc->addSegment(createNewSegment(), inOri, Direction::RIGHT);
-            junc->addSegment(createNewSegment(), inOri, Direction::CENTER);
-            break;
-        case Direction::CENTER:
-            junc->addSegment(createNewSegment(), inOri, Direction::RIGHT);
-            junc->addSegment(createNewSegment(), inOri, Direction::LEFT);
-            break;
-        case Direction::RIGHT:
-            junc->addSegment(createNewSegment(), inOri, Direction::CENTER);
-            junc->addSegment(createNewSegment(), inOri, Direction::LEFT);
-            break;
-        }
-        break;
-    }
-
-    switch (numOutSegments) {
-    case 1:
-        junc->addSegment(createNewSegment(), outOri, Direction::CENTER);
-        break;
-    case 2:
-        junc->addSegment(createNewSegment(), outOri, Direction::RIGHT);
-        junc->addSegment(createNewSegment(), outOri, Direction::LEFT);
-        break;
-    case 3:
-        junc->addSegment(createNewSegment(), outOri, Direction::RIGHT);
-        junc->addSegment(createNewSegment(), outOri, Direction::CENTER);
-        junc->addSegment(createNewSegment(), outOri, Direction::LEFT);
-        break;
-    }
-}
-
-void addConnection(Connection * const conn, Segment * const seg1, const Maneuver& maneuver1, Segment * const seg2, const Maneuver& maneuver2) {
-    conn->node1 = seg1;
-    conn->node2 = seg2;
-    conn->maneuver1 = maneuver1;
-    conn->maneuver2 = maneuver2;
-    seg1->edges.push_back(conn);
-    seg2->edges.push_back(conn);
-}
-
-vec<Connection*, 2> getConnections(Segment *seg1, Segment *seg2) {
-    vec<Connection*, 2> connections;
-    for (Connection *c : seg1->edges) {
-        if (c->getOtherSegment(seg1) == seg2) {
-            connections.push_back(c);
-        }
-    }
-    return connections;
-}
-
 Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegmentDir) {
 
-    LOG_DEBUG("Junction: %d", junc->idx);
+    LOG_DEBUG("Junction: %u", static_cast<uint32_t>(junc->id));
     carPosUpdateQueue.overwrite(junc->pos);
     Connection *nextConn = nullptr;
     Segment * const junctionSeg = junc->getSegment(inOri, inSegmentDir);
@@ -218,25 +144,21 @@ Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegme
 
 void reset() {
     currentSeg = nullptr;
-    segments.clear();
-    connections.clear();
-    junctions.clear();
     plannedRoute.reset(nullptr);
     laneChange.seg = nullptr;
     laneChange.trajectory.clear();
-    prevConn = prevPrevConn = nullptr;
-    currentSeg = createNewSegment();
+    prevConn = nullptr;
     endTime = getTime() + millisecond_t(20);
 }
 
 Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
-    Junction *junc = findExistingJunction(junctions.begin(), junctions.end(), pos, inOri, outOri, numInSegments, numOutSegments);
+    Junction *junc = graph.findJunction(pos, inOri, outOri, numInSegments, numOutSegments);
 
     Connection *nextConn = nullptr;
     Maneuver nextManeuver = { outOri, Direction::CENTER };
 
-    LOG_DEBUG("currentSeg: %c, junction: %d (%f, %f)", currentSeg->name, junc->idx, junc->pos.X.get(), junc->pos.Y.get());
+    LOG_DEBUG("currentSeg: %c, junction: %u (%f, %f)", currentSeg->name, static_cast<uint32_t>(junc->id), junc->pos.X.get(), junc->pos.Y.get());
 
     nextConn = onExistingJunction(junc, inOri, inSegmentDir);
     nextManeuver = nextConn->getManeuver(nextConn->getOtherSegment(currentSeg));
@@ -255,7 +177,6 @@ Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri
     }
 
     currentSeg = nextSeg;
-    prevPrevConn = prevConn;
     prevConn = nextConn;
     LOG_DEBUG("Next: %c (%s)", nextSeg->name, micro::to_string(nextManeuver.direction));
 
@@ -356,7 +277,7 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
                         numInSegments = prevConn->junction->getSideSegments(inOri)->second.size();
                         inSegmentDir = prevConn->getManeuver(currentSeg).direction;
                         carPosUpdateQueue.overwrite(prevConn->junction->pos);
-                        prevConn = prevPrevConn;
+                        prevConn = nullptr;
                     } else {
                         LOG_ERROR("Current segment is dead-end but there has been no junctions yet");
                     }

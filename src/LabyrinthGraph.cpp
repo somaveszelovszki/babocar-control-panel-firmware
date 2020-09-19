@@ -1,5 +1,7 @@
-#include <LabyrinthGraph.hpp>
 #include <micro/utils/log.hpp>
+#include <micro/math/unit_utils.hpp>
+
+#include <LabyrinthGraph.hpp>
 
 using namespace micro;
 
@@ -26,28 +28,28 @@ Maneuver Connection::getManeuver(const Segment *seg) const {
     return this->node1 == seg ? this->maneuver1 : this->maneuver2;
 }
 
-Status Junction::addSegment(Segment *seg, radian_t orientation, Direction dir) {
+Status Junction::addSegment(Segment *seg, const Maneuver& maneuver) {
     Status result = Status::ERROR;
 
     if (seg) {
-        segment_map::iterator sideSegments = this->getSideSegments(orientation);
+        segment_map::iterator sideSegments = this->getSideSegments(maneuver.orientation);
 
         if (sideSegments == this->segments.end()) {
-            this->segments.emplace(orientation, side_segment_map());
-            sideSegments = this->getSideSegments(orientation);
+            this->segments.emplace(maneuver.orientation, side_segment_map());
+            sideSegments = this->getSideSegments(maneuver.orientation);
         }
 
-        if (!sideSegments->second.at(dir)) {
-            sideSegments->second.emplace(dir, seg);
+        if (!sideSegments->second.at(maneuver.direction)) {
+            sideSegments->second.emplace(maneuver.direction, seg);
             result = Status::OK;
         } else {
             result = Status::INVALID_DATA;
-            LOG_ERROR("Junction %d already has one side segment in orientation: %fdeg and direction: %s",
-                this->idx, static_cast<degree_t>(orientation).get(), to_string(dir));
+            LOG_ERROR("Junction %u already has one side segment in orientation: %fdeg and direction: %s",
+                static_cast<uint32_t>(this->id), static_cast<degree_t>(maneuver.orientation).get(), to_string(maneuver.direction));
         }
     } else {
         result = Status::INVALID_DATA;
-        LOG_ERROR("Trying to add nullptr as segment to junction %d", this->idx);
+        LOG_ERROR("Trying to add nullptr as segment to junction %u", static_cast<uint32_t>(this->id));
     }
 
     return result;
@@ -61,16 +63,16 @@ Segment* Junction::getSegment(radian_t orientation, Direction dir) {
         Segment * const * seg = sideSegments->second.at(dir);
         if (seg) {
             if (!(*seg)) {
-                LOG_ERROR("Junction %d: side segment in orientation: %fdeg and direction: %s is nullptr",
-                    this->idx, static_cast<degree_t>(orientation).get(), to_string(dir));
+                LOG_ERROR("Junction %u: side segment in orientation: %fdeg and direction: %s is nullptr",
+                    static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get(), to_string(dir));
             }
             result = *seg;
         } else {
-            LOG_ERROR("Junction %d has no side segment in orientation: %fdeg in direction: %s",
-                this->idx, static_cast<degree_t>(orientation).get(), to_string(dir));
+            LOG_ERROR("Junction %u has no side segment in orientation: %fdeg in direction: %s",
+                static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get(), to_string(dir));
         }
     } else {
-        LOG_ERROR("Junction %d has no side segments in orientation: %fdeg", this->idx, static_cast<degree_t>(orientation).get());
+        LOG_ERROR("Junction %u has no side segments in orientation: %fdeg", static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get());
     }
 
     return result;
@@ -167,10 +169,6 @@ bool Segment::isLoop() const {
     return this->edges.size() > 0 && this->edges[0]->junction->getSegmentInfo(this).size() == 2;
 }
 
-void Segment::reset() {
-    this->edges.clear();
-}
-
 void Route::append(Connection *c) {
     this->connections.push_back(c);
     this->lastSeg = c->getOtherSegment(this->lastSeg);
@@ -227,36 +225,70 @@ bool Route::isConnectionValid(const Connection *lastRouteConn, const Maneuver la
     return valid;
 }
 
-Junction* findExistingJunction(Junction *begin, Junction *end, const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) {
+void LabyrinthGraph::addSegment(const Segment& seg) {
+    this->segments.push_back(seg);
+}
 
-    Junction *result = nullptr;
+void LabyrinthGraph::addJunction(const Junction& junc) {
+    this->junctions.push_back(junc);
+}
+
+void LabyrinthGraph::connect(Segments::iterator seg, Junctions::iterator junc, const Maneuver& maneuver) {
+
+    junc->addSegment(seg, maneuver);
+
+    Junction::segment_map::iterator otherSideSegments = junc->getSideSegments(round90(maneuver.orientation + PI));
+
+    if (otherSideSegments != junc->segments.end()) {
+        for (Junction::side_segment_map::iterator out = otherSideSegments->second.begin(); out != otherSideSegments->second.end(); ++out) {
+            Connections::iterator conn = this->connections.push_back(Connection(seg, out->second, junc, maneuver, { otherSideSegments->first, out->first }));
+            seg->edges.push_back(conn);
+            out->second->edges.push_back(conn);
+        }
+    }
+}
+
+LabyrinthGraph::Segments::iterator LabyrinthGraph::findSegment(char name) {
+    return std::find_if(this->segments.begin(), this->segments.end(), [name](const Segment& seg) { return seg.name == name; });
+}
+
+LabyrinthGraph::Junctions::iterator LabyrinthGraph::findJunction(uint8_t id) {
+    return std::find_if(this->junctions.begin(), this->junctions.end(), [id](const Junction& junc) { return junc.id == id; });
+}
+
+LabyrinthGraph::Junctions::iterator LabyrinthGraph::findJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) {
+
+    Junctions::iterator result = this->junctions.end();
 
     struct JunctionDist {
-        Junction *junc = nullptr;
-        meter_t dist = micro::numeric_limits<meter_t>::infinity();
+        Junctions::iterator junc;
+        meter_t dist;
     };
 
     LOG_DEBUG("pos: (%f, %f)", pos.X.get(), pos.Y.get());
 
     // FIRST:  closest junction to current position
     // SECOND: closest junction to current position with the correct topology
-    std::pair<JunctionDist, JunctionDist> closest = {};
+    std::pair<JunctionDist, JunctionDist> closest = {
+        { this->junctions.end(), micro::numeric_limits<meter_t>::infinity() },
+        { this->junctions.end(), micro::numeric_limits<meter_t>::infinity() }
+    };
 
-    for(Junction *j = begin; j != end; ++j) {
-        const meter_t dist = pos.distance(j->pos);
+    for(Junctions::iterator it = this->junctions.begin(); it != this->junctions.end(); ++it) {
+        const meter_t dist = pos.distance(it->pos);
 
         if (dist < closest.first.dist) {
-            closest.first.junc = j;
+            closest.first.junc = it;
             closest.first.dist = dist;
         }
 
         if (dist < closest.second.dist) {
-            const Junction::segment_map::const_iterator inSegments = j->getSideSegments(inOri);
-            if (inSegments != j->segments.end() && inSegments->second.size() == numInSegments) {
+            const Junction::segment_map::const_iterator inSegments = it->getSideSegments(inOri);
+            if (inSegments != it->segments.end() && inSegments->second.size() == numInSegments) {
 
-                const Junction::segment_map::const_iterator outSegments = j->getSideSegments(outOri);
-                if (outSegments != j->segments.end() && outSegments->second.size() == numOutSegments) {
-                    closest.second.junc = j;
+                const Junction::segment_map::const_iterator outSegments = it->getSideSegments(outOri);
+                if (outSegments != it->segments.end() && outSegments->second.size() == numOutSegments) {
+                    closest.second.junc = it;
                     closest.second.dist = dist;
                 }
             }
@@ -279,7 +311,7 @@ Junction* findExistingJunction(Junction *begin, Junction *end, const point2m& po
         result = closest.first.junc;
     } else {
         // the junction has not been found
-        result = nullptr;
+        result = this->junctions.end();
     }
 
     return result;

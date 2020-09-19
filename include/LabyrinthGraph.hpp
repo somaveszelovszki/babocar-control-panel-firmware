@@ -3,6 +3,7 @@
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
 #include <micro/container/map.hpp>
+#include <micro/container/vec.hpp>
 
 #include <Graph.hpp>
 #include <cfg_track.hpp>
@@ -36,9 +37,13 @@ struct Segment;
 /* @brief Labyrinth segment connection.
  */
 struct Connection : public Edge<Segment> {
-    Connection()
-        : Edge()
-        , junction(nullptr) {}
+    Connection(Segment *seg1, Segment *seg2, Junction *junction, const Maneuver& maneuver1, const Maneuver& maneuver2)
+        : Edge(seg1, seg2)
+        , junction(junction)
+        , maneuver1(maneuver1)
+        , maneuver2(maneuver2) {}
+
+    Connection() : Connection(nullptr, nullptr, nullptr, {}, {}) {}
 
     micro::Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
@@ -57,9 +62,13 @@ struct Junction {
     typedef micro::unsorted_map<micro::radian_t, side_segment_map, 2> segment_map;
     typedef micro::vec<std::pair<micro::radian_t, micro::Direction>, 2> segment_info;
 
-    Junction() : idx(-1) {}
+    Junction(uint8_t id, const micro::point2<micro::meter_t>& pos)
+        : id(id)
+        , pos(pos) {}
 
-    micro::Status addSegment(Segment *seg, micro::radian_t orientation, micro::Direction dir);
+    Junction() : Junction(0, {}) {}
+
+    micro::Status addSegment(Segment *seg, const Maneuver& maneuver);
 
     Segment* getSegment(micro::radian_t orientation, micro::Direction dir);
 
@@ -71,7 +80,7 @@ struct Junction {
 
     segment_info getSegmentInfo(const Segment *seg);
 
-    int32_t idx;
+    uint8_t id;
     micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
     segment_map segments;
 
@@ -89,26 +98,25 @@ struct Junction {
 /* @brief Labyrinth segment.
  */
 struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
-    Segment()
-        : name('_')
-        , length(0)
-        , isDeadEnd(false)
-        , isActive(false) {}
+
+    Segment(char name, micro::meter_t length, bool isDeadEnd)
+        : name(name)
+        , length(length)
+        , isDeadEnd(isDeadEnd) {}
+
+    Segment() : Segment('_', micro::meter_t(0), false) {}
 
     bool isFloating() const;
 
     bool isLoop() const;
 
-    void reset();
-
     char name;
     micro::meter_t length;  // The segment length.
     bool isDeadEnd;
-    bool isActive;
 };
 
 struct Route {
-    static constexpr uint32_t MAX_LENGTH = cfg::NUM_LAB_SEGMENTS;
+    static constexpr uint32_t MAX_LENGTH = cfg::NUM_LABYRINTH_SEGMENTS;
     Segment *startSeg;
     Segment *lastSeg;
     micro::vec<Connection*, MAX_LENGTH> connections;
@@ -128,4 +136,24 @@ struct Route {
     bool isConnectionValid(const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) const;
 };
 
-Junction* findExistingJunction(Junction *begin, Junction *end, const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments);
+class LabyrinthGraph {
+public:
+    typedef micro::vec<Segment, cfg::NUM_LABYRINTH_SEGMENTS> Segments;
+    typedef micro::vec<Junction, cfg::NUM_LABYRINTH_SEGMENTS> Junctions;
+    typedef micro::vec<Connection, cfg::NUM_LABYRINTH_SEGMENTS * 2> Connections;
+
+    LabyrinthGraph() {}
+
+    void addSegment(const Segment& seg);
+    void addJunction(const Junction& junc);
+    void connect(Segments::iterator seg, Junctions::iterator junc, const Maneuver& maneuver);
+
+    Segments::iterator findSegment(char name);
+    Junctions::iterator findJunction(uint8_t id);
+    Junctions::iterator findJunction(const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments);
+
+private:
+    Segments segments;
+    Junctions junctions;
+    Connections connections;
+};

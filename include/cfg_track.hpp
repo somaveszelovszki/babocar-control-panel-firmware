@@ -4,11 +4,15 @@
 
 namespace cfg {
 
+#define TEST_LABYRINTH  1
+#define RACE_LABYRINTH  2
+#define LABYRINTH       TEST_LABYRINTH
+
 #define TEST_TRACK  1
 #define RACE_TRACK  2
 #define TRACK       TEST_TRACK
 
-constexpr uint8_t NUM_LAB_SEGMENTS               = 18;
+constexpr uint8_t NUM_LABYRINTH_SEGMENTS         = 15;
 constexpr uint8_t MAX_NUM_CROSSING_SEGMENTS_SIDE = 3;
 constexpr uint8_t MAX_NUM_CROSSING_SEGMENTS      = MAX_NUM_CROSSING_SEGMENTS_SIDE * 2;
 constexpr micro::meter_t MIN_JUNCTION_LENGTH     = micro::centimeter_t(20);
