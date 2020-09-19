@@ -170,3 +170,117 @@ bool Segment::isLoop() const {
 void Segment::reset() {
     this->edges.clear();
 }
+
+void Route::append(Connection *c) {
+    this->connections.push_back(c);
+    this->lastSeg = c->getOtherSegment(this->lastSeg);
+}
+
+Connection* Route::nextConnection() {
+    Connection *conn = nullptr;
+    if (this->connections.size()) {
+        conn = this->connections[0];
+        this->startSeg = conn->getOtherSegment(this->startSeg);
+        this->connections.erase(this->connections.begin());
+    }
+    return conn;
+}
+
+Connection* Route::lastConnection() const {
+    return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
+}
+
+void Route::reset(Segment *currentSeg) {
+    this->startSeg = this->lastSeg = currentSeg;
+    this->connections.clear();
+}
+
+bool Route::isConnectionValid(const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) const {
+    bool valid = false;
+
+    // does not permit going backwards
+    if (!lastRouteConn ||
+        c->junction != lastRouteConn->junction ||
+        c->getManeuver(this->lastSeg) != lastManeuver) {
+
+        // does not permit navigating through dead-end segments
+        if (!c->getOtherSegment(this->lastSeg)->isDeadEnd) {
+
+            const Segment *newSeg = c->getOtherSegment(this->lastSeg);
+            const Maneuver newManeuver = c->getManeuver(newSeg);
+
+            valid = true;
+
+            // does not permit cycles (taking the same junction exit twice)
+            const Segment *prevSeg = this->startSeg;
+            for (const Connection *routeConn : this->connections) {
+                const Segment *nextSeg = routeConn->getOtherSegment(prevSeg);
+                if (nextSeg == newSeg && routeConn->getManeuver(nextSeg) == newManeuver) {
+                    valid = false;
+                    break;
+                }
+                prevSeg = nextSeg;
+            }
+
+        }
+    }
+    return valid;
+}
+
+Junction* findExistingJunction(Junction *begin, Junction *end, const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) {
+
+    Junction *result = nullptr;
+
+    struct JunctionDist {
+        Junction *junc = nullptr;
+        meter_t dist = micro::numeric_limits<meter_t>::infinity();
+    };
+
+    LOG_DEBUG("pos: (%f, %f)", pos.X.get(), pos.Y.get());
+
+    // FIRST:  closest junction to current position
+    // SECOND: closest junction to current position with the correct topology
+    std::pair<JunctionDist, JunctionDist> closest = {};
+
+    for(Junction *j = begin; j != end; ++j) {
+        const meter_t dist = pos.distance(j->pos);
+
+        if (dist < closest.first.dist) {
+            closest.first.junc = j;
+            closest.first.dist = dist;
+        }
+
+        if (dist < closest.second.dist) {
+            const Junction::segment_map::const_iterator inSegments = j->getSideSegments(inOri);
+            if (inSegments != j->segments.end() && inSegments->second.size() == numInSegments) {
+
+                const Junction::segment_map::const_iterator outSegments = j->getSideSegments(outOri);
+                if (outSegments != j->segments.end() && outSegments->second.size() == numOutSegments) {
+                    closest.second.junc = j;
+                    closest.second.dist = dist;
+                }
+            }
+        }
+    }
+
+    if (closest.first.junc) {
+        LOG_DEBUG("closest: (%f, %f)", closest.first.junc->pos.X.get(), closest.first.junc->pos.Y.get());
+    }
+
+    if (closest.second.junc) {
+        LOG_DEBUG("closest with ori: (%f, %f)", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
+    }
+
+    if (closest.second.dist < centimeter_t(120)) {
+        // a junction at the right position and the correct topology has been found
+        result = closest.second.junc;
+    } else if (closest.first.dist < centimeter_t(80)) {
+        // a junction at the right position but with incorrect topology has been found
+        result = closest.first.junc;
+    } else {
+        // the junction has not been found
+        result = nullptr;
+    }
+
+    return result;
+}

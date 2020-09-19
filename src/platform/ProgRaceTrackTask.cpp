@@ -28,6 +28,8 @@ extern queue_t<DetectedLines, 1> detectedLinesQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<DistancesData, 1> distancesQueue;
 
+Sign safetyCarFollowSpeedSign = Sign::POSITIVE;
+
 namespace {
 
 constexpr meter_t PREV_CAR_PROPS_RESOLUTION = centimeter_t(5);
@@ -39,7 +41,6 @@ m_per_sec_t speed_OVERTAKE_BEGIN     = m_per_sec_t(2.6f);
 m_per_sec_t speed_OVERTAKE_STRAIGHT  = m_per_sec_t(3.5f);
 m_per_sec_t speed_OVERTAKE_END       = m_per_sec_t(1.8f);
 meter_t     dist_OVERTAKE_SIDE       = centimeter_t(60);
-Sign        safetyCarFollowSpeedSign = Sign::POSITIVE;
 
 struct {
     TrackSegments::const_iterator segment;

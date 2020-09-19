@@ -4,8 +4,6 @@
 
 #include <type_traits>
 
-namespace micro {
-
 /* @brief Graph edge.
  */
 template <typename NodeType>
@@ -26,7 +24,5 @@ struct Edge {
  */
 template <typename EdgeType, uint32_t N>
 struct Node {
-    vec<EdgeType*, N> edges; // The edges.
+    micro::vec<EdgeType*, N> edges; // The edges.
 };
-
-} // namespace micro

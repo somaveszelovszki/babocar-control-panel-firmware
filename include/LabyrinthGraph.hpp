@@ -9,22 +9,20 @@
 
 #include <algorithm>
 
-namespace micro {
-
 struct Maneuver {
-    radian_t orientation;
-    Direction direction;
+    micro::radian_t orientation;
+    micro::Direction direction;
 
     Maneuver()
         : orientation(0)
-        , direction(Direction::CENTER) {}
+        , direction(micro::Direction::CENTER) {}
 
-    Maneuver(radian_t orientation, Direction direction)
+    Maneuver(micro::radian_t orientation, micro::Direction direction)
         : orientation(orientation)
         , direction(direction) {}
 
     bool operator==(const Maneuver& other) const {
-        return eqWithOverflow360(this->orientation, other.orientation, PI_4) && this->direction == other.direction;
+        return micro::eqWithOverflow360(this->orientation, other.orientation, micro::PI_4) && this->direction == other.direction;
     }
 
     bool operator!=(const Maneuver& other) const {
@@ -42,7 +40,7 @@ struct Connection : public Edge<Segment> {
         : Edge()
         , junction(nullptr) {}
 
-    Status updateSegment(Segment *oldSeg, Segment *newSeg);
+    micro::Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
     Segment* getOtherSegment(const Segment *seg) const;
 
@@ -56,34 +54,34 @@ struct Connection : public Edge<Segment> {
  */
 struct Junction {
     typedef micro::unsorted_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
-    typedef micro::unsorted_map<radian_t, side_segment_map, 2> segment_map;
-    typedef micro::vec<std::pair<radian_t, Direction>, 2> segment_info;
+    typedef micro::unsorted_map<micro::radian_t, side_segment_map, 2> segment_map;
+    typedef micro::vec<std::pair<micro::radian_t, micro::Direction>, 2> segment_info;
 
     Junction() : idx(-1) {}
 
-    Status addSegment(Segment *seg, radian_t orientation, Direction dir);
+    micro::Status addSegment(Segment *seg, micro::radian_t orientation, micro::Direction dir);
 
-    Segment* getSegment(radian_t orientation, Direction dir);
+    Segment* getSegment(micro::radian_t orientation, micro::Direction dir);
 
-    Status updateSegment(Segment *oldSeg, Segment *newSeg);
+    micro::Status updateSegment(Segment *oldSeg, Segment *newSeg);
 
     bool isConnected(Segment *seg) const;
 
-    segment_info getSegmentInfo(radian_t orientation, const Segment *seg);
+    segment_info getSegmentInfo(micro::radian_t orientation, const Segment *seg);
 
     segment_info getSegmentInfo(const Segment *seg);
 
     int32_t idx;
-    point2<meter_t> pos; // Junction position - relative to car start position.
+    micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
     segment_map segments;
 
-    segment_map::const_iterator getSideSegments(radian_t orientation) const {
+    segment_map::const_iterator getSideSegments(micro::radian_t orientation) const {
         return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const segment_map::entry_type& entry) {
-            return micro::eqWithOverflow360(orientation, entry.first, PI_4);
+            return micro::eqWithOverflow360(orientation, entry.first, micro::PI_4);
         });
     }
 
-    segment_map::iterator getSideSegments(radian_t orientation) {
+    segment_map::iterator getSideSegments(micro::radian_t orientation) {
         return const_cast<segment_map::iterator>(const_cast<const Junction*>(this)->getSideSegments(orientation));
     }
 };
@@ -104,9 +102,30 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
     void reset();
 
     char name;
-    meter_t length;  // The segment length.
+    micro::meter_t length;  // The segment length.
     bool isDeadEnd;
     bool isActive;
 };
 
-} // namespace uns
+struct Route {
+    static constexpr uint32_t MAX_LENGTH = cfg::NUM_LAB_SEGMENTS;
+    Segment *startSeg;
+    Segment *lastSeg;
+    micro::vec<Connection*, MAX_LENGTH> connections;
+
+    Route()
+        : startSeg(nullptr)
+        , lastSeg(nullptr) {}
+
+    void append(Connection *c);
+
+    Connection* nextConnection();
+
+    Connection* lastConnection() const;
+
+    void reset(Segment *currentSeg);
+
+    bool isConnectionValid(const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) const;
+};
+
+Junction* findExistingJunction(Junction *begin, Junction *end, const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments);
