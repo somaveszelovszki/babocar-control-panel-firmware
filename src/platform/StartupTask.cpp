@@ -9,24 +9,23 @@
 
 using namespace micro;
 
+extern queue_t<uint8_t, 1> radioRecvQueue;
+
 namespace {
 
-uint8_t startCounterBuffer[1];
-volatile char startCounter = '6';   // start counter will count back from 5 to 0
-
 void waitStartSignal() {
+    static char startCounter = '6';   // start counter will count back from 5 to 0
     char prevStartCounter = startCounter;
-    uart_receive(uart_RadioModule, startCounterBuffer, 1);
 
-    while ('0' != startCounter) {
+    do {
+        radioRecvQueue.peek(reinterpret_cast<uint8_t&>(startCounter), millisecond_t(10));
         if (startCounter != prevStartCounter) {
             LOG_DEBUG("Seconds until start: %c", startCounter);
             prevStartCounter = startCounter;
         }
         vTaskDelay(50);
-    }
+    } while ('0' != startCounter);
 
-    uart_stopReceive(uart_RadioModule);
     LOG_DEBUG("Started!");
 }
 
@@ -36,6 +35,7 @@ extern "C" void runStartupTask(void) {
     millisecond_t lastButtonClickTime = getTime();
     uint32_t buttonClick = 0;
     gpioPinState_t prevButtonState = gpioPinState_t::SET;
+
 
     while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
         gpioPinState_t buttonState;
@@ -59,13 +59,4 @@ extern "C" void runStartupTask(void) {
     }
 
     vTaskDelete(nullptr);
-}
-
-/* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
- */
-void micro_RadioModule_Uart_RxCpltCallback() {
-    const uint8_t cntr = static_cast<uint8_t>(startCounterBuffer[0]);
-    if (cntr == startCounter - 1) {
-        startCounter = cntr;
-    }
 }

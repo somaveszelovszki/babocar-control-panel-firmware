@@ -102,6 +102,9 @@ osStaticThreadDef_t TaskProgLabyrinthControlBlock;
 osThreadId ProgRaceTrackTaskHandle;
 uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
 osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
+osThreadId RadioRecvTaskHandle;
+uint32_t RadioRecvTaskBuffer[ 512 ];
+osStaticThreadDef_t RadioRecvTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -114,6 +117,7 @@ void runStartupTask(void);
 void runDistSensorTask(void);
 void runProgLabyrinthTask(void);
 void runProgRaceTrackTask(void);
+void runRadioRecvTask(void);
 
 /* USER CODE END FunctionPrototypes */
 
@@ -125,6 +129,7 @@ void StartStartupTask(void const * argument);
 void StartDistSensorTask(void const * argument);
 void StartProgLabyrinthTask(void const * argument);
 void StartProgRaceTrackTask(void const * argument);
+void StartRadioRecvTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -215,6 +220,10 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(ProgRaceTrackTask, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
   ProgRaceTrackTaskHandle = osThreadCreate(osThread(ProgRaceTrackTask), NULL);
 
+  /* definition and creation of RadioRecvTask */
+  osThreadStaticDef(RadioRecvTask, StartRadioRecvTask, osPriorityLow, 0, 512, RadioRecvTaskBuffer, &RadioRecvTaskControlBlock);
+  RadioRecvTaskHandle = osThreadCreate(osThread(RadioRecvTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -230,6 +239,7 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDebugTask */
 void StartDebugTask(void const * argument)
 {
+    
     
     
     
@@ -341,6 +351,20 @@ void StartProgRaceTrackTask(void const * argument)
   /* USER CODE BEGIN StartProgRaceTrackTask */
   runProgRaceTrackTask();
   /* USER CODE END StartProgRaceTrackTask */
+}
+
+/* USER CODE BEGIN Header_StartRadioRecvTask */
+/**
+* @brief Function implementing the RadioRecvTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartRadioRecvTask */
+void StartRadioRecvTask(void const * argument)
+{
+  /* USER CODE BEGIN StartRadioRecvTask */
+  runRadioRecvTask();
+  /* USER CODE END StartRadioRecvTask */
 }
 
 /* Private application code --------------------------------------------------*/
