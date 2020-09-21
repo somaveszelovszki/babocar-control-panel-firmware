@@ -136,11 +136,14 @@ struct Route {
     bool isConnectionValid(const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) const;
 };
 
-class LabyrinthGraph {
-public:
+struct LabyrinthGraph {
     typedef micro::vec<Segment, cfg::NUM_LABYRINTH_SEGMENTS> Segments;
     typedef micro::vec<Junction, cfg::NUM_LABYRINTH_SEGMENTS> Junctions;
     typedef micro::vec<Connection, cfg::NUM_LABYRINTH_SEGMENTS * 2> Connections;
+
+    Segments segments;
+    Junctions junctions;
+    Connections connections;
 
     LabyrinthGraph() {}
 
@@ -151,9 +154,4 @@ public:
     Segments::iterator findSegment(char name);
     Junctions::iterator findJunction(uint8_t id);
     Junctions::iterator findJunction(const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments);
-
-private:
-    Segments segments;
-    Junctions junctions;
-    Connections connections;
 };
