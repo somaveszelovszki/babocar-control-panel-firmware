@@ -24,9 +24,9 @@ extern "C" void runRadioRecvTask(void) {
     uart_receive(uart_RadioModule, &radioRecvValue, 1);
 
     while (true) {
-        if (lastRxTime != lastQueueSendTime) {
+        if (const_cast<const millisecond_t&>(lastRxTime) != lastQueueSendTime) {
             radioRecvQueue.overwrite(radioRecvValue);
-            lastQueueSendTime = lastRxTime;
+            lastQueueSendTime = const_cast<const millisecond_t&>(lastRxTime);
         }
         os_sleep(millisecond_t(20));
     }
@@ -35,5 +35,5 @@ extern "C" void runRadioRecvTask(void) {
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
 void micro_RadioModule_Uart_RxCpltCallback() {
-    lastRxTime = getTime();
+    const_cast<millisecond_t&>(lastRxTime) = getTime();
 }
