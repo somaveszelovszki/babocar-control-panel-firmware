@@ -37,19 +37,21 @@ struct Segment;
 /* @brief Labyrinth segment connection.
  */
 struct Connection : public Edge<Segment> {
-    Connection(Segment *seg1, Segment *seg2, Junction *junction, const Maneuver& maneuver1, const Maneuver& maneuver2)
+    Connection(Segment& seg1, Segment& seg2, Junction& junction, const Maneuver& maneuver1, const Maneuver& maneuver2)
         : Edge(seg1, seg2)
-        , junction(junction)
+        , junction(&junction)
         , maneuver1(maneuver1)
         , maneuver2(maneuver2) {}
 
-    Connection() : Connection(nullptr, nullptr, nullptr, {}, {}) {}
+    Connection()
+        : Edge()
+        , junction(nullptr)
+        , maneuver1()
+        , maneuver2() {}
 
-    micro::Status updateSegment(Segment *oldSeg, Segment *newSeg);
+    Segment* getOtherSegment(const Segment& seg) const;
 
-    Segment* getOtherSegment(const Segment *seg) const;
-
-    Maneuver getManeuver(const Segment *seg) const;
+    Maneuver getManeuver(const Segment& seg) const;
 
     Junction *junction; // The junction.
     Maneuver maneuver1, maneuver2;
@@ -68,17 +70,15 @@ struct Junction {
 
     Junction() : Junction(0, {}) {}
 
-    micro::Status addSegment(Segment *seg, const Maneuver& maneuver);
+    micro::Status addSegment(Segment& seg, const Maneuver& maneuver);
 
     Segment* getSegment(micro::radian_t orientation, micro::Direction dir);
 
-    micro::Status updateSegment(Segment *oldSeg, Segment *newSeg);
+    bool isConnected(const Segment& seg) const;
 
-    bool isConnected(Segment *seg) const;
+    segment_info getSegmentInfo(micro::radian_t orientation, const Segment& seg);
 
-    segment_info getSegmentInfo(micro::radian_t orientation, const Segment *seg);
-
-    segment_info getSegmentInfo(const Segment *seg);
+    segment_info getSegmentInfo(const Segment& seg);
 
     uint8_t id;
     micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
@@ -113,27 +113,6 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
     char name;
     micro::meter_t length;  // The segment length.
     bool isDeadEnd;
-};
-
-struct Route {
-    static constexpr uint32_t MAX_LENGTH = cfg::NUM_LABYRINTH_SEGMENTS;
-    Segment *startSeg;
-    Segment *lastSeg;
-    micro::vec<Connection*, MAX_LENGTH> connections;
-
-    Route()
-        : startSeg(nullptr)
-        , lastSeg(nullptr) {}
-
-    void append(Connection *c);
-
-    Connection* nextConnection();
-
-    Connection* lastConnection() const;
-
-    void reset(Segment *currentSeg);
-
-    bool isConnectionValid(const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) const;
 };
 
 struct LabyrinthGraph {

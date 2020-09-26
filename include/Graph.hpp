@@ -12,9 +12,9 @@ struct Edge {
         : node1(nullptr)
         , node2(nullptr) {}
 
-    Edge(NodeType *node1, NodeType *node2)
-        : node1(node1)
-        , node2(node2) {}
+    Edge(NodeType& node1, NodeType& node2)
+        : node1(&node1)
+        , node2(&node2) {}
 
     NodeType *node1;    // The first node.
     NodeType *node2;    // The second node.

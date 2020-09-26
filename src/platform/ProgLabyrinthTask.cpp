@@ -16,6 +16,7 @@
 #include <DetectedLines.hpp>
 #include <LabyrinthGraph.hpp>
 #include <LabyrinthGraphBuilder.hpp>
+#include <LabyrinthRoute.hpp>
 
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_uart.h>
@@ -43,8 +44,8 @@ m_per_sec_t speed_LANE_CHANGE = m_per_sec_t(0.8f);
 
 LabyrinthGraph graph = buildLabyrinthGraph();
 
-Segment *currentSeg = nullptr;
-Connection *prevConn = nullptr;
+LabyrinthGraph::Segments::const_iterator currentSeg  = graph.findSegment('A');
+LabyrinthGraph::Connections::const_iterator prevConn = currentSeg->edges[0];
 
 millisecond_t endTime;
 
@@ -53,63 +54,15 @@ struct {
     Trajectory trajectory;
 } laneChange;
 
-Route plannedRoute;  // Planned route, when there is a given destination - e.g. given floating segment or the segment where the lane-change will happen
+Route plannedRoute(*currentSeg);  // Planned route, when there is a given destination - e.g. given floating segment or the segment where the lane-change will happen
 
 Segment *nextSegment = nullptr;
 
-Route getRoute(const Segment *dest, const Junction *lastRouteJunc = nullptr, const Maneuver lastRouteManeuver = Maneuver()) {
-
-    vec<Route, 256> routes;
-    Route * const initialRoute = routes.push_back(Route());
-
-    initialRoute->startSeg = initialRoute->lastSeg = currentSeg;
-    Route *shortestRoute = nullptr;
-
-    do {
-        Route *currentRoute = &routes[0];
-        const Connection *lastRouteConn = currentRoute->lastConnection();
-        if (!lastRouteConn) {
-            lastRouteConn = prevConn;
-        }
-
-        const Maneuver lastManeuver = lastRouteConn ? lastRouteConn->getManeuver(currentRoute->lastSeg) : Maneuver();
-
-        for (Connection *c : currentRoute->lastSeg->edges) {
-            if (currentRoute->isConnectionValid(lastRouteConn, lastManeuver, c)) {
-                if (routes.size() == routes.capacity()) {
-                    LOG_ERROR("routes.size() == MAX_NUM_ROUTES");
-                    routes.clear();
-                    break;
-                }
-
-                Route *newRoute = routes.push_back(Route());
-                *newRoute = *currentRoute;
-                newRoute->append(c);
-
-                // if we reached the destination, the shortest route has been found
-                if (newRoute->lastSeg == dest && (!lastRouteJunc ||
-                    (lastRouteJunc == newRoute->lastConnection()->junction &&
-                    lastRouteManeuver == newRoute->lastConnection()->getManeuver(newRoute->lastSeg)))) {
-                    shortestRoute = newRoute;
-                    break;
-                }
-            }
-        }
-
-        if (routes.size()) {
-            routes.erase(routes.begin());
-        }
-
-    } while(!shortestRoute && routes.size() > 0 && routes.begin()->connections.size() < routes.begin()->connections.capacity());
-
-    return shortestRoute ? *shortestRoute : Route();
-}
-
-Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegmentDir) {
+const Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegmentDir) {
 
     LOG_DEBUG("Junction: %u", static_cast<uint32_t>(junc->id));
     carPosUpdateQueue.overwrite(junc->pos);
-    Connection *nextConn = nullptr;
+    const Connection *nextConn = nullptr;
     Segment * const junctionSeg = junc->getSegment(inOri, inSegmentDir);
 
     if (junctionSeg) {
@@ -121,13 +74,13 @@ Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegme
         // The destination of the route will be the closest floating segment.
         // If there are no floating segments, it means the labyrinth has been completed.
         // In this case the destination will be the lane change segment.
-        if (plannedRoute.connections.size() || (plannedRoute = getRoute(nextSegment ? nextSegment : laneChange.seg)).connections.size()) {
+        if (plannedRoute.connections.size() || (plannedRoute = createRoute(*prevConn, *currentSeg, *(nextSegment ? nextSegment : laneChange.seg))).connections.size()) {
             LOG_DEBUG("Planned route:");
 
             const Segment *prev = plannedRoute.startSeg;
             for (const Connection *c : plannedRoute.connections) {
-                const Segment *next = c->getOtherSegment(prev);
-                LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getManeuver(next).direction));
+                const Segment *next = c->getOtherSegment(*prev);
+                LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getManeuver(*next).direction));
                 prev = next;
             }
 
@@ -142,28 +95,19 @@ Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegme
     return nextConn;
 }
 
-void reset() {
-    currentSeg = nullptr;
-    plannedRoute.reset(nullptr);
-    laneChange.seg = nullptr;
-    laneChange.trajectory.clear();
-    prevConn = nullptr;
-    endTime = getTime() + millisecond_t(20);
-}
-
 Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
     Junction *junc = graph.findJunction(pos, inOri, outOri, numInSegments, numOutSegments);
 
-    Connection *nextConn = nullptr;
+    const Connection *nextConn = nullptr;
     Maneuver nextManeuver = { outOri, Direction::CENTER };
 
     LOG_DEBUG("currentSeg: %c, junction: %u (%f, %f)", currentSeg->name, static_cast<uint32_t>(junc->id), junc->pos.X.get(), junc->pos.Y.get());
 
     nextConn = onExistingJunction(junc, inOri, inSegmentDir);
-    nextManeuver = nextConn->getManeuver(nextConn->getOtherSegment(currentSeg));
+    nextManeuver = nextConn->getManeuver(*nextConn->getOtherSegment(*currentSeg));
 
-    Segment *nextSeg = nextConn->getOtherSegment(currentSeg);
+    Segment *nextSeg = nextConn->getOtherSegment(*currentSeg);
 
     if (!nextSeg) {
         while(true) {
@@ -206,7 +150,7 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
     } forcedManeuver;
 
     static const bool runOnce = [&controlData]() {
-        reset();
+        endTime = getTime() + millisecond_t(20);
         carOrientationUpdateQueue.overwrite(radian_t(0));
         controlData.speed = speed_LAB_FWD;
         controlData.rampTime = millisecond_t(500);
@@ -273,9 +217,9 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
                     if (prevConn) {
                         // when coming back from a dead-end, junction should be handled as if the car
                         // arrived from the segment before the dead-end segment
-                        currentSeg = prevConn->getOtherSegment(currentSeg);
+                        currentSeg = prevConn->getOtherSegment(*currentSeg);
                         numInSegments = prevConn->junction->getSideSegments(inOri)->second.size();
-                        inSegmentDir = prevConn->getManeuver(currentSeg).direction;
+                        inSegmentDir = prevConn->getManeuver(*currentSeg).direction;
                         carPosUpdateQueue.overwrite(prevConn->junction->pos);
                         prevConn = nullptr;
                     } else {
@@ -291,7 +235,6 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
         }
 
         case LinePattern::DEAD_END:
-            currentSeg->isDeadEnd = true;
             controlData.speed = speed_LAB_BWD;
             controlData.rampTime = millisecond_t(400);
             break;

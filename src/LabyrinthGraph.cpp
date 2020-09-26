@@ -1,55 +1,36 @@
 #include <micro/utils/log.hpp>
 #include <micro/math/unit_utils.hpp>
+#include <micro/container/vec.hpp>
 
 #include <LabyrinthGraph.hpp>
 
 using namespace micro;
 
-Status Connection::updateSegment(Segment *oldSeg, Segment *newSeg) {
-
-    Status result = Status::INVALID_ID;
-    if (oldSeg && newSeg) {
-        if (this->node1 == oldSeg) {
-            this->node1 = newSeg;
-            result = Status::OK;
-        } else if (this->node2 == oldSeg) {
-            this->node2 = newSeg;
-            result = Status::OK;
-        }
-    }
-    return result;
+Segment* Connection::getOtherSegment(const Segment& seg) const {
+    return this->node1 == &seg ? this->node2 : this->node2 == &seg ? this->node1 : nullptr;
 }
 
-Segment* Connection::getOtherSegment(const Segment *seg) const {
-    return this->node1 == seg ? this->node2 : this->node2 == seg ? this->node1 : nullptr;
+Maneuver Connection::getManeuver(const Segment& seg) const {
+    return this->node1 == &seg ? this->maneuver1 : this->maneuver2;
 }
 
-Maneuver Connection::getManeuver(const Segment *seg) const {
-    return this->node1 == seg ? this->maneuver1 : this->maneuver2;
-}
-
-Status Junction::addSegment(Segment *seg, const Maneuver& maneuver) {
+Status Junction::addSegment(Segment& seg, const Maneuver& maneuver) {
     Status result = Status::ERROR;
 
-    if (seg) {
-        segment_map::iterator sideSegments = this->getSideSegments(maneuver.orientation);
+    segment_map::iterator sideSegments = this->getSideSegments(maneuver.orientation);
 
-        if (sideSegments == this->segments.end()) {
-            this->segments.emplace(maneuver.orientation, side_segment_map());
-            sideSegments = this->getSideSegments(maneuver.orientation);
-        }
+    if (sideSegments == this->segments.end()) {
+        this->segments.emplace(maneuver.orientation, side_segment_map());
+        sideSegments = this->getSideSegments(maneuver.orientation);
+    }
 
-        if (!sideSegments->second.at(maneuver.direction)) {
-            sideSegments->second.emplace(maneuver.direction, seg);
-            result = Status::OK;
-        } else {
-            result = Status::INVALID_DATA;
-            LOG_ERROR("Junction %u already has one side segment in orientation: %fdeg and direction: %s",
-                static_cast<uint32_t>(this->id), static_cast<degree_t>(maneuver.orientation).get(), to_string(maneuver.direction));
-        }
+    if (!sideSegments->second.at(maneuver.direction)) {
+        sideSegments->second.emplace(maneuver.direction, &seg);
+        result = Status::OK;
     } else {
         result = Status::INVALID_DATA;
-        LOG_ERROR("Trying to add nullptr as segment to junction %u", static_cast<uint32_t>(this->id));
+        LOG_ERROR("Junction %u already has one side segment in orientation: %fdeg and direction: %s",
+            static_cast<uint32_t>(this->id), static_cast<degree_t>(maneuver.orientation).get(), to_string(maneuver.direction));
     }
 
     return result;
@@ -78,42 +59,21 @@ Segment* Junction::getSegment(radian_t orientation, Direction dir) {
     return result;
 }
 
-Status Junction::updateSegment(Segment *oldSeg, Segment *newSeg) {
-
-    Status result = Status::INVALID_ID;
-    if (oldSeg && newSeg) {
-        for (segment_map::iterator itSide = this->segments.begin(); itSide != this-> segments.end(); ++itSide) {
-            for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
-                if (itSeg->second == oldSeg) {
-                    itSeg->second = newSeg;
-                    result = Status::OK;
-                    break;
-                }
-            }
-
-            if (result == Status::OK) {
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-bool Junction::isConnected(Segment *seg) const {
-    return !!seg ? std::find_if(this->segments.begin(), this->segments.end(), [seg] (const segment_map::entry_type& s1) {
-        return std::find_if(s1.second.begin(), s1.second.end(), [seg] (const side_segment_map::entry_type& s2) {
-            return s2.second == seg;
+bool Junction::isConnected(const Segment& seg) const {
+    return std::find_if(this->segments.begin(), this->segments.end(), [seg] (const segment_map::entry_type& s1) {
+        return std::find_if(s1.second.begin(), s1.second.end(), [&seg] (const side_segment_map::entry_type& s2) {
+            return s2.second == &seg;
         }) != s1.second.end();
-    }) != this->segments.end() : false;
+    }) != this->segments.end();
 }
 
-Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segment *seg) {
+Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segment& seg) {
     segment_info info;
 
     const segment_map::iterator itSide = this->getSideSegments(orientation);
     if (itSide != this->segments.end()) {
         for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
-            if (itSeg->second == seg) {
+            if (itSeg->second == &seg) {
                 info.push_back({ itSide->first, itSeg->first });
             }
         }
@@ -122,12 +82,12 @@ Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segm
     return info;
 }
 
-Junction::segment_info Junction::getSegmentInfo(const Segment *seg) {
+Junction::segment_info Junction::getSegmentInfo(const Segment& seg) {
     segment_info info;
 
     for (segment_map::iterator itSide = this->segments.begin(); itSide != this->segments.end(); ++itSide) {
         for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
-            if (itSeg->second == seg) {
+            if (itSeg->second == &seg) {
                 info.push_back({ itSide->first, itSeg->first });
             }
         }
@@ -166,63 +126,7 @@ bool Segment::isFloating() const {
 }
 
 bool Segment::isLoop() const {
-    return this->edges.size() > 0 && this->edges[0]->junction->getSegmentInfo(this).size() == 2;
-}
-
-void Route::append(Connection *c) {
-    this->connections.push_back(c);
-    this->lastSeg = c->getOtherSegment(this->lastSeg);
-}
-
-Connection* Route::nextConnection() {
-    Connection *conn = nullptr;
-    if (this->connections.size()) {
-        conn = this->connections[0];
-        this->startSeg = conn->getOtherSegment(this->startSeg);
-        this->connections.erase(this->connections.begin());
-    }
-    return conn;
-}
-
-Connection* Route::lastConnection() const {
-    return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
-}
-
-void Route::reset(Segment *currentSeg) {
-    this->startSeg = this->lastSeg = currentSeg;
-    this->connections.clear();
-}
-
-bool Route::isConnectionValid(const Connection *lastRouteConn, const Maneuver lastManeuver, const Connection *c) const {
-    bool valid = false;
-
-    // does not permit going backwards
-    if (!lastRouteConn ||
-        c->junction != lastRouteConn->junction ||
-        c->getManeuver(this->lastSeg) != lastManeuver) {
-
-        // does not permit navigating through dead-end segments
-        if (!c->getOtherSegment(this->lastSeg)->isDeadEnd) {
-
-            const Segment *newSeg = c->getOtherSegment(this->lastSeg);
-            const Maneuver newManeuver = c->getManeuver(newSeg);
-
-            valid = true;
-
-            // does not permit cycles (taking the same junction exit twice)
-            const Segment *prevSeg = this->startSeg;
-            for (const Connection *routeConn : this->connections) {
-                const Segment *nextSeg = routeConn->getOtherSegment(prevSeg);
-                if (nextSeg == newSeg && routeConn->getManeuver(nextSeg) == newManeuver) {
-                    valid = false;
-                    break;
-                }
-                prevSeg = nextSeg;
-            }
-
-        }
-    }
-    return valid;
+    return this->edges.size() > 0 && this->edges[0]->junction->getSegmentInfo(*this).size() == 2;
 }
 
 void LabyrinthGraph::addSegment(const Segment& seg) {
@@ -235,13 +139,13 @@ void LabyrinthGraph::addJunction(const Junction& junc) {
 
 void LabyrinthGraph::connect(Segments::iterator seg, Junctions::iterator junc, const Maneuver& maneuver) {
 
-    junc->addSegment(seg, maneuver);
+    junc->addSegment(*seg, maneuver);
 
     Junction::segment_map::iterator otherSideSegments = junc->getSideSegments(round90(maneuver.orientation + PI));
 
     if (otherSideSegments != junc->segments.end()) {
         for (Junction::side_segment_map::iterator out = otherSideSegments->second.begin(); out != otherSideSegments->second.end(); ++out) {
-            Connections::iterator conn = this->connections.push_back(Connection(seg, out->second, junc, maneuver, { otherSideSegments->first, out->first }));
+            Connections::iterator conn = this->connections.push_back(Connection(*seg, *out->second, *junc, maneuver, { otherSideSegments->first, out->first }));
             seg->edges.push_back(conn);
             out->second->edges.push_back(conn);
         }
