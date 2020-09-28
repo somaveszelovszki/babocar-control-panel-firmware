@@ -7,11 +7,11 @@ using namespace micro;
 
 namespace {
 
-LabyrinthGraph createSimpleGraph() {
+LabyrinthGraph createGraph() {
     LabyrinthGraph graph;
 
-    graph.addSegment(Segment('A', meter_t(2), false));
-    graph.addSegment(Segment('B', meter_t(3), false));
+    graph.addSegment(Segment('A', meter_t(4), false));
+    graph.addSegment(Segment('B', meter_t(4), false));
     graph.addSegment(Segment('C', meter_t(4), false));
 
     graph.addJunction(Junction(1, { meter_t(2),  meter_t(0) }));
@@ -31,7 +31,7 @@ LabyrinthGraph createSimpleGraph() {
 } // namespace
 
 TEST(labyrinthGraph, segments) {
-    LabyrinthGraph graph = createSimpleGraph();
+    LabyrinthGraph graph = createGraph();
 
     LabyrinthGraph::Segments::iterator segA = graph.findSegment('A');
     ASSERT_NE(graph.segments.end(), segA);
@@ -47,31 +47,31 @@ TEST(labyrinthGraph, segments) {
 }
 
 TEST(labyrinthGraph, edges) {
-    LabyrinthGraph graph = createSimpleGraph();
+    LabyrinthGraph graph = createGraph();
 
     LabyrinthGraph::Segments::iterator segA = graph.findSegment('A');
     ASSERT_NE(graph.segments.end(), segA);
     ASSERT_EQ(4, segA->edges.size());
-    EXPECT_EQ(graph.findSegment('B'), segA->edges[0]->getOtherSegment(segA));
-    EXPECT_EQ(graph.findSegment('B'), segA->edges[1]->getOtherSegment(segA));
-    EXPECT_EQ(graph.findSegment('C'), segA->edges[2]->getOtherSegment(segA));
-    EXPECT_EQ(graph.findSegment('C'), segA->edges[3]->getOtherSegment(segA));
+    EXPECT_EQ(graph.findSegment('B'), segA->edges[0]->getOtherSegment(*segA));
+    EXPECT_EQ(graph.findSegment('B'), segA->edges[1]->getOtherSegment(*segA));
+    EXPECT_EQ(graph.findSegment('C'), segA->edges[2]->getOtherSegment(*segA));
+    EXPECT_EQ(graph.findSegment('C'), segA->edges[3]->getOtherSegment(*segA));
 
     LabyrinthGraph::Segments::iterator segB = graph.findSegment('B');
     ASSERT_NE(graph.segments.end(), segB);
     ASSERT_EQ(2, segB->edges.size());
-    EXPECT_EQ(graph.findSegment('A'), segB->edges[0]->getOtherSegment(segB));
-    EXPECT_EQ(graph.findSegment('A'), segB->edges[1]->getOtherSegment(segB));
+    EXPECT_EQ(graph.findSegment('A'), segB->edges[0]->getOtherSegment(*segB));
+    EXPECT_EQ(graph.findSegment('A'), segB->edges[1]->getOtherSegment(*segB));
 
     LabyrinthGraph::Segments::iterator segC = graph.findSegment('C');
     ASSERT_NE(graph.segments.end(), segC);
     ASSERT_EQ(2, segC->edges.size());
-    EXPECT_EQ(graph.findSegment('A'), segC->edges[0]->getOtherSegment(segC));
-    EXPECT_EQ(graph.findSegment('A'), segC->edges[1]->getOtherSegment(segC));
+    EXPECT_EQ(graph.findSegment('A'), segC->edges[0]->getOtherSegment(*segC));
+    EXPECT_EQ(graph.findSegment('A'), segC->edges[1]->getOtherSegment(*segC));
 }
 
 TEST(labyrinthGraph, junctions) {
-    LabyrinthGraph graph = createSimpleGraph();
+    LabyrinthGraph graph = createGraph();
 
     LabyrinthGraph::Junctions::iterator j1 = graph.findJunction(1);
     ASSERT_NE(graph.junctions.end(), j1);
@@ -105,7 +105,7 @@ TEST(labyrinthGraph, junctions) {
 }
 
 TEST(labyrinthGraph, connections) {
-    LabyrinthGraph graph = createSimpleGraph();
+    LabyrinthGraph graph = createGraph();
 
     ASSERT_EQ(4, graph.connections.size());
 
