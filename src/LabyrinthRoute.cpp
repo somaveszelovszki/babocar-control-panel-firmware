@@ -45,22 +45,22 @@ void Route::reset(const Segment& currentSeg) {
 
 Route createRoute(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg) {
 
-    // performs Dijkstra-algorithm specifically tuned for forward-moving car
-    // in a graph that allows multiple connections between the nodes
+    // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
+    // specifically tuned for forward-moving car in a graph that allows multiple connections between the nodes
 
     struct SegmentRouteInfo {
-        const Segment *seg                  = nullptr;
-        meter_t dist                        = micro::numeric_limits<meter_t>::infinity();
-        const Connection *prevConn          = nullptr;
-        bool isDistMinimized                = false;
-        const SegmentRouteInfo *prevSegInfo = nullptr;
+        const Segment *seg            = nullptr;
+        meter_t dist                  = micro::numeric_limits<meter_t>::infinity();
+        const Connection *prevConn    = nullptr;
+        bool isDistMinimized          = false;
+        SegmentRouteInfo *prevSegInfo = nullptr;
     };
     typedef micro::vec<SegmentRouteInfo, Route::MAX_LENGTH> SegmentRouteInfos;
 
     SegmentRouteInfos info;
 
     info.push_back(SegmentRouteInfo{ &currentSeg, meter_t(0), &prevConn, false, nullptr });
-    SegmentRouteInfos::const_iterator segInfo = info.begin();
+    SegmentRouteInfos::iterator segInfo = info.begin();
 
     while (true) {
         segInfo = std::min_element(info.begin(), info.end(), [](const SegmentRouteInfo& a, const SegmentRouteInfo& b) {
@@ -68,6 +68,10 @@ Route createRoute(const Connection& prevConn, const Segment& currentSeg, const S
         });
 
         if (segInfo->seg == &destSeg) {
+            break;
+        } else if (segInfo->isDistMinimized) {
+            // an error has occurred
+            segInfo->prevSegInfo = nullptr;
             break;
         }
 
@@ -97,9 +101,11 @@ Route createRoute(const Connection& prevConn, const Segment& currentSeg, const S
                 }
             }
         }
+
+        segInfo->isDistMinimized = true;
     }
 
-    Route route(currentSeg);
+    Route route(destSeg);
 
     while (segInfo->prevSegInfo) {
         route.push_front(*segInfo->prevConn);
