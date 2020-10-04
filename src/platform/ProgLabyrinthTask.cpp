@@ -1,9 +1,9 @@
-#include <cfg_board.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/math/unit_utils.hpp>
+#include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/log.hpp>
@@ -11,15 +11,12 @@
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
 
+#include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <DetectedLines.hpp>
-#include <LabyrinthGraph.hpp>
 #include <LabyrinthGraphBuilder.hpp>
-#include <LabyrinthRoute.hpp>
-
-#include <stm32f4xx_hal.h>
-#include <stm32f4xx_hal_uart.h>
+#include <LabyrinthNavigator.hpp>
 
 using namespace micro;
 
@@ -31,22 +28,23 @@ extern queue_t<radian_t, 1> carOrientationUpdateQueue;
 extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 extern queue_t<DetectedLines, 1> detectedLinesQueue;
 extern queue_t<ControlData, 1> controlQueue;
-
 extern queue_t<radian_t, 1> carOrientationUpdateQueue;
+extern queue_t<char, 1> radioRecvQueue;
 
 extern Sign safetyCarFollowSpeedSign;
 
 namespace {
 
-m_per_sec_t speed_LAB_FWD     = m_per_sec_t(1.1f);
-m_per_sec_t speed_LAB_BWD     = m_per_sec_t(-0.8f);
-m_per_sec_t speed_LANE_CHANGE = m_per_sec_t(0.8f);
+m_per_sec_t speed_LAB_FWD      = m_per_sec_t(1.1f);
+m_per_sec_t speed_LAB_FWD_slow = m_per_sec_t(1.0f);
+m_per_sec_t speed_LAB_BWD      = m_per_sec_t(-0.8f);
+m_per_sec_t speed_LANE_CHANGE  = m_per_sec_t(0.8f);
 
-LabyrinthGraph graph = buildLabyrinthGraph();
+const LabyrinthGraph graph = buildLabyrinthGraph();
+const LabyrinthGraph::Segments::const_iterator startSeg = graph.findSegment('A');
+LabyrinthNavigator navigator(graph, *graph.findFirstConnection(*startSeg, *graph.findSegment('X')), *startSeg);
 
-LabyrinthGraph::Segments::const_iterator currentSeg  = graph.findSegment('A');
-LabyrinthGraph::Connections::const_iterator prevConn = currentSeg->edges[0];
-
+uint8_t numFoundSegments  = 0;
 millisecond_t endTime;
 
 struct {
@@ -54,77 +52,40 @@ struct {
     Trajectory trajectory;
 } laneChange;
 
-Route plannedRoute(*currentSeg);  // Planned route, when there is a given destination - e.g. given floating segment or the segment where the lane-change will happen
+void onJunctionDetected(const point2m& pos, const meter_t distance, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
 
-Segment *nextSegment = nullptr;
+    LabyrinthGraph::Junctions::const_iterator junc = graph.findJunction(pos, inOri, outOri, numInSegments, numOutSegments);
 
-const Connection* onExistingJunction(Junction *junc, radian_t inOri, Direction inSegmentDir) {
+    if (graph.junctions.end() != junc) {
+        LOG_DEBUG("currentSeg: %c, junction: %u (%f, %f)", navigator.currentSegment()->name, static_cast<uint32_t>(junc->id), junc->pos.X.get(), junc->pos.Y.get());
 
-    LOG_DEBUG("Junction: %u", static_cast<uint32_t>(junc->id));
-    carPosUpdateQueue.overwrite(junc->pos);
-    const Connection *nextConn = nullptr;
-    Segment * const junctionSeg = junc->getSegment(inOri, inSegmentDir);
+        carPosUpdateQueue.overwrite(junc->pos);
 
-    if (junctionSeg) {
-        LOG_DEBUG("junctionSeg: %c", junctionSeg->name);
+        if (junc != navigator.nextConnection()->junction) {
+            // an error has occurred, resets navigator
 
-        currentSeg = junctionSeg;
+            const Segment *currentSeg      = junc->getSideSegments(inOri)->second.begin()->second;
+            const Connection *junctionConn = *std::find_if(currentSeg->edges.begin(), currentSeg->edges.end(), [junc](const Connection *c) {
+                return c->junction == junc;
+            });
 
-        // If there is no planned route, creates a new route.
-        // The destination of the route will be the closest floating segment.
-        // If there are no floating segments, it means the labyrinth has been completed.
-        // In this case the destination will be the lane change segment.
-        if (plannedRoute.connections.size() || (plannedRoute = createRoute(*prevConn, *currentSeg, *(nextSegment ? nextSegment : laneChange.seg))).connections.size()) {
-            LOG_DEBUG("Planned route:");
+            const Connection *prevConn = *std::find_if(currentSeg->edges.begin(), currentSeg->edges.end(), [junctionConn, currentSeg](const Connection *c) {
+                return LabyrinthRoute::isNewConnectionValid(*junctionConn, *currentSeg, *c);
+            });
 
-            const Segment *prev = plannedRoute.startSeg;
-            for (const Connection *c : plannedRoute.connections) {
-                const Segment *next = c->getOtherSegment(*prev);
-                LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getManeuver(*next).direction));
-                prev = next;
-            }
-
-            nextConn = plannedRoute.nextConnection();
-        } else {
-            LOG_ERROR("getRoute() failed");
+            navigator.reset(*prevConn, *currentSeg);
         }
+
+        navigator.onJunctionDetected(distance);
+
+        // TODO handle dead-ends
+    //    if (!nextSeg->isDeadEnd) {
+    //        passedFwdRoute.push_back(*nextConn);
+    //    }
     } else {
-        LOG_ERROR("Junction segment with orientation [%fdeg] and direction [%s] not found", static_cast<degree_t>(inOri).get(), to_string(inSegmentDir));
+        // TODO
+        LOG_ERROR("Junction not found");
     }
-
-    return nextConn;
-}
-
-Direction onJunctionDetected(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, Direction inSegmentDir, uint8_t numOutSegments) {
-
-    Junction *junc = graph.findJunction(pos, inOri, outOri, numInSegments, numOutSegments);
-
-    const Connection *nextConn = nullptr;
-    Maneuver nextManeuver = { outOri, Direction::CENTER };
-
-    LOG_DEBUG("currentSeg: %c, junction: %u (%f, %f)", currentSeg->name, static_cast<uint32_t>(junc->id), junc->pos.X.get(), junc->pos.Y.get());
-
-    nextConn = onExistingJunction(junc, inOri, inSegmentDir);
-    nextManeuver = nextConn->getManeuver(*nextConn->getOtherSegment(*currentSeg));
-
-    Segment *nextSeg = nextConn->getOtherSegment(*currentSeg);
-
-    if (!nextSeg) {
-        while(true) {
-            LOG_ERROR("!nextSeg??");
-            vTaskDelay(1000);
-        }
-    }
-
-    if (nextSeg->isFloating()) {
-        endTime = min(static_cast<second_t>(endTime) + second_t(10), second_t(20) + second_t(10) * 17);
-    }
-
-    currentSeg = nextSeg;
-    prevConn = nextConn;
-    LOG_DEBUG("Next: %c (%s)", nextSeg->name, micro::to_string(nextManeuver.direction));
-
-    return nextManeuver.direction;
 }
 
 void updateCarOrientation(const CarProps& car, const DetectedLines& detectedLines) {
@@ -139,15 +100,62 @@ void updateCarOrientation(const CarProps& car, const DetectedLines& detectedLine
     }
 }
 
+LabyrinthGraph::Segments::const_iterator getTargetSegment(bool labyrinthDiscovered) {
+    LabyrinthGraph::Segments::const_iterator seg = graph.segments.end();
+    if (labyrinthDiscovered) {
+        seg = laneChange.seg;
+    } else {
+        static char prevSegId = '\0';
+        char segId = prevSegId;
+        radioRecvQueue.peek(segId, millisecond_t(0));
+        seg = segId != prevSegId ? graph.findSegment(segId) : navigator.targetSegment();
+        prevSegId = segId;
+    }
+    return seg;
+}
+
+void handleTargetSegmentChange(const LabyrinthGraph::Segments::const_iterator targetSeg, ControlData& controlData) {
+    if (targetSeg != navigator.targetSegment()) {
+        navigator.setTargetSegment(*targetSeg);
+
+        // if car is in a dead-end segment and a new target segment is received, starts going reverse instantly
+//        if (navigator.currentSegment()->isDeadEnd) {
+//            controlData.speed = speed_LAB_BWD;
+//            controlData.rampTime = millisecond_t(400);
+//        }
+        // TODO handle dead-end
+
+        endTime += second_t(10);
+        ++numFoundSegments;
+    }
+}
+
+void enforceTargetDirection(const Direction targetDir, const DetectedLines& detectedLines, MainLine& mainLine) {
+    static constexpr millimeter_t MAX_LINE_JUMP = centimeter_t(3.5f);
+
+    // updates the main line (if an error occurs, keeps previous line)
+    if (detectedLines.front.lines.size() && detectedLines.rear.lines.size()) {
+        switch (targetDir) {
+        case Direction::LEFT:
+            mainLine.frontLine = detectedLines.front.lines[0];
+            mainLine.rearLine  = *detectedLines.rear.lines.back();
+            break;
+        case Direction::CENTER:
+            mainLine.frontLine = detectedLines.front.lines.size() == 1 ? detectedLines.front.lines[0] : detectedLines.front.lines[1];
+            mainLine.rearLine  = detectedLines.rear.lines.size()  == 1 ? detectedLines.rear.lines[0]  : detectedLines.rear.lines[1];
+            break;
+        case Direction::RIGHT:
+            mainLine.frontLine = *detectedLines.front.lines.back();
+            mainLine.rearLine  = detectedLines.rear.lines[0];
+            break;
+        }
+    }
+}
+
 bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLines, const DetectedLines& detectedLines, MainLine& mainLine, ControlData& controlData) {
 
-    static uint8_t numInSegments;
-    static Direction inSegmentDir;
-
-    static struct {
-        Direction dir = Direction::CENTER;
-        bool enabled = false;
-    } forcedManeuver;
+    static uint8_t numInSegments  = 0;
+    static Direction inSegmentDir = Direction::CENTER;
 
     static const bool runOnce = [&controlData]() {
         endTime = getTime() + millisecond_t(20);
@@ -158,16 +166,14 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
     }();
     UNUSED(runOnce);
 
+    const bool labyrinthDiscovered = numFoundSegments == cfg::NUM_LABYRINTH_SEGMENTS;
     bool finished = false;
 
     updateCarOrientation(car, detectedLines);
 
-    if (forcedManeuver.enabled && LinePattern::SINGLE_LINE == detectedLines.front.pattern.type) {
-        forcedManeuver.enabled = false;
-        LOG_DEBUG("Force maneuver disabled");
-    }
-
     controlData.controlType = ControlData::controlType_t::Line;
+
+    handleTargetSegmentChange(getTargetSegment(labyrinthDiscovered), controlData);
 
     if (detectedLines.front.pattern != prevDetectedLines.front.pattern) {
 
@@ -193,11 +199,12 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
                 inSegmentDir = detectedLines.front.pattern.side;
 
                 // if the car is going backwards, mirrored pattern sides are detected
-                if (currentSeg->isDeadEnd) {
-                    inSegmentDir         = -inSegmentDir;
-                    controlData.speed    = speed_LAB_FWD;
-                    controlData.rampTime = millisecond_t(1000);
-                }
+//                if (currentSeg->isDeadEnd) {
+//                    inSegmentDir         = -inSegmentDir;
+//                    controlData.speed    = speed_LAB_FWD_slow;
+//                    controlData.rampTime = millisecond_t(700);
+//                }
+                // TODO handle dead-ends
 
                 // follows center line in junctions
                 if (3 == detectedLines.front.lines.size()) {
@@ -213,23 +220,22 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
                 const radian_t inOri  = round90(carOri + PI);
                 const radian_t outOri = round90(carOri);
 
-                if (currentSeg->isDeadEnd) {
-                    if (prevConn) {
-                        // when coming back from a dead-end, junction should be handled as if the car
-                        // arrived from the segment before the dead-end segment
-                        currentSeg = prevConn->getOtherSegment(*currentSeg);
-                        numInSegments = prevConn->junction->getSideSegments(inOri)->second.size();
-                        inSegmentDir = prevConn->getManeuver(*currentSeg).direction;
-                        carPosUpdateQueue.overwrite(prevConn->junction->pos);
-                        prevConn = nullptr;
-                    } else {
-                        LOG_ERROR("Current segment is dead-end but there has been no junctions yet");
-                    }
-                }
+//                if (currentSeg->isDeadEnd) {
+//                    if (prevConn) {
+//                        // when coming back from a dead-end, junction should be handled as if the car
+//                        // arrived from the segment before the dead-end segment
+//                        currentSeg = prevConn->getOtherSegment(*currentSeg);
+//                        numInSegments = prevConn->junction->getSideSegments(inOri)->second.size();
+//                        inSegmentDir = prevConn->getManeuver(*currentSeg).direction;
+//                        carPosUpdateQueue.overwrite(prevConn->junction->pos);
+//                        prevConn = nullptr;
+//                    } else {
+//                        LOG_ERROR("Current segment is dead-end but there has been no junctions yet");
+//                    }
+//                }
+                // TODO handle dead-ends
 
-                forcedManeuver.dir = onJunctionDetected(car.pose.pos, inOri, outOri, numInSegments, inSegmentDir, numSegments);
-                forcedManeuver.enabled = true;
-                LOG_DEBUG("Forced maneuver: %s", to_string(forcedManeuver.dir));
+                onJunctionDetected(car.pose.pos, car.distance, inOri, outOri, numInSegments, inSegmentDir, numSegments);
             }
             break;
         }
@@ -240,7 +246,7 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
             break;
 
         case LinePattern::LANE_CHANGE:
-            if (!nextSegment) {
+            if (labyrinthDiscovered) {
                 finished = true;
             }
             break;
@@ -250,27 +256,8 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& prevDetectedLin
         }
     }
 
-    if (forcedManeuver.enabled) {
-        static constexpr millimeter_t MAX_LINE_JUMP = centimeter_t(3.5f);
-
-        // updates the main line (if an error occurs, keeps previous line)
-        if (detectedLines.front.lines.size() && detectedLines.rear.lines.size()) {
-            switch (forcedManeuver.dir) {
-            case Direction::LEFT:
-                mainLine.frontLine = detectedLines.front.lines[0];
-                mainLine.rearLine  = *detectedLines.rear.lines.back();
-                break;
-            case Direction::CENTER:
-                mainLine.frontLine = detectedLines.front.lines.size() == 1 ? detectedLines.front.lines[0] : detectedLines.front.lines[1];
-                mainLine.rearLine  = detectedLines.rear.lines.size()  == 1 ? detectedLines.rear.lines[0]  : detectedLines.rear.lines[1];
-                break;
-            case Direction::RIGHT:
-                mainLine.frontLine = *detectedLines.front.lines.back();
-                mainLine.rearLine  = detectedLines.rear.lines[0];
-                break;
-            }
-        }
-    }
+    const Direction targetDir = navigator.update(car.distance);
+    enforceTargetDirection(targetDir, detectedLines, mainLine);
 
     mainLine.updateCenterLine(car.speed >= m_per_sec_t(0));
 

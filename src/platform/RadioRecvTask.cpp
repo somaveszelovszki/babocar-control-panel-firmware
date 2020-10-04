@@ -9,7 +9,7 @@
 
 using namespace micro;
 
-queue_t<uint8_t, 1> radioRecvQueue;
+queue_t<char, 1> radioRecvQueue;
 
 namespace {
 volatile millisecond_t lastRxTime;
@@ -25,7 +25,7 @@ extern "C" void runRadioRecvTask(void) {
 
     while (true) {
         if (const_cast<const millisecond_t&>(lastRxTime) != lastQueueSendTime) {
-            radioRecvQueue.overwrite(radioRecvValue);
+            radioRecvQueue.overwrite(static_cast<char>(radioRecvValue));
             lastQueueSendTime = const_cast<const millisecond_t&>(lastRxTime);
         }
         os_sleep(millisecond_t(20));

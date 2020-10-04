@@ -2,9 +2,41 @@
 
 using namespace micro;
 
-namespace {
+LabyrinthRoute::LabyrinthRoute(const Segment& currentSeg)
+    : startSeg(&currentSeg)
+    , destSeg(&currentSeg) {}
 
-bool isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
+void LabyrinthRoute::push_front(const Connection& c) {
+    this->connections.push_front(&c);
+    this->startSeg = c.getOtherSegment(*this->startSeg);
+}
+
+void LabyrinthRoute::push_back(const Connection& c) {
+    this->connections.push_back(&c);
+    this->destSeg = c.getOtherSegment(*this->destSeg);
+}
+
+void LabyrinthRoute::pop_front() {
+    if (this->connections.size()) {
+        this->startSeg = this->connections[0]->getOtherSegment(*startSeg);
+        this->connections.erase(this->connections.begin());
+    }
+}
+
+const Connection* LabyrinthRoute::firstConnection() const {
+    return this->connections.size() > 0 ? this->connections[0] : nullptr;
+}
+
+const Connection* LabyrinthRoute::lastConnection() const {
+    return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
+}
+
+void LabyrinthRoute::reset(const Segment& currentSeg) {
+    this->startSeg = this->destSeg = &currentSeg;
+    this->connections.clear();
+}
+
+bool LabyrinthRoute::isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
     // does not permit going backwards or navigating through dead-end segments
 
     const bool isBwd     = newConn.junction == prevConn.junction && newConn.getManeuver(currentSeg) == prevConn.getManeuver(currentSeg);
@@ -13,37 +45,7 @@ bool isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg,
     return !isBwd && !isDeadEnd;
 }
 
-} // namespace
-
-void Route::push_front(const Connection& c) {
-    this->connections.push_front(&c);
-    this->startSeg = c.getOtherSegment(*this->startSeg);
-}
-
-void Route::push_back(const Connection& c) {
-    this->connections.push_back(&c);
-}
-
-const Connection* Route::nextConnection() {
-    const Connection *conn = nullptr;
-    if (this->connections.size()) {
-        conn = this->connections[0];
-        this->startSeg = conn->getOtherSegment(*this->startSeg);
-        this->connections.erase(this->connections.begin());
-    }
-    return conn;
-}
-
-const Connection* Route::lastConnection() const {
-    return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
-}
-
-void Route::reset(const Segment& currentSeg) {
-    this->startSeg = &currentSeg;
-    this->connections.clear();
-}
-
-Route createRoute(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg) {
+LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg) {
 
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for forward-moving car in a graph that allows multiple connections between the nodes
@@ -55,7 +57,7 @@ Route createRoute(const Connection& prevConn, const Segment& currentSeg, const S
         bool isDistMinimized          = false;
         SegmentRouteInfo *prevSegInfo = nullptr;
     };
-    typedef micro::vec<SegmentRouteInfo, Route::MAX_LENGTH> SegmentRouteInfos;
+    typedef micro::vec<SegmentRouteInfo, 2 * cfg::NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
 
     SegmentRouteInfos info;
 
@@ -105,7 +107,7 @@ Route createRoute(const Connection& prevConn, const Segment& currentSeg, const S
         segInfo->isDistMinimized = true;
     }
 
-    Route route(destSeg);
+    LabyrinthRoute route(destSeg);
 
     while (segInfo->prevSegInfo) {
         route.push_front(*segInfo->prevConn);

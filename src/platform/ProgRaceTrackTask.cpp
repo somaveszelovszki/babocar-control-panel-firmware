@@ -17,7 +17,7 @@
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <DetectedLines.hpp>
-#include <DistancesData.hpp>
+#include <Distances.hpp>
 #include <track.hpp>
 
 using namespace micro;
@@ -26,7 +26,7 @@ extern queue_t<CarProps, 1> carPropsQueue;
 extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 extern queue_t<DetectedLines, 1> detectedLinesQueue;
 extern queue_t<ControlData, 1> controlQueue;
-extern queue_t<DistancesData, 1> distancesQueue;
+extern queue_t<Distances, 1> distancesQueue;
 
 Sign safetyCarFollowSpeedSign = Sign::POSITIVE;
 
@@ -244,7 +244,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     DetectedLines prevDetectedLines, detectedLines;
     ControlData controlData;
-    DistancesData distances;
+    Distances distances;
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 

@@ -2,21 +2,27 @@
 
 #include <LabyrinthGraph.hpp>
 
-struct Route {
-    static constexpr uint32_t MAX_LENGTH = 2 * cfg::NUM_LABYRINTH_SEGMENTS;
-    const Segment *startSeg;
+#include <utility>
+
+struct LabyrinthRoute {
+    static constexpr uint32_t MAX_LENGTH = 20 * cfg::NUM_LABYRINTH_SEGMENTS;
+    const Segment* startSeg;
+    const Segment* destSeg;
     micro::vec<const Connection*, MAX_LENGTH> connections;
 
-    explicit Route(const Segment& currentSeg) : startSeg(&currentSeg) {}
+    explicit LabyrinthRoute(const Segment& currentSeg);
 
     void push_front(const Connection& c);
     void push_back(const Connection& c);
 
-    const Connection* nextConnection();
+    void pop_front();
 
+    const Connection* firstConnection() const;
     const Connection* lastConnection() const;
 
     void reset(const Segment& currentSeg);
-};
 
-Route createRoute(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg);
+    static bool isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn);
+
+    static LabyrinthRoute create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg);
+};

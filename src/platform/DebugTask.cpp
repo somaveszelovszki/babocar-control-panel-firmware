@@ -23,18 +23,18 @@ semaphore_t txSemaphore;
 
 void transmit(const char * const data) {
     uart_transmit(uart_Debug, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
-    txSemaphore.take(micro::numeric_limits<millisecond_t>::infinity());
+    txSemaphore.take();
 }
 
 bool monitorTasks() {
     static Timer failureLogTimer(millisecond_t(100));
 
-    const SystemManager::taskStates_t failingTasks = SystemManager::instance().failingTasks();
+    const SystemManager::TaskStates failingTasks = SystemManager::instance().failingTasks();
 
     if (failingTasks.size() && failureLogTimer.checkTimeout()) {
         char msg[LOG_MSG_MAX_SIZE];
         uint32_t idx = 0;
-        for (SystemManager::taskStates_t::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
+        for (SystemManager::TaskStates::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
             idx += strncpy_until(&msg[idx], it->details.pcTaskName, min(static_cast<uint32_t>(configMAX_TASK_NAME_LEN), LOG_MSG_MAX_SIZE - idx));
             if (it != failingTasks.back()) {
                 idx += strncpy_until(&msg[idx], ", ", sizeof(", "), LOG_MSG_MAX_SIZE - idx);

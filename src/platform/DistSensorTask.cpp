@@ -1,4 +1,5 @@
 #include <cfg_board.hpp>
+#include <Distances.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/PanelLink.hpp>
 #include <micro/panel/DistSensorPanelData.hpp>
@@ -7,18 +8,17 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <DistancesData.hpp>
 
 using namespace micro;
 
-queue_t<DistancesData, 1> distancesQueue;
+queue_t<Distances, 1> distancesQueue;
 
 namespace {
 
 PanelLink<DistSensorPanelOutData, DistSensorPanelInData> frontDistSensorPanelLink(panelLinkRole_t::Master, { uart_FrontDistSensor });
 PanelLink<DistSensorPanelOutData, DistSensorPanelInData> rearDistSensorPanelLink(panelLinkRole_t::Master, { uart_RearDistSensor });
 
-DistancesData distances;
+Distances distances;
 
 void parseDistSensorPanelData(const DistSensorPanelOutData& rxData, const bool isFront) {
     if (isFront) {

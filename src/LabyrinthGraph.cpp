@@ -36,7 +36,7 @@ Status Junction::addSegment(Segment& seg, const Maneuver& maneuver) {
     return result;
 }
 
-Segment* Junction::getSegment(radian_t orientation, Direction dir) {
+Segment* Junction::getSegment(radian_t orientation, Direction dir) const {
     Segment *result = nullptr;
     segment_map::const_iterator sideSegments = this->getSideSegments(orientation);
 
@@ -153,19 +153,27 @@ void LabyrinthGraph::connect(Segments::iterator seg, Junctions::iterator junc, c
 }
 
 LabyrinthGraph::Segments::iterator LabyrinthGraph::findSegment(char name) {
+    return const_cast<LabyrinthGraph::Segments::iterator>(const_cast<const LabyrinthGraph*>(this)->findSegment(name));
+}
+
+LabyrinthGraph::Segments::const_iterator LabyrinthGraph::findSegment(char name) const {
     return std::find_if(this->segments.begin(), this->segments.end(), [name](const Segment& seg) { return seg.name == name; });
 }
 
 LabyrinthGraph::Junctions::iterator LabyrinthGraph::findJunction(uint8_t id) {
+    return const_cast<LabyrinthGraph::Junctions::iterator>(const_cast<const LabyrinthGraph*>(this)->findJunction(id));
+}
+
+LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(uint8_t id) const {
     return std::find_if(this->junctions.begin(), this->junctions.end(), [id](const Junction& junc) { return junc.id == id; });
 }
 
-LabyrinthGraph::Junctions::iterator LabyrinthGraph::findJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) {
+LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) const {
 
-    Junctions::iterator result = this->junctions.end();
+    Junctions::const_iterator result = this->junctions.end();
 
     struct JunctionDist {
-        Junctions::iterator junc;
+        Junctions::const_iterator junc;
         meter_t dist;
     };
 
@@ -178,7 +186,7 @@ LabyrinthGraph::Junctions::iterator LabyrinthGraph::findJunction(const point2m& 
         { this->junctions.end(), micro::numeric_limits<meter_t>::infinity() }
     };
 
-    for(Junctions::iterator it = this->junctions.begin(); it != this->junctions.end(); ++it) {
+    for(Junctions::const_iterator it = this->junctions.begin(); it != this->junctions.end(); ++it) {
         const meter_t dist = pos.distance(it->pos);
 
         if (dist < closest.first.dist) {
@@ -219,4 +227,10 @@ LabyrinthGraph::Junctions::iterator LabyrinthGraph::findJunction(const point2m& 
     }
 
     return result;
+}
+
+LabyrinthGraph::Connections::const_iterator LabyrinthGraph::findFirstConnection(const Segment& seg1, const Segment& seg2) const {
+    return std::find_if(this->connections.begin(), this->connections.end(), [&seg1, &seg2](const Connection& c) {
+        return (c.node1->name == seg1.name && c.node2->name == seg2.name) || (c.node1->name == seg2.name && c.node2->name == seg1.name);
+    });
 }

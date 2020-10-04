@@ -72,7 +72,7 @@ struct Junction {
 
     micro::Status addSegment(Segment& seg, const Maneuver& maneuver);
 
-    Segment* getSegment(micro::radian_t orientation, micro::Direction dir);
+    Segment* getSegment(micro::radian_t orientation, micro::Direction dir) const;
 
     bool isConnected(const Segment& seg) const;
 
@@ -131,6 +131,12 @@ struct LabyrinthGraph {
     void connect(Segments::iterator seg, Junctions::iterator junc, const Maneuver& maneuver);
 
     Segments::iterator findSegment(char name);
+    Segments::const_iterator findSegment(char name) const;
+
     Junctions::iterator findJunction(uint8_t id);
-    Junctions::iterator findJunction(const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments);
+    Junctions::const_iterator findJunction(uint8_t id) const;
+
+    Junctions::const_iterator findJunction(const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) const;
+
+    Connections::const_iterator findFirstConnection(const Segment& seg1, const Segment& seg2) const;
 };

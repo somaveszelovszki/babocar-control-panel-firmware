@@ -9,7 +9,7 @@
 
 using namespace micro;
 
-extern queue_t<uint8_t, 1> radioRecvQueue;
+extern queue_t<char, 1> radioRecvQueue;
 
 namespace {
 
@@ -18,12 +18,12 @@ void waitStartSignal() {
     char prevStartCounter = startCounter;
 
     do {
-        radioRecvQueue.peek(reinterpret_cast<uint8_t&>(startCounter), millisecond_t(10));
+        radioRecvQueue.peek(startCounter, millisecond_t(10));
         if (startCounter != prevStartCounter) {
             LOG_DEBUG("Seconds until start: %c", startCounter);
             prevStartCounter = startCounter;
         }
-        vTaskDelay(50);
+        os_sleep(millisecond_t(50));
     } while ('0' != startCounter);
 
     LOG_DEBUG("Started!");
@@ -35,7 +35,6 @@ extern "C" void runStartupTask(void) {
     millisecond_t lastButtonClickTime = getTime();
     uint32_t buttonClick = 0;
     gpioPinState_t prevButtonState = gpioPinState_t::SET;
-
 
     while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
         gpioPinState_t buttonState;
