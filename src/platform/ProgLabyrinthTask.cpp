@@ -294,6 +294,9 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     ControlData controlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
+    controlData.speed    = speed_LAB_FWD;
+    controlData.rampTime = millisecond_t(1000);
+
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::NavigateLabyrinth), enum_cast(cfg::ProgramState::LaneChange))) {
