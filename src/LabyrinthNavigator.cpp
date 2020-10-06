@@ -7,12 +7,13 @@ using namespace micro;
 LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Connection& prevConn, const Segment& currentSeg)
     : graph_(graph)
     , prevConn_(&prevConn)
+    , currentSeg_(&currentSeg)
     , plannedRoute_(currentSeg)
     , lastJuncDist_(0)
     , targetDir_(Direction::CENTER) {}
 
 const Segment* LabyrinthNavigator::currentSegment() const {
-    return this->plannedRoute_.startSeg;
+    return this->currentSeg_;
 }
 
 const Segment* LabyrinthNavigator::targetSegment() const {
@@ -23,9 +24,13 @@ const Connection* LabyrinthNavigator::nextConnection() const {
     return this->plannedRoute_.firstConnection();
 }
 
+meter_t LabyrinthNavigator::lastJunctionDistance() const {
+    return this->lastJuncDist_;
+}
+
 void LabyrinthNavigator::setTargetSegment(const Segment& targetSeg) {
     LOG_DEBUG("Next target segment: %c", targetSeg.name);
-    this->plannedRoute_ = LabyrinthRoute::create(*this->prevConn_, *this->plannedRoute_.startSeg, targetSeg);
+    this->plannedRoute_ = LabyrinthRoute::create(*this->prevConn_, *this->currentSeg_, targetSeg);
 
     LOG_DEBUG("Planned route:");
 
@@ -42,11 +47,15 @@ void LabyrinthNavigator::setTargetSegment(const Segment& targetSeg) {
 void LabyrinthNavigator::onJunctionDetected(const micro::meter_t distance) {
     this->lastJuncDist_ = distance;
     this->prevConn_     = this->plannedRoute_.firstConnection();
-    this->plannedRoute_.pop_front();
+
+    if (this->prevConn_) {
+        this->plannedRoute_.pop_front();
+        this->currentSeg_ = this->plannedRoute_.startSeg;
+    }
 }
 
 Direction LabyrinthNavigator::update(const micro::meter_t distance) {
-    if (distance - this->lastJuncDist_ >= this->plannedRoute_.startSeg->length / 2) {
+    if (distance - this->lastJunctionDistance() >= this->plannedRoute_.startSeg->length / 2) {
         this->updateTargetDirection();
     }
 
@@ -54,8 +63,8 @@ Direction LabyrinthNavigator::update(const micro::meter_t distance) {
 }
 
 void LabyrinthNavigator::reset(const Connection& prevConn, const Segment& currentSeg) {
-    this->prevConn_ = &prevConn;
-    this->plannedRoute_.reset(currentSeg);
+    this->prevConn_   = &prevConn;
+    this->currentSeg_ = &currentSeg;
     this->setTargetSegment(*this->plannedRoute_.destSeg);   // rebuilds route
 }
 

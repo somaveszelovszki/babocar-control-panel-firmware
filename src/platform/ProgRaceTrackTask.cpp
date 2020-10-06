@@ -294,7 +294,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             const meter_t distFromSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
 
-            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, car.speed >= m_per_sec_t(0));
+            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, micro::sgn(car.speed));
 
             // sets default lateral control
             controlData.controlType          = ControlData::controlType_t::Line;

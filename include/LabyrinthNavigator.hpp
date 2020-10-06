@@ -13,6 +13,8 @@ public:
     const Segment* targetSegment() const;
     const Connection* nextConnection() const;
 
+    micro::meter_t lastJunctionDistance() const;
+
     void setTargetSegment(const Segment& targetSeg);
 
     void onJunctionDetected(const micro::meter_t distance);
@@ -26,6 +28,7 @@ private:
 
     LabyrinthGraph graph_;
     const Connection *prevConn_;
+    const Segment *currentSeg_;
     LabyrinthRoute plannedRoute_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;

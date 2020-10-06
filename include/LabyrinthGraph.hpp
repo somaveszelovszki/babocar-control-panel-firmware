@@ -136,7 +136,7 @@ struct LabyrinthGraph {
     Junctions::iterator findJunction(uint8_t id);
     Junctions::const_iterator findJunction(uint8_t id) const;
 
-    Junctions::const_iterator findJunction(const micro::point2m& pos, micro::radian_t inOri, micro::radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) const;
+    Junctions::const_iterator findJunction(const micro::point2m& pos, const micro::vec<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
     Connections::const_iterator findFirstConnection(const Segment& seg1, const Segment& seg2) const;
 };

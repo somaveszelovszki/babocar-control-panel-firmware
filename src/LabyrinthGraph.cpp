@@ -168,7 +168,7 @@ LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(uint8_t i
     return std::find_if(this->junctions.begin(), this->junctions.end(), [id](const Junction& junc) { return junc.id == id; });
 }
 
-LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(const point2m& pos, radian_t inOri, radian_t outOri, uint8_t numInSegments, uint8_t numOutSegments) const {
+LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(const point2m& pos, const micro::vec<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
 
     Junctions::const_iterator result = this->junctions.end();
 
@@ -195,14 +195,18 @@ LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(const poi
         }
 
         if (dist < closest.second.dist) {
-            const Junction::segment_map::const_iterator inSegments = it->getSideSegments(inOri);
-            if (inSegments != it->segments.end() && inSegments->second.size() == numInSegments) {
-
-                const Junction::segment_map::const_iterator outSegments = it->getSideSegments(outOri);
-                if (outSegments != it->segments.end() && outSegments->second.size() == numOutSegments) {
-                    closest.second.junc = it;
-                    closest.second.dist = dist;
+            bool topologyOk = true;
+            for (const std::pair<micro::radian_t, uint8_t>& numSegs : numSegments) {
+                const Junction::segment_map::const_iterator segments = it->getSideSegments(numSegs.first);
+                if (segments == it->segments.end() || segments->second.size() != numSegs.second) {
+                    topologyOk = false;
+                    break;
                 }
+            }
+
+            if (topologyOk) {
+                closest.second.junc = it;
+                closest.second.dist = dist;
             }
         }
     }
