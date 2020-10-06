@@ -182,15 +182,6 @@ void setNavigationControl(const Direction targetDir, const CarProps& car, const 
     controlData.lineControl.desired = { millimeter_t(0), radian_t(0) };
 }
 
-JunctionPatternInfo getJunctionPatternInfo(const DetectedLines& detectedLines) {
-    const LinePattern::type_t type = detectedLines.front.pattern.type;
-    return {
-        LinePattern::JUNCTION_1 == type || LinePattern::JUNCTION_2 == type || LinePattern::JUNCTION_3 == type ? detectedLines.front.pattern.dir : Sign::NEUTRAL,
-        detectedLines.front.pattern.side,
-        LinePattern::JUNCTION_1 == type ? 1 : LinePattern::JUNCTION_2 == type ? 2 : LinePattern::JUNCTION_3 == type ? 3 : 0
-    };
-}
-
 bool navigateLabyrinth(const CarProps& car, const DetectedLines& detectedLines, MainLine& mainLine, ControlData& controlData) {
 
     static DetectedLines prevDetectedLines;
@@ -241,6 +232,7 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& detectedLines, 
 bool changeLane(const CarProps& car, const DetectedLines& detectedLines, ControlData& controlData) {
 
     static constexpr meter_t LANE_DISTANCE = centimeter_t(60);
+    static Timer stopTimer;
 
     if (laneChange.trajectory.length() == meter_t(0)) {
 
@@ -277,9 +269,26 @@ bool changeLane(const CarProps& car, const DetectedLines& detectedLines, Control
 
     controlData = laneChange.trajectory.update(car);
 
-    const bool finished = laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) && LinePattern::NONE != detectedLines.front.pattern.type;
+    bool finished = false;
+
+    // checks if lane change maneuver is finished
+    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) &&
+        LinePattern::NONE != detectedLines.front.pattern.type                                       &&
+        LinePattern::NONE != detectedLines.rear.pattern.type) {
+
+        if (Sign::POSITIVE == safetyCarFollowSpeedSign) {
+            laneChange.trajectory.clear();
+        } else if (!stopTimer.isRunning()) {
+            // stops for 5 seconds if safety car will be followed in reverse
+            controlData.speed    = m_per_sec_t(0);
+            controlData.rampTime = millisecond_t(500);
+            stopTimer.start(second_t(5));
+        }
+    }
+
     if (finished) {
         laneChange.trajectory.clear();
+        stopTimer.stop();
     }
     return finished;
 }
