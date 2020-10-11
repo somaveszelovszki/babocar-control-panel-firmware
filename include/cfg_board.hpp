@@ -40,8 +40,10 @@ extern UART_HandleTypeDef huart6;
 #define uart_RearDistSensor     micro::uart_t{ &huart5 }
 #define uart_X                  micro::uart_t{ &huart6 }
 
-#define PANEL_VERSION           0x05
-
 #define GYRO_MPU9250            1
 #define GYRO_LSM6DSO            2
 #define GYRO_BOARD              GYRO_MPU9250
+
+#define PANEL_VERSION           0x05
+
+#define QUARTZ_FREQ             megahertz_t(20)

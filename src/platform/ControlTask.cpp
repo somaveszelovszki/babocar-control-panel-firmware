@@ -71,6 +71,12 @@ radian_t frontWheelTargetAngle;
 radian_t rearWheelTargetAngle;
 radian_t frontDistSensorServoTargetAngle;
 
+canFrame_t rxCanFrame;
+CanFrameHandler vehicleCanFrameHandler;
+CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
+
+ControlData controlData;
+
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     switch (controlData.controlType) {
 
@@ -104,27 +110,27 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     frontDistSensorServoTargetAngle = cfg::DIST_SENSOR_SERVO_ENABLED ? frontWheelTargetAngle * cfg::DIST_SENSOR_SERVO_TRANSFER_RATE : radian_t(0);
 }
 
+void initializeVehicleCan() {
+    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const) {});
+    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const) {});
+
+    const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
+    const CanFrameIds txFilter = {};
+    vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
+}
+
 } // namespace
 
 extern "C" void runControlTask(void) {
 
     SystemManager::instance().registerTask();
 
-    ControlData controlData;
-    canFrame_t rxCanFrame;
-    CanFrameHandler vehicleCanFrameHandler;
+    initializeVehicleCan();
 
-    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const) {});
-    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const) {});
-
-    const CanManager::subscriberId_t vehicleCanSubsciberId = vehicleCanManager.registerSubscriber(vehicleCanFrameHandler.identifiers());
-
-    Timer longitudinalControlTimer(can::LongitudinalControl::period());
-    Timer lateralControlTimer(can::LateralControl::period());
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
 
     while (true) {
-        while (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
+        while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
 
@@ -140,23 +146,18 @@ extern "C" void runControlTask(void) {
             controlData.rampTime = millisecond_t(0);
         }
 
-        if (longitudinalControlTimer.checkTimeout()) {
-            vehicleCanManager.send(can::LongitudinalControl(controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime));
-        }
-
-        if (lateralControlTimer.checkTimeout()) {
-            vehicleCanManager.send(can::LateralControl(frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle));
-        }
+        vehicleCanManager.periodicSend<can::LongitudinalControl>(vehicleCanSubscriberId, controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime);
+        vehicleCanManager.send<can::LateralControl>(vehicleCanSubscriberId, frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle);
 
         if (motorControllerParams != prevMotorControllerParams) {
-            vehicleCanManager.send(can::SetMotorControlParams(motorControllerParams.P, motorControllerParams.D));
+            vehicleCanManager.send<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.D);
             prevMotorControllerParams = motorControllerParams;
         }
 
         if (servoOffsets != prevServoOffsets) {
-            vehicleCanManager.send(can::SetFrontWheelParams(servoOffsets.frontWheel, cfg::WHEEL_MAX_DELTA));
-            vehicleCanManager.send(can::SetRearWheelParams(servoOffsets.rearWheel, cfg::WHEEL_MAX_DELTA));
-            vehicleCanManager.send(can::SetExtraServoParams(servoOffsets.extraServo, cfg::DIST_SENSOR_SERVO_MAX_DELTA));
+            vehicleCanManager.send<can::SetFrontWheelParams>(vehicleCanSubscriberId, servoOffsets.frontWheel, cfg::WHEEL_MAX_DELTA);
+            vehicleCanManager.send<can::SetRearWheelParams>(vehicleCanSubscriberId, servoOffsets.rearWheel, cfg::WHEEL_MAX_DELTA);
+            vehicleCanManager.send<can::SetExtraServoParams>(vehicleCanSubscriberId, servoOffsets.extraServo, cfg::DIST_SENSOR_SERVO_MAX_DELTA);
             prevServoOffsets = servoOffsets;
         }
 

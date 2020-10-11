@@ -42,6 +42,10 @@ hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro);
 
 semaphore_t dataReadySemaphore;
 
+canFrame_t rxCanFrame;
+CanFrameHandler vehicleCanFrameHandler;
+CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
+
 void updateCarOrientedDistance(CarProps& car) {
     static meter_t orientedSectionStartDist;
     static radian_t orientation;
@@ -75,15 +79,7 @@ void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
     prevYaw  = yaw;
 }
 
-} // namespace
-
-extern "C" void runVehicleStateTask(void) {
-
-    SystemManager::instance().registerTask();
-
-    canFrame_t rxCanFrame;
-    CanFrameHandler vehicleCanFrameHandler;
-
+void initializeVehicleCan() {
     vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
         radian_t frontDistSensorServoAngle;
         reinterpret_cast<const can::LateralState*>(data)->acquire(car.frontWheelAngle, car.rearWheelAngle, frontDistSensorServoAngle);
@@ -93,7 +89,18 @@ extern "C" void runVehicleStateTask(void) {
         reinterpret_cast<const can::LongitudinalState*>(data)->acquire(car.speed, car.distance);
     });
 
-    const CanManager::subscriberId_t vehicleCanSubsciberId = vehicleCanManager.registerSubscriber(vehicleCanFrameHandler.identifiers());
+    const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
+    const CanFrameIds txFilter = {};
+    vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
+}
+
+} // namespace
+
+extern "C" void runVehicleStateTask(void) {
+
+    SystemManager::instance().registerTask();
+
+    initializeVehicleCan();
 
     gyro.initialize();
     MadgwickAHRS madgwick(gyro.gyroMeanError().Z.get());
@@ -103,7 +110,7 @@ extern "C" void runVehicleStateTask(void) {
     while (true) {
         const CarProps prevCar = car;
 
-        while (vehicleCanManager.read(vehicleCanSubsciberId, rxCanFrame)) {
+        while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
 
