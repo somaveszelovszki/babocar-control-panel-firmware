@@ -86,6 +86,11 @@ static void setupCan1(void) {
     {
       Error_Handler();
     }
+
+    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+    {
+      Error_Handler();
+    }
 }
 
 /* USER CODE END 0 */
