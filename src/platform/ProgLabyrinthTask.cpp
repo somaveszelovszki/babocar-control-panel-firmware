@@ -177,9 +177,9 @@ void setNavigationControl(const Direction targetDir, const CarProps& car, const 
 
     mainLine.updateCenterLine(micro::sgn(car.speed));
 
-    controlData.controlType         = ControlData::controlType_t::Line;
-    controlData.lineControl.actual  = mainLine.centerLine;
-    controlData.lineControl.desired = { millimeter_t(0), radian_t(0) };
+    controlData.controlType        = ControlData::controlType_t::Line;
+    controlData.lineControl.actual = mainLine.centerLine;
+    controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
 }
 
 bool navigateLabyrinth(const CarProps& car, const DetectedLines& detectedLines, MainLine& mainLine, ControlData& controlData) {

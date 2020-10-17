@@ -297,9 +297,9 @@ extern "C" void runProgRaceTrackTask(void) {
             micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, micro::sgn(car.speed));
 
             // sets default lateral control
-            controlData.controlType          = ControlData::controlType_t::Line;
-            controlData.lineControl.actual   = mainLine.centerLine;
-            controlData.lineControl.desired  = { millimeter_t(0), radian_t(0) };
+            controlData.controlType         = ControlData::controlType_t::Line;
+            controlData.lineControl.actual  = mainLine.centerLine;
+            controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 
             if (car.distance - prevCarProps.peek_back(0).distance >= PREV_CAR_PROPS_RESOLUTION) {
                 prevCarProps.push_back(car);
@@ -365,7 +365,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 // the first 3 laps are dedicated to the safety-car follow task,
                 // changing the line offset and angle might ruin the car's capability to detect the safety car
                 if (trackInfo.lap <= 3) {
-                    controlData.lineControl.desired = { millimeter_t(0), radian_t(0) };
+                    controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
                 }
 
                 if (trackInfo.lap > cfg::NUM_RACE_LAPS) {

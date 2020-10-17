@@ -38,7 +38,7 @@ struct ServoOffsets {
 
 ServoOffsets prevServoOffsets, servoOffsets = { degree_t(90), degree_t(90), degree_t(90) };
 
-sorted_map<m_per_sec_t, PID_Params, 10> linePosControllerParams = {
+sorted_map<m_per_sec_t, PID_Params, 10> frontLinePosControllerParams = {
     // speed        P      I      D
     { { 0.0f }, { 1.50f, 0.00f, 80.00f } },
     { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
@@ -51,7 +51,7 @@ sorted_map<m_per_sec_t, PID_Params, 10> linePosControllerParams = {
     { { 9.0f }, { 0.17f, 0.00f, 80.00f } }
 };
 
-sorted_map<m_per_sec_t, PID_Params, 10> lineAngleControllerParams = {
+sorted_map<m_per_sec_t, PID_Params, 10> rearLinePosControllerParams = {
     // speed        P      I      D
     { { 0.0f }, { 1.50f, 0.00f, 80.00f } },
     { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
@@ -64,8 +64,8 @@ sorted_map<m_per_sec_t, PID_Params, 10> lineAngleControllerParams = {
     { { 9.0f }, { 0.17f, 0.00f, 80.00f } }
 };
 
-PID_Controller linePosController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
-PID_Controller lineAngleController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+PID_Controller frontLinePosController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
+PID_Controller rearLinePosController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
 
 radian_t frontWheelTargetAngle;
 radian_t rearWheelTargetAngle;
@@ -76,28 +76,37 @@ CanFrameHandler vehicleCanFrameHandler;
 CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
 ControlData controlData;
+MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
+MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     switch (controlData.controlType) {
 
     case ControlData::controlType_t::Direct:
         frontWheelTargetAngle = controlData.directControl.frontWheelAngle;
-        rearWheelTargetAngle = controlData.directControl.rearWheelAngle;
+        rearWheelTargetAngle  = controlData.directControl.rearWheelAngle;
         break;
 
-    case ControlData::controlType_t::Line: {
-        // separate line position and angle control for front and rear servos
+    case ControlData::controlType_t::Line:
+    {
+        const Sign speedSign = micro::sgn(car.speed);
 
-        linePosController.tune(linePosControllerParams.lerp(car.speed));
-        linePosController.update(static_cast<centimeter_t>(controlData.lineControl.actual.pos - controlData.lineControl.desired.pos).get());
-        frontWheelTargetAngle = degree_t(linePosController.output()) + controlData.lineControl.desired.angle;
+        actualLine.centerLine = controlData.lineControl.actual;
+        actualLine.updateFrontRearLines(speedSign);
 
-        lineAngleController.tune(lineAngleControllerParams.lerp(car.speed));
-        lineAngleController.update(static_cast<degree_t>(controlData.lineControl.actual.angle - controlData.lineControl.desired.angle).get());
-        rearWheelTargetAngle = degree_t(lineAngleController.output()) - controlData.lineControl.desired.angle;
+        targetLine.centerLine = controlData.lineControl.target;
+        targetLine.updateFrontRearLines(speedSign);
+
+        frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
+        frontLinePosController.update(static_cast<centimeter_t>(actualLine.frontLine.pos - targetLine.frontLine.pos).get());
+        frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetLine.centerLine.angle;
+
+        rearLinePosController.tune(rearLinePosControllerParams.lerp(car.speed));
+        rearLinePosController.update(static_cast<centimeter_t>(actualLine.rearLine.pos - targetLine.rearLine.pos).get());
+        rearWheelTargetAngle = -degree_t(rearLinePosController.output()) - targetLine.centerLine.angle;
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
-        if (car.speed < m_per_sec_t(0)) {
+        if (Sign::NEGATIVE == speedSign) {
             std::swap(frontWheelTargetAngle, rearWheelTargetAngle);
         }
         break;
