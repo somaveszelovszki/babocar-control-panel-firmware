@@ -2,7 +2,6 @@
 #include <micro/container/infinite_buffer.hpp>
 #include <micro/debug/params.hpp>
 #include <micro/debug/SystemManager.hpp>
-#include <micro/hw/SteeringServo.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/port/queue.hpp>
