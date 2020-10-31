@@ -79,18 +79,19 @@ LabyrinthGraph createGraph() {
     return graph;
 }
 
-void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const micro::vec<RouteConnection, Route::MAX_LENGTH>& expectedConnections) {
+void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const micro::vec<RouteConnection, LabyrinthRoute::MAX_LENGTH>& expectedConnections) {
     
-    Route route = createRoute(prevConn, src, dest);
+    LabyrinthRoute route = LabyrinthRoute::create(prevConn, src, dest);
 
     ASSERT_EQ(expectedConnections.size(), route.connections.size());
 
     const Segment *seg = &src;
     for (uint32_t i = 0; i < expectedConnections.size(); ++i) {
         EXPECT_EQ(seg, route.startSeg);
-        const Connection *nextConn = route.nextConnection();
+        const Connection *nextConn = route.firstConnection();
         EXPECT_EQ(expectedConnections[i].junction, nextConn->junction);
         EXPECT_EQ(expectedConnections[i].maneuver, nextConn->getManeuver(*(seg = nextConn->getOtherSegment(*seg))));
+        route.pop_front();
     }
 
     EXPECT_EQ(&dest, route.startSeg);
