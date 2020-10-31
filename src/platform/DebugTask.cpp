@@ -16,7 +16,8 @@ namespace {
 
 constexpr uint32_t MAX_PARAMS_BUFFER_SIZE = 1024;
 
-ring_buffer<uint8_t[MAX_PARAMS_BUFFER_SIZE], 3> rxBuffer;
+typedef uint8_t rxParams_t[MAX_PARAMS_BUFFER_SIZE];
+ring_buffer<rxParams_t, 3> rxBuffer;
 Log::message_t txLog;
 char paramsStr[MAX_PARAMS_BUFFER_SIZE];
 semaphore_t txSemaphore;
@@ -53,16 +54,16 @@ extern "C" void runDebugTask(void) {
 
     SystemManager::instance().registerTask();
 
-    uart_receive(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
+    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_PARAMS_BUFFER_SIZE);
 
     DebugLed debugLed(gpio_Led);
     Timer debugParamsSendTimer(millisecond_t(500));
 
     while (true) {
-        if (rxBuffer.size() > 0) {
-            const char * const inCmd = reinterpret_cast<const char*>(*rxBuffer.getReadableBuffer());
-            rxBuffer.updateTail(1);
-            Params::instance().deserializeAll(inCmd, MAX_PARAMS_BUFFER_SIZE);
+        const rxParams_t *inCmd = rxBuffer.startRead();
+        if (inCmd) {
+            Params::instance().deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
+            rxBuffer.finishRead();
         }
 
         if (debugParamsSendTimer.checkTimeout()) {
@@ -82,9 +83,9 @@ extern "C" void runDebugTask(void) {
 
 void micro_Command_Uart_RxCpltCallback() {
     if (MAX_PARAMS_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
-        rxBuffer.updateHead(1);
+        rxBuffer.finishWrite();
     }
-    uart_receive(uart_Debug, *rxBuffer.getWritableBuffer(), MAX_PARAMS_BUFFER_SIZE);
+    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_PARAMS_BUFFER_SIZE);
 }
 
 void micro_Command_Uart_TxCpltCallback() {
