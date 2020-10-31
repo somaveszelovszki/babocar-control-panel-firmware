@@ -2,7 +2,6 @@
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/SystemManager.hpp>
-#include <micro/hw/SteeringServo.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
@@ -120,11 +119,15 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 }
 
 void initializeVehicleCan() {
-    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const) {});
-    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const) {});
-
-    const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
-    const CanFrameIds txFilter = {};
+    const CanFrameIds rxFilter = {};
+    const CanFrameIds txFilter = {
+        can::LongitudinalControl::id(),
+        can::LateralControl::id(),
+        can::SetMotorControlParams::id(),
+        can::SetFrontWheelParams::id(),
+        can::SetRearWheelParams::id(),
+        can::SetExtraServoParams::id()
+    };
     vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
 }
 
@@ -156,7 +159,7 @@ extern "C" void runControlTask(void) {
         }
 
         vehicleCanManager.periodicSend<can::LongitudinalControl>(vehicleCanSubscriberId, controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime);
-        vehicleCanManager.send<can::LateralControl>(vehicleCanSubscriberId, frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle);
+        vehicleCanManager.periodicSend<can::LateralControl>(vehicleCanSubscriberId, frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle);
 
         if (motorControllerParams != prevMotorControllerParams) {
             vehicleCanManager.send<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.D);
