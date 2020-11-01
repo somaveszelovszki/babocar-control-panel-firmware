@@ -24,43 +24,43 @@ queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
-PID_Params prevMotorControllerParams, motorControllerParams = { 0.85f, 0.04f, 0.0f };
+PID_Params motorControllerParams = { 0.4f, 0.0f, 0.0f };
 
 struct ServoOffsets {
-    micro::radian_t frontWheel;
-    micro::radian_t rearWheel;
-    micro::radian_t extraServo;
-
-    bool operator==(const ServoOffsets& other) const { return frontWheel == other.frontWheel && rearWheel == other.rearWheel && extraServo == other.extraServo; }
-    bool operator!=(const ServoOffsets& other) const { return !(*this == other); }
+    micro::radian_t front;
+    micro::radian_t rear;
+    micro::radian_t extra;
 };
 
 ServoOffsets prevServoOffsets, servoOffsets = { degree_t(90), degree_t(90), degree_t(90) };
 
+//6.7cm
+//15.1deg
+
 sorted_map<m_per_sec_t, PID_Params, 10> frontLinePosControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 1.50f, 0.00f, 80.00f } },
-    { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
-    { { 1.5f }, { 1.10f, 0.00f, 80.00f } },
-    { { 2.0f }, { 0.75f, 0.00f, 80.00f } },
-    { { 2.5f }, { 0.60f, 0.00f, 80.00f } },
-    { { 3.0f }, { 0.50f, 0.00f, 80.00f } },
-    { { 4.0f }, { 0.40f, 0.00f, 80.00f } },
-    { { 6.0f }, { 0.25f, 0.00f, 80.00f } },
-    { { 9.0f }, { 0.17f, 0.00f, 80.00f } }
+    { { 0.0f }, { 2.50f, 0.00f, 0.00f } },
+    { { 1.0f }, { 2.40f, 0.00f, 0.00f } },
+    { { 1.5f }, { 2.25f, 0.00f, 0.00f } },
+    { { 2.0f }, { 2.25f, 0.00f, 0.00f } },
+    { { 2.5f }, { 2.00f, 0.00f, 0.00f } },
+    { { 3.0f }, { 1.50f, 0.00f, 0.00f } },
+    { { 4.0f }, { 1.00f, 0.00f, 0.00f } },
+    { { 6.0f }, { 0.75f, 0.00f, 0.00f } },
+    { { 9.0f }, { 0.45f, 0.00f, 0.00f } }
 };
 
 sorted_map<m_per_sec_t, PID_Params, 10> rearLinePosControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 1.50f, 0.00f, 80.00f } },
-    { { 1.0f }, { 1.50f, 0.00f, 80.00f } },
-    { { 1.5f }, { 1.10f, 0.00f, 80.00f } },
-    { { 2.0f }, { 0.75f, 0.00f, 80.00f } },
-    { { 2.5f }, { 0.60f, 0.00f, 80.00f } },
-    { { 3.0f }, { 0.50f, 0.00f, 80.00f } },
-    { { 4.0f }, { 0.40f, 0.00f, 80.00f } },
-    { { 6.0f }, { 0.25f, 0.00f, 80.00f } },
-    { { 9.0f }, { 0.17f, 0.00f, 80.00f } }
+    { { 0.0f }, { 2.50f, 0.00f, 0.00f } },
+    { { 1.0f }, { 2.40f, 0.00f, 0.00f } },
+    { { 1.5f }, { 2.25f, 0.00f, 0.00f } },
+    { { 2.0f }, { 2.25f, 0.00f, 0.00f } },
+    { { 2.5f }, { 2.00f, 0.00f, 0.00f } },
+    { { 3.0f }, { 1.50f, 0.00f, 0.00f } },
+    { { 4.0f }, { 1.00f, 0.00f, 0.00f } },
+    { { 6.0f }, { 0.75f, 0.00f, 0.00f } },
+    { { 9.0f }, { 0.45f, 0.00f, 0.00f } }
 };
 
 PID_Controller frontLinePosController(PID_Params{}, static_cast<degree_t>(cfg::WHEEL_MAX_DELTA).get(), 0.0f);
@@ -101,8 +101,8 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetLine.centerLine.angle;
 
         rearLinePosController.tune(rearLinePosControllerParams.lerp(car.speed));
-        rearLinePosController.update(static_cast<centimeter_t>(actualLine.rearLine.pos - targetLine.rearLine.pos).get());
-        rearWheelTargetAngle = -degree_t(rearLinePosController.output()) - targetLine.centerLine.angle;
+        rearLinePosController.update(static_cast<degree_t>(actualLine.centerLine.angle).get());
+        rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetLine.centerLine.angle;
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
         if (Sign::NEGATIVE == speedSign) {
@@ -124,8 +124,8 @@ void initializeVehicleCan() {
         can::LongitudinalControl::id(),
         can::LateralControl::id(),
         can::SetMotorControlParams::id(),
-        can::SetFrontWheelParams::id(),
-        can::SetRearWheelParams::id(),
+        can::SetFrontSteeringServoParams::id(),
+        can::SetRearSteeringServoParams::id(),
         can::SetExtraServoParams::id()
     };
     vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
@@ -161,17 +161,11 @@ extern "C" void runControlTask(void) {
         vehicleCanManager.periodicSend<can::LongitudinalControl>(vehicleCanSubscriberId, controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime);
         vehicleCanManager.periodicSend<can::LateralControl>(vehicleCanSubscriberId, frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle);
 
-        if (motorControllerParams != prevMotorControllerParams) {
-            vehicleCanManager.send<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.D);
-            prevMotorControllerParams = motorControllerParams;
-        }
+        vehicleCanManager.periodicSend<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.D);
 
-        if (servoOffsets != prevServoOffsets) {
-            vehicleCanManager.send<can::SetFrontWheelParams>(vehicleCanSubscriberId, servoOffsets.frontWheel, cfg::WHEEL_MAX_DELTA);
-            vehicleCanManager.send<can::SetRearWheelParams>(vehicleCanSubscriberId, servoOffsets.rearWheel, cfg::WHEEL_MAX_DELTA);
-            vehicleCanManager.send<can::SetExtraServoParams>(vehicleCanSubscriberId, servoOffsets.extraServo, cfg::DIST_SENSOR_SERVO_MAX_DELTA);
-            prevServoOffsets = servoOffsets;
-        }
+        vehicleCanManager.periodicSend<can::SetFrontSteeringServoParams>(vehicleCanSubscriberId, servoOffsets.front, cfg::WHEEL_MAX_DELTA);
+        vehicleCanManager.periodicSend<can::SetRearSteeringServoParams>(vehicleCanSubscriberId, servoOffsets.rear, cfg::WHEEL_MAX_DELTA);
+        vehicleCanManager.periodicSend<can::SetExtraServoParams>(vehicleCanSubscriberId, servoOffsets.extra, cfg::DIST_SENSOR_SERVO_MAX_DELTA);
 
         SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && !controlDataWatchdog.hasTimedOut());
         os_sleep(millisecond_t(1));
