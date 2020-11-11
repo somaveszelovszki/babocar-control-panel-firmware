@@ -12,12 +12,12 @@ namespace cfg {
 #define RACE_TRACK  2
 #define TRACK       TEST_TRACK
 
-constexpr uint8_t NUM_LABYRINTH_SEGMENTS         = 15;
-constexpr uint8_t MAX_NUM_CROSSING_SEGMENTS_SIDE = 3;
-constexpr uint8_t MAX_NUM_CROSSING_SEGMENTS      = MAX_NUM_CROSSING_SEGMENTS_SIDE * 2;
-constexpr micro::meter_t MIN_JUNCTION_LENGTH     = micro::centimeter_t(20);
-
-constexpr uint8_t NUM_RACE_LAPS = 6;
+constexpr uint8_t         NUM_LABYRINTH_SEGMENTS         = 15;
+constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS_SIDE = 3;
+constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS      = MAX_NUM_CROSSING_SEGMENTS_SIDE * 2;
+constexpr micro::meter_t  MIN_JUNCTION_LENGTH            = micro::centimeter_t(20);
+constexpr uint8_t         NUM_RACE_LAPS                  = 6;
+constexpr micro::radian_t MAX_TARGET_LINE_ANGLE          = micro::degree_t(18);
 
 enum class ProgramState : uint8_t {
     // Start states
@@ -38,7 +38,8 @@ enum class ProgramState : uint8_t {
     Race_segFast4        = 10,
     TurnAround           = 11,
     Finish               = 12,
-    Error                = 13
+    Error                = 13,
+    Test                 = 14
 };
 
 } // namespace cfg
