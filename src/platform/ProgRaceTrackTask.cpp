@@ -259,7 +259,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
-        if (isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::ReachSafetyCar), enum_cast(cfg::ProgramState::Error))) {
+        if (isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::ReachSafetyCar), enum_cast(cfg::ProgramState::Test))) {
 
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
@@ -413,6 +413,28 @@ extern "C" void runProgRaceTrackTask(void) {
                 controlData.speed = m_per_sec_t(0);
                 controlData.rampTime = millisecond_t(100);
                 break;
+
+            case cfg::ProgramState::Test:
+            {
+                static millisecond_t oscillationStartTime = getTime();
+                static constexpr millisecond_t OSCILLATION_PERIOD = millisecond_t(3000);
+
+                millisecond_t phase = getTime() - oscillationStartTime;
+                while (phase >= OSCILLATION_PERIOD) phase -= OSCILLATION_PERIOD;
+
+                controlData.speed = m_per_sec_t(-1);
+                controlData.lineControl.target.angle = map(phase, millisecond_t(0), OSCILLATION_PERIOD / 2, -cfg::MAX_TARGET_LINE_ANGLE, cfg::MAX_TARGET_LINE_ANGLE);
+
+                if (phase < OSCILLATION_PERIOD / 2) {
+                    controlData.lineControl.target.angle = map(phase, millisecond_t(0), OSCILLATION_PERIOD / 2, -cfg::MAX_TARGET_LINE_ANGLE, cfg::MAX_TARGET_LINE_ANGLE);
+                } else {
+                    controlData.lineControl.target.angle = map(phase, OSCILLATION_PERIOD / 2, OSCILLATION_PERIOD, cfg::MAX_TARGET_LINE_ANGLE, -cfg::MAX_TARGET_LINE_ANGLE);
+                }
+
+                controlData.lineControl.target.angle = radian_t(0);
+
+                break;
+            }
 
             default:
                 LOG_ERROR("Invalid program state counter: [%u]", enum_cast(programState));

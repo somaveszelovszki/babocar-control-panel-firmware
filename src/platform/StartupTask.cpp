@@ -36,21 +36,21 @@ extern "C" void runStartupTask(void) {
     uint32_t buttonClick = 0;
     gpioPinState_t prevButtonState = gpioPinState_t::SET;
 
-    while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
-        gpioPinState_t buttonState;
-        gpio_read(gpio_Btn1, buttonState);
-
-        if (gpioPinState_t::RESET == buttonState && gpioPinState_t::SET == prevButtonState) { // detects falling edges
-            ++buttonClick;
-            lastButtonClickTime = getTime();
-            LOG_DEBUG("Click! (%d)", buttonClick);
-        }
-        prevButtonState = buttonState;
-        os_sleep(millisecond_t(50));
-    }
+//    while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
+//        gpioPinState_t buttonState;
+//        gpio_read(gpio_Btn1, buttonState);
+//
+//        if (gpioPinState_t::RESET == buttonState && gpioPinState_t::SET == prevButtonState) { // detects falling edges
+//            ++buttonClick;
+//            lastButtonClickTime = getTime();
+//            LOG_DEBUG("Click! (%d)", buttonClick);
+//        }
+//        prevButtonState = buttonState;
+//        os_sleep(millisecond_t(50));
+//    }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
-    SystemManager::instance().setProgramState(buttonClick);
+    SystemManager::instance().setProgramState(/*buttonClick*/static_cast<SystemManager::programState_t>(cfg::ProgramState::Test));
 
     if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {
         waitStartSignal();
