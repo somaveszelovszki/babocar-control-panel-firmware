@@ -1,4 +1,5 @@
 #include <cfg_board.hpp>
+#include <micro/debug/params.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/semaphore.hpp>
@@ -106,6 +107,8 @@ extern "C" void runVehicleStateTask(void) {
     MadgwickAHRS madgwick(gyro.gyroMeanError().Z.get());
     WatchdogTimer gyroDataWd(millisecond_t(15));
     millisecond_t lastValidGyroDataTime = getTime();
+
+    REGISTER_READ_ONLY_PARAM(car);
 
     while (true) {
         const CarProps prevCar = car;
