@@ -5,7 +5,7 @@
 #include <micro/math/unit_utils.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
-#include <micro/utils/Line.hpp>
+#include <micro/utils/LinePattern.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
@@ -14,7 +14,7 @@
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
-#include <DetectedLines.hpp>
+#include <LaneChangeManeuver.hpp>
 #include <LabyrinthGraphBuilder.hpp>
 #include <LabyrinthNavigator.hpp>
 
@@ -26,7 +26,7 @@ extern queue_t<CarProps, 1> carPropsQueue;
 extern queue_t<point2m, 1> carPosUpdateQueue;
 extern queue_t<radian_t, 1> carOrientationUpdateQueue;
 extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
-extern queue_t<DetectedLines, 1> detectedLinesQueue;
+extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<radian_t, 1> carOrientationUpdateQueue;
 extern queue_t<char, 1> radioRecvQueue;
@@ -35,10 +35,12 @@ extern Sign safetyCarFollowSpeedSign;
 
 namespace {
 
-m_per_sec_t speed_LAB_FWD      = m_per_sec_t(1.2f);
-m_per_sec_t speed_LAB_FWD_slow = m_per_sec_t(0.9f);
-m_per_sec_t speed_LAB_BWD      = m_per_sec_t(-0.8f);
-m_per_sec_t speed_LANE_CHANGE  = m_per_sec_t(0.8f);
+m_per_sec_t LABYRINTH_FORWARD_SPEED      = m_per_sec_t(1.2f);
+m_per_sec_t LABYRINTH_FORWARD_SLOW_SPEED = m_per_sec_t(0.9f);
+m_per_sec_t LABYRINTH_BACKWARD_SPEED     = m_per_sec_t(-0.8f);
+m_per_sec_t LANE_CHANGE_SPEED            = m_per_sec_t(0.8f);
+
+constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
 const LabyrinthGraph graph = buildLabyrinthGraph();
 const LabyrinthGraph::Segments::const_iterator startSeg = graph.findSegment('A');
@@ -50,10 +52,8 @@ struct JunctionPatternInfo {
     uint8_t numSegments = 0;
 };
 
-struct {
-    Segment *seg = nullptr;
-    Trajectory trajectory;
-} laneChange;
+LaneChangeManeuver laneChange;
+Segment *laneChangeSeg = nullptr; // TODO
 
 bool isJunction(const LinePattern& pattern) {
     return LinePattern::JUNCTION_1 == pattern.type ||
@@ -107,12 +107,12 @@ void onJunctionDetected(const CarProps& car, uint8_t numInSegments, uint8_t numO
     }
 }
 
-void updateCarOrientation(const CarProps& car, const DetectedLines& detectedLines) {
+void updateCarOrientation(const CarProps& car, const LineInfo& lineInfo) {
     static meter_t lastUpdatedOrientedDistance;
 
     if (car.orientedDistance - lastUpdatedOrientedDistance > centimeter_t(100)   &&
-        LinePattern::SINGLE_LINE == detectedLines.front.pattern.type             &&
-        car.distance - detectedLines.front.pattern.startDist > centimeter_t(100) &&
+        LinePattern::SINGLE_LINE == lineInfo.front.pattern.type             &&
+        car.distance - lineInfo.front.pattern.startDist > centimeter_t(100) &&
         eqWithOverflow360(car.pose.angle, round90(car.pose.angle), degree_t(10))) {
 
         carOrientationUpdateQueue.overwrite(round90(car.pose.angle));
@@ -123,7 +123,7 @@ void updateCarOrientation(const CarProps& car, const DetectedLines& detectedLine
 LabyrinthGraph::Segments::const_iterator getTargetSegment(bool labyrinthDiscovered) {
     LabyrinthGraph::Segments::const_iterator seg = graph.segments.end();
     if (labyrinthDiscovered) {
-        seg = laneChange.seg;
+        seg = laneChangeSeg;
     } else {
         static char prevSegId = '\0';
         char segId = prevSegId;
@@ -134,43 +134,43 @@ LabyrinthGraph::Segments::const_iterator getTargetSegment(bool labyrinthDiscover
     return seg;
 }
 
-void setNavigationControl(const Direction targetDir, const CarProps& car, const DetectedLines& detectedLines, MainLine& mainLine, ControlData& controlData) {
+void setNavigationControl(const Direction targetDir, const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
 
     const meter_t distSinceLastJunc = car.distance - navigator.lastJunctionDistance();
     const meter_t distUntilNextJunc = navigator.currentSegment()->length - distSinceLastJunc;
 
-    if (isJunction(detectedLines.front.pattern)) {
-        controlData.speed = speed_LAB_FWD;
+    if (isJunction(lineInfo.front.pattern)) {
+        controlData.speed = LABYRINTH_FORWARD_SPEED;
 
-    } else if (LinePattern::DEAD_END == detectedLines.front.pattern.type) {
-        controlData.speed = speed_LAB_BWD;
+    } else if (LinePattern::DEAD_END == lineInfo.front.pattern.type) {
+        controlData.speed = LABYRINTH_BACKWARD_SPEED;
 
-    } else if (LinePattern::DEAD_END == detectedLines.rear.pattern.type) {
-        controlData.speed = speed_LAB_FWD;
+    } else if (LinePattern::DEAD_END == lineInfo.rear.pattern.type) {
+        controlData.speed = LABYRINTH_FORWARD_SPEED;
 
     } else if (navigator.currentSegment()->isDeadEnd && navigator.targetSegment() != navigator.currentSegment()) {
-        controlData.speed = speed_LAB_BWD;
+        controlData.speed = LABYRINTH_BACKWARD_SPEED;
 
     } else if (!navigator.nextConnection() && distUntilNextJunc < centimeter_t(100)) {
-        controlData.speed = speed_LAB_FWD_slow;
+        controlData.speed = LABYRINTH_FORWARD_SLOW_SPEED;
 
     } // else: does not change current speed value
 
     controlData.rampTime = millisecond_t(700);
 
-    if (distSinceLastJunc < centimeter_t(50) && detectedLines.front.lines.size() && detectedLines.rear.lines.size()) {
+    if (distSinceLastJunc < centimeter_t(50) && lineInfo.front.lines.size() && lineInfo.rear.lines.size()) {
         switch (targetDir) {
         case Direction::LEFT:
-            mainLine.frontLine = detectedLines.front.lines[0];
-            mainLine.rearLine  = *detectedLines.rear.lines.back();
+            mainLine.frontLine = lineInfo.front.lines[0];
+            mainLine.rearLine  = *lineInfo.rear.lines.back();
             break;
         case Direction::CENTER:
-            mainLine.frontLine = detectedLines.front.lines.size() == 1 ? detectedLines.front.lines[0] : detectedLines.front.lines[1];
-            mainLine.rearLine  = detectedLines.rear.lines.size()  == 1 ? detectedLines.rear.lines[0]  : detectedLines.rear.lines[1];
+            mainLine.frontLine = lineInfo.front.lines.size() == 1 ? lineInfo.front.lines[0] : lineInfo.front.lines[1];
+            mainLine.rearLine  = lineInfo.rear.lines.size()  == 1 ? lineInfo.rear.lines[0]  : lineInfo.rear.lines[1];
             break;
         case Direction::RIGHT:
-            mainLine.frontLine = *detectedLines.front.lines.back();
-            mainLine.rearLine  = detectedLines.rear.lines[0];
+            mainLine.frontLine = *lineInfo.front.lines.back();
+            mainLine.rearLine  = lineInfo.rear.lines[0];
             break;
         }
     }
@@ -182,16 +182,16 @@ void setNavigationControl(const Direction targetDir, const CarProps& car, const 
     controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
 }
 
-bool navigateLabyrinth(const CarProps& car, const DetectedLines& detectedLines, MainLine& mainLine, ControlData& controlData) {
+bool navigateLabyrinth(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
 
-    static DetectedLines prevDetectedLines;
+    static LineInfo prevLineInfo;
     static uint8_t numFoundSegments = 0;
     static millisecond_t endTime;
 
     static const bool runOnce = [&controlData]() {
         endTime = getTime() + millisecond_t(20);
         carOrientationUpdateQueue.overwrite(radian_t(0));
-        controlData.speed = speed_LAB_FWD;
+        controlData.speed = LABYRINTH_FORWARD_SPEED;
         controlData.rampTime = millisecond_t(500);
         return true;
     }();
@@ -199,7 +199,7 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& detectedLines, 
 
     const bool labyrinthDiscovered = numFoundSegments == cfg::NUM_LABYRINTH_SEGMENTS;
 
-    updateCarOrientation(car, detectedLines);
+    updateCarOrientation(car, lineInfo);
 
     const LabyrinthGraph::Segments::const_iterator targetSeg = getTargetSegment(labyrinthDiscovered);
     if (targetSeg != navigator.targetSegment()) {
@@ -208,88 +208,24 @@ bool navigateLabyrinth(const CarProps& car, const DetectedLines& detectedLines, 
         ++numFoundSegments;
     }
 
-    if (detectedLines.front.pattern != prevDetectedLines.front.pattern) {
+    if (lineInfo.front.pattern != prevLineInfo.front.pattern) {
         // checks if the car is coming out of a junction
-        if (isJunction(detectedLines.front.pattern) && Sign::POSITIVE == detectedLines.front.pattern.dir) {
-            onJunctionDetected(car, getNumSegments(prevDetectedLines.front.pattern), getNumSegments(detectedLines.front.pattern));
+        if (isJunction(lineInfo.front.pattern) && Sign::POSITIVE == lineInfo.front.pattern.dir) {
+            onJunctionDetected(car, getNumSegments(prevLineInfo.front.pattern), getNumSegments(lineInfo.front.pattern));
         }
 
-        if (LinePattern::DEAD_END == detectedLines.front.pattern.type || LinePattern::DEAD_END == detectedLines.rear.pattern.type) {
+        if (LinePattern::DEAD_END == lineInfo.front.pattern.type || LinePattern::DEAD_END == lineInfo.rear.pattern.type) {
             LOG_ERROR("DEAD_END pattern detected! Something's wrong...");
         }
 
-        prevDetectedLines = detectedLines;
+        prevLineInfo = lineInfo;
     }
 
     const Direction targetDir = navigator.update(car.distance);
 
-    setNavigationControl(targetDir, car, detectedLines, mainLine, controlData);
+    setNavigationControl(targetDir, car, lineInfo, mainLine, controlData);
 
-    const bool finished = LinePattern::LANE_CHANGE == detectedLines.front.pattern.type && labyrinthDiscovered;
-    return finished;
-}
-
-bool changeLane(const CarProps& car, const DetectedLines& detectedLines, ControlData& controlData) {
-
-    static constexpr meter_t LANE_DISTANCE = centimeter_t(60);
-    static Timer stopTimer;
-
-    if (laneChange.trajectory.length() == meter_t(0)) {
-
-        laneChange.trajectory.setStartConfig(Trajectory::config_t{
-            car.pose,
-            speed_LANE_CHANGE
-        }, car.distance);
-
-        if (safetyCarFollowSpeedSign == detectedLines.front.pattern.dir) {
-
-            laneChange.trajectory.appendSineArc(Trajectory::config_t{
-                Pose{
-                    laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(80), -safetyCarFollowSpeedSign * LANE_DISTANCE }.rotate(car.pose.angle),
-                    car.pose.angle
-                },
-                speed_LANE_CHANGE,
-            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, 30, radian_t(0), PI);
-
-        } else {
-            laneChange.trajectory.appendCircle(
-                laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(0), safetyCarFollowSpeedSign * LANE_DISTANCE / 2 }.rotate(car.pose.angle),
-                PI,
-                speed_LANE_CHANGE, 30);
-        }
-
-        laneChange.trajectory.appendLine(Trajectory::config_t{
-            Pose{
-                laneChange.trajectory.lastConfig().pose.pos + vec2m{ centimeter_t(50), centimeter_t(0) }.rotate(laneChange.trajectory.lastConfig().pose.angle),
-                laneChange.trajectory.lastConfig().pose.angle
-            },
-            speed_LANE_CHANGE
-        });
-    }
-
-    controlData = laneChange.trajectory.update(car);
-
-    bool finished = false;
-
-    // checks if lane change maneuver is finished
-    if (laneChange.trajectory.length() - laneChange.trajectory.coveredDistance() < centimeter_t(40) &&
-        LinePattern::NONE != detectedLines.front.pattern.type                                       &&
-        LinePattern::NONE != detectedLines.rear.pattern.type) {
-
-        if (Sign::POSITIVE == safetyCarFollowSpeedSign) {
-            laneChange.trajectory.clear();
-        } else if (!stopTimer.isRunning()) {
-            // stops for 5 seconds if safety car will be followed in reverse
-            controlData.speed    = m_per_sec_t(0);
-            controlData.rampTime = millisecond_t(500);
-            stopTimer.start(second_t(5));
-        }
-    }
-
-    if (finished) {
-        laneChange.trajectory.clear();
-        stopTimer.stop();
-    }
+    const bool finished = LinePattern::LANE_CHANGE == lineInfo.front.pattern.type && labyrinthDiscovered;
     return finished;
 }
 
@@ -299,11 +235,11 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
     SystemManager::instance().registerTask();
 
-    DetectedLines detectedLines;
+    LineInfo lineInfo;
     ControlData controlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    controlData.speed    = speed_LAB_FWD;
+    controlData.speed    = LABYRINTH_FORWARD_SPEED;
     controlData.rampTime = millisecond_t(1000);
 
     while (true) {
@@ -314,18 +250,20 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             carPropsQueue.peek(car, millisecond_t(0));
 
             linePatternDomainQueue.overwrite(linePatternDomain_t::Labyrinth);
-            detectedLinesQueue.peek(detectedLines, millisecond_t(0));
-            micro::updateMainLine(detectedLines.front.lines, detectedLines.rear.lines, mainLine, micro::sgn(car.speed));
+            lineInfoQueue.peek(lineInfo, millisecond_t(0));
+            micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine, micro::sgn(car.speed));
 
             switch (programState) {
             case cfg::ProgramState::NavigateLabyrinth:
-                if (navigateLabyrinth(car, detectedLines, mainLine, controlData)) {
+                if (navigateLabyrinth(car, lineInfo, mainLine, controlData)) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::LaneChange));
                 }
                 break;
 
             case cfg::ProgramState::LaneChange:
-                if (changeLane(car, detectedLines, controlData)) {
+                laneChange = LaneChangeManeuver(car, lineInfo.front.pattern.dir, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                laneChange.update(car, lineInfo, mainLine, controlData);
+                if (laneChange.finished()) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::ReachSafetyCar));
                 }
                 break;

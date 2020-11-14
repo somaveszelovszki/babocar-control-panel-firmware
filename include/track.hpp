@@ -65,6 +65,7 @@ typedef micro::vec<TrackSegment, 20> TrackSegments;
 
 struct TrackInfo {
     uint8_t lap = 0;
+    micro::millisecond_t lapStartTime;
     TrackSegments::const_iterator seg;
     micro::CarProps segStartCarProps;
     micro::OrientedLine segStartLine;
