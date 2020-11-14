@@ -37,7 +37,7 @@ void LabyrinthNavigator::setTargetSegment(const Segment& targetSeg) {
     const Segment *prev = this->plannedRoute_.startSeg;
     for (const Connection *c : this->plannedRoute_.connections) {
         const Segment *next = c->getOtherSegment(*prev);
-        LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getManeuver(*next).direction));
+        LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getDecision(*next).direction));
         prev = next;
     }
 
@@ -70,6 +70,6 @@ void LabyrinthNavigator::reset(const Connection& prevConn, const Segment& curren
 
 void LabyrinthNavigator::updateTargetDirection() {
     const Connection *nextConn = this->plannedRoute_.firstConnection();
-    this->targetDir_ = nextConn ? nextConn->getManeuver(*nextConn->getOtherSegment(*this->plannedRoute_.startSeg)).direction : Direction::CENTER;
+    this->targetDir_ = nextConn ? nextConn->getDecision(*nextConn->getOtherSegment(*this->plannedRoute_.startSeg)).direction : Direction::CENTER;
     LOG_DEBUG("Target direction: %s", to_string(this->targetDir_));
 }

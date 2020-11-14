@@ -17,13 +17,13 @@ LabyrinthGraph createGraph() {
     graph.addJunction(Junction(1, { meter_t(2),  meter_t(0) }));
     graph.addJunction(Junction(2, { meter_t(-2), meter_t(0) }));
 
-    graph.connect(graph.findSegment('A'), graph.findJunction(1), Maneuver(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('B'), graph.findJunction(1), Maneuver(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('B'), graph.findJunction(1), Maneuver(radian_t(0), Direction::RIGHT));
+    graph.connect(graph.findSegment('A'), graph.findJunction(1), JunctionDecision(PI,          Direction::CENTER));
+    graph.connect(graph.findSegment('B'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::LEFT));
+    graph.connect(graph.findSegment('B'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::RIGHT));
 
-    graph.connect(graph.findSegment('A'), graph.findJunction(2), Maneuver(radian_t(0), Direction::CENTER));
-    graph.connect(graph.findSegment('C'), graph.findJunction(2), Maneuver(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('C'), graph.findJunction(2), Maneuver(PI,          Direction::RIGHT));
+    graph.connect(graph.findSegment('A'), graph.findJunction(2), JunctionDecision(radian_t(0), Direction::CENTER));
+    graph.connect(graph.findSegment('C'), graph.findJunction(2), JunctionDecision(PI,          Direction::LEFT));
+    graph.connect(graph.findSegment('C'), graph.findJunction(2), JunctionDecision(PI,          Direction::RIGHT));
 
     return graph;
 }
@@ -111,25 +111,25 @@ TEST(labyrinthGraph, connections) {
 
     EXPECT_EQ(graph.findJunction(1), graph.connections[0].junction);
     EXPECT_EQ(graph.findSegment('B'), graph.connections[0].node1);
-    EXPECT_EQ(Maneuver(radian_t(0), Direction::LEFT), graph.connections[0].maneuver1);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::LEFT), graph.connections[0].decision1);
     EXPECT_EQ(graph.findSegment('A'), graph.connections[0].node2);
-    EXPECT_EQ(Maneuver(PI, Direction::CENTER), graph.connections[0].maneuver2);
+    EXPECT_EQ(JunctionDecision(PI, Direction::CENTER), graph.connections[0].decision2);
 
     EXPECT_EQ(graph.findJunction(1), graph.connections[1].junction);
     EXPECT_EQ(graph.findSegment('B'), graph.connections[1].node1);
-    EXPECT_EQ(Maneuver(radian_t(0), Direction::RIGHT), graph.connections[1].maneuver1);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::RIGHT), graph.connections[1].decision1);
     EXPECT_EQ(graph.findSegment('A'), graph.connections[1].node2);
-    EXPECT_EQ(Maneuver(PI, Direction::CENTER), graph.connections[1].maneuver2);
+    EXPECT_EQ(JunctionDecision(PI, Direction::CENTER), graph.connections[1].decision2);
 
     EXPECT_EQ(graph.findJunction(2), graph.connections[2].junction);
     EXPECT_EQ(graph.findSegment('C'), graph.connections[2].node1);
-    EXPECT_EQ(Maneuver(PI, Direction::LEFT), graph.connections[2].maneuver1);
+    EXPECT_EQ(JunctionDecision(PI, Direction::LEFT), graph.connections[2].decision1);
     EXPECT_EQ(graph.findSegment('A'), graph.connections[2].node2);
-    EXPECT_EQ(Maneuver(radian_t(0), Direction::CENTER), graph.connections[2].maneuver2);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::CENTER), graph.connections[2].decision2);
 
     EXPECT_EQ(graph.findJunction(2), graph.connections[3].junction);
     EXPECT_EQ(graph.findSegment('C'), graph.connections[3].node1);
-    EXPECT_EQ(Maneuver(PI, Direction::RIGHT), graph.connections[3].maneuver1);
+    EXPECT_EQ(JunctionDecision(PI, Direction::RIGHT), graph.connections[3].decision1);
     EXPECT_EQ(graph.findSegment('A'), graph.connections[3].node2);
-    EXPECT_EQ(Maneuver(radian_t(0), Direction::CENTER), graph.connections[3].maneuver2);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::CENTER), graph.connections[3].decision2);
 }

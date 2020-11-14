@@ -41,7 +41,7 @@ void LabyrinthRoute::reset(const Segment& currentSeg) {
 bool LabyrinthRoute::isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
     // does not permit going backwards or navigating through dead-end segments
 
-    const bool isBwd     = newConn.junction == prevConn.junction && newConn.getManeuver(currentSeg) == prevConn.getManeuver(currentSeg);
+    const bool isBwd     = newConn.junction == prevConn.junction && newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
     const bool isDeadEnd = newConn.getOtherSegment(currentSeg)->isDeadEnd;
 
     return !isBwd && !isDeadEnd;
@@ -93,7 +93,7 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
                 SegmentRouteInfos::iterator existingSegInfo = std::find_if(info.begin(), info.end(), [&newSegInfo](const SegmentRouteInfo& element) {
                     return element.seg == newSegInfo.seg                               &&
                            element.prevConn->junction == newSegInfo.prevConn->junction &&
-                           element.prevConn->getManeuver(*newSegInfo.seg) == newSegInfo.prevConn->getManeuver(*newSegInfo.seg);
+                           element.prevConn->getDecision(*newSegInfo.seg) == newSegInfo.prevConn->getDecision(*newSegInfo.seg);
                 });
 
                 if (existingSegInfo != info.end()) {

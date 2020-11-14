@@ -14,9 +14,9 @@ LabyrinthGraph buildLabyrinthGraph() {
 
     graph.addJunction(Junction(1, { meter_t(2), meter_t(0) }));
 
-    graph.connect(graph.findSegment('A'), graph.findJunction(1), Maneuver(PI, Direction::CENTER));
-    graph.connect(graph.findSegment('B'), graph.findJunction(1), Maneuver(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('B'), graph.findJunction(1), Maneuver(radian_t(0), Direction::RIGHT));
+    graph.connect(graph.findSegment('A'), graph.findJunction(1), JunctionDecision(PI, Direction::CENTER));
+    graph.connect(graph.findSegment('B'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::LEFT));
+    graph.connect(graph.findSegment('B'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::RIGHT));
 
 #elif LABYRINTH == RACE_LABYRINTH
 

@@ -10,23 +10,23 @@
 
 #include <algorithm>
 
-struct Maneuver {
+struct JunctionDecision {
     micro::radian_t orientation;
     micro::Direction direction;
 
-    Maneuver()
+    JunctionDecision()
         : orientation(0)
         , direction(micro::Direction::CENTER) {}
 
-    Maneuver(micro::radian_t orientation, micro::Direction direction)
+    JunctionDecision(micro::radian_t orientation, micro::Direction direction)
         : orientation(orientation)
         , direction(direction) {}
 
-    bool operator==(const Maneuver& other) const {
+    bool operator==(const JunctionDecision& other) const {
         return micro::eqWithOverflow360(this->orientation, other.orientation, micro::PI_4) && this->direction == other.direction;
     }
 
-    bool operator!=(const Maneuver& other) const {
+    bool operator!=(const JunctionDecision& other) const {
         return !(*this == other);
     }
 };
@@ -37,24 +37,24 @@ struct Segment;
 /* @brief Labyrinth segment connection.
  */
 struct Connection : public Edge<Segment> {
-    Connection(Segment& seg1, Segment& seg2, Junction& junction, const Maneuver& maneuver1, const Maneuver& maneuver2)
+    Connection(Segment& seg1, Segment& seg2, Junction& junction, const JunctionDecision& decision1, const JunctionDecision& decision2)
         : Edge(seg1, seg2)
         , junction(&junction)
-        , maneuver1(maneuver1)
-        , maneuver2(maneuver2) {}
+        , decision1(decision1)
+        , decision2(decision2) {}
 
     Connection()
         : Edge()
         , junction(nullptr)
-        , maneuver1()
-        , maneuver2() {}
+        , decision1()
+        , decision2() {}
 
     Segment* getOtherSegment(const Segment& seg) const;
 
-    Maneuver getManeuver(const Segment& seg) const;
+    JunctionDecision getDecision(const Segment& seg) const;
 
-    Junction *junction; // The junction.
-    Maneuver maneuver1, maneuver2;
+    Junction *junction;
+    JunctionDecision decision1, decision2;
 };
 
 /* @brief Labyrinth junction (cross-roads).
@@ -70,7 +70,7 @@ struct Junction {
 
     Junction() : Junction(0, {}) {}
 
-    micro::Status addSegment(Segment& seg, const Maneuver& maneuver);
+    micro::Status addSegment(Segment& seg, const JunctionDecision& decision);
 
     Segment* getSegment(micro::radian_t orientation, micro::Direction dir) const;
 
@@ -128,7 +128,7 @@ struct LabyrinthGraph {
 
     void addSegment(const Segment& seg);
     void addJunction(const Junction& junc);
-    void connect(Segments::iterator seg, Junctions::iterator junc, const Maneuver& maneuver);
+    void connect(Segments::iterator seg, Junctions::iterator junc, const JunctionDecision& decision);
 
     Segments::iterator findSegment(char name);
     Segments::const_iterator findSegment(char name) const;

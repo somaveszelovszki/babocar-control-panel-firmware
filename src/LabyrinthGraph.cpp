@@ -10,27 +10,27 @@ Segment* Connection::getOtherSegment(const Segment& seg) const {
     return this->node1 == &seg ? this->node2 : this->node2 == &seg ? this->node1 : nullptr;
 }
 
-Maneuver Connection::getManeuver(const Segment& seg) const {
-    return this->node1 == &seg ? this->maneuver1 : this->maneuver2;
+JunctionDecision Connection::getDecision(const Segment& seg) const {
+    return this->node1 == &seg ? this->decision1 : this->decision2;
 }
 
-Status Junction::addSegment(Segment& seg, const Maneuver& maneuver) {
+Status Junction::addSegment(Segment& seg, const JunctionDecision& decision) {
     Status result = Status::ERROR;
 
-    segment_map::iterator sideSegments = this->getSideSegments(maneuver.orientation);
+    segment_map::iterator sideSegments = this->getSideSegments(decision.orientation);
 
     if (sideSegments == this->segments.end()) {
-        this->segments.emplace(maneuver.orientation, side_segment_map());
-        sideSegments = this->getSideSegments(maneuver.orientation);
+        this->segments.emplace(decision.orientation, side_segment_map());
+        sideSegments = this->getSideSegments(decision.orientation);
     }
 
-    if (!sideSegments->second.at(maneuver.direction)) {
-        sideSegments->second.emplace(maneuver.direction, &seg);
+    if (!sideSegments->second.at(decision.direction)) {
+        sideSegments->second.emplace(decision.direction, &seg);
         result = Status::OK;
     } else {
         result = Status::INVALID_DATA;
         LOG_ERROR("Junction %u already has one side segment in orientation: %fdeg and direction: %s",
-            static_cast<uint32_t>(this->id), static_cast<degree_t>(maneuver.orientation).get(), to_string(maneuver.direction));
+            static_cast<uint32_t>(this->id), static_cast<degree_t>(decision.orientation).get(), to_string(decision.direction));
     }
 
     return result;
@@ -137,15 +137,15 @@ void LabyrinthGraph::addJunction(const Junction& junc) {
     this->junctions.push_back(junc);
 }
 
-void LabyrinthGraph::connect(Segments::iterator seg, Junctions::iterator junc, const Maneuver& maneuver) {
+void LabyrinthGraph::connect(Segments::iterator seg, Junctions::iterator junc, const JunctionDecision& decision) {
 
-    junc->addSegment(*seg, maneuver);
+    junc->addSegment(*seg, decision);
 
-    Junction::segment_map::iterator otherSideSegments = junc->getSideSegments(round90(maneuver.orientation + PI));
+    Junction::segment_map::iterator otherSideSegments = junc->getSideSegments(round90(decision.orientation + PI));
 
     if (otherSideSegments != junc->segments.end()) {
         for (Junction::side_segment_map::iterator out = otherSideSegments->second.begin(); out != otherSideSegments->second.end(); ++out) {
-            Connections::iterator conn = this->connections.push_back(Connection(*seg, *out->second, *junc, maneuver, { otherSideSegments->first, out->first }));
+            Connections::iterator conn = this->connections.push_back(Connection(*seg, *out->second, *junc, decision, { otherSideSegments->first, out->first }));
             seg->edges.push_back(conn);
             out->second->edges.push_back(conn);
         }

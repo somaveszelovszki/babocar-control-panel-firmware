@@ -11,15 +11,15 @@ namespace {
 
 struct RouteConnection {
     const Junction *junction;
-    Maneuver maneuver;
+    JunctionDecision decision;
 
     RouteConnection() = default;
     
-    RouteConnection(const Junction *junction, const Maneuver maneuver)
+    RouteConnection(const Junction *junction, const JunctionDecision& decision)
         : junction(junction)
-        , maneuver(maneuver) {}
+        , decision(decision) {}
 
-        RouteConnection& operator=(const RouteConnection&) = default;
+    RouteConnection& operator=(const RouteConnection&) = default;
 };
 
 LabyrinthGraph createGraph() {
@@ -46,35 +46,35 @@ LabyrinthGraph createGraph() {
     graph.addJunction(Junction(6, { meter_t(2.0), meter_t(2.5) }));
     graph.addJunction(Junction(7, { meter_t(2.0), meter_t(3.5) }));
 
-    graph.connect(graph.findSegment('A'), graph.findJunction(1), Maneuver(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('B'), graph.findJunction(1), Maneuver(radian_t(0), Direction::RIGHT));
-    graph.connect(graph.findSegment('K'), graph.findJunction(1), Maneuver(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('C'), graph.findJunction(1), Maneuver(PI,          Direction::RIGHT));
+    graph.connect(graph.findSegment('A'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::LEFT));
+    graph.connect(graph.findSegment('B'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::RIGHT));
+    graph.connect(graph.findSegment('K'), graph.findJunction(1), JunctionDecision(PI,          Direction::LEFT));
+    graph.connect(graph.findSegment('C'), graph.findJunction(1), JunctionDecision(PI,          Direction::RIGHT));
 
-    graph.connect(graph.findSegment('C'), graph.findJunction(2), Maneuver(PI_2,        Direction::CENTER));
-    graph.connect(graph.findSegment('K'), graph.findJunction(2), Maneuver(3 * PI_2,    Direction::LEFT));
-    graph.connect(graph.findSegment('J'), graph.findJunction(2), Maneuver(3 * PI_2,    Direction::RIGHT));
+    graph.connect(graph.findSegment('C'), graph.findJunction(2), JunctionDecision(PI_2,        Direction::CENTER));
+    graph.connect(graph.findSegment('K'), graph.findJunction(2), JunctionDecision(3 * PI_2,    Direction::LEFT));
+    graph.connect(graph.findSegment('J'), graph.findJunction(2), JunctionDecision(3 * PI_2,    Direction::RIGHT));
 
-    graph.connect(graph.findSegment('B'), graph.findJunction(3), Maneuver(PI_2,        Direction::CENTER));
-    graph.connect(graph.findSegment('D'), graph.findJunction(3), Maneuver(3 * PI_2,    Direction::LEFT));
-    graph.connect(graph.findSegment('L'), graph.findJunction(3), Maneuver(3 * PI_2,    Direction::CENTER));
-    graph.connect(graph.findSegment('E'), graph.findJunction(3), Maneuver(3 * PI_2,    Direction::RIGHT));
+    graph.connect(graph.findSegment('B'), graph.findJunction(3), JunctionDecision(PI_2,        Direction::CENTER));
+    graph.connect(graph.findSegment('D'), graph.findJunction(3), JunctionDecision(3 * PI_2,    Direction::LEFT));
+    graph.connect(graph.findSegment('L'), graph.findJunction(3), JunctionDecision(3 * PI_2,    Direction::CENTER));
+    graph.connect(graph.findSegment('E'), graph.findJunction(3), JunctionDecision(3 * PI_2,    Direction::RIGHT));
 
-    graph.connect(graph.findSegment('D'), graph.findJunction(4), Maneuver(PI_2,        Direction::LEFT));
-    graph.connect(graph.findSegment('A'), graph.findJunction(4), Maneuver(PI_2,        Direction::RIGHT));
-    graph.connect(graph.findSegment('F'), graph.findJunction(4), Maneuver(3 * PI_2,    Direction::CENTER));
+    graph.connect(graph.findSegment('D'), graph.findJunction(4), JunctionDecision(PI_2,        Direction::LEFT));
+    graph.connect(graph.findSegment('A'), graph.findJunction(4), JunctionDecision(PI_2,        Direction::RIGHT));
+    graph.connect(graph.findSegment('F'), graph.findJunction(4), JunctionDecision(3 * PI_2,    Direction::CENTER));
 
-    graph.connect(graph.findSegment('F'), graph.findJunction(5), Maneuver(radian_t(0), Direction::CENTER));
-    graph.connect(graph.findSegment('G'), graph.findJunction(5), Maneuver(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('L'), graph.findJunction(5), Maneuver(PI,          Direction::RIGHT));
+    graph.connect(graph.findSegment('F'), graph.findJunction(5), JunctionDecision(radian_t(0), Direction::CENTER));
+    graph.connect(graph.findSegment('G'), graph.findJunction(5), JunctionDecision(PI,          Direction::LEFT));
+    graph.connect(graph.findSegment('L'), graph.findJunction(5), JunctionDecision(PI,          Direction::RIGHT));
 
-    graph.connect(graph.findSegment('H'), graph.findJunction(6), Maneuver(PI_2,        Direction::LEFT));
-    graph.connect(graph.findSegment('E'), graph.findJunction(6), Maneuver(PI_2,        Direction::RIGHT));
-    graph.connect(graph.findSegment('G'), graph.findJunction(6), Maneuver(3 * PI_2,    Direction::CENTER));
+    graph.connect(graph.findSegment('H'), graph.findJunction(6), JunctionDecision(PI_2,        Direction::LEFT));
+    graph.connect(graph.findSegment('E'), graph.findJunction(6), JunctionDecision(PI_2,        Direction::RIGHT));
+    graph.connect(graph.findSegment('G'), graph.findJunction(6), JunctionDecision(3 * PI_2,    Direction::CENTER));
 
-    graph.connect(graph.findSegment('J'), graph.findJunction(7), Maneuver(PI_2,        Direction::LEFT));
-    graph.connect(graph.findSegment('I'), graph.findJunction(7), Maneuver(PI_2,        Direction::RIGHT));
-    graph.connect(graph.findSegment('H'), graph.findJunction(7), Maneuver(3 * PI_2,    Direction::CENTER));
+    graph.connect(graph.findSegment('J'), graph.findJunction(7), JunctionDecision(PI_2,        Direction::LEFT));
+    graph.connect(graph.findSegment('I'), graph.findJunction(7), JunctionDecision(PI_2,        Direction::RIGHT));
+    graph.connect(graph.findSegment('H'), graph.findJunction(7), JunctionDecision(3 * PI_2,    Direction::CENTER));
 
     return graph;
 }
@@ -90,7 +90,7 @@ void checkRoute(const Connection& prevConn, const Segment& src, const Segment& d
         EXPECT_EQ(seg, route.startSeg);
         const Connection *nextConn = route.firstConnection();
         EXPECT_EQ(expectedConnections[i].junction, nextConn->junction);
-        EXPECT_EQ(expectedConnections[i].maneuver, nextConn->getManeuver(*(seg = nextConn->getOtherSegment(*seg))));
+        EXPECT_EQ(expectedConnections[i].decision, nextConn->getDecision(*(seg = nextConn->getOtherSegment(*seg))));
         route.pop_front();
     }
 
@@ -123,7 +123,7 @@ TEST(labyrinthRoute, route_1_conn) {
     });
 
     checkRoute(prevConn, src, dest, {
-        { graph.findJunction(1), Maneuver(PI, Direction::RIGHT) }
+        { graph.findJunction(1), JunctionDecision(PI, Direction::RIGHT) }
     });
 }
 
@@ -138,10 +138,10 @@ TEST(labyrinthRoute, route_4_conn_hoop) {
     });
 
     checkRoute(prevConn, src, dest, {
-        { graph.findJunction(1), Maneuver(PI,          Direction::LEFT) },
-        { graph.findJunction(2), Maneuver(PI_2,        Direction::CENTER) },
-        { graph.findJunction(1), Maneuver(radian_t(0), Direction::RIGHT) },
-        { graph.findJunction(3), Maneuver(3 * PI_2,    Direction::LEFT) },
+        { graph.findJunction(1), JunctionDecision(PI,          Direction::LEFT) },
+        { graph.findJunction(2), JunctionDecision(PI_2,        Direction::CENTER) },
+        { graph.findJunction(1), JunctionDecision(radian_t(0), Direction::RIGHT) },
+        { graph.findJunction(3), JunctionDecision(3 * PI_2,    Direction::LEFT) },
     });
 }
 
@@ -156,8 +156,8 @@ TEST(labyrinthRoute, route_3_conn_fastest) {
     });
 
     checkRoute(prevConn, src, dest, {
-        { graph.findJunction(4), Maneuver(PI_2, Direction::LEFT) },
-        { graph.findJunction(3), Maneuver(PI_2, Direction::CENTER) },
-        { graph.findJunction(1), Maneuver(PI,   Direction::RIGHT) }
+        { graph.findJunction(4), JunctionDecision(PI_2, Direction::LEFT) },
+        { graph.findJunction(3), JunctionDecision(PI_2, Direction::CENTER) },
+        { graph.findJunction(1), JunctionDecision(PI,   Direction::RIGHT) }
     });
 }
