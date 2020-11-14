@@ -51,17 +51,17 @@ sorted_map<m_per_sec_t, PID_Params, 10> frontLinePosControllerParams = {
     { { 9.0f }, { 0.45f, 0.00f, 0.00f } }
 };
 
-sorted_map<m_per_sec_t, PID_Params, 10> rearLinePosControllerParams = {
+sorted_map<m_per_sec_t, PID_Params, 10> rearLineAngleControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 2.50f, 0.00f, 0.00f } },
-    { { 1.0f }, { 2.40f, 0.00f, 0.00f } },
-    { { 1.5f }, { 2.25f, 0.00f, 0.00f } },
-    { { 2.0f }, { 2.25f, 0.00f, 0.00f } },
-    { { 2.5f }, { 2.00f, 0.00f, 0.00f } },
-    { { 3.0f }, { 1.50f, 0.00f, 0.00f } },
-    { { 4.0f }, { 1.00f, 0.00f, 0.00f } },
-    { { 6.0f }, { 0.75f, 0.00f, 0.00f } },
-    { { 9.0f }, { 0.45f, 0.00f, 0.00f } }
+    { { 0.0f }, { 1.20f, 0.00f, 0.00f } },
+    { { 1.0f }, { 1.00f, 0.00f, 0.00f } },
+    { { 1.5f }, { 0.80f, 0.00f, 0.00f } },
+    { { 2.0f }, { 0.70f, 0.00f, 0.00f } },
+    { { 2.5f }, { 0.60f, 0.00f, 0.00f } },
+    { { 3.0f }, { 0.50f, 0.00f, 0.00f } },
+    { { 4.0f }, { 0.30f, 0.00f, 0.00f } },
+    { { 6.0f }, { 0.20f, 0.00f, 0.00f } },
+    { { 9.0f }, { 0.10f, 0.00f, 0.00f } }
 };
 
 PID_Controller frontLinePosController(PID_Params{}, std::numeric_limits<float>::infinity(), 0.0f);
@@ -111,7 +111,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
         frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
-        rearLinePosController.tune(rearLinePosControllerParams.lerp(car.speed));
+        rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
         rearLinePosController.update(static_cast<degree_t>(actualControlAngle - targetControlAngle).get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
