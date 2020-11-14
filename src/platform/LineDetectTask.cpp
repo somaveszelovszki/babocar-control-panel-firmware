@@ -4,12 +4,11 @@
 #include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/log.hpp>
-#include <micro/utils/Line.hpp>
+#include <micro/utils/LinePattern.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
-#include <DetectedLines.hpp>
 
 using namespace micro;
 
@@ -17,11 +16,11 @@ extern CanManager vehicleCanManager;
 
 extern queue_t<CarProps, 1> carPropsQueue;
 queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
-queue_t<DetectedLines, 1> detectedLinesQueue;
+queue_t<LineInfo, 1> lineInfoQueue;
 
 namespace {
 
-DetectedLines detectedLines;
+LineInfo lineInfo;
 
 canFrame_t rxCanFrame;
 CanFrameHandler vehicleCanFrameHandler;
@@ -29,24 +28,26 @@ CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
 void initializeVehicleCan() {
     vehicleCanFrameHandler.registerHandler(can::FrontLines::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::FrontLines*>(data)->acquire(detectedLines.front.lines);
-        detectedLinesQueue.overwrite(detectedLines);
+        reinterpret_cast<const can::FrontLines*>(data)->acquire(lineInfo.front.lines);
+        lineInfoQueue.overwrite(lineInfo);
     });
 
     vehicleCanFrameHandler.registerHandler(can::RearLines::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::RearLines*>(data)->acquire(detectedLines.rear.lines);
+        reinterpret_cast<const can::RearLines*>(data)->acquire(lineInfo.rear.lines);
     });
 
     vehicleCanFrameHandler.registerHandler(can::FrontLinePattern::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::FrontLinePattern*>(data)->acquire(detectedLines.front.pattern);
+        reinterpret_cast<const can::FrontLinePattern*>(data)->acquire(lineInfo.front.pattern);
     });
 
     vehicleCanFrameHandler.registerHandler(can::RearLinePattern::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::RearLinePattern*>(data)->acquire(detectedLines.rear.pattern);
+        reinterpret_cast<const can::RearLinePattern*>(data)->acquire(lineInfo.rear.pattern);
     });
 
     const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
-    const CanFrameIds txFilter = {};
+    const CanFrameIds txFilter = {
+        can::LineDetectControl::id()
+    };
     vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
 }
 
@@ -74,7 +75,7 @@ extern "C" void runLineDetectTask(void) {
 
             const bool isFwd                     = car.speed >= m_per_sec_t(0);
             const bool isRace                    = linePatternDomain_t::Race == domain;
-            const bool isReducedScanRangeEnabled = isRace && ((isFwd && detectedLines.front.lines.size()) || (!isFwd && detectedLines.rear.lines.size()));
+            const bool isReducedScanRangeEnabled = isRace && ((isFwd && lineInfo.front.lines.size() == 1) || (!isFwd && lineInfo.rear.lines.size() == 1));
             const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0;
 
             vehicleCanManager.periodicSend<can::LineDetectControl>(vehicleCanSubscriberId, cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain);
