@@ -229,6 +229,10 @@ bool navigateLabyrinth(const CarProps& car, const LineInfo& lineInfo, MainLine& 
     return finished;
 }
 
+bool shouldHandle(const cfg::ProgramState programState) {
+    return isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::NavigateLabyrinth), enum_cast(cfg::ProgramState::LaneChange));
+}
+
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
@@ -242,9 +246,11 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     controlData.speed    = LABYRINTH_FORWARD_SPEED;
     controlData.rampTime = millisecond_t(1000);
 
+    state_t<cfg::ProgramState> programState = cfg::ProgramState::INVALID;
+
     while (true) {
-        const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
-        if (isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::NavigateLabyrinth), enum_cast(cfg::ProgramState::LaneChange))) {
+        programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
+        if (shouldHandle(programState)) {
 
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
@@ -261,8 +267,12 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
 
             case cfg::ProgramState::LaneChange:
-                laneChange = LaneChangeManeuver(car, lineInfo.front.pattern.dir, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                if (programState.changed()) {
+                    laneChange.initialize(car, lineInfo.front.pattern.dir, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                }
+
                 laneChange.update(car, lineInfo, mainLine, controlData);
+
                 if (laneChange.finished()) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::ReachSafetyCar));
                 }

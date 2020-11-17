@@ -13,7 +13,7 @@ extern "C" void Error_Handler(void);
 
 extern "C" void system_init(void) {
     if (PANEL_VERSION != getPanelVersion()) {
-        //Error_Handler();
+        Error_Handler();
     }
 
     time_init(timer_t{ tim_System });

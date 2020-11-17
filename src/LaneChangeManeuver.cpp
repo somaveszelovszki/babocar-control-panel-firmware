@@ -9,14 +9,17 @@ LaneChangeManeuver::LaneChangeManeuver()
     , safetyCarFollowSpeedSign_(Sign::NEUTRAL)
     , state_(state_t::FollowTrajectory) {}
 
-LaneChangeManeuver::LaneChangeManeuver(const micro::CarProps& car, const micro::Sign patternDir, const micro::Sign safetyCarFollowSpeedSign,
-        const micro::m_per_sec_t speed, const micro::meter_t laneDistance)
-    : Maneuver()
-    , patternDir_(patternDir)
-    , safetyCarFollowSpeedSign_(safetyCarFollowSpeedSign)
-    , speed_(-sgn(car.speed) * speed)
-    , laneDistance_(laneDistance)
-    , state_(state_t::FollowTrajectory) {
+void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sign patternDir, const micro::Sign safetyCarFollowSpeedSign,
+        const micro::m_per_sec_t speed, const micro::meter_t laneDistance) {
+    Maneuver::initialize();
+
+    this->patternDir_               = patternDir;
+    this->safetyCarFollowSpeedSign_ = safetyCarFollowSpeedSign;
+    this->speed_                    = speed;
+    this->laneDistance_             = laneDistance;
+    this->state_                    = state_t::FollowTrajectory;
+
+    this->trajectory_.clear();
     this->buildTrajectory(car);
 }
 
@@ -48,8 +51,6 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
 }
 
 void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
-
-    this->trajectory_.clear();
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,

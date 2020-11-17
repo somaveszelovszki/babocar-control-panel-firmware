@@ -3,9 +3,9 @@
 #include <micro/control/maneuver.hpp>
 #include <micro/utils/trajectory.hpp>
 
-class TurnAroundManeuver : public micro::Maneuver {
+class TestManeuver : public micro::Maneuver {
 public:
-    TurnAroundManeuver();
+    TestManeuver();
 
     void initialize(const micro::CarProps& car, const micro::m_per_sec_t speed, const micro::meter_t sineArcLength, const micro::meter_t circleRadius);
 

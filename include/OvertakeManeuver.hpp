@@ -6,12 +6,11 @@
 class OvertakeManeuver : public micro::Maneuver {
 public:
     OvertakeManeuver();
-    OvertakeManeuver(const micro::CarProps& car,
+
+    void initialize(const micro::CarProps& car,
         const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightEndSpeed, const micro::m_per_sec_t endSpeed,
         const micro::meter_t sectionLength, const micro::meter_t prepareDistance, const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
         const micro::meter_t sideDistance);
-
-    OvertakeManeuver(const OvertakeManeuver&) = default;
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 

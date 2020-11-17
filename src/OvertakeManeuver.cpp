@@ -7,22 +7,28 @@ OvertakeManeuver::OvertakeManeuver()
     : Maneuver()
     , state_(state_t::Prepare) {}
 
-OvertakeManeuver::OvertakeManeuver(const micro::CarProps& car,
+void OvertakeManeuver::initialize(const micro::CarProps& car,
     const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightEndSpeed, const micro::m_per_sec_t endSpeed,
     const micro::meter_t sectionLength, const micro::meter_t prepareDistance, const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
-    const micro::meter_t sideDistance)
-    : Maneuver()
-    , initialCarProps_(car)
-    , beginSpeed_(sgn(car.speed) * beginSpeed_)
-    , straightStartSpeed_(sgn(car.speed) * straightStartSpeed)
-    , straightEndSpeed_(sgn(car.speed) * straightEndSpeed)
-    , endSpeed_(sgn(car.speed) * endSpeed)
-    , sectionLength_(sectionLength)
-    , prepareDistance_(prepareDistance)
-    , beginSineArcLength_(beginSineArcLength)
-    , endSineArcLength_(endSineArcLength)
-    , sideDistance_(sideDistance)
-    , state_(state_t::Prepare) {}
+    const micro::meter_t sideDistance) {
+    Maneuver::initialize();
+
+    const Sign speedSign = sgn(car.speed);
+
+    this->initialCarProps_    = car;
+    this->beginSpeed_         = speedSign * beginSpeed_;
+    this->straightStartSpeed_ = speedSign * straightStartSpeed;
+    this->straightEndSpeed_   = speedSign * straightEndSpeed;
+    this->endSpeed_           = speedSign * endSpeed;
+    this->sectionLength_      = sectionLength;
+    this->prepareDistance_    = prepareDistance;
+    this->beginSineArcLength_ = beginSineArcLength;
+    this->endSineArcLength_   = endSineArcLength;
+    this->sideDistance_       = sideDistance;
+    this->state_              = state_t::Prepare;
+
+    this->trajectory_.clear();
+}
 
 void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
     switch (this->state_) {
@@ -55,8 +61,6 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
     const point2m posDiff           = car.pose.pos - this->initialCarProps_.pose.pos;
     const meter_t fastSectionLength = this->sectionLength_ - posDiff.length() - this->beginSineArcLength_ - this->endSineArcLength_;
     const radian_t forwardAngle     = posDiff.getAngle();
-
-    this->trajectory_.clear();
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         Pose{ car.pose.pos, forwardAngle },

@@ -19,6 +19,7 @@
 #include <Distances.hpp>
 #include <track.hpp>
 #include <OvertakeManeuver.hpp>
+#include <TestManeuver.hpp>
 #include <TurnAroundManeuver.hpp>
 
 using namespace micro;
@@ -48,11 +49,12 @@ meter_t OVERTAKE_BEGIN_SINE_ARC_LENGTH    = centimeter_t(180);
 meter_t OVERTAKE_END_SINE_ARC_LENGTH      = centimeter_t(150);
 meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(60);
 
-meter_t TURN_AROUND_RADIUS                = centimeter_t(35);
-meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(100);
+meter_t TURN_AROUND_RADIUS                = centimeter_t(40);
+meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(90);
 
 OvertakeManeuver overtake;
 TurnAroundManeuver turnAround;
+TestManeuver testManeuver;
 
 TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
     return trackSegments.back() == currentSeg ? trackSegments.begin() : currentSeg + 1;
@@ -197,7 +199,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::OvertakeSafetyCar:
                 if (programState.changed()) {
-                    overtake = OvertakeManeuver(car,
+                    overtake.initialize(car,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_END_SPEED, OVERTAKE_END_SPEED,
                         OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
                         OVERTAKE_SIDE_DISTANCE);
@@ -246,7 +248,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::TurnAround:
                 if (programState.changed()) {
-                    turnAround = TurnAroundManeuver(car, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
+                    turnAround.initialize(car, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
                 }
 
                 turnAround.update(car, lineInfo, mainLine, controlData);
@@ -266,14 +268,19 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Error:
-                controlData.speed = m_per_sec_t(0);
+                controlData.speed = m_per_sec_t(0.6);
                 controlData.rampTime = millisecond_t(100);
                 break;
 
             case cfg::ProgramState::Test:
-                turnAround.update(car, lineInfo, mainLine, controlData);
-                if (turnAround.finished()) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
+                if (programState.changed()) {
+                    testManeuver.initialize(car, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
+                }
+
+                testManeuver.update(car, lineInfo, mainLine, controlData);
+
+                if (testManeuver.finished()) {
+                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Error));
                 }
                 break;
 

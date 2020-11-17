@@ -65,7 +65,7 @@ void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
     static radian_t prevYaw = { 0 };
     static meter_t prevDist = { 0 };
 
-    const meter_t d_dist      = sgn(car.speed) * (car.distance - prevDist);
+    const meter_t d_dist      = car.distance - prevDist;
     const radian_t d_angle    = normalizePM180(yaw - prevYaw);
     const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST);
 

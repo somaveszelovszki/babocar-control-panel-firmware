@@ -1,16 +1,16 @@
 #include <micro/math/numeric.hpp>
-#include <TurnAroundManeuver.hpp>
+#include <TestManeuver.hpp>
 
 using namespace micro;
 
-TurnAroundManeuver::TurnAroundManeuver()
+TestManeuver::TestManeuver()
     : Maneuver()
     , state_(state_t::Stop) {}
 
-void TurnAroundManeuver::initialize(const CarProps& car, const m_per_sec_t speed, const meter_t sineArcLength, const meter_t circleRadius) {
+void TestManeuver::initialize(const CarProps& car, const m_per_sec_t speed, const meter_t sineArcLength, const meter_t circleRadius) {
     Maneuver::initialize();
 
-    this->speed_         = -sgn(car.speed) * speed;
+    this->speed_         = speed;
     this->sineArcLength_ = sineArcLength;
     this->circleRadius_  = circleRadius;
     this->state_         = state_t::Stop;
@@ -18,7 +18,7 @@ void TurnAroundManeuver::initialize(const CarProps& car, const m_per_sec_t speed
     this->trajectory_.clear();
 }
 
-void TurnAroundManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
+void TestManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
     switch (this->state_) {
 
     case state_t::Stop:
@@ -38,6 +38,7 @@ void TurnAroundManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
     case state_t::FollowTrajectory:
         controlData = this->trajectory_.update(car);
 
+
         if (this->trajectory_.finished(car, lineInfo)) {
             this->finish();
         }
@@ -45,9 +46,9 @@ void TurnAroundManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
     }
 }
 
-void TurnAroundManeuver::buildTrajectory(const micro::CarProps& car) {
+void TestManeuver::buildTrajectory(const micro::CarProps& car) {
 
-    const radian_t forwardAngle = this->speed_ > m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI;
+    const radian_t forwardAngle = this->speed_ >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI;
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,
