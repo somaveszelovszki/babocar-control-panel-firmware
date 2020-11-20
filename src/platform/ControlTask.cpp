@@ -19,7 +19,7 @@ using namespace micro;
 
 extern queue_t<CarProps, 1> carPropsQueue;
 
-CanManager vehicleCanManager(can_Vehicle, millisecond_t(50));
+CanManager vehicleCanManager(can_Vehicle);
 
 queue_t<ControlData, 1> controlQueue;
 
@@ -179,7 +179,7 @@ extern "C" void runControlTask(void) {
         vehicleCanManager.periodicSend<can::SetRearSteeringServoParams>(vehicleCanSubscriberId, servoOffsets.rear, cfg::WHEEL_MAX_DELTA);
         vehicleCanManager.periodicSend<can::SetExtraServoParams>(vehicleCanSubscriberId, servoOffsets.extra, cfg::DIST_SENSOR_SERVO_MAX_DELTA);
 
-        SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && !controlDataWatchdog.hasTimedOut());
+        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut());
         os_sleep(millisecond_t(1));
     }
 }

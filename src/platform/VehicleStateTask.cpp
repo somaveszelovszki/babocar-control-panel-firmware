@@ -156,7 +156,7 @@ extern "C" void runVehicleStateTask(void) {
             gyroDataWd.reset();
         }
 
-        SystemManager::instance().notify(!vehicleCanManager.hasRxTimedOut() && getTime() - lastValidGyroDataTime < millisecond_t(50));
+        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && getTime() - lastValidGyroDataTime < millisecond_t(50));
         os_sleep(millisecond_t(1));
     }
 }
