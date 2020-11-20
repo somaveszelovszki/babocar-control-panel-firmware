@@ -16,7 +16,7 @@ void OvertakeManeuver::initialize(const micro::CarProps& car,
     const Sign speedSign = sgn(car.speed);
 
     this->initialCarProps_    = car;
-    this->beginSpeed_         = speedSign * beginSpeed_;
+    this->beginSpeed_         = speedSign * beginSpeed;
     this->straightStartSpeed_ = speedSign * straightStartSpeed;
     this->straightEndSpeed_   = speedSign * straightEndSpeed;
     this->endSpeed_           = speedSign * endSpeed;
