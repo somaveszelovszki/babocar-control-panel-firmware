@@ -34,6 +34,7 @@ queue_t<radian_t, 1> carOrientationUpdateQueue;
 namespace {
 
 CarProps car;
+bool isRemoteControlled = false;
 
 #if GYRO_BOARD == GYRO_MPU9250
 hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_500DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
@@ -87,7 +88,7 @@ void initializeVehicleCan() {
     });
 
     vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::LongitudinalState*>(data)->acquire(car.speed, car.distance);
+        reinterpret_cast<const can::LongitudinalState*>(data)->acquire(car.speed, isRemoteControlled, car.distance);
     });
 
     const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
@@ -109,6 +110,7 @@ extern "C" void runVehicleStateTask(void) {
     millisecond_t lastValidGyroDataTime = getTime();
 
     REGISTER_READ_ONLY_PARAM(car);
+    REGISTER_READ_ONLY_PARAM(isRemoteControlled);
 
     while (true) {
         const CarProps prevCar = car;
