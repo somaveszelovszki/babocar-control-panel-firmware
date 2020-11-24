@@ -28,6 +28,7 @@ extern "C" void runRadioRecvTask(void) {
             radioRecvQueue.overwrite(static_cast<char>(radioRecvValue));
             lastQueueSendTime = const_cast<const millisecond_t&>(lastRxTime);
         }
+        SystemManager::instance().notify(true);
         os_sleep(millisecond_t(20));
     }
 }
