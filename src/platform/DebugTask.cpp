@@ -57,7 +57,7 @@ extern "C" void runDebugTask(void) {
     uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_PARAMS_BUFFER_SIZE);
 
     DebugLed debugLed(gpio_Led);
-    Timer debugParamsSendTimer(millisecond_t(500));
+    Timer debugParamsSendTimer(millisecond_t(200));
 
     while (true) {
         const rxParams_t *inCmd = rxBuffer.startRead();
