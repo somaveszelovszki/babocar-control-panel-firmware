@@ -90,4 +90,12 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
         },
         this->endSpeed_
     }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI_2);
+
+    this->trajectory_.appendLine(Trajectory::config_t{
+        Pose{
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(0) }.rotate(forwardAngle),
+            forwardAngle
+        },
+        this->endSpeed_
+    });
 }
