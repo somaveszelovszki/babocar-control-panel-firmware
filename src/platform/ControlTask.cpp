@@ -172,12 +172,7 @@ extern "C" void runControlTask(void) {
 
         vehicleCanManager.periodicSend<can::LongitudinalControl>(vehicleCanSubscriberId, controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime);
         vehicleCanManager.periodicSend<can::LateralControl>(vehicleCanSubscriberId, frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle);
-
-        vehicleCanManager.periodicSend<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.D);
-
-        vehicleCanManager.periodicSend<can::SetFrontSteeringServoParams>(vehicleCanSubscriberId, servoOffsets.front, cfg::WHEEL_MAX_DELTA);
-        vehicleCanManager.periodicSend<can::SetRearSteeringServoParams>(vehicleCanSubscriberId, servoOffsets.rear, cfg::WHEEL_MAX_DELTA);
-        vehicleCanManager.periodicSend<can::SetExtraServoParams>(vehicleCanSubscriberId, servoOffsets.extra, cfg::DIST_SENSOR_SERVO_MAX_DELTA);
+        vehicleCanManager.periodicSend<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.I);
 
         SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut());
         os_sleep(millisecond_t(1));
