@@ -34,14 +34,17 @@ void initializeVehicleCan() {
 
     vehicleCanFrameHandler.registerHandler(can::RearLines::id(), [] (const uint8_t * const data) {
         reinterpret_cast<const can::RearLines*>(data)->acquire(lineInfo.rear.lines);
+        lineInfoQueue.overwrite(lineInfo);
     });
 
     vehicleCanFrameHandler.registerHandler(can::FrontLinePattern::id(), [] (const uint8_t * const data) {
         reinterpret_cast<const can::FrontLinePattern*>(data)->acquire(lineInfo.front.pattern);
+        lineInfoQueue.overwrite(lineInfo);
     });
 
     vehicleCanFrameHandler.registerHandler(can::RearLinePattern::id(), [] (const uint8_t * const data) {
         reinterpret_cast<const can::RearLinePattern*>(data)->acquire(lineInfo.rear.pattern);
+        lineInfoQueue.overwrite(lineInfo);
     });
 
     const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
