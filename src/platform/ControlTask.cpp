@@ -25,18 +25,13 @@ queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
-PID_Params motorControllerParams = { 0.4f, 0.0f, 0.0f };
+PID_Params motorControllerParams = { 0.7f, 0.002f, 0.0f };
 
 struct ServoOffsets {
     micro::radian_t front;
     micro::radian_t rear;
     micro::radian_t extra;
 };
-
-ServoOffsets prevServoOffsets, servoOffsets = { degree_t(90), degree_t(90), degree_t(90) };
-
-//6.7cm
-//15.1deg
 
 sorted_map<m_per_sec_t, PID_Params, 10> frontLinePosControllerParams = {
     // speed        P      I      D
