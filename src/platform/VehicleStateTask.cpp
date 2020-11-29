@@ -61,7 +61,7 @@ void updateCarOrientedDistance(CarProps& car) {
     car.orientedDistance = car.distance - orientedSectionStartDist;
 }
 
-void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
+void updateCarPose(const radian_t yaw) {
 
     static radian_t prevYaw = { 0 };
     static meter_t prevDist = { 0 };
@@ -74,7 +74,6 @@ void updateCarProps(const rad_per_sec_t yawRate, const radian_t yaw) {
     car.pose.pos.X += d_dist * cos(speedAngle);
     car.pose.pos.Y += d_dist * sin(speedAngle);
     car.pose.angle  = normalize360(car.pose.angle + d_angle / 2);
-    car.yawRate     = yawRate;
 
     updateCarOrientedDistance(car);
     prevDist = car.distance;
@@ -113,8 +112,6 @@ extern "C" void runVehicleStateTask(void) {
     REGISTER_READ_ONLY_PARAM(isRemoteControlled);
 
     while (true) {
-        const CarProps prevCar = car;
-
         while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
@@ -142,15 +139,15 @@ extern "C" void runVehicleStateTask(void) {
 
             if (!micro::isinf(gyroData.X) && !micro::isinf(accelData.X)) {
                 madgwick.update(sampleTime, gyroData, accelData);
-                updateCarProps(gyroData.Z, madgwick.yaw());
+                car.yawRate = gyroData.Z;
                 gyroDataWd.reset();
                 lastValidGyroDataTime = getTime();
             }
         }
 
-        if (car != prevCar) {
-            carPropsQueue.overwrite(car);
-        }
+        updateCarPose(madgwick.yaw());
+
+        carPropsQueue.overwrite(car);
 
         if (gyroDataWd.hasTimedOut()) {
             LOG_ERROR("Gyro timed out");
@@ -159,7 +156,7 @@ extern "C" void runVehicleStateTask(void) {
         }
 
         SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && getTime() - lastValidGyroDataTime < millisecond_t(50));
-        os_sleep(millisecond_t(1));
+        os_sleep(millisecond_t(5));
     }
 }
 
