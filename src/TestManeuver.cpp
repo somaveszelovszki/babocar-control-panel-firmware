@@ -4,75 +4,66 @@
 using namespace micro;
 
 TestManeuver::TestManeuver()
-    : Maneuver()
-    , state_(state_t::Stop) {}
+    : Maneuver() {}
 
-void TestManeuver::initialize(const CarProps& car, const m_per_sec_t speed, const meter_t sineArcLength, const meter_t circleRadius) {
+void TestManeuver::initialize(const CarProps& car) {
     Maneuver::initialize();
-
-    this->speed_         = speed;
-    this->sineArcLength_ = sineArcLength;
-    this->circleRadius_  = circleRadius;
-    this->state_         = state_t::Stop;
-
     this->trajectory_.clear();
 }
 
 void TestManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
-    switch (this->state_) {
 
-    case state_t::Stop:
-        controlData.speed    = m_per_sec_t(0);
-        controlData.rampTime = second_t(1);
+    if (this->trajectory_.length() == meter_t(0)) {
+        this->buildTrajectory(car);
+    }
 
-        controlData.controlType         = ControlData::controlType_t::Line;
-        controlData.lineControl.actual  = mainLine.centerLine;
-        controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
+    controlData = this->trajectory_.update(car);
 
-        if (abs(car.speed) < cm_per_sec_t(2)) {
-            this->buildTrajectory(car);
-            this->state_ = state_t::FollowTrajectory;
-        }
-        break;
-
-    case state_t::FollowTrajectory:
-        controlData = this->trajectory_.update(car);
-
-
-        if (this->trajectory_.finished(car, lineInfo)) {
-            this->finish();
-        }
-        break;
+    if (this->trajectory_.finished(car, lineInfo)) {
+        this->finish();
     }
 }
 
 void TestManeuver::buildTrajectory(const micro::CarProps& car) {
 
-    const radian_t forwardAngle = this->speed_ >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI;
+    const m_per_sec_t speed = m_per_sec_t(1);
+
+    const radian_t forwardAngle = speed >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI;
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
-        car.pose,
-        speed_
+        Pose{ car.pose.pos, forwardAngle },
+        speed
     }, car.distance);
 
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ sineArcLength_, -circleRadius_ }.rotate(forwardAngle),
-            car.pose.angle
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(75), centimeter_t(30) }.rotate(forwardAngle),
+            forwardAngle
         },
-        speed_
-    }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+        speed
+    }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
 
-    this->trajectory_.appendCircle(
-        this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), circleRadius_ }.rotate(forwardAngle),
-        PI,
-        speed_);
+    this->trajectory_.appendLine(Trajectory::config_t{
+        Pose{
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle),
+            forwardAngle
+        },
+        speed
+    });
 
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ sineArcLength_, circleRadius_ }.rotate(forwardAngle + PI),
-            car.pose.angle + PI
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(75), -centimeter_t(30) }.rotate(forwardAngle),
+            forwardAngle
         },
-        speed_
-    }, car.pose.angle + PI, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+        speed
+    }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI_2);
+
+    this->trajectory_.appendLine(Trajectory::config_t{
+        Pose{
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(0) }.rotate(forwardAngle),
+            forwardAngle
+        },
+        speed
+    });
 }

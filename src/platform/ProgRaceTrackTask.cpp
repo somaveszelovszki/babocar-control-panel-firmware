@@ -268,20 +268,23 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Error:
-                controlData.speed = m_per_sec_t(0.6);
+                controlData.speed = m_per_sec_t(0.0f);
                 controlData.rampTime = millisecond_t(100);
                 break;
 
             case cfg::ProgramState::Test:
                 if (programState.changed()) {
-                    testManeuver.initialize(car, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
+                    testManeuver.initialize(car);
                 }
 
+                controlData.speed = m_per_sec_t(1.0);
                 testManeuver.update(car, lineInfo, mainLine, controlData);
 
                 if (testManeuver.finished()) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Error));
                 }
+
+                //controlData.speed = testSpeed;
                 break;
 
             default:
