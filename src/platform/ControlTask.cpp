@@ -59,8 +59,10 @@ sorted_map<m_per_sec_t, PID_Params, 10> rearLineAngleControllerParams = {
     { { 9.0f }, { 0.10f, 0.00f, 0.00f } }
 };
 
-PID_Controller frontLinePosController(PID_Params{}, std::numeric_limits<float>::infinity(), 0.0f);
-PID_Controller rearLinePosController(PID_Params{}, std::numeric_limits<float>::infinity(), 0.0f);
+constexpr float SERVO_CONTROLLER_MAX_DELTA = static_cast<degree_t>(2 * cfg::WHEEL_MAX_DELTA).get();
+
+PID_Controller frontLinePosController(PID_Params{}, SERVO_CONTROLLER_MAX_DELTA, std::numeric_limits<float>::infinity(), 0.0f);
+PID_Controller rearLinePosController(PID_Params{}, SERVO_CONTROLLER_MAX_DELTA, std::numeric_limits<float>::infinity(), 0.0f);
 
 radian_t frontWheelTargetAngle;
 radian_t rearWheelTargetAngle;
