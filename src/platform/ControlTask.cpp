@@ -132,10 +132,7 @@ void initializeVehicleCan() {
     const CanFrameIds txFilter = {
         can::LongitudinalControl::id(),
         can::LateralControl::id(),
-        can::SetMotorControlParams::id(),
-        can::SetFrontSteeringServoParams::id(),
-        can::SetRearSteeringServoParams::id(),
-        can::SetExtraServoParams::id()
+        can::SetMotorControlParams::id()
     };
     vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
 }
