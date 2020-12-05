@@ -34,8 +34,8 @@ Sign safetyCarFollowSpeedSign = Sign::POSITIVE;
 
 namespace {
 
-m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.3f);
-m_per_sec_t SAFETY_CAR_FAST_MAX_SPEED     = m_per_sec_t(1.8f);
+m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.2f);
+m_per_sec_t SAFETY_CAR_FAST_MAX_SPEED     = m_per_sec_t(1.7f);
 m_per_sec_t REACH_SAFETY_CAR_SPEED        = m_per_sec_t(0.8f);
 m_per_sec_t OVERTAKE_BEGIN_SPEED          = m_per_sec_t(2.6f);
 m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(3.5f);
