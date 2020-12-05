@@ -104,6 +104,13 @@ void updateTrackInfo(const CarProps& car, const LineInfo& lineInfo, const MainLi
     }
 }
 
+ControlData getControl(const micro::CarProps& car, const TrackInfo& trackInfo, const micro::MainLine& mainLine, const Sign targetSpeedSign)
+{
+    ControlData controlData = trackInfo.seg->getControl(car, trackInfo, mainLine);
+    controlData.speed = targetSpeedSign * controlData.speed;
+    return controlData;
+}
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(void) {
@@ -128,6 +135,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     state_t<cfg::ProgramState> programState = cfg::ProgramState::INVALID;
 
+    Sign targetSpeedSign;
     while (true) {
         programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
@@ -136,7 +144,6 @@ extern "C" void runProgRaceTrackTask(void) {
             lineInfoQueue.peek(lineInfo, millisecond_t(0));
             distancesQueue.peek(distances, millisecond_t(0));
 
-            const Sign speedSign = sgn(car.speed);
 
             // runs for the first time that this task handles the program state
             if (!shouldHandle(programState.prev())) {
@@ -154,6 +161,8 @@ extern "C" void runProgRaceTrackTask(void) {
                 trackInfo.lapStartTime = getTime();
                 trackInfo.segStartCarProps = car;
                 trackInfo.segStartLine = mainLine.centerLine;
+
+                targetSpeedSign = safetyCarFollowSpeedSign;
             }
 
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine, micro::sgn(car.speed));
@@ -165,7 +174,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             updateTrackInfo(car, lineInfo, mainLine, trackInfo);
 
-            const meter_t distFromSafetyCar = Sign::POSITIVE == speedSign ? distances.front : distances.rear;
+            const meter_t distFromSafetyCar = Sign::POSITIVE == targetSpeedSign ? distances.front : distances.rear;
             if (distFromSafetyCar < centimeter_t(100)) {
                 lastDistWithSafetyCar = car.distance;
             }
@@ -178,14 +187,14 @@ extern "C" void runProgRaceTrackTask(void) {
             case cfg::ProgramState::ReachSafetyCar:
                 controlData.speed = REACH_SAFETY_CAR_SPEED;
                 controlData.rampTime = millisecond_t(0);
-                if (safetyCarFollowSpeed(distFromSafetyCar, speedSign, true) < controlData.speed) {
+                if (safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, true) < controlData.speed) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
 
             case cfg::ProgramState::FollowSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, speedSign, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
 
                 if (overtakeSeg == trackInfo.seg && (1 == trackInfo.lap || 3 == trackInfo.lap)) {
@@ -205,7 +214,7 @@ extern "C" void runProgRaceTrackTask(void) {
                         OVERTAKE_SIDE_DISTANCE);
                 }
 
-                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, speedSign, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackInfo.seg->isFast);
                 overtake.update(car, lineInfo, mainLine, controlData);
 
                 if (overtake.finished()) {
@@ -215,7 +224,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Race:
-                controlData = trackInfo.seg->getControl(car, trackInfo, mainLine);
+                controlData = getControl(car, trackInfo, mainLine, targetSpeedSign);
 
                 // the first 3 laps are dedicated to the safety-car follow task,
                 // changing the line offset and angle might ruin the car's capability to detect the safety car
@@ -231,8 +240,8 @@ extern "C" void runProgRaceTrackTask(void) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
-                } else if (Sign::NEGATIVE == speedSign &&
-                           trackInfo.lap == 2 &&
+                } else if (Sign::NEGATIVE == targetSpeedSign                 &&
+                           trackInfo.lap == 2                                &&
                            trackInfo.seg == getFastSegment(trackSegments, 1) &&
                            car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
 
@@ -254,13 +263,14 @@ extern "C" void runProgRaceTrackTask(void) {
                 turnAround.update(car, lineInfo, mainLine, controlData);
 
                 if (turnAround.finished()) {
+                    targetSpeedSign = -targetSpeedSign;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                 }
                 break;
 
             case cfg::ProgramState::Finish:
                 if (car.distance - trackInfo.segStartCarProps.distance < meter_t(2.0f)) {
-                    controlData = trackInfo.seg->getControl(car, trackInfo, mainLine);
+                    controlData = getControl(car, trackInfo, mainLine, targetSpeedSign);
                 } else {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1000);
