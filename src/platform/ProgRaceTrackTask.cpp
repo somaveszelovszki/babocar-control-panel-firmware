@@ -60,8 +60,8 @@ TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator cu
     return trackSegments.back() == currentSeg ? trackSegments.begin() : currentSeg + 1;
 }
 
-m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign speedSign, bool isFast) {
-    return speedSign * map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
+m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpeedSign, bool isFast) {
+    return targetSpeedSign * map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
 }
 
 TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const uint32_t fastSeg) {
