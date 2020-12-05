@@ -57,10 +57,10 @@ void TurnAroundManeuver::buildTrajectory(const micro::CarProps& car) {
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
             this->trajectory_.lastConfig().pose.pos + vec2m{ sineArcLength_, -circleRadius_ }.rotate(forwardAngle),
-            car.pose.angle
+            this->trajectory_.lastConfig().pose.angle
         },
         speed_
-    }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 
     this->trajectory_.appendCircle(
         this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), circleRadius_ }.rotate(forwardAngle),
@@ -70,8 +70,8 @@ void TurnAroundManeuver::buildTrajectory(const micro::CarProps& car) {
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
             this->trajectory_.lastConfig().pose.pos + vec2m{ sineArcLength_, circleRadius_ }.rotate(forwardAngle + PI),
-            car.pose.angle + PI
+            this->trajectory_.lastConfig().pose.angle + PI
         },
         speed_
-    }, car.pose.angle + PI, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+    }, forwardAngle + PI, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 }

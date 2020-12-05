@@ -26,44 +26,36 @@ void TestManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLin
 
 void TestManeuver::buildTrajectory(const micro::CarProps& car) {
 
-    const m_per_sec_t speed = m_per_sec_t(1);
+    const m_per_sec_t speed = m_per_sec_t(-0.8f);
 
     const radian_t forwardAngle = speed >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI;
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
-        Pose{ car.pose.pos, forwardAngle },
+        car.pose,
         speed
     }, car.distance);
 
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(75), centimeter_t(30) }.rotate(forwardAngle),
-            forwardAngle
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(30) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.angle
         },
         speed
-    }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
+    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 
     this->trajectory_.appendLine(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle),
-            forwardAngle
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(10), centimeter_t(0) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.angle
         },
         speed
     });
 
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(75), -centimeter_t(30) }.rotate(forwardAngle),
-            forwardAngle
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(-30) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.angle
         },
         speed
-    }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI_2);
-
-    this->trajectory_.appendLine(Trajectory::config_t{
-        Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(0) }.rotate(forwardAngle),
-            forwardAngle
-        },
-        speed
-    });
+    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 }
