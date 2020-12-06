@@ -25,6 +25,7 @@ void OvertakeManeuver::initialize(const micro::CarProps& car,
     this->beginSineArcLength_ = beginSineArcLength;
     this->endSineArcLength_   = endSineArcLength;
     this->sideDistance_       = sideDistance;
+    this->endSlideDistance_   = sideDistance * 3;
     this->state_              = state_t::Prepare;
 
     this->trajectory_.clear();
@@ -49,7 +50,7 @@ void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, Mai
     case state_t::FollowTrajectory:
         controlData = this->trajectory_.update(car);
 
-        if (this->trajectory_.finished(car, lineInfo)) {
+        if (this->trajectory_.finished(car, lineInfo, this->endSlideDistance_)) {
             this->finish();
         }
         break;
@@ -89,11 +90,11 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
             this->trajectory_.lastConfig().pose.angle
         },
         this->endSpeed_
-    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI_2);
 
     this->trajectory_.appendLine(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(0) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.pos + vec2m{ this->endSlideDistance_, centimeter_t(0) }.rotate(forwardAngle - degree_t(40)),
             this->trajectory_.lastConfig().pose.angle
         },
         this->endSpeed_

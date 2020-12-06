@@ -29,7 +29,7 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
     case state_t::FollowTrajectory:
         controlData = this->trajectory_.update(car);
 
-        if (this->trajectory_.finished(car, lineInfo)) {
+        if (this->trajectory_.finished(car, lineInfo, centimeter_t(20))) {
             if (Sign::POSITIVE == this->safetyCarFollowSpeedSign_) {
                 this->finish();
             } else {

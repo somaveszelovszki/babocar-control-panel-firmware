@@ -34,6 +34,7 @@ private:
     micro::meter_t beginSineArcLength_;
     micro::meter_t endSineArcLength_;
     micro::meter_t sideDistance_;
+    micro::meter_t endSlideDistance_;
 
     state_t state_;
     micro::Trajectory trajectory_;

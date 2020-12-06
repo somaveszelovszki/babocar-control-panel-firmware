@@ -19,7 +19,7 @@ void TestManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLin
 
     controlData = this->trajectory_.update(car);
 
-    if (this->trajectory_.finished(car, lineInfo)) {
+    if (this->trajectory_.finished(car, lineInfo, centimeter_t(80))) {
         this->finish();
     }
 }
@@ -37,25 +37,25 @@ void TestManeuver::buildTrajectory(const micro::CarProps& car) {
 
     this->trajectory_.appendSineArc(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(30) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(70), centimeter_t(30) }.rotate(forwardAngle),
             this->trajectory_.lastConfig().pose.angle
         },
         speed
     }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 
+    this->trajectory_.appendSineArc(Trajectory::config_t{
+        Pose{
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(60), centimeter_t(-30) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.angle
+        },
+        speed
+    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI_2);
+
     this->trajectory_.appendLine(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(10), centimeter_t(0) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(0) }.rotate(forwardAngle - degree_t(22)),
             this->trajectory_.lastConfig().pose.angle
         },
         speed
     });
-
-    this->trajectory_.appendSineArc(Trajectory::config_t{
-        Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), centimeter_t(-30) }.rotate(forwardAngle),
-            this->trajectory_.lastConfig().pose.angle
-        },
-        speed
-    }, forwardAngle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 }
