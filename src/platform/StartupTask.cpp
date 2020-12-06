@@ -56,6 +56,4 @@ extern "C" void runStartupTask(void) {
         waitStartSignal();
         SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::NavigateLabyrinth));
     }
-
-    vTaskDelete(nullptr);
 }

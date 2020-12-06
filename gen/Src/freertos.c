@@ -252,6 +252,7 @@ void StartDebugTask(void const * argument)
 
   /* USER CODE BEGIN StartDebugTask */
   runDebugTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartDebugTask */
 }
 
@@ -265,7 +266,9 @@ void StartDebugTask(void const * argument)
 void StartControlTask(void const * argument)
 {
   /* USER CODE BEGIN StartControlTask */
+  UNUSED(argument);
   runControlTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartControlTask */
 }
 
@@ -279,7 +282,9 @@ void StartControlTask(void const * argument)
 void StartVehicleStateTask(void const * argument)
 {
   /* USER CODE BEGIN StartVehicleStateTask */
+  UNUSED(argument);
   runVehicleStateTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartVehicleStateTask */
 }
 
@@ -293,7 +298,9 @@ void StartVehicleStateTask(void const * argument)
 void StartLineDetectTask(void const * argument)
 {
   /* USER CODE BEGIN StartLineDetectTask */
+  UNUSED(argument);
   runLineDetectTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartLineDetectTask */
 }
 
@@ -307,7 +314,9 @@ void StartLineDetectTask(void const * argument)
 void StartStartupTask(void const * argument)
 {
   /* USER CODE BEGIN StartStartupTask */
+  UNUSED(argument);
   runStartupTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartStartupTask */
 }
 
@@ -321,7 +330,9 @@ void StartStartupTask(void const * argument)
 void StartDistSensorTask(void const * argument)
 {
   /* USER CODE BEGIN StartDistSensorTask */
-    runDistSensorTask();
+  UNUSED(argument);
+  runDistSensorTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartDistSensorTask */
 }
 
@@ -335,7 +346,9 @@ void StartDistSensorTask(void const * argument)
 void StartProgLabyrinthTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgLabyrinthTask */
+  UNUSED(argument);
   runProgLabyrinthTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartProgLabyrinthTask */
 }
 
@@ -349,7 +362,9 @@ void StartProgLabyrinthTask(void const * argument)
 void StartProgRaceTrackTask(void const * argument)
 {
   /* USER CODE BEGIN StartProgRaceTrackTask */
+  UNUSED(argument);
   runProgRaceTrackTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartProgRaceTrackTask */
 }
 
@@ -363,7 +378,9 @@ void StartProgRaceTrackTask(void const * argument)
 void StartRadioRecvTask(void const * argument)
 {
   /* USER CODE BEGIN StartRadioRecvTask */
+  UNUSED(argument);
   runRadioRecvTask();
+  vTaskDelete(NULL);
   /* USER CODE END StartRadioRecvTask */
 }
 
