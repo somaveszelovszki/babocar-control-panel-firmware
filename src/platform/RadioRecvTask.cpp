@@ -20,7 +20,7 @@ extern "C" void runRadioRecvTask(void) {
     SystemManager::instance().registerTask();
 
     millisecond_t lastQueueSendTime;
-    uint8_t radioRecvValue = 0;
+    uint8_t lastRadioRecvValue = 0, radioRecvValue = 0;
     uart_receive(uart_RadioModule, &radioRecvValue, 1);
 
     while (true) {
@@ -28,6 +28,12 @@ extern "C" void runRadioRecvTask(void) {
             radioRecvQueue.overwrite(static_cast<char>(radioRecvValue));
             lastQueueSendTime = const_cast<const millisecond_t&>(lastRxTime);
         }
+
+        if (radioRecvValue != lastRadioRecvValue) {
+            LOG_INFO("Received character: %c", static_cast<char>(radioRecvValue));
+            lastRadioRecvValue = radioRecvValue;
+        }
+
         SystemManager::instance().notify(true);
         os_sleep(millisecond_t(20));
     }
