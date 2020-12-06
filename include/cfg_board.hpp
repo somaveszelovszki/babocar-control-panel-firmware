@@ -24,8 +24,8 @@ extern UART_HandleTypeDef huart6;
 
 #define gpio_Led                micro::gpio_t{ GPIOA, GPIO_PIN_5 }
 
-#define gpio_Btn1               micro::gpio_t{ GPIOC, GPIO_PIN_1 }
-#define gpio_Btn2               micro::gpio_t{ GPIOC, GPIO_PIN_0 }
+#define gpio_Btn1               micro::gpio_t{ GPIOC, GPIO_PIN_10 }
+#define gpio_Btn2               micro::gpio_t{ GPIOC, GPIO_PIN_9 }
 
 #define i2c_X                   micro::i2c_t{ &hi2c3 }
 
