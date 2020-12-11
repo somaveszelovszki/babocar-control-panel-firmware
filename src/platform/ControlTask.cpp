@@ -1,4 +1,5 @@
 #include <cfg_board.hpp>
+#include <micro/container/infinite_buffer.hpp>
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/SystemManager.hpp>
@@ -76,7 +77,11 @@ ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
+infinite_buffer<centimeter_t, 100> prevLinePosErrors;
+
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
+
+    static constexpr uint32_t D_FILTER_SIZE = 30;
 
     switch (controlData.controlType) {
 
@@ -104,7 +109,11 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         const radian_t targetControlAngle = targetLine.centerLine.angle;
 
         frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
-        frontLinePosController.update(static_cast<centimeter_t>(actualControlLinePos - targetControlLinePos).get());
+        const centimeter_t posError = targetControlLinePos - actualControlLinePos;
+        const centimeter_t posErrorDiff = (posError - prevLinePosErrors.peek_back(D_FILTER_SIZE)) / D_FILTER_SIZE;
+        prevLinePosErrors.push_back(posError.get());
+
+        frontLinePosController.update(posError.get(), posErrorDiff.get());
         frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
         frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
