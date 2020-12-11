@@ -170,7 +170,7 @@ extern "C" void runControlTask(void) {
 
         } else if (controlDataWatchdog.hasTimedOut()) {
             controlData.speed = m_per_sec_t(0);
-            controlData.rampTime = millisecond_t(0);
+            controlData.rampTime = millisecond_t(100);
         }
 
         vehicleCanManager.periodicSend<can::LongitudinalControl>(vehicleCanSubscriberId, controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime);
