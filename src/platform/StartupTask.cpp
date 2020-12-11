@@ -50,7 +50,7 @@ extern "C" void runStartupTask(void) {
 //    }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
-    SystemManager::instance().setProgramState(/*buttonClick*/static_cast<SystemManager::programState_t>(cfg::ProgramState::Test));
+    SystemManager::instance().setProgramState(/*buttonClick*/enum_cast(cfg::ProgramState::Test));
 
     if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {
         waitStartSignal();
