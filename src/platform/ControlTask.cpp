@@ -2,6 +2,7 @@
 #include <micro/container/infinite_buffer.hpp>
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
+#include <micro/debug/params.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
@@ -36,25 +37,27 @@ struct ServoOffsets {
 
 sorted_map<m_per_sec_t, PID_Params, 10> frontLinePosControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 2.50f, 0.00f, 0.00f } },
-    { { 1.0f }, { 2.50f, 0.00f, 0.00f } },
-    { { 1.5f }, { 2.50f, 0.00f, 0.00f } },
-    { { 2.0f }, { 2.00f, 0.00f, 1.00f } },
-    { { 2.5f }, { 1.30f, 0.00f, 1.30f } },
-    { { 3.0f }, { 1.50f, 0.00f, 0.00f } },
-    { { 4.0f }, { 1.00f, 0.00f, 0.00f } },
-    { { 6.0f }, { 0.75f, 0.00f, 0.00f } },
-    { { 9.0f }, { 0.45f, 0.00f, 0.00f } }
+    { { 0.0f }, { 2.50f, 0.00f, 10.00f } },
+    { { 1.0f }, { 2.50f, 0.00f, 10.00f } },
+    { { 1.5f }, { 2.00f, 0.00f, 10.00f } },
+    { { 2.0f }, { 2.00f, 0.00f, 10.00f } },
+    { { 2.5f }, { 1.30f, 0.00f, 10.00f } },
+    { { 3.0f }, { 1.05f, 0.00f, 10.00f } },
+    { { 3.5f }, { 0.90f, 0.00f, 10.00f } },
+    { { 4.0f }, { 0.75f, 0.00f, 10.00f } },
+    { { 6.0f }, { 0.60f, 0.00f, 10.00f } },
+    { { 9.0f }, { 0.30f, 0.00f, 10.00f } }
 };
 
 sorted_map<m_per_sec_t, PID_Params, 10> rearLineAngleControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 2.00f, 0.00f, 0.00f } },
-    { { 1.0f }, { 2.00f, 0.00f, 0.00f } },
-    { { 1.5f }, { 1.60f, 0.00f, 0.00f } },
-    { { 2.0f }, { 1.20f, 0.00f, 0.60f } },
+    { { 0.0f }, { 1.00f, 0.00f, 0.00f } },
+    { { 1.0f }, { 1.00f, 0.00f, 0.00f } },
+    { { 1.5f }, { 1.00f, 0.00f, 0.00f } },
+    { { 2.0f }, { 0.80f, 0.00f, 0.60f } },
     { { 2.5f }, { 0.50f, 0.00f, 0.70f } },
     { { 3.0f }, { 0.50f, 0.00f, 0.00f } },
+    { { 3.5f }, { 0.40f, 0.00f, 0.00f } },
     { { 4.0f }, { 0.30f, 0.00f, 0.00f } },
     { { 6.0f }, { 0.20f, 0.00f, 0.00f } },
     { { 9.0f }, { 0.10f, 0.00f, 0.00f } }
@@ -76,6 +79,9 @@ CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
+
+PID_Params frontParams = { 2.00f, 0.00f, 120.00f };
+PID_Params rearParams  = { 1.00f, 0.00f, 0.00f };
 
 infinite_buffer<centimeter_t, 100> prevLinePosErrors;
 
@@ -108,7 +114,9 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         const radian_t actualControlAngle = actualLine.centerLine.angle;
         const radian_t targetControlAngle = targetLine.centerLine.angle;
 
-        frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
+        frontLinePosController.tune(frontParams);
+        //frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
+
         const centimeter_t posError = targetControlLinePos - actualControlLinePos;
         const centimeter_t posErrorDiff = (posError - prevLinePosErrors.peek_back(D_FILTER_SIZE)) / D_FILTER_SIZE;
         prevLinePosErrors.push_back(posError.get());
@@ -117,10 +125,12 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
         frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
-        rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
+        rearLinePosController.tune(rearParams);
+        //rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
         rearLinePosController.update(static_cast<degree_t>(actualControlAngle - targetControlAngle).get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
+        rearWheelTargetAngle = radian_t(0);
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
         if (Sign::NEGATIVE == speedSign) {
@@ -155,6 +165,50 @@ extern "C" void runControlTask(void) {
     initializeVehicleCan();
 
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
+
+//    REGISTER_READ_WRITE_PARAM(motorControllerParams.P);
+//    REGISTER_READ_WRITE_PARAM(motorControllerParams.I);
+//    REGISTER_READ_WRITE_PARAM(motorControllerParams.D);
+//
+    REGISTER_READ_WRITE_PARAM(frontParams.P);
+    REGISTER_READ_WRITE_PARAM(frontParams.I);
+    REGISTER_READ_WRITE_PARAM(frontParams.D);
+//
+//    REGISTER_READ_WRITE_PARAM(rearParams.P);
+//    REGISTER_READ_WRITE_PARAM(rearParams.I);
+//    REGISTER_READ_WRITE_PARAM(rearParams.D);
+//
+    REGISTER_READ_ONLY_PARAM(actualLine.centerLine.pos);
+//
+//    char paramName[32];
+//    uint32_t i = 0;
+//
+//    for (std::pair<m_per_sec_t, PID_Params>& param : frontLinePosControllerParams) {
+//        sprint(paramName, sizeof(paramName), "front%u_P", i);
+//        micro::Params::instance().registerParam(paramName, param.second.P, false, true);
+//
+//        sprint(paramName, sizeof(paramName), "front%u_I", i);
+//        micro::Params::instance().registerParam(paramName, param.second.I, false, true);
+//
+//        sprint(paramName, sizeof(paramName), "front%u_D", i);
+//        micro::Params::instance().registerParam(paramName, param.second.D, false, true);
+//
+//        ++i;
+//    }
+//
+//    i = 0;
+//    for (std::pair<m_per_sec_t, PID_Params>& param : rearLineAngleControllerParams) {
+//        sprint(paramName, sizeof(paramName), "rear%u_P", i);
+//        micro::Params::instance().registerParam(paramName, param.second.P, false, true);
+//
+//        sprint(paramName, sizeof(paramName), "rear%u_I", i);
+//        micro::Params::instance().registerParam(paramName, param.second.I, false, true);
+//
+//        sprint(paramName, sizeof(paramName), "rear%u_D", i);
+//        micro::Params::instance().registerParam(paramName, param.second.D, false, true);
+//
+//        ++i;
+//    }
 
     while (true) {
         while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
