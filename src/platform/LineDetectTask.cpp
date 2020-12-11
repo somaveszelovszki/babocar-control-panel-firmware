@@ -64,12 +64,24 @@ extern "C" void runLineDetectTask(void) {
 
     Timer lineDetectControlTimer(can::LineDetectControl::period());
 
+    LineInfo prevLineInfo;
+
     while (true) {
         CarProps car;
         carPropsQueue.peek(car, millisecond_t(0));
 
         while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
+        }
+
+        if (lineInfo.front.pattern.type != prevLineInfo.front.pattern.type) {
+            LOG_INFO("Front pattern changed from %s to %s", to_string(prevLineInfo.front.pattern.type), to_string(lineInfo.front.pattern.type));
+            prevLineInfo.front = lineInfo.front;
+        }
+
+        if (lineInfo.rear.pattern.type != prevLineInfo.rear.pattern.type) {
+            LOG_INFO("Rear pattern changed from %s to %s", to_string(prevLineInfo.rear.pattern.type), to_string(lineInfo.rear.pattern.type));
+            prevLineInfo.rear = lineInfo.rear;
         }
 
         if (lineDetectControlTimer.checkTimeout()) {
