@@ -135,11 +135,11 @@ extern "C" void runProgRaceTrackTask(void) {
     meter_t lastDistWithValidLine;
     meter_t lastDistWithSafetyCar;
 
-    m_per_sec_t testSpeedSlow = m_per_sec_t(1.8f);
-    m_per_sec_t testSpeedFast = m_per_sec_t(2.8f);
+    m_per_sec_t testSpeedSlow = m_per_sec_t(2.25f);
+    m_per_sec_t testSpeedFast = m_per_sec_t(2.25f);
 
-//    REGISTER_READ_WRITE_PARAM(testSpeedSlow);
-//    REGISTER_READ_WRITE_PARAM(testSpeedFast);
+    REGISTER_READ_WRITE_PARAM(testSpeedSlow);
+    REGISTER_READ_WRITE_PARAM(testSpeedFast);
 
     uint32_t numLinesFront = 0;
     uint32_t numLinesRear = 0;
