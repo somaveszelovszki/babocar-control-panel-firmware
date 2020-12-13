@@ -35,32 +35,36 @@ struct ServoOffsets {
     micro::radian_t extra;
 };
 
-sorted_map<m_per_sec_t, PID_Params, 10> frontLinePosControllerParams = {
+sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 2.50f, 0.00f, 10.00f } },
-    { { 1.0f }, { 2.50f, 0.00f, 10.00f } },
-    { { 1.5f }, { 2.00f, 0.00f, 10.00f } },
-    { { 2.0f }, { 2.00f, 0.00f, 10.00f } },
-    { { 2.5f }, { 1.30f, 0.00f, 10.00f } },
-    { { 3.0f }, { 1.05f, 0.00f, 10.00f } },
-    { { 3.5f }, { 0.90f, 0.00f, 10.00f } },
-    { { 4.0f }, { 0.75f, 0.00f, 10.00f } },
-    { { 6.0f }, { 0.60f, 0.00f, 10.00f } },
-    { { 9.0f }, { 0.30f, 0.00f, 10.00f } }
+    { { 0.00f }, { 0.00f, 0.00f, 0.00f   } },
+    { { 0.10f }, { 2.00f, 0.00f, 100.00f } },
+    { { 1.00f }, { 2.00f, 0.00f, 100.00f } },
+    { { 1.50f }, { 1.80f, 0.00f, 100.00f } },
+    { { 2.00f }, { 1.70f, 0.00f, 100.00f } },
+    { { 2.25f }, { 1.70f, 0.00f, 100.00f } },
+    { { 2.50f }, { 1.30f, 0.00f, 100.00f } },
+    { { 3.00f }, { 1.05f, 0.00f, 100.00f } },
+    { { 3.50f }, { 0.90f, 0.00f, 100.00f } },
+    { { 4.00f }, { 0.75f, 0.00f, 100.00f } },
+    { { 6.00f }, { 0.60f, 0.00f, 100.00f } },
+    { { 9.00f }, { 0.30f, 0.00f, 100.00f } }
 };
 
-sorted_map<m_per_sec_t, PID_Params, 10> rearLineAngleControllerParams = {
+sorted_map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
     // speed        P      I      D
-    { { 0.0f }, { 1.00f, 0.00f, 0.00f } },
-    { { 1.0f }, { 1.00f, 0.00f, 0.00f } },
-    { { 1.5f }, { 1.00f, 0.00f, 0.00f } },
-    { { 2.0f }, { 0.80f, 0.00f, 0.60f } },
-    { { 2.5f }, { 0.50f, 0.00f, 0.70f } },
-    { { 3.0f }, { 0.50f, 0.00f, 0.00f } },
-    { { 3.5f }, { 0.40f, 0.00f, 0.00f } },
-    { { 4.0f }, { 0.30f, 0.00f, 0.00f } },
-    { { 6.0f }, { 0.20f, 0.00f, 0.00f } },
-    { { 9.0f }, { 0.10f, 0.00f, 0.00f } }
+    { { 0.00f }, { 0.00f, 0.00f, 0.00f  } },
+    { { 0.10f }, { 0.60f, 0.00f, 40.00f } },
+    { { 1.00f }, { 0.60f, 0.00f, 40.00f } },
+    { { 1.50f }, { 0.50f, 0.00f, 40.00f } },
+    { { 2.00f }, { 0.40f, 0.00f, 40.00f } },
+    { { 2.25f }, { 0.40f, 0.00f, 40.00f } },
+    { { 2.50f }, { 0.40f, 0.00f, 40.00f } },
+    { { 3.00f }, { 0.40f, 0.00f, 40.00f } },
+    { { 3.50f }, { 0.40f, 0.00f, 40.00f } },
+    { { 4.00f }, { 0.40f, 0.00f, 40.00f } },
+    { { 6.00f }, { 0.40f, 0.00f, 40.00f } },
+    { { 9.00f }, { 0.40f, 0.00f, 40.00f } }
 };
 
 constexpr float SERVO_CONTROLLER_MAX_DELTA = static_cast<degree_t>(2 * cfg::WHEEL_MAX_DELTA).get();
@@ -80,10 +84,10 @@ ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-PID_Params frontParams = { 2.00f, 0.00f, 120.00f };
-PID_Params rearParams  = { 1.00f, 0.00f, 0.00f };
+PID_Params frontParams = { 1.70f, 0.00f, 100.00f };
+PID_Params rearParams  = { 0.40f, 0.00f, 40.00f };
 
-infinite_buffer<centimeter_t, 100> prevLinePosErrors;
+infinite_buffer<std::pair<centimeter_t, degree_t>, 100> prevLineErrors;
 
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
@@ -117,9 +121,15 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         frontLinePosController.tune(frontParams);
         //frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
 
+        const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
+
         const centimeter_t posError = targetControlLinePos - actualControlLinePos;
-        const centimeter_t posErrorDiff = (posError - prevLinePosErrors.peek_back(D_FILTER_SIZE)) / D_FILTER_SIZE;
-        prevLinePosErrors.push_back(posError.get());
+        const degree_t angleError   = targetControlAngle - actualControlAngle;
+
+        const centimeter_t posErrorDiff = (posError - peekBackLineError.first) / D_FILTER_SIZE;
+        const degree_t angleErrorDiff   = (angleError - peekBackLineError.second) / D_FILTER_SIZE;
+
+        prevLineErrors.push_back({ posError, angleError });
 
         frontLinePosController.update(posError.get(), posErrorDiff.get());
         frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
@@ -127,10 +137,9 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
         rearLinePosController.tune(rearParams);
         //rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
-        rearLinePosController.update(static_cast<degree_t>(actualControlAngle - targetControlAngle).get());
+        rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
-        rearWheelTargetAngle = radian_t(0);
 
         // if the car is going backwards, the front and rear target wheel angles need to be swapped
         if (Sign::NEGATIVE == speedSign) {
@@ -173,11 +182,11 @@ extern "C" void runControlTask(void) {
     REGISTER_READ_WRITE_PARAM(frontParams.P);
     REGISTER_READ_WRITE_PARAM(frontParams.I);
     REGISTER_READ_WRITE_PARAM(frontParams.D);
-//
-//    REGISTER_READ_WRITE_PARAM(rearParams.P);
-//    REGISTER_READ_WRITE_PARAM(rearParams.I);
-//    REGISTER_READ_WRITE_PARAM(rearParams.D);
-//
+
+    REGISTER_READ_WRITE_PARAM(rearParams.P);
+    REGISTER_READ_WRITE_PARAM(rearParams.I);
+    REGISTER_READ_WRITE_PARAM(rearParams.D);
+
     REGISTER_READ_ONLY_PARAM(actualLine.centerLine.pos);
 //
 //    char paramName[32];
