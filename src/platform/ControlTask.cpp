@@ -37,18 +37,19 @@ struct ServoOffsets {
 
 sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     // speed        P      I      D
-    { { 0.00f }, { 0.00f, 0.00f, 0.00f   } },
+    { { 0.00f }, { 0.00f, 0.00f,   0.00f } },
     { { 0.10f }, { 2.40f, 0.00f, 120.00f } },
     { { 1.00f }, { 2.40f, 0.00f, 120.00f } },
     { { 1.50f }, { 1.80f, 0.00f, 120.00f } },
     { { 2.00f }, { 1.70f, 0.00f, 120.00f } },
     { { 2.25f }, { 1.70f, 0.00f, 120.00f } },
     { { 2.50f }, { 1.70f, 0.00f, 120.00f } },
-    { { 3.00f }, { 1.05f, 0.00f, 120.00f } },
-    { { 3.50f }, { 0.90f, 0.00f, 120.00f } },
-    { { 4.00f }, { 0.75f, 0.00f, 120.00f } },
-    { { 6.00f }, { 0.60f, 0.00f, 120.00f } },
-    { { 9.00f }, { 0.30f, 0.00f, 120.00f } }
+    { { 3.00f }, { 1.30f, 0.00f, 100.00f } },
+    { { 3.50f }, { 1.10f, 0.00f, 100.00f } },
+    { { 4.00f }, { 0.90f, 0.00f, 110.00f } },
+    { { 5.00f }, { 0.65f, 0.00f, 100.00f } },
+    { { 6.00f }, { 0.45f, 0.00f, 100.00f } },
+    { { 7.00f }, { 0.25f, 0.00f, 100.00f } }
 };
 
 sorted_map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
@@ -60,11 +61,12 @@ sorted_map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
     { { 2.00f }, { 0.40f, 0.00f, 40.00f } },
     { { 2.25f }, { 0.40f, 0.00f, 40.00f } },
     { { 2.50f }, { 0.40f, 0.00f, 40.00f } },
-    { { 3.00f }, { 0.40f, 0.00f, 40.00f } },
-    { { 3.50f }, { 0.40f, 0.00f, 40.00f } },
-    { { 4.00f }, { 0.40f, 0.00f, 40.00f } },
-    { { 6.00f }, { 0.40f, 0.00f, 40.00f } },
-    { { 9.00f }, { 0.40f, 0.00f, 40.00f } }
+    { { 3.00f }, { 0.20f, 0.00f, 40.00f } },
+    { { 3.50f }, { 0.00f, 0.00f,  0.00f } },
+    { { 4.00f }, { 0.00f, 0.00f,  0.00f } },
+    { { 5.00f }, { 0.00f, 0.00f,  0.00f } },
+    { { 6.00f }, { 0.00f, 0.00f,  0.00f } },
+    { { 9.00f }, { 0.00f, 0.00f,  0.00f } }
 };
 
 constexpr float SERVO_CONTROLLER_MAX_DELTA = static_cast<degree_t>(2 * cfg::WHEEL_MAX_DELTA).get();
@@ -175,10 +177,10 @@ extern "C" void runControlTask(void) {
 
     WatchdogTimer controlDataWatchdog(millisecond_t(200));
 
-//    REGISTER_READ_WRITE_PARAM(motorControllerParams.P);
-//    REGISTER_READ_WRITE_PARAM(motorControllerParams.I);
-//    REGISTER_READ_WRITE_PARAM(motorControllerParams.D);
-//
+    REGISTER_READ_WRITE_PARAM(motorControllerParams.P);
+    REGISTER_READ_WRITE_PARAM(motorControllerParams.I);
+    REGISTER_READ_WRITE_PARAM(motorControllerParams.D);
+
     REGISTER_READ_WRITE_PARAM(frontParams.P);
     REGISTER_READ_WRITE_PARAM(frontParams.I);
     REGISTER_READ_WRITE_PARAM(frontParams.D);
@@ -187,8 +189,6 @@ extern "C" void runControlTask(void) {
     REGISTER_READ_WRITE_PARAM(rearParams.I);
     REGISTER_READ_WRITE_PARAM(rearParams.D);
 
-    REGISTER_READ_ONLY_PARAM(actualLine.centerLine.pos);
-//
 //    char paramName[32];
 //    uint32_t i = 0;
 //
