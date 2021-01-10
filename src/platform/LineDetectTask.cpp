@@ -90,7 +90,7 @@ extern "C" void runLineDetectTask(void) {
 
             const bool isFwd                     = car.speed >= m_per_sec_t(0);
             const bool isRace                    = linePatternDomain_t::Race == domain;
-            const bool isReducedScanRangeEnabled = isRace && ((isFwd && lineInfo.front.lines.size() == 1) || (!isFwd && lineInfo.rear.lines.size() == 1));
+            const bool isReducedScanRangeEnabled = false;//isRace && ((isFwd && lineInfo.front.lines.size() == 1) || (!isFwd && lineInfo.rear.lines.size() == 1));
             const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0;
 
             vehicleCanManager.periodicSend<can::LineDetectControl>(vehicleCanSubscriberId, cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain);
