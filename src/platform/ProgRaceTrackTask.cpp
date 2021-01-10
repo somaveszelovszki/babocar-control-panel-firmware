@@ -115,6 +115,10 @@ ControlData getControl(const micro::CarProps& car, const TrackInfo& trackInfo, c
     return controlData;
 }
 
+uint32_t fastSegmentCntr = 0;
+bool hasSeenBrakeSign = false;
+bool isOvertakeSegment = false;
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(void) {
@@ -142,11 +146,6 @@ extern "C" void runProgRaceTrackTask(void) {
     REGISTER_READ_WRITE_PARAM(testSpeedFast);
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
-    uint32_t numLinesFront = 0;
-    uint32_t numLinesRear = 0;
-
-    REGISTER_READ_ONLY_PARAM(numLinesFront);
-    REGISTER_READ_ONLY_PARAM(numLinesRear);
 
     Sign targetSpeedSign;
 
@@ -180,9 +179,6 @@ extern "C" void runProgRaceTrackTask(void) {
 
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine, micro::sgn(car.speed));
 
-            numLinesFront = lineInfo.front.lines.size();
-            numLinesRear = lineInfo.rear.lines.size();
-
             // sets default lateral control
             controlData.controlType         = ControlData::controlType_t::Line;
             controlData.lineControl.actual  = mainLine.centerLine;
@@ -197,6 +193,8 @@ extern "C" void runProgRaceTrackTask(void) {
                     signStartDist = car.distance;
                 }
                 isSignFast = false;
+                hasSeenBrakeSign = true;
+                isOvertakeSegment = false;
             } else if (car.orientedDistance > centimeter_t(100) && car.distance - signStartDist > meter_t(5)) {
                 if (!isSignFast) {
                     signStartDist = car.distance;
@@ -207,7 +205,10 @@ extern "C" void runProgRaceTrackTask(void) {
                 isFast = false;
             }
 
-            if (isSignFast && car.distance - signStartDist > centimeter_t(150)) {
+            if (isSignFast && car.distance - signStartDist > centimeter_t(50)) {
+                if (!isFast && hasSeenBrakeSign) {
+                    ++fastSegmentCntr;
+                }
                 isFast = true;
             }
 
@@ -247,13 +248,18 @@ extern "C" void runProgRaceTrackTask(void) {
 //                    LOG_DEBUG("Starts overtake");
 //                } else
 
-                if (car.distance - lastDistWithSafetyCar > centimeter_t(150) && isFast) {
+                if (fastSegmentCntr == 2) {
+                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::OvertakeSafetyCar));
+                     LOG_DEBUG("Starts overtake");
+                }
+                else if (car.distance - lastDistWithSafetyCar > centimeter_t(200) && isFast) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Test));
                     LOG_DEBUG("Safety car left the track, starts race");
                 }
                 break;
 
             case cfg::ProgramState::OvertakeSafetyCar:
+                isOvertakeSegment = true;
                 if (programState != prevProgramState) {
                     overtake.initialize(car,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_END_SPEED, OVERTAKE_END_SPEED,
@@ -261,11 +267,12 @@ extern "C" void runProgRaceTrackTask(void) {
                         OVERTAKE_SIDE_DISTANCE);
                 }
 
-                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackInfo.seg->isFast);
+                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, /*trackInfo.seg->isFast*/ isFast);
+                controlData.rampTime = millisecond_t(0);
                 overtake.update(car, lineInfo, mainLine, controlData);
 
                 if (overtake.finished()) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
+                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Test));
                     LOG_DEBUG("Overtake finished, starts race");
                 }
                 break;
@@ -358,7 +365,8 @@ extern "C" void runProgRaceTrackTask(void) {
 //                }
 
                 //controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, false);
-                controlData.speed = isFast ? testSpeedFast : testSpeedSlow;
+                controlData.speed = testSpeedFast;//isOvertakeSegment ? m_per_sec_t(1.2) : isFast ? testSpeedFast : testSpeedSlow;
+                controlData.rampTime = millisecond_t(500);
                 break;
 
             default:
