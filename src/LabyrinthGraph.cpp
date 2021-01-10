@@ -233,7 +233,7 @@ LabyrinthGraph::Junctions::const_iterator LabyrinthGraph::findJunction(const poi
     return result;
 }
 
-LabyrinthGraph::Connections::const_iterator LabyrinthGraph::findFirstConnection(const Segment& seg1, const Segment& seg2) const {
+LabyrinthGraph::Connections::const_iterator LabyrinthGraph::findConnection(const Segment& seg1, const Segment& seg2) const {
     return std::find_if(this->connections.begin(), this->connections.end(), [&seg1, &seg2](const Connection& c) {
         return (c.node1->name == seg1.name && c.node2->name == seg2.name) || (c.node1->name == seg2.name && c.node2->name == seg1.name);
     });

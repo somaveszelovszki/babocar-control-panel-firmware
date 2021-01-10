@@ -42,9 +42,17 @@ m_per_sec_t LANE_CHANGE_SPEED            = m_per_sec_t(0.8f);
 
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
+#if LABYRINTH == TEST_LABYRINTH
+#define START_SEGMENT   'A'
+#define PREV_SEGMENT    'X'
+#elif LABYRINTH == RACE_LABYRINTH
+#define START_SEGMENT   'A'
+#define PREV_SEGMENT    'X'
+#endif
+
 const LabyrinthGraph graph = buildLabyrinthGraph();
-const LabyrinthGraph::Segments::const_iterator startSeg = graph.findSegment('A');
-LabyrinthNavigator navigator(graph, *graph.findFirstConnection(*startSeg, *graph.findSegment('X')), *startSeg);
+const LabyrinthGraph::Segments::const_iterator startSeg = graph.findSegment(START_SEGMENT);
+LabyrinthNavigator navigator(graph, *graph.findConnection(*startSeg, *graph.findSegment(PREV_SEGMENT)), *startSeg);
 
 struct JunctionPatternInfo {
     Sign dir            = Sign::NEUTRAL;
