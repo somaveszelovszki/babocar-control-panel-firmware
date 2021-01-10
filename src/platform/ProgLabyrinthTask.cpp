@@ -254,10 +254,10 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     controlData.speed    = LABYRINTH_FORWARD_SPEED;
     controlData.rampTime = millisecond_t(1000);
 
-    state_t<cfg::ProgramState> programState = cfg::ProgramState::INVALID;
+    cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
     while (true) {
-        programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
+        const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
 
             CarProps car;
@@ -275,7 +275,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 break;
 
             case cfg::ProgramState::LaneChange:
-                if (programState.changed()) {
+                if (programState != prevProgramState) {
                     laneChange.initialize(car, lineInfo.front.pattern.dir, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
                 }
 
@@ -292,6 +292,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             controlQueue.overwrite(controlData);
         }
 
+        prevProgramState = programState;
         SystemManager::instance().notify(true);
         os_sleep(millisecond_t(2));
     }

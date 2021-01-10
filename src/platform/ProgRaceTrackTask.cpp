@@ -141,18 +141,17 @@ extern "C" void runProgRaceTrackTask(void) {
     REGISTER_READ_WRITE_PARAM(testSpeedSlow);
     REGISTER_READ_WRITE_PARAM(testSpeedFast);
 
+    cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
     uint32_t numLinesFront = 0;
     uint32_t numLinesRear = 0;
 
     REGISTER_READ_ONLY_PARAM(numLinesFront);
     REGISTER_READ_ONLY_PARAM(numLinesRear);
 
-    state_t<cfg::ProgramState> programState = cfg::ProgramState::INVALID;
-
     Sign targetSpeedSign;
 
     while (true) {
-        programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
+        const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
 
             carPropsQueue.peek(car, millisecond_t(0));
@@ -160,7 +159,7 @@ extern "C" void runProgRaceTrackTask(void) {
             distancesQueue.peek(distances, millisecond_t(0));
 
             // runs for the first time that this task handles the program state
-            if (!shouldHandle(programState.prev())) {
+            if (!shouldHandle(prevProgramState)) {
                 if ((trackInfo.seg = getFastSegment(trackSegments, programState)) != trackSegments.end()) { // race
                     trackInfo.lap = 3;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
@@ -255,7 +254,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::OvertakeSafetyCar:
-                if (programState.changed()) {
+                if (programState != prevProgramState) {
                     overtake.initialize(car,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_END_SPEED, OVERTAKE_END_SPEED,
                         OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
@@ -304,7 +303,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::TurnAround:
-                if (programState.changed()) {
+                if (programState != prevProgramState) {
                     turnAround.initialize(car, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
                 }
 
@@ -363,7 +362,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             default:
-                LOG_ERROR("Invalid program state counter: [%u]", enum_cast(programState.value()));
+                LOG_ERROR("Invalid program state counter: [%u]", enum_cast(programState));
                 break;
             }
 
@@ -371,6 +370,7 @@ extern "C" void runProgRaceTrackTask(void) {
             linePatternDomainQueue.overwrite(linePatternDomain_t::Race);
         }
 
+        prevProgramState = programState;
         SystemManager::instance().notify(true);
         os_sleep(millisecond_t(1));
     }
