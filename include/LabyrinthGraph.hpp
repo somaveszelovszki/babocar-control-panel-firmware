@@ -115,28 +115,30 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
     bool isDeadEnd;
 };
 
-struct LabyrinthGraph {
-    typedef micro::vec<Segment, cfg::NUM_LABYRINTH_SEGMENTS> Segments;
-    typedef micro::vec<Junction, cfg::NUM_LABYRINTH_SEGMENTS> Junctions;
-    typedef micro::vec<Connection, cfg::NUM_LABYRINTH_SEGMENTS * 2> Connections;
-
-    Segments segments;
-    Junctions junctions;
-    Connections connections;
-
+class LabyrinthGraph {
+public:
     LabyrinthGraph() {}
 
     void addSegment(const Segment& seg);
     void addJunction(const Junction& junc);
-    void connect(Segments::iterator seg, Junctions::iterator junc, const JunctionDecision& decision);
+    void connect(Segment *seg, Junction *junc, const JunctionDecision& decision);
 
-    Segments::iterator findSegment(char name);
-    Segments::const_iterator findSegment(char name) const;
+    Segment* findSegment(char name);
+    const Segment* findSegment(char name) const;
 
-    Junctions::iterator findJunction(uint8_t id);
-    Junctions::const_iterator findJunction(uint8_t id) const;
+    Junction* findJunction(uint8_t id);
+    const Junction* findJunction(uint8_t id) const;
 
-    Junctions::const_iterator findJunction(const micro::point2m& pos, const micro::vec<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
+    const Junction* findJunction(const micro::point2m& pos, const micro::vec<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
-    Connections::const_iterator findConnection(const Segment& seg1, const Segment& seg2) const;
+    const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
+
+private:
+    typedef micro::vec<Segment, cfg::NUM_LABYRINTH_SEGMENTS> Segments;
+    typedef micro::vec<Junction, cfg::NUM_LABYRINTH_SEGMENTS> Junctions;
+    typedef micro::vec<Connection, cfg::NUM_LABYRINTH_SEGMENTS * 2> Connections;
+
+    Segments segments_;
+    Junctions junctions_;
+    Connections connections_;
 };

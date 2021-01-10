@@ -1,35 +1,54 @@
 #pragma once
 
-#include <micro/utils/CarProps.hpp>
+#include <micro/control/maneuver.hpp>
 
 #include <LabyrinthGraph.hpp>
 #include <LabyrinthRoute.hpp>
 
-class LabyrinthNavigator {
+class LabyrinthNavigator : public micro::Maneuver {
 public:
-    LabyrinthNavigator(const LabyrinthGraph& graph, const Connection& prevConn, const Segment& currentSeg);
+    LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn,
+        const micro::m_per_sec_t fwdSpeed, const micro::m_per_sec_t fwdSlowSpeed, const micro::m_per_sec_t bwdSpeed);
+
+    void initialize();
 
     const Segment* currentSegment() const;
     const Segment* targetSegment() const;
     const Connection* nextConnection() const;
+    const micro::Pose& correctedCarPose() const;
 
-    micro::meter_t lastJunctionDistance() const;
+    void setTargetSegment(const Segment *targetSeg, bool isLast);
 
-    void setTargetSegment(const Segment& targetSeg);
-
-    void onJunctionDetected(const micro::meter_t distance);
-
-    micro::Direction update(const micro::meter_t distance);
-
-    void reset(const Connection& prevConn, const Segment& currentSeg);
+    void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
 private:
+    void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
+
     void updateTargetDirection();
 
-    LabyrinthGraph graph_;
+    void onJunctionDetected(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
+
+    void setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData);
+
+    void reset(const Junction& junc, micro::radian_t negOri);
+
+    static bool isJunction(const micro::LinePattern& pattern);
+
+    static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
+
+    const micro::m_per_sec_t fwdSpeed_;
+    const micro::m_per_sec_t fwdSlowSpeed_;
+    const micro::m_per_sec_t bwdSpeed_;
+
+    const LabyrinthGraph& graph_;
+    const Segment *startSeg_;
     const Connection *prevConn_;
     const Segment *currentSeg_;
     LabyrinthRoute plannedRoute_;
+    bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
+    micro::LineInfo prevLineInfo_;
+    micro::Pose correctedCarPose_;
+    micro::meter_t lastOrientationUpdateDist_;
 };

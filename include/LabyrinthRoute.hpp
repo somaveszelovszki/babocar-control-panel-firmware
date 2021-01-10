@@ -10,7 +10,7 @@ struct LabyrinthRoute {
     const Segment* destSeg;
     micro::vec<const Connection*, MAX_LENGTH> connections;
 
-    explicit LabyrinthRoute(const Segment& currentSeg);
+    explicit LabyrinthRoute(const Segment *currentSeg = nullptr);
 
     void push_front(const Connection& c);
     void push_back(const Connection& c);

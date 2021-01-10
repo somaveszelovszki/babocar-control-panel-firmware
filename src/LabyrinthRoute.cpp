@@ -4,9 +4,9 @@ using namespace micro;
 
 constexpr uint32_t LabyrinthRoute::MAX_LENGTH;
 
-LabyrinthRoute::LabyrinthRoute(const Segment& currentSeg)
-    : startSeg(&currentSeg)
-    , destSeg(&currentSeg) {}
+LabyrinthRoute::LabyrinthRoute(const Segment *currentSeg)
+    : startSeg(currentSeg)
+    , destSeg(currentSeg) {}
 
 void LabyrinthRoute::push_front(const Connection& c) {
     this->connections.push_front(&c);
@@ -109,7 +109,7 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
         segInfo->isDistMinimized = true;
     }
 
-    LabyrinthRoute route(destSeg);
+    LabyrinthRoute route(&destSeg);
 
     while (segInfo->prevSegInfo) {
         route.push_front(*segInfo->prevConn);
