@@ -9,22 +9,22 @@
 
 using namespace micro;
 
-extern queue_t<char, 1> radioRecvQueue;
+extern queue_t<state_t<char>, 1> radioRecvQueue;
 
 namespace {
 
 void waitStartSignal() {
-    static char startCounter = '6';   // start counter will count back from 5 to 0
-    char prevStartCounter = startCounter;
+    state_t<char> startCounter('\0', millisecond_t(0));
 
     do {
+        char prevStartCounter = startCounter.value();
         radioRecvQueue.peek(startCounter, millisecond_t(10));
-        if (startCounter != prevStartCounter) {
-            LOG_DEBUG("Seconds until start: %c", startCounter);
-            prevStartCounter = startCounter;
+        if (startCounter.value() != prevStartCounter) {
+            LOG_DEBUG("Start counter: %c", startCounter.value());
+            prevStartCounter = startCounter.value();
         }
         os_sleep(millisecond_t(50));
-    } while ('0' != startCounter);
+    } while (!('0' == startCounter.value() || isBtw(startCounter.value(), 'A', 'Z')));
 
     LOG_DEBUG("Started!");
 }
@@ -50,7 +50,7 @@ extern "C" void runStartupTask(void) {
 //    }
 
     LOG_DEBUG("Number of clicks: %d", buttonClick);
-    SystemManager::instance().setProgramState(/*buttonClick*/enum_cast(cfg::ProgramState::ReachSafetyCar));
+    SystemManager::instance().setProgramState(/*buttonClick*/enum_cast(cfg::ProgramState::Test));
 
     if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {
         waitStartSignal();

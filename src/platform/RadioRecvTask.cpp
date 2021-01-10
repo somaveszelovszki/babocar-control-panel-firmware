@@ -2,6 +2,7 @@
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
+#include <micro/utils/state.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
@@ -9,10 +10,11 @@
 
 using namespace micro;
 
-queue_t<char, 1> radioRecvQueue;
+queue_t<state_t<char>, 1> radioRecvQueue;
 
 namespace {
-volatile millisecond_t lastRxTime;
+uint8_t radioRecvBuffer[1] = { 0 };
+volatile state_t<char> radioRecvValue('\0', millisecond_t(0));
 } // namespace
 
 extern "C" void runRadioRecvTask(void) {
@@ -20,18 +22,18 @@ extern "C" void runRadioRecvTask(void) {
     SystemManager::instance().registerTask();
 
     millisecond_t lastQueueSendTime;
-    uint8_t lastRadioRecvValue = 0, radioRecvValue = 0;
-    uart_receive(uart_RadioModule, &radioRecvValue, 1);
+    uart_receive(uart_RadioModule, radioRecvBuffer, 1);
 
     while (true) {
-        if (const_cast<const millisecond_t&>(lastRxTime) != lastQueueSendTime) {
-            radioRecvQueue.overwrite(static_cast<char>(radioRecvValue));
-            lastQueueSendTime = const_cast<const millisecond_t&>(lastRxTime);
-        }
+        criticalSection_t criticalSection;
+        criticalSection.lock();
+        const state_t<char> radioRecv = const_cast<const state_t<char>&>(radioRecvValue);
+        criticalSection.unlock();
 
-        if (radioRecvValue != lastRadioRecvValue) {
-            LOG_INFO("Received character: %c", static_cast<char>(radioRecvValue));
-            lastRadioRecvValue = radioRecvValue;
+        if (lastQueueSendTime != radioRecv.timestamp()) {
+            radioRecvQueue.overwrite(radioRecv);
+            LOG_INFO("Received character: %c", radioRecv.value());
+            lastQueueSendTime = radioRecv.timestamp();
         }
 
         SystemManager::instance().notify(true);
@@ -42,5 +44,5 @@ extern "C" void runRadioRecvTask(void) {
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
 void micro_RadioModule_Uart_RxCpltCallback() {
-    const_cast<millisecond_t&>(lastRxTime) = getTime();
+    const_cast<state_t<char>&>(radioRecvValue).set(static_cast<char>(radioRecvBuffer[0]));
 }
