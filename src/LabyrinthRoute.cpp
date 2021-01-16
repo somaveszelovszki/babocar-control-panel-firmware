@@ -39,12 +39,9 @@ void LabyrinthRoute::reset(const Segment& currentSeg) {
 }
 
 bool LabyrinthRoute::isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
-    // does not permit going backwards or navigating through dead-end segments
-
-    const bool isBwd     = newConn.junction == prevConn.junction && newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
-    const bool isDeadEnd = newConn.getOtherSegment(currentSeg)->isDeadEnd;
-
-    return !isBwd && !isDeadEnd;
+    // does not permit going backwards
+    const bool isBwd = newConn.junction == prevConn.junction && newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
+    return !isBwd;
 }
 
 LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg) {
@@ -68,6 +65,7 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
 
     while (true) {
         segInfo = std::min_element(info.begin(), info.end(), [](const SegmentRouteInfo& a, const SegmentRouteInfo& b) {
+            // nodes with already minimized distance cannot be selected as minimum value
             return a.isDistMinimized == b.isDistMinimized ? a.dist < b.dist : !a.isDistMinimized;
         });
 
@@ -82,13 +80,12 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
         for (Connection *newConn : segInfo->seg->edges) {
             if (isNewConnectionValid(*segInfo->prevConn, *segInfo->seg, *newConn)) {
 
-                SegmentRouteInfo newSegInfo = {
-                    newConn->getOtherSegment(*segInfo->seg),
-                    segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2,
-                    newConn,
-                    false,
-                    segInfo
-                };
+                SegmentRouteInfo newSegInfo;
+                newSegInfo.seg             = newConn->getOtherSegment(*segInfo->seg);
+                newSegInfo.dist            = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
+                newSegInfo.prevConn        = newConn;
+                newSegInfo.isDistMinimized = false;
+                newSegInfo.prevSegInfo     = segInfo;
 
                 SegmentRouteInfos::iterator existingSegInfo = std::find_if(info.begin(), info.end(), [&newSegInfo](const SegmentRouteInfo& element) {
                     return element.seg == newSegInfo.seg                               &&

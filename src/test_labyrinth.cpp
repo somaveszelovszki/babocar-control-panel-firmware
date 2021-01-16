@@ -24,7 +24,7 @@ LabyrinthGraph buildTestLabyrinthGraph() {
     graph.addSegment(Segment('O', centimeter_t(398),  true ));
     graph.addSegment(Segment('P', centimeter_t(100),  false));
     graph.addSegment(Segment('Q', centimeter_t(198),  false));
-    graph.addSegment(Segment('R', centimeter_t(338),  false));
+    graph.addSegment(Segment('R', centimeter_t(120),  false));
     graph.addSegment(Segment('S', centimeter_t(285),  false));
     graph.addSegment(Segment('T', centimeter_t(245),  false));
     graph.addSegment(Segment('U', centimeter_t(307),  false));
@@ -99,9 +99,9 @@ LabyrinthGraph buildTestLabyrinthGraph() {
     graph.connect(graph.findSegment('M'), graph.findJunction(12), JunctionDecision(PI,          Direction::RIGHT));
     graph.connect(graph.findSegment('W'), graph.findJunction(12), JunctionDecision(radian_t(0), Direction::CENTER));
 
-    graph.connect(graph.findSegment('W'), graph.findJunction(12), JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('N'), graph.findJunction(12), JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('O'), graph.findJunction(12), JunctionDecision(radian_t(0), Direction::RIGHT));
+    graph.connect(graph.findSegment('W'), graph.findJunction(13), JunctionDecision(PI,          Direction::CENTER));
+    graph.connect(graph.findSegment('N'), graph.findJunction(13), JunctionDecision(radian_t(0), Direction::LEFT));
+    graph.connect(graph.findSegment('O'), graph.findJunction(13), JunctionDecision(radian_t(0), Direction::RIGHT));
 
     return graph;
 }
