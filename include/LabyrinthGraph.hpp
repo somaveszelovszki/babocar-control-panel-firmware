@@ -76,9 +76,9 @@ struct Junction {
 
     bool isConnected(const Segment& seg) const;
 
-    segment_info getSegmentInfo(micro::radian_t orientation, const Segment& seg);
+    segment_info getSegmentInfo(micro::radian_t orientation, const Segment& seg) const;
 
-    segment_info getSegmentInfo(const Segment& seg);
+    segment_info getSegmentInfo(const Segment& seg) const;
 
     uint8_t id;
     micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
@@ -133,10 +133,12 @@ public:
 
     const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
 
+    bool valid() const;
+
 private:
-    typedef micro::vec<Segment, cfg::NUM_LABYRINTH_SEGMENTS> Segments;
-    typedef micro::vec<Junction, cfg::NUM_LABYRINTH_SEGMENTS> Junctions;
-    typedef micro::vec<Connection, cfg::NUM_LABYRINTH_SEGMENTS * 2> Connections;
+    typedef micro::vec<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;
+    typedef micro::vec<Junction, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Junctions;
+    typedef micro::vec<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> Connections;
 
     Segments segments_;
     Junctions junctions_;

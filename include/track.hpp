@@ -9,42 +9,6 @@
 
 #include <functional>
 
-struct TrackSpeeds {
-    micro::m_per_sec_t fast;
-
-#if TRACK == RACE_TRACK
-    micro::m_per_sec_t slow1_prepare;
-    micro::m_per_sec_t slow1_round_begin;
-    micro::m_per_sec_t slow1_round_end;
-    micro::m_per_sec_t slow2_prepare;
-    micro::m_per_sec_t slow2_begin;
-    micro::m_per_sec_t slow2_round_begin;
-    micro::m_per_sec_t slow2_round_end;
-    micro::m_per_sec_t slow3_prepare;
-    micro::m_per_sec_t slow3_round_begin;
-    micro::m_per_sec_t slow3_round_end;
-    micro::m_per_sec_t slow3_end;
-    micro::m_per_sec_t slow4_prepare;
-    micro::m_per_sec_t slow4_round_begin;
-    micro::m_per_sec_t slow4_round_end;
-#elif TRACK == TEST_TRACK
-    micro::m_per_sec_t slow1_prepare;
-    micro::m_per_sec_t slow1_chicane;
-    micro::m_per_sec_t slow2_prepare;
-    micro::m_per_sec_t slow2_begin_chicane;
-    micro::m_per_sec_t slow2_round_begin;
-    micro::m_per_sec_t slow2_round_end;
-    micro::m_per_sec_t slow2_end_chicane;
-    micro::m_per_sec_t slow3_prepare;
-    micro::m_per_sec_t slow3_chicane;
-    micro::m_per_sec_t slow4_prepare;
-    micro::m_per_sec_t slow4_begin_chicane;
-    micro::m_per_sec_t slow4_round_begin;
-    micro::m_per_sec_t slow4_round_end;
-    micro::m_per_sec_t slow4_end_chicane;
-#endif
-};
-
 struct BrakeOffsets {
     micro::meter_t slow1;
     micro::meter_t slow2;
@@ -53,6 +17,7 @@ struct BrakeOffsets {
 };
 
 struct TrackInfo;
+class LabyrinthGraph;
 
 struct TrackSegment {
     bool isFast;
@@ -71,4 +36,22 @@ struct TrackInfo {
     micro::OrientedLine segStartLine;
 };
 
-extern const TrackSegments trackSegments;
+extern const TrackSegments testTrackSegments;
+extern const TrackSegments raceTrackSegments;
+
+LabyrinthGraph buildTestLabyrinthGraph();
+LabyrinthGraph buildRaceLabyrinthGraph();
+
+#if TRACK == RACE_TRACK
+
+#define trackSegments           raceTrackSegments
+#define buildLabyrinthGraph()   buildRaceLabyrinthGraph()
+
+#elif TRACK == TEST_TRACK
+
+#define trackSegments           testTrackSegments
+#define buildLabyrinthGraph()   buildTestLabyrinthGraph()
+
+#else
+#error "TRACK must be set to either TEST_TRACK or RACE_TRACK"
+#endif

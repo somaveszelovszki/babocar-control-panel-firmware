@@ -5,7 +5,7 @@
 #include <utility>
 
 struct LabyrinthRoute {
-    static constexpr uint32_t MAX_LENGTH = 20 * cfg::NUM_LABYRINTH_SEGMENTS;
+    static constexpr uint32_t MAX_LENGTH = 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS;
     const Segment* startSeg;
     const Segment* destSeg;
     micro::vec<const Connection*, MAX_LENGTH> connections;

@@ -67,12 +67,12 @@ bool Junction::isConnected(const Segment& seg) const {
     }) != this->segments.end();
 }
 
-Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segment& seg) {
+Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segment& seg) const {
     segment_info info;
 
-    const segment_map::iterator itSide = this->getSideSegments(orientation);
+    const segment_map::const_iterator itSide = this->getSideSegments(orientation);
     if (itSide != this->segments.end()) {
-        for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
+        for (side_segment_map::const_iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
             if (itSeg->second == &seg) {
                 info.push_back({ itSide->first, itSeg->first });
             }
@@ -82,11 +82,11 @@ Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segm
     return info;
 }
 
-Junction::segment_info Junction::getSegmentInfo(const Segment& seg) {
+Junction::segment_info Junction::getSegmentInfo(const Segment& seg) const {
     segment_info info;
 
-    for (segment_map::iterator itSide = this->segments.begin(); itSide != this->segments.end(); ++itSide) {
-        for (side_segment_map::iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
+    for (segment_map::const_iterator itSide = this->segments.begin(); itSide != this->segments.end(); ++itSide) {
+        for (side_segment_map::const_iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
             if (itSeg->second == &seg) {
                 info.push_back({ itSide->first, itSeg->first });
             }
@@ -247,4 +247,46 @@ const Connection* LabyrinthGraph::findConnection(const Segment& seg1, const Segm
     });
 
     return it != this->connections_.end() ? to_raw_pointer(it) : nullptr;
+}
+
+bool LabyrinthGraph::valid() const {
+    bool isValid = true;
+
+    for (const Segment& seg : this->segments_) {
+
+        const uint32_t numConnections = std::count_if(this->connections_.begin(), this->connections_.end(), [s = &seg](const Connection& c) { return c.node1 == s || c.node2 == s; });
+        if (!isBtw(seg.name, 'A', 'Z')) {
+            isValid = false;
+
+        } else if (seg.length <= meter_t(0)) {
+            isValid = false;
+
+        } else if (seg.isFloating()) {
+            isValid = false;
+
+        } else {
+
+            micro::set<Junction*, 10> junctions;
+            for (const Connection& conn : this->connections_) {
+                if (conn.node1 == &seg || conn.node2 == &seg) {
+                    junctions.push_back(conn.junction);
+                }
+            }
+
+            if (junctions.size() != (seg.isDeadEnd || seg.isLoop() ? 1 : 2)) {
+                isValid = false;
+            } else {
+                uint32_t occurences = 0;
+                for (const Junction& junc : this->junctions_) {
+                    occurences += junc.getSegmentInfo(seg).size();
+                }
+
+                if (occurences != (seg.isDeadEnd ? 1 : 2)) {
+                    isValid = false;
+                }
+            }
+        }
+    }
+
+    return isValid;
 }

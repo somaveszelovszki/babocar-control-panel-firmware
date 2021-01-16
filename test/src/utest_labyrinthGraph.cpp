@@ -1,7 +1,8 @@
 #include <micro/test/utils.hpp>
 
+#define private public
 #include <LabyrinthGraph.hpp>
-#include <LabyrinthGraphBuilder.hpp>
+#undef private
 
 using namespace micro;
 
@@ -33,38 +34,38 @@ LabyrinthGraph createGraph() {
 TEST(labyrinthGraph, segments) {
     LabyrinthGraph graph = createGraph();
 
-    LabyrinthGraph::Segments::iterator segA = graph.findSegment('A');
-    ASSERT_NE(graph.segments.end(), segA);
+    Segment * const segA = graph.findSegment('A');
+    ASSERT_NE(nullptr, segA);
     ASSERT_EQ('A', segA->name);
 
-    LabyrinthGraph::Segments::iterator segB = graph.findSegment('B');
-    ASSERT_NE(graph.segments.end(), segB);
+    Segment * const segB = graph.findSegment('B');
+    ASSERT_NE(nullptr, segB);
     ASSERT_EQ('B', segB->name);
 
-    LabyrinthGraph::Segments::iterator segC = graph.findSegment('C');
-    ASSERT_NE(graph.segments.end(), segC);
+    Segment * const segC = graph.findSegment('C');
+    ASSERT_NE(nullptr, segC);
     ASSERT_EQ('C', segC->name);
 }
 
 TEST(labyrinthGraph, edges) {
     LabyrinthGraph graph = createGraph();
 
-    LabyrinthGraph::Segments::iterator segA = graph.findSegment('A');
-    ASSERT_NE(graph.segments.end(), segA);
+    Segment * const segA = graph.findSegment('A');
+    ASSERT_NE(nullptr, segA);
     ASSERT_EQ(4, segA->edges.size());
     EXPECT_EQ(graph.findSegment('B'), segA->edges[0]->getOtherSegment(*segA));
     EXPECT_EQ(graph.findSegment('B'), segA->edges[1]->getOtherSegment(*segA));
     EXPECT_EQ(graph.findSegment('C'), segA->edges[2]->getOtherSegment(*segA));
     EXPECT_EQ(graph.findSegment('C'), segA->edges[3]->getOtherSegment(*segA));
 
-    LabyrinthGraph::Segments::iterator segB = graph.findSegment('B');
-    ASSERT_NE(graph.segments.end(), segB);
+    Segment * const segB = graph.findSegment('B');
+    ASSERT_NE(nullptr, segB);
     ASSERT_EQ(2, segB->edges.size());
     EXPECT_EQ(graph.findSegment('A'), segB->edges[0]->getOtherSegment(*segB));
     EXPECT_EQ(graph.findSegment('A'), segB->edges[1]->getOtherSegment(*segB));
 
-    LabyrinthGraph::Segments::iterator segC = graph.findSegment('C');
-    ASSERT_NE(graph.segments.end(), segC);
+    Segment * const segC = graph.findSegment('C');
+    ASSERT_NE(nullptr, segC);
     ASSERT_EQ(2, segC->edges.size());
     EXPECT_EQ(graph.findSegment('A'), segC->edges[0]->getOtherSegment(*segC));
     EXPECT_EQ(graph.findSegment('A'), segC->edges[1]->getOtherSegment(*segC));
@@ -73,32 +74,32 @@ TEST(labyrinthGraph, edges) {
 TEST(labyrinthGraph, junctions) {
     LabyrinthGraph graph = createGraph();
 
-    LabyrinthGraph::Junctions::iterator j1 = graph.findJunction(1);
-    ASSERT_NE(graph.junctions.end(), j1);
+    Junction * const j1 = graph.findJunction(1);
+    ASSERT_NE(nullptr, j1);
     ASSERT_EQ(2, j1->segments.size());
 
-    Junction::segment_map::const_iterator j1_rightSideSegs = j1->getSideSegments(radian_t(0));
-    ASSERT_NE(j1->segments.end(), j1_rightSideSegs);
+    const Junction::segment_map::const_iterator j1_rightSideSegs = j1->getSideSegments(radian_t(0));
+    ASSERT_NE(nullptr, j1_rightSideSegs);
     ASSERT_EQ(2, j1_rightSideSegs->second.size());
     EXPECT_EQ(graph.findSegment('B'), *j1_rightSideSegs->second.at(Direction::LEFT));
     EXPECT_EQ(graph.findSegment('B'), *j1_rightSideSegs->second.at(Direction::RIGHT));
 
-    Junction::segment_map::const_iterator j1_leftSideSegs = j1->getSideSegments(PI);
-    ASSERT_NE(j1->segments.end(), j1_leftSideSegs);
+    const Junction::segment_map::const_iterator j1_leftSideSegs = j1->getSideSegments(PI);
+    ASSERT_NE(nullptr, j1_leftSideSegs);
     ASSERT_EQ(1, j1_leftSideSegs->second.size());
     EXPECT_EQ(graph.findSegment('A'), *j1_leftSideSegs->second.at(Direction::CENTER));
 
-    LabyrinthGraph::Junctions::iterator j2 = graph.findJunction(2);
-    ASSERT_NE(graph.junctions.end(), j2);
+    Junction * const j2 = graph.findJunction(2);
+    ASSERT_NE(nullptr, j2);
     ASSERT_EQ(2, j2->segments.size());
 
-    Junction::segment_map::const_iterator j2_rightSideSegs = j2->getSideSegments(radian_t(0));
-    ASSERT_NE(j1->segments.end(), j2_rightSideSegs);
+    const Junction::segment_map::const_iterator j2_rightSideSegs = j2->getSideSegments(radian_t(0));
+    ASSERT_NE(nullptr, j2_rightSideSegs);
     ASSERT_EQ(1, j2_rightSideSegs->second.size());
     EXPECT_EQ(graph.findSegment('A'), *j2_rightSideSegs->second.at(Direction::CENTER));
 
-    Junction::segment_map::const_iterator j2_leftSideSegs = j2->getSideSegments(PI);
-    ASSERT_NE(j1->segments.end(), j2_leftSideSegs);
+    const Junction::segment_map::const_iterator j2_leftSideSegs = j2->getSideSegments(PI);
+    ASSERT_NE(nullptr, j2_leftSideSegs);
     ASSERT_EQ(2, j2_leftSideSegs->second.size());
     EXPECT_EQ(graph.findSegment('C'), *j2_leftSideSegs->second.at(Direction::LEFT));
     EXPECT_EQ(graph.findSegment('C'), *j2_leftSideSegs->second.at(Direction::RIGHT));
@@ -107,29 +108,34 @@ TEST(labyrinthGraph, junctions) {
 TEST(labyrinthGraph, connections) {
     LabyrinthGraph graph = createGraph();
 
-    ASSERT_EQ(4, graph.connections.size());
+    ASSERT_EQ(4, graph.connections_.size());
 
-    EXPECT_EQ(graph.findJunction(1), graph.connections[0].junction);
-    EXPECT_EQ(graph.findSegment('B'), graph.connections[0].node1);
-    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::LEFT), graph.connections[0].decision1);
-    EXPECT_EQ(graph.findSegment('A'), graph.connections[0].node2);
-    EXPECT_EQ(JunctionDecision(PI, Direction::CENTER), graph.connections[0].decision2);
+    const Connection * const conn0 = graph.findConnection(*graph.findSegment('A'), *graph.findSegment('B'));
+    const Connection * const conn1 = graph.findConnection(*graph.findSegment('A'), *graph.findSegment('B'));
+    const Connection * const conn2 = graph.findConnection(*graph.findSegment('A'), *graph.findSegment('B'));
+    const Connection * const conn3 = graph.findConnection(*graph.findSegment('A'), *graph.findSegment('B'));
 
-    EXPECT_EQ(graph.findJunction(1), graph.connections[1].junction);
-    EXPECT_EQ(graph.findSegment('B'), graph.connections[1].node1);
-    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::RIGHT), graph.connections[1].decision1);
-    EXPECT_EQ(graph.findSegment('A'), graph.connections[1].node2);
-    EXPECT_EQ(JunctionDecision(PI, Direction::CENTER), graph.connections[1].decision2);
+    EXPECT_EQ(graph.findJunction(1), graph.connections_[0].junction);
+    EXPECT_EQ(graph.findSegment('B'), graph.connections_[0].node1);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::LEFT), graph.connections_[0].decision1);
+    EXPECT_EQ(graph.findSegment('A'), graph.connections_[0].node2);
+    EXPECT_EQ(JunctionDecision(PI, Direction::CENTER), graph.connections_[0].decision2);
 
-    EXPECT_EQ(graph.findJunction(2), graph.connections[2].junction);
-    EXPECT_EQ(graph.findSegment('C'), graph.connections[2].node1);
-    EXPECT_EQ(JunctionDecision(PI, Direction::LEFT), graph.connections[2].decision1);
-    EXPECT_EQ(graph.findSegment('A'), graph.connections[2].node2);
-    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::CENTER), graph.connections[2].decision2);
+    EXPECT_EQ(graph.findJunction(1), graph.connections_[1].junction);
+    EXPECT_EQ(graph.findSegment('B'), graph.connections_[1].node1);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::RIGHT), graph.connections_[1].decision1);
+    EXPECT_EQ(graph.findSegment('A'), graph.connections_[1].node2);
+    EXPECT_EQ(JunctionDecision(PI, Direction::CENTER), graph.connections_[1].decision2);
 
-    EXPECT_EQ(graph.findJunction(2), graph.connections[3].junction);
-    EXPECT_EQ(graph.findSegment('C'), graph.connections[3].node1);
-    EXPECT_EQ(JunctionDecision(PI, Direction::RIGHT), graph.connections[3].decision1);
-    EXPECT_EQ(graph.findSegment('A'), graph.connections[3].node2);
-    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::CENTER), graph.connections[3].decision2);
+    EXPECT_EQ(graph.findJunction(2), graph.connections_[2].junction);
+    EXPECT_EQ(graph.findSegment('C'), graph.connections_[2].node1);
+    EXPECT_EQ(JunctionDecision(PI, Direction::LEFT), graph.connections_[2].decision1);
+    EXPECT_EQ(graph.findSegment('A'), graph.connections_[2].node2);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::CENTER), graph.connections_[2].decision2);
+
+    EXPECT_EQ(graph.findJunction(2), graph.connections_[3].junction);
+    EXPECT_EQ(graph.findSegment('C'), graph.connections_[3].node1);
+    EXPECT_EQ(JunctionDecision(PI, Direction::RIGHT), graph.connections_[3].decision1);
+    EXPECT_EQ(graph.findSegment('A'), graph.connections_[3].node2);
+    EXPECT_EQ(JunctionDecision(radian_t(0), Direction::CENTER), graph.connections_[3].decision2);
 }

@@ -2,25 +2,14 @@
 #include <micro/test/utils.hpp>
 
 #include <LabyrinthGraph.hpp>
-#include <LabyrinthGraphBuilder.hpp>
 #include <LabyrinthRoute.hpp>
+#include <track.hpp>
+
+#include "route.hpp"
 
 using namespace micro;
 
 namespace {
-
-struct RouteConnection {
-    const Junction *junction;
-    JunctionDecision decision;
-
-    RouteConnection() = default;
-    
-    RouteConnection(const Junction *junction, const JunctionDecision& decision)
-        : junction(junction)
-        , decision(decision) {}
-
-    RouteConnection& operator=(const RouteConnection&) = default;
-};
 
 LabyrinthGraph createGraph() {
     LabyrinthGraph graph;
@@ -77,24 +66,6 @@ LabyrinthGraph createGraph() {
     graph.connect(graph.findSegment('H'), graph.findJunction(7), JunctionDecision(3 * PI_2,    Direction::CENTER));
 
     return graph;
-}
-
-void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const micro::vec<RouteConnection, LabyrinthRoute::MAX_LENGTH>& expectedConnections) {
-    
-    LabyrinthRoute route = LabyrinthRoute::create(prevConn, src, dest);
-
-    ASSERT_EQ(expectedConnections.size(), route.connections.size());
-
-    const Segment *seg = &src;
-    for (uint32_t i = 0; i < expectedConnections.size(); ++i) {
-        EXPECT_EQ(seg, route.startSeg);
-        const Connection *nextConn = route.firstConnection();
-        EXPECT_EQ(expectedConnections[i].junction, nextConn->junction);
-        EXPECT_EQ(expectedConnections[i].decision, nextConn->getDecision(*(seg = nextConn->getOtherSegment(*seg))));
-        route.pop_front();
-    }
-
-    EXPECT_EQ(&dest, route.startSeg);
 }
 
 } // namespace

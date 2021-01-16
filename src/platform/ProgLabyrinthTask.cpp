@@ -15,8 +15,8 @@
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <LaneChangeManeuver.hpp>
-#include <LabyrinthGraphBuilder.hpp>
 #include <LabyrinthNavigator.hpp>
+#include <track.hpp>
 
 using namespace micro;
 
@@ -54,7 +54,7 @@ const Segment *startSeg = graph.findSegment(START_SEGMENT);
 const Connection *prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
 const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
 LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_FORWARD_SPEED, LABYRINTH_FORWARD_SLOW_SPEED, LABYRINTH_BACKWARD_SPEED);
-vec<const Segment*, cfg::NUM_LABYRINTH_SEGMENTS> foundSegments;
+vec<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
 struct JunctionPatternInfo {
@@ -70,19 +70,29 @@ void updateTargetSegment() {
     radioRecvQueue.peek(segId, millisecond_t(0));
 
     const Segment *targetSeg =
-        foundSegments.size() == cfg::NUM_LABYRINTH_SEGMENTS - 1 && getTime() - segId.timestamp() > millisecond_t(1500) ? laneChangeSeg :
+        foundSegments.size() == cfg::NUM_LABYRINTH_GATE_SEGMENTS - 1 && getTime() - segId.timestamp() > millisecond_t(1500) ? laneChangeSeg :
         isBtw(segId.value(), 'A', 'Z') ? graph.findSegment(segId.value()) :
         startSeg;
 
     if (targetSeg != navigator.targetSegment()) {
         foundSegments.push_back(navigator.currentSegment());
-        navigator.setTargetSegment(targetSeg, foundSegments.size() == cfg::NUM_LABYRINTH_SEGMENTS);
+        navigator.setTargetSegment(targetSeg, foundSegments.size() == cfg::NUM_LABYRINTH_GATE_SEGMENTS);
         endTime += second_t(10);
     }
 }
 
 bool shouldHandle(const cfg::ProgramState programState) {
     return isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::NavigateLabyrinth), enum_cast(cfg::ProgramState::LaneChange));
+}
+
+void enforceGraphValidity() {
+    if (!graph.valid()) {
+        while (true) {
+            LOG_ERROR("Labyrinth graph is invalid!");
+            SystemManager::instance().notify(false);
+            os_sleep(millisecond_t(100));
+        }
+    }
 }
 
 } // namespace
@@ -99,6 +109,8 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     controlData.rampTime = millisecond_t(1000);
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
+
+    enforceGraphValidity();
 
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());

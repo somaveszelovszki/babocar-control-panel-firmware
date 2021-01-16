@@ -59,7 +59,7 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
         bool isDistMinimized          = false;
         SegmentRouteInfo *prevSegInfo = nullptr;
     };
-    typedef micro::vec<SegmentRouteInfo, 2 * cfg::NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
+    typedef micro::vec<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
 
     SegmentRouteInfos info;
 
