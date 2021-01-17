@@ -154,7 +154,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
             case cfg::ProgramState::LaneChange:
                 if (programState != prevProgramState) {
-                    laneChange.initialize(car, lineInfo.front.pattern.dir, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                    laneChange.initialize(car, lineInfo.front.pattern.dir, lineInfo.front.pattern.side, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
                 }
 
                 laneChange.update(car, lineInfo, mainLine, controlData);
