@@ -57,10 +57,6 @@ T mapByTrackSegDistance(const CarProps& car, const TrackInfo& trackInfo, const T
     return map(car.distance, trackInfo.segStartCarProps.distance, trackInfo.segStartCarProps.distance + trackInfo.seg->length, start, end);
 }
 
-radian_t getFixOrientationLineAngle(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
-    return trackInfo.segStartCarProps.pose.angle - car.pose.angle - mainLine.centerLine.angle;
-}
-
 bool hasBecomeActive_Fast(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
     static bool signDetected = false;
     static meter_t lastSignDist = meter_t(0);
