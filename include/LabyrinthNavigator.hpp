@@ -14,7 +14,6 @@ public:
 
     const Segment* currentSegment() const;
     const Segment* targetSegment() const;
-    const Connection* nextConnection() const;
     const micro::Pose& correctedCarPose() const;
 
     void setTargetSegment(const Segment *targetSeg, bool isLast);
@@ -26,7 +25,7 @@ private:
 
     void updateTargetDirection();
 
-    void onJunctionDetected(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
+    void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
 
     void setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData);
 
@@ -44,7 +43,7 @@ private:
     const Segment *startSeg_;
     const Connection *prevConn_;
     const Segment *currentSeg_;
-    LabyrinthRoute plannedRoute_;
+    LabyrinthRoute route_;
     bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
