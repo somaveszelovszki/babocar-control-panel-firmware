@@ -144,6 +144,7 @@ void LabyrinthNavigator::onJunctionDetected(const CarProps& car, uint8_t numInSe
         if (this->prevConn_) {
             this->plannedRoute_.pop_front();
             this->currentSeg_ = this->plannedRoute_.startSeg;
+            LOG_INFO("Current segment: %c", this->currentSeg_->name);
         }
 
     } else {
