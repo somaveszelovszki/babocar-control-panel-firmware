@@ -23,11 +23,11 @@ public:
 private:
     void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
 
-    void updateTargetDirection();
-
     void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
 
-    void setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData);
+    void setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const;
+
+    void setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const;
 
     void reset(const Junction& junc, micro::radian_t negOri);
 
