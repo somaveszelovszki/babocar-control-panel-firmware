@@ -40,9 +40,9 @@ m_per_sec_t LANE_CHANGE_SPEED            = m_per_sec_t(0.8f);
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
 #if LABYRINTH == TEST_LABYRINTH
-#define START_SEGMENT       'A'
-#define PREV_SEGMENT        ' '
-#define LANE_CHANGE_SEGMENT ' '
+#define START_SEGMENT       'W'
+#define PREV_SEGMENT        'M'
+#define LANE_CHANGE_SEGMENT 'N'
 #elif LABYRINTH == RACE_LABYRINTH
 #define START_SEGMENT       'A'
 #define PREV_SEGMENT        ' '
