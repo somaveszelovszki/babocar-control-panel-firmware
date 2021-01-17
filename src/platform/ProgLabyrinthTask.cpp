@@ -1,3 +1,4 @@
+#include <micro/debug/params.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
@@ -65,14 +66,18 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
+char targetSegment = START_SEGMENT;
+
 void updateTargetSegment() {
     state_t<char> segId('\0', millisecond_t(0));
     radioRecvQueue.peek(segId, millisecond_t(0));
 
-    const Segment *targetSeg =
-        foundSegments.size() == cfg::NUM_LABYRINTH_GATE_SEGMENTS - 1 && getTime() - segId.timestamp() > millisecond_t(1500) ? laneChangeSeg :
-        isBtw(segId.value(), 'A', 'Z') ? graph.findSegment(segId.value()) :
-        startSeg;
+//    const Segment *targetSeg =
+//        foundSegments.size() == cfg::NUM_LABYRINTH_GATE_SEGMENTS - 1 && getTime() - segId.timestamp() > millisecond_t(1500) ? laneChangeSeg :
+//        isBtw(segId.value(), 'A', 'Z') ? graph.findSegment(segId.value()) :
+//        startSeg;
+
+    const Segment *targetSeg = graph.findSegment(targetSegment);
 
     if (targetSeg != navigator.targetSegment()) {
         foundSegments.push_back(navigator.currentSegment());
@@ -109,6 +114,8 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     controlData.rampTime = millisecond_t(1000);
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
+
+    REGISTER_WRITE_ONLY_PARAM(targetSegment);
 
     enforceGraphValidity();
 
