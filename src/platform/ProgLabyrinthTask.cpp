@@ -148,6 +148,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 const Pose correctedCarPose = navigator.correctedCarPose();
                 if (correctedCarPose.angle != car.pose.angle) {
                     carOrientationUpdateQueue.overwrite(correctedCarPose.angle);
+                    LOG_DEBUG("Car orientation updated: %f -> %f [deg]", static_cast<degree_t>(car.pose.angle).get(), static_cast<degree_t>(correctedCarPose.angle).get());
                 }
                 if (correctedCarPose.pos != car.pose.pos) {
                     carPosUpdateQueue.overwrite(correctedCarPose.pos);
