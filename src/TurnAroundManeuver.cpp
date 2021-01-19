@@ -25,7 +25,7 @@ void TurnAroundManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
         controlData.speed    = m_per_sec_t(0);
         controlData.rampTime = second_t(1);
 
-        controlData.controlType         = ControlData::controlType_t::Line;
+        controlData.rearSteerEnabled    = true;
         controlData.lineControl.actual  = mainLine.centerLine;
         controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 

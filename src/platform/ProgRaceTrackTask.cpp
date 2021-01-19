@@ -184,7 +184,7 @@ extern "C" void runProgRaceTrackTask(void) {
             numLinesRear = lineInfo.rear.lines.size();
 
             // sets default lateral control
-            controlData.controlType         = ControlData::controlType_t::Line;
+            controlData.rearSteerEnabled    = true;
             controlData.lineControl.actual  = mainLine.centerLine;
             controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 

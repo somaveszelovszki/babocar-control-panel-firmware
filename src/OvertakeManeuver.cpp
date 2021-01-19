@@ -37,7 +37,7 @@ void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, Mai
     case state_t::Prepare:
         // does not change longitudinal control in order to continue following safety car
 
-        controlData.controlType         = ControlData::controlType_t::Line;
+        controlData.rearSteerEnabled    = true;
         controlData.lineControl.actual  = mainLine.centerLine;
         controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 

@@ -95,63 +95,52 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
     static constexpr uint32_t D_FILTER_SIZE = 30;
 
-    switch (controlData.controlType) {
+    const Sign speedSign = micro::sgn(car.speed);
 
-    case ControlData::controlType_t::Direct:
-        frontWheelTargetAngle = controlData.directControl.frontWheelAngle;
-        rearWheelTargetAngle  = controlData.directControl.rearWheelAngle;
-        break;
+    targetLine.centerLine.angle = clamp(targetLine.centerLine.angle, -cfg::MAX_TARGET_LINE_ANGLE, cfg::MAX_TARGET_LINE_ANGLE);
 
-    case ControlData::controlType_t::Line:
-    {
-        const Sign speedSign = micro::sgn(car.speed);
+    actualLine.centerLine = controlData.lineControl.actual;
+    actualLine.updateFrontRearLines(speedSign);
 
-        targetLine.centerLine.angle = clamp(targetLine.centerLine.angle, -cfg::MAX_TARGET_LINE_ANGLE, cfg::MAX_TARGET_LINE_ANGLE);
+    targetLine.centerLine = controlData.lineControl.target;
+    targetLine.updateFrontRearLines(speedSign);
 
-        actualLine.centerLine = controlData.lineControl.actual;
-        actualLine.updateFrontRearLines(speedSign);
+    const millimeter_t actualControlLinePos = Sign::POSITIVE == speedSign ? actualLine.frontLine.pos : actualLine.rearLine.pos;
+    const millimeter_t targetControlLinePos = Sign::POSITIVE == speedSign ? targetLine.frontLine.pos : targetLine.rearLine.pos;
 
-        targetLine.centerLine = controlData.lineControl.target;
-        targetLine.updateFrontRearLines(speedSign);
+    const radian_t actualControlAngle = actualLine.centerLine.angle;
+    const radian_t targetControlAngle = targetLine.centerLine.angle;
 
-        const millimeter_t actualControlLinePos = Sign::POSITIVE == speedSign ? actualLine.frontLine.pos : actualLine.rearLine.pos;
-        const millimeter_t targetControlLinePos = Sign::POSITIVE == speedSign ? targetLine.frontLine.pos : targetLine.rearLine.pos;
+    //frontLinePosController.tune(frontParams);
+    frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
 
-        const radian_t actualControlAngle = actualLine.centerLine.angle;
-        const radian_t targetControlAngle = targetLine.centerLine.angle;
+    const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
 
-        //frontLinePosController.tune(frontParams);
-        frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
+    const centimeter_t posError = targetControlLinePos - actualControlLinePos;
+    const degree_t angleError   = targetControlAngle - actualControlAngle;
 
-        const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
+    const centimeter_t posErrorDiff = (posError - peekBackLineError.first) / D_FILTER_SIZE;
+    const degree_t angleErrorDiff   = (angleError - peekBackLineError.second) / D_FILTER_SIZE;
 
-        const centimeter_t posError = targetControlLinePos - actualControlLinePos;
-        const degree_t angleError   = targetControlAngle - actualControlAngle;
+    prevLineErrors.push_back({ posError, angleError });
 
-        const centimeter_t posErrorDiff = (posError - peekBackLineError.first) / D_FILTER_SIZE;
-        const degree_t angleErrorDiff   = (angleError - peekBackLineError.second) / D_FILTER_SIZE;
+    frontLinePosController.update(posError.get(), posErrorDiff.get());
+    frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
+    frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
-        prevLineErrors.push_back({ posError, angleError });
-
-        frontLinePosController.update(posError.get(), posErrorDiff.get());
-        frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
-        frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
-
+    if (controlData.rearSteerEnabled) {
         //rearLinePosController.tune(rearParams);
         rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
-
-        // if the car is going backwards, the front and rear target wheel angles need to be swapped
-        if (Sign::NEGATIVE == speedSign) {
-            std::swap(frontWheelTargetAngle, rearWheelTargetAngle);
-        }
-        break;
+    } else {
+        rearWheelTargetAngle = clamp(targetControlAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
     }
 
-    default:
-        break;
+    // if the car is going backwards, the front and rear target wheel angles need to be swapped
+    if (Sign::NEGATIVE == speedSign) {
+        std::swap(frontWheelTargetAngle, rearWheelTargetAngle);
     }
 
     frontDistSensorServoTargetAngle = cfg::DIST_SENSOR_SERVO_ENABLED ? frontWheelTargetAngle * cfg::DIST_SENSOR_SERVO_TRANSFER_RATE : radian_t(0);
