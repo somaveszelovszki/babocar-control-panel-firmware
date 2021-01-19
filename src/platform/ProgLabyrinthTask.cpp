@@ -66,7 +66,7 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
-char targetSegment = START_SEGMENT;
+char nextSegment = START_SEGMENT;
 
 void updateTargetSegment() {
     state_t<char> segId('\0', millisecond_t(0));
@@ -77,7 +77,7 @@ void updateTargetSegment() {
 //        isBtw(segId.value(), 'A', 'Z') ? graph.findSegment(segId.value()) :
 //        startSeg;
 
-    const Segment *targetSeg = graph.findSegment(targetSegment);
+    const Segment *targetSeg = graph.findSegment(nextSegment);
 
     if (targetSeg != navigator.targetSegment()) {
         foundSegments.push_back(navigator.currentSegment());
@@ -115,7 +115,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
-    REGISTER_WRITE_ONLY_PARAM(targetSegment);
+    REGISTER_WRITE_ONLY_PARAM(nextSegment);
 
     enforceGraphValidity();
 
