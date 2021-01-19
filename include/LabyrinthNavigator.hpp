@@ -45,6 +45,7 @@ private:
     const Segment *currentSeg_;
     LabyrinthRoute route_;
     bool isLastTarget_;
+    micro::meter_t lastLinePatternChangeDist_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
     micro::LineInfo prevLineInfo_;

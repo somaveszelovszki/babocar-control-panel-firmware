@@ -57,23 +57,22 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     updateCarOrientation(car, lineInfo);
 
     if (lineInfo.front.pattern != this->prevLineInfo_.front.pattern) {
-        if (isJunction(lineInfo.front.pattern)) {
-            switch (lineInfo.front.pattern.dir) {
-            case Sign::NEGATIVE:
-                // follows the center line when inside a junction
-                this->targetDir_ = Direction::CENTER;
-                break;
+        if (isJunction(lineInfo.front.pattern) && Sign::POSITIVE == lineInfo.front.pattern.dir) {
+            // car is coming out of a junction
+            this->handleJunction(car, numJunctionSegments(prevLineInfo_.front.pattern), numJunctionSegments(lineInfo.front.pattern));
 
-            case Sign::POSITIVE:
-                // car is coming out of a junction
-                this->handleJunction(car, numJunctionSegments(prevLineInfo_.front.pattern), numJunctionSegments(lineInfo.front.pattern));
-                break;
-            }
-        }
-
-        if (LinePattern::DEAD_END == lineInfo.front.pattern.type || LinePattern::DEAD_END == lineInfo.rear.pattern.type) {
+        } else if (LinePattern::DEAD_END == lineInfo.front.pattern.type || LinePattern::DEAD_END == lineInfo.rear.pattern.type) {
             LOG_ERROR("DEAD_END pattern detected! Something's wrong...");
         }
+
+        this->lastLinePatternChangeDist_ = car.distance;
+    }
+
+    if (isJunction(lineInfo.front.pattern) &&
+        3 == lineInfo.front.lines.size()   &&
+        car.distance - this->lastLinePatternChangeDist_ > centimeter_t(20)) {
+        // follows the center line when inside a junction
+        this->targetDir_ = Direction::CENTER;
     }
 
     this->setControl(car, lineInfo, mainLine, controlData);
