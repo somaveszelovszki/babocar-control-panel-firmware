@@ -93,7 +93,7 @@ void LabyrinthNavigator::updateCarOrientation(const CarProps& car, const LineInf
         eqWithOverflow360(car.pose.angle, round90(car.pose.angle), degree_t(10))) {
 
         this->correctedCarPose_.angle = round90(car.pose.angle);
-        this->lastOrientationUpdateDist_ = car.orientedDistance;
+        this->lastOrientationUpdateDist_ = car.distance;
     }
 }
 
