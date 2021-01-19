@@ -38,8 +38,8 @@ struct ServoOffsets {
 sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     // speed        P      I      D
     { { 0.00f }, { 0.00f, 0.00f,   0.00f } },
-    { { 0.10f }, { 3.00f, 0.00f, 120.00f } },
-    { { 1.00f }, { 2.80f, 0.00f, 120.00f } },
+    { { 0.10f }, { 2.40f, 0.00f, 120.00f } },
+    { { 1.00f }, { 2.40f, 0.00f, 120.00f } },
     { { 1.50f }, { 1.80f, 0.00f, 120.00f } },
     { { 2.00f }, { 1.70f, 0.00f, 120.00f } },
     { { 2.25f }, { 1.70f, 0.00f, 120.00f } },
@@ -55,8 +55,8 @@ sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
 sorted_map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
     // speed        P      I      D
     { { 0.00f }, { 0.00f, 0.00f, 0.00f  } },
-    { { 0.10f }, { 1.20f, 0.00f, 40.00f } },
-    { { 1.00f }, { 1.20f, 0.00f, 40.00f } },
+    { { 0.10f }, { 0.80f, 0.00f, 40.00f } },
+    { { 1.00f }, { 0.80f, 0.00f, 40.00f } },
     { { 1.50f }, { 0.50f, 0.00f, 40.00f } },
     { { 2.00f }, { 0.40f, 0.00f, 40.00f } },
     { { 2.25f }, { 0.40f, 0.00f, 40.00f } },
@@ -120,8 +120,8 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         const radian_t actualControlAngle = actualLine.centerLine.angle;
         const radian_t targetControlAngle = targetLine.centerLine.angle;
 
-        frontLinePosController.tune(frontParams);
-        //frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
+        //frontLinePosController.tune(frontParams);
+        frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
 
         const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
 
@@ -137,8 +137,8 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
         frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;
         frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
-        rearLinePosController.tune(rearParams);
-        //rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
+        //rearLinePosController.tune(rearParams);
+        rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
