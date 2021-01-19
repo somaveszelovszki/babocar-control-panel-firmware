@@ -71,7 +71,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
                 car.pose.angle
             },
             this->speed_,
-        }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+        }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
 
     } else {
         meter_t radius = this->laneDistance_ / 2;
@@ -91,7 +91,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
             this->trajectory_.appendCircle(
                 this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), laneDistSign * radius }.rotate(car.pose.angle),
-                PI,
+                laneDistSign * PI,
                 this->speed_);
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
@@ -105,7 +105,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
         } else {
             this->trajectory_.appendCircle(
                 this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), laneDistSign * radius }.rotate(car.pose.angle),
-                PI,
+                laneDistSign * PI,
                 this->speed_);
         }
     }
@@ -113,7 +113,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
     this->trajectory_.appendLine(Trajectory::config_t{
         Pose{
             this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(40), centimeter_t(0) }.rotate(car.pose.angle + PI),
-            this->trajectory_.lastConfig().pose.angle
+            car.pose.angle + PI
         },
         this->speed_
     });
