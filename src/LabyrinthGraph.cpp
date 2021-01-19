@@ -254,7 +254,6 @@ bool LabyrinthGraph::valid() const {
 
     for (const Segment& seg : this->segments_) {
 
-        const uint32_t numConnections = std::count_if(this->connections_.begin(), this->connections_.end(), [s = &seg](const Connection& c) { return c.node1 == s || c.node2 == s; });
         if (!isBtw(seg.name, 'A', 'Z')) {
             isValid = false;
 
@@ -265,7 +264,6 @@ bool LabyrinthGraph::valid() const {
             isValid = false;
 
         } else {
-
             micro::set<Junction*, 10> junctions;
             for (const Connection& conn : this->connections_) {
                 if (conn.node1 == &seg || conn.node2 == &seg) {
