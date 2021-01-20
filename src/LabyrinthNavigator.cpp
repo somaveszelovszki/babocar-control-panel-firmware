@@ -61,18 +61,9 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
             // car is coming out of a junction
             this->handleJunction(car, numJunctionSegments(prevLineInfo_.front.pattern), numJunctionSegments(lineInfo.front.pattern));
 
-        } else if (LinePattern::DEAD_END == lineInfo.front.pattern.type || LinePattern::DEAD_END == lineInfo.rear.pattern.type) {
-            LOG_ERROR("DEAD_END pattern detected! Something's wrong...");
+        } else if (this->isDeadEnd(car, lineInfo.front.pattern) || this->isDeadEnd(car, lineInfo.rear.pattern)) {
+            LOG_ERROR("Dead-end pattern detected! Something's wrong...");
         }
-
-        this->lastLinePatternChangeDist_ = car.distance;
-    }
-
-    if (isJunction(lineInfo.front.pattern) &&
-        3 == lineInfo.front.lines.size()   &&
-        car.distance - this->lastLinePatternChangeDist_ > centimeter_t(20)) {
-        // follows the center line when inside a junction
-        this->targetDir_ = Direction::CENTER;
     }
 
     this->setControl(car, lineInfo, mainLine, controlData);
@@ -157,8 +148,8 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
 
 void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const {
 
-    // target line is only overwritten when the car is going in or coming out of a segment
-    if (isJunction(lineInfo.front.pattern)) {
+    // target line is only overwritten when the car is going in or coming out of a junction
+    if (this->isTargetLineOverrideEnabled(car, lineInfo)) {
         switch (this->targetDir_) {
         case Direction::LEFT:
             if (lineInfo.front.lines.size()) {
@@ -203,11 +194,11 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
         controlData.speed = this->fwdSpeed_;
 
     // start going backward when a dead-end sign is detected by the front sensor
-    } else if (LinePattern::DEAD_END == lineInfo.front.pattern.type) {
+    } else if (this->isDeadEnd(car, lineInfo.front.pattern)) {
         controlData.speed = this->bwdSpeed_;
 
     // start going forward when a dead-end sign is detected by the rear sensor
-    } else if (LinePattern::DEAD_END == lineInfo.rear.pattern.type) {
+    } else if (this->isDeadEnd(car, lineInfo.rear.pattern)) {
         controlData.speed = this->fwdSpeed_;
 
     // starts going backward when in a dead-end segment and the gate has been passed (so a new target segment has been received)
@@ -224,7 +215,8 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
     this->setTargetLine(car, lineInfo, mainLine);
 
-    controlData.rearSteerEnabled   = car.distance - this->lastJuncDist_ < centimeter_t(40); // enables rear wheel steering when coming out of a junction
+    // enables rear wheel steering when coming out of a junction
+    controlData.rearSteerEnabled   = this->isTargetLineOverrideEnabled(car, lineInfo);//this->lastJuncDist_ != meter_t(0.0f) && car.distance - this->lastJuncDist_ < centimeter_t(40);
     controlData.lineControl.actual = mainLine.centerLine;
     controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
 }
@@ -249,6 +241,14 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
     this->prevConn_   = prevConn;
     this->currentSeg_ = currentSeg;
     this->setTargetSegment(this->route_.destSeg, false);
+}
+
+bool LabyrinthNavigator::isTargetLineOverrideEnabled(const CarProps& car, const LineInfo& lineInfo) const {
+    return isJunction(lineInfo.front.pattern) && Sign::POSITIVE == lineInfo.front.pattern.dir;
+}
+
+bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const {
+    return LinePattern::NONE == pattern.type && (this->currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(30));
 }
 
 bool LabyrinthNavigator::isJunction(const LinePattern& pattern) {

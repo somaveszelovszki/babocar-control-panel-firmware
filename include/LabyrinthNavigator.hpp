@@ -31,6 +31,10 @@ private:
 
     void reset(const Junction& junc, micro::radian_t negOri);
 
+    bool isTargetLineOverrideEnabled(const micro::CarProps& car, const micro::LineInfo& lineInfo) const;
+
+    bool isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const;
+
     static bool isJunction(const micro::LinePattern& pattern);
 
     static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
@@ -45,7 +49,6 @@ private:
     const Segment *currentSeg_;
     LabyrinthRoute route_;
     bool isLastTarget_;
-    micro::meter_t lastLinePatternChangeDist_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
     micro::LineInfo prevLineInfo_;
