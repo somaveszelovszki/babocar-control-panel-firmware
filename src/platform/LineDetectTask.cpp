@@ -74,7 +74,7 @@ extern "C" void runLineDetectTask(void) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
         }
 
-        if (lineInfo.front.pattern.type != prevLineInfo.front.pattern.type) {
+        if (lineInfo.front.pattern != prevLineInfo.front.pattern) {
             LOG_INFO("Front pattern changed from [%s %s %s] to [%s %s %s]",
                 to_string(prevLineInfo.front.pattern.type), to_string(prevLineInfo.front.pattern.dir), to_string(prevLineInfo.front.pattern.side),
                 to_string(lineInfo.front.pattern.type), to_string(lineInfo.front.pattern.dir), to_string(lineInfo.front.pattern.side));
@@ -82,7 +82,7 @@ extern "C" void runLineDetectTask(void) {
             prevLineInfo.front = lineInfo.front;
         }
 
-        if (lineInfo.rear.pattern.type != prevLineInfo.rear.pattern.type) {
+        if (lineInfo.rear.pattern != prevLineInfo.rear.pattern) {
             LOG_INFO("Rear pattern changed from [%s %s %s] to [%s %s %s]",
                 to_string(prevLineInfo.rear.pattern.type), to_string(prevLineInfo.rear.pattern.dir), to_string(prevLineInfo.rear.pattern.side),
                 to_string(lineInfo.rear.pattern.type), to_string(lineInfo.rear.pattern.dir), to_string(lineInfo.rear.pattern.side));
