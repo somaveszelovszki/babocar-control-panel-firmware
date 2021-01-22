@@ -112,7 +112,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     const radian_t targetControlAngle = targetLine.centerLine.angle;
 
     //frontLinePosController.tune(frontParams);
-    frontLinePosController.tune(frontLinePosControllerParams.lerp(car.speed));
+    frontLinePosController.tune(frontLinePosControllerParams.lerp(abs(car.speed)));
 
     const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
 
@@ -130,7 +130,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
     if (controlData.rearSteerEnabled) {
         //rearLinePosController.tune(rearParams);
-        rearLinePosController.tune(rearLineAngleControllerParams.lerp(car.speed));
+        rearLinePosController.tune(rearLineAngleControllerParams.lerp(abs(car.speed)));
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
