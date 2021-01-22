@@ -116,6 +116,11 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         this->correctedCarPose_.pos = junc->pos;
 
         const Connection *nextConn = this->route_.firstConnection();
+        if (junc != nextConn->junction) {
+            LOG_ERROR("Unexpected junction, resets navigator");
+            this->reset(*junc, negOri);
+        }
+
         if (!nextConn) {
             LOG_ERROR("No target segment set, chooses target direction randomly");
 
