@@ -189,6 +189,8 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
     const meter_t distUntilNextJunc = this->lastJuncDist_ + this->currentSeg_->length - car.distance;
 
+    const m_per_sec_t prevSpeed = controlData.speed;
+
     //  starts going forward when in a junction:
     //     if the speed was slow, starts acceleration
     //     if the car was going backwards from a dead-end segment, starts going forward
@@ -208,12 +210,16 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
         controlData.speed = this->bwdSpeed_;
 
     // slows down when waiting for the next target segment and getting close to the next junction
-    } else if (!this->route_.firstConnection() && distUntilNextJunc < centimeter_t(100)) {
+    } else if (car.speed > m_per_sec_t(0) && !this->route_.firstConnection() && distUntilNextJunc < centimeter_t(100)) {
         controlData.speed = this->fwdSlowSpeed_;
 
     } // else: does not change current speed value
 
-    controlData.rampTime = millisecond_t(700);
+    controlData.rampTime = millisecond_t(400);
+
+    if (controlData.speed != prevSpeed) {
+        LOG_DEBUG("Target speed changed to %fm/s", controlData.speed.get());
+    }
 
     this->setTargetLine(car, lineInfo, mainLine);
 
