@@ -199,11 +199,11 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
         controlData.speed = this->fwdSpeed_;
 
     // start going backward when a dead-end sign is detected by the front sensor
-    } else if (this->isDeadEnd(car, lineInfo.front.pattern)) {
+    } else if (car.speed > m_per_sec_t(0) && this->isDeadEnd(car, lineInfo.front.pattern)) {
         controlData.speed = this->bwdSpeed_;
 
     // start going forward when a dead-end sign is detected by the rear sensor
-    } else if (this->isDeadEnd(car, lineInfo.rear.pattern)) {
+    } else if (car.speed < m_per_sec_t(0) && this->isDeadEnd(car, lineInfo.rear.pattern)) {
         controlData.speed = this->fwdSpeed_;
 
     // starts going backward when in a dead-end segment and the gate has been passed (so a new target segment has been received)
