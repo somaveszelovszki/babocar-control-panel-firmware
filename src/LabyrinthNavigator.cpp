@@ -60,9 +60,6 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         if (isJunction(lineInfo.front.pattern) && Sign::POSITIVE == lineInfo.front.pattern.dir) {
             // car is coming out of a junction
             this->handleJunction(car, numJunctionSegments(prevLineInfo_.front.pattern), numJunctionSegments(lineInfo.front.pattern));
-
-        } else if (this->isDeadEnd(car, lineInfo.front.pattern) || this->isDeadEnd(car, lineInfo.rear.pattern)) {
-            LOG_ERROR("Dead-end pattern detected! Something's wrong...");
         }
     }
 
