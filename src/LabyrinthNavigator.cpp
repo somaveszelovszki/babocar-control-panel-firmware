@@ -67,7 +67,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 
     this->prevLineInfo_ = lineInfo;
 
-    if (this->isLastTarget_ && LinePattern::LANE_CHANGE == lineInfo.front.pattern.type) {
+    if (this->isLastTarget_ && (LinePattern::LANE_CHANGE == lineInfo.front.pattern.type || LinePattern::LANE_CHANGE == lineInfo.rear.pattern.type)) {
         this->finish();
     }
 }
