@@ -2,7 +2,6 @@
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/log.hpp>
-#include <micro/utils/state.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
@@ -10,30 +9,26 @@
 
 using namespace micro;
 
-queue_t<state_t<char>, 1> radioRecvQueue;
+queue_t<char, 1> radioRecvQueue;
 
 namespace {
 uint8_t radioRecvBuffer[1] = { 0 };
-volatile state_t<char> radioRecvValue('\0', millisecond_t(0));
+volatile char radioRecvValue = '\0';
 } // namespace
 
 extern "C" void runRadioRecvTask(void) {
 
     SystemManager::instance().registerTask();
 
-    millisecond_t lastQueueSendTime;
+    char prevRadioRecv = radioRecvValue;
     uart_receive(uart_RadioModule, radioRecvBuffer, 1);
 
     while (true) {
-        criticalSection_t criticalSection;
-        criticalSection.lock();
-        const state_t<char> radioRecv = const_cast<const state_t<char>&>(radioRecvValue);
-        criticalSection.unlock();
-
-        if (lastQueueSendTime != radioRecv.timestamp()) {
+        const char radioRecv = radioRecvValue;
+        if (radioRecv != prevRadioRecv) {
             radioRecvQueue.overwrite(radioRecv);
-            LOG_INFO("Received character: %c", radioRecv.value());
-            lastQueueSendTime = radioRecv.timestamp();
+            LOG_INFO("Received character: %c", radioRecv);
+            prevRadioRecv = radioRecv;
         }
 
         SystemManager::instance().notify(true);
@@ -44,5 +39,5 @@ extern "C" void runRadioRecvTask(void) {
 /* @brief Callback for RadioModule UART RxCplt - called when receive finishes.
  */
 void micro_RadioModule_Uart_RxCpltCallback() {
-    const_cast<state_t<char>&>(radioRecvValue).set(static_cast<char>(radioRecvBuffer[0]));
+    radioRecvValue = static_cast<char>(radioRecvBuffer[0]);
 }

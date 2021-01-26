@@ -28,7 +28,7 @@ extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
 extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<radian_t, 1> carOrientationUpdateQueue;
-extern queue_t<state_t<char>, 1> radioRecvQueue;
+extern queue_t<char, 1> radioRecvQueue;
 extern Sign safetyCarFollowSpeedSign;
 
 namespace {
@@ -68,11 +68,12 @@ LaneChangeManeuver laneChange;
 char nextSegment = START_SEGMENT;
 
 void updateTargetSegment() {
-    state_t<char> segId('\0', millisecond_t(0));
+    char segId = '\0';
     radioRecvQueue.peek(segId, millisecond_t(0));
+    const bool isLabyrinthFinished = 'X' == segId;
 
 //    const Segment *targetSeg =
-//        foundSegments.size() == cfg::NUM_LABYRINTH_GATE_SEGMENTS - 1 && getTime() - segId.timestamp() > millisecond_t(1500) ? laneChangeSeg :
+//        isLabyrinthFinished            ? laneChangeSeg                    :
 //        isBtw(segId.value(), 'A', 'Z') ? graph.findSegment(segId.value()) :
 //        startSeg;
 
@@ -80,7 +81,7 @@ void updateTargetSegment() {
 
     if (targetSeg != navigator.targetSegment()) {
         foundSegments.push_back(navigator.currentSegment());
-        navigator.setTargetSegment(targetSeg, foundSegments.size() == cfg::NUM_LABYRINTH_GATE_SEGMENTS);
+        navigator.setTargetSegment(targetSeg, isLabyrinthFinished);
         endTime += second_t(10);
     }
 }

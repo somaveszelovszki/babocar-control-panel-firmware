@@ -9,22 +9,22 @@
 
 using namespace micro;
 
-extern queue_t<state_t<char>, 1> radioRecvQueue;
+extern queue_t<char, 1> radioRecvQueue;
 
 namespace {
 
 void waitStartSignal() {
-    state_t<char> startCounter('\0', millisecond_t(0));
+    char startCounter = '\0';
 
     do {
-        char prevStartCounter = startCounter.value();
+        char prevStartCounter = startCounter;
         radioRecvQueue.peek(startCounter, millisecond_t(10));
-        if (startCounter.value() != prevStartCounter) {
-            LOG_DEBUG("Start counter: %c", startCounter.value());
-            prevStartCounter = startCounter.value();
+        if (startCounter != prevStartCounter) {
+            LOG_DEBUG("Start counter: %c", startCounter);
+            prevStartCounter = startCounter;
         }
         os_sleep(millisecond_t(50));
-    } while (!('0' == startCounter.value() || isBtw(startCounter.value(), 'A', 'Z')));
+    } while (!('0' == startCounter || isBtw(startCounter, 'A', 'Z')));
 
     LOG_DEBUG("Started!");
 }
