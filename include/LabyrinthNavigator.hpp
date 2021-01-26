@@ -8,7 +8,7 @@
 class LabyrinthNavigator : public micro::Maneuver {
 public:
     LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn,
-        const micro::m_per_sec_t fwdSpeed, const micro::m_per_sec_t fwdSlowSpeed, const micro::m_per_sec_t bwdSpeed);
+        const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed);
 
     void initialize();
 
@@ -21,6 +21,9 @@ public:
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
 private:
+    const micro::LinePattern& frontLinePattern(const micro::LineInfo& lineInfo) const;
+    const micro::LinePattern& rearLinePattern(const micro::LineInfo& lineInfo) const;
+
     void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
 
     void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
@@ -39,10 +42,8 @@ private:
 
     static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
 
-    const micro::m_per_sec_t fwdSpeed_;
-    const micro::m_per_sec_t fwdSlowSpeed_;
-    const micro::m_per_sec_t bwdSpeed_;
-
+    const micro::m_per_sec_t targetSpeed_;
+    const micro::m_per_sec_t targetFastSpeed_;
     const LabyrinthGraph& graph_;
     const Segment *startSeg_;
     const Connection *prevConn_;
@@ -51,6 +52,7 @@ private:
     bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
+    micro::Sign targetSpeedSign_;
     micro::LineInfo prevLineInfo_;
     micro::Pose correctedCarPose_;
     micro::meter_t lastOrientationUpdateDist_;

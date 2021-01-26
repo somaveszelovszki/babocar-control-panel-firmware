@@ -19,4 +19,4 @@ struct RouteConnection {
 
 typedef micro::vec<RouteConnection, 50> RouteConnections;
 
-void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const RouteConnections& expectedConnections);
+void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const bool allowBackwardNavigation, const RouteConnections& expectedConnections);

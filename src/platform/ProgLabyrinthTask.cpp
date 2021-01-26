@@ -33,10 +33,9 @@ extern Sign safetyCarFollowSpeedSign;
 
 namespace {
 
-m_per_sec_t LABYRINTH_FORWARD_SPEED      = m_per_sec_t(1.2f);
-m_per_sec_t LABYRINTH_FORWARD_SLOW_SPEED = m_per_sec_t(0.9f);
-m_per_sec_t LABYRINTH_BACKWARD_SPEED     = m_per_sec_t(-0.8f);
-m_per_sec_t LANE_CHANGE_SPEED            = m_per_sec_t(0.8f);
+m_per_sec_t LABYRINTH_SPEED      = m_per_sec_t(1.0f);
+m_per_sec_t LABYRINTH_FAST_SPEED = m_per_sec_t(1.0f);
+m_per_sec_t LANE_CHANGE_SPEED    = m_per_sec_t(0.8f);
 
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
@@ -54,7 +53,7 @@ const LabyrinthGraph graph = buildLabyrinthGraph();
 const Segment *startSeg = graph.findSegment(START_SEGMENT);
 const Connection *prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
 const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_FORWARD_SPEED, LABYRINTH_FORWARD_SLOW_SPEED, LABYRINTH_BACKWARD_SPEED);
+LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED);
 vec<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
@@ -110,7 +109,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     ControlData controlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    controlData.speed    = LABYRINTH_FORWARD_SPEED;
+    controlData.speed    = LABYRINTH_FAST_SPEED;
     controlData.rampTime = millisecond_t(1000);
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
@@ -128,14 +127,14 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
             linePatternDomainQueue.overwrite(linePatternDomain_t::Labyrinth);
             lineInfoQueue.peek(lineInfo, millisecond_t(0));
-            micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine, micro::sgn(car.speed));
+            micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
 
             switch (programState) {
             case cfg::ProgramState::NavigateLabyrinth:
             {
                 if (programState != prevProgramState) {
                     carOrientationUpdateQueue.overwrite(radian_t(0));
-                    controlData.speed = LABYRINTH_FORWARD_SPEED;
+                    controlData.speed = LABYRINTH_FAST_SPEED;
                     controlData.rampTime = millisecond_t(500);
                     endTime = getTime() + second_t(20);
 

@@ -38,13 +38,13 @@ void LabyrinthRoute::reset(const Segment& currentSeg) {
     this->connections.clear();
 }
 
-bool LabyrinthRoute::isNewConnectionValid(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
+bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
     // does not permit going backwards
     const bool isBwd = newConn.junction == prevConn.junction && newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
     return !isBwd;
 }
 
-LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg) {
+LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg, const bool allowBackwardNavigation) {
 
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for forward-moving car in a graph that allows multiple connections between the nodes
@@ -78,19 +78,26 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
         }
 
         for (Connection *newConn : segInfo->seg->edges) {
-            if (isNewConnectionValid(*segInfo->prevConn, *segInfo->seg, *newConn)) {
+            if (allowBackwardNavigation || isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn)) {
 
                 SegmentRouteInfo newSegInfo;
                 newSegInfo.seg             = newConn->getOtherSegment(*segInfo->seg);
-                newSegInfo.dist            = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
                 newSegInfo.prevConn        = newConn;
                 newSegInfo.isDistMinimized = false;
                 newSegInfo.prevSegInfo     = segInfo;
 
-                SegmentRouteInfos::iterator existingSegInfo = std::find_if(info.begin(), info.end(), [&newSegInfo](const SegmentRouteInfo& element) {
-                    return element.seg == newSegInfo.seg                               &&
-                           element.prevConn->junction == newSegInfo.prevConn->junction &&
-                           element.prevConn->getDecision(*newSegInfo.seg) == newSegInfo.prevConn->getDecision(*newSegInfo.seg);
+                // when going back to the previous junction, distance is not the same as when passing through the whole segment
+                if (segInfo != info.begin() && allowBackwardNavigation && segInfo->prevConn->junction == newConn->junction) {
+                    newSegInfo.dist = segInfo->dist - segInfo->seg->length / 2 + meter_t(1.2f) + newSegInfo.seg->length / 2;
+                } else {
+                    newSegInfo.dist = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
+                }
+
+                SegmentRouteInfos::iterator existingSegInfo = std::find_if(info.begin(), info.end(), [&newSegInfo, allowBackwardNavigation](const SegmentRouteInfo& element) {
+                    return element.seg == newSegInfo.seg &&
+                           (allowBackwardNavigation ||
+                               (element.prevConn->junction == newSegInfo.prevConn->junction &&
+                                element.prevConn->getDecision(*newSegInfo.seg) == newSegInfo.prevConn->getDecision(*newSegInfo.seg)));
                 });
 
                 if (existingSegInfo != info.end()) {
