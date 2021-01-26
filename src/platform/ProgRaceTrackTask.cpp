@@ -178,7 +178,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 targetSpeedSign = safetyCarFollowSpeedSign;
             }
 
-            micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine, micro::sgn(car.speed));
+            micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
 
             numLinesFront = lineInfo.front.lines.size();
             numLinesRear = lineInfo.rear.lines.size();

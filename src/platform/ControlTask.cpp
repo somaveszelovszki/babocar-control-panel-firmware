@@ -100,10 +100,10 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     targetLine.centerLine.angle = clamp(targetLine.centerLine.angle, -cfg::MAX_TARGET_LINE_ANGLE, cfg::MAX_TARGET_LINE_ANGLE);
 
     actualLine.centerLine = controlData.lineControl.actual;
-    actualLine.updateFrontRearLines(speedSign);
+    actualLine.updateFrontRearLines();
 
     targetLine.centerLine = controlData.lineControl.target;
-    targetLine.updateFrontRearLines(speedSign);
+    targetLine.updateFrontRearLines();
 
     const millimeter_t actualControlLinePos = Sign::POSITIVE == speedSign ? actualLine.frontLine.pos : actualLine.rearLine.pos;
     const millimeter_t targetControlLinePos = Sign::POSITIVE == speedSign ? targetLine.frontLine.pos : targetLine.rearLine.pos;
