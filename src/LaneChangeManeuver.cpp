@@ -97,10 +97,10 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
             this->trajectory_.appendSineArc(Trajectory::config_t{
                 Pose{
                     this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), laneDistSign * sineArcWidth }.rotate(car.pose.angle + PI),
-                    car.pose.angle
+                    car.pose.angle + PI
                 },
                 this->speed_,
-            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+            }, car.pose.angle + PI, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
 
         } else {
             this->trajectory_.appendCircle(
