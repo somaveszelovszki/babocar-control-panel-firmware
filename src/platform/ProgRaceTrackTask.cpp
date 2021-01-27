@@ -276,7 +276,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Error:
-                controlData.speed = m_per_sec_t(0.0f);
+                controlData.speed = m_per_sec_t(0);
                 controlData.rampTime = millisecond_t(0);
                 break;
 
