@@ -231,7 +231,7 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
         controlData.speed = this->targetSpeedSign_ * this->targetSpeed_;
     }
 
-    controlData.rampTime = millisecond_t(400);
+    controlData.rampTime = millisecond_t(300);
 
     if (controlData.speed != prevSpeed) {
         LOG_DEBUG("Target speed changed to %fm/s", controlData.speed.get());
