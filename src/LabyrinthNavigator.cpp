@@ -276,7 +276,9 @@ bool LabyrinthNavigator::isTargetLineOverrideEnabled(const CarProps& car, const 
 }
 
 bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const {
-    return LinePattern::NONE == pattern.type && (this->currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
+    return LinePattern::NONE == pattern.type &&
+           car.distance > centimeter_t(15)   && // prevents the car from starting backwards
+           (this->currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
 }
 
 bool LabyrinthNavigator::isJunction(const LinePattern& pattern) {
