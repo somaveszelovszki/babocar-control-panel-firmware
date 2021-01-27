@@ -81,7 +81,7 @@ void updateTargetSegment() {
     if (targetSeg != navigator.targetSegment()) {
         foundSegments.push_back(navigator.currentSegment());
         navigator.setTargetSegment(targetSeg, isLabyrinthFinished);
-        endTime += second_t(10);
+        endTime += second_t(15);
     }
 }
 
