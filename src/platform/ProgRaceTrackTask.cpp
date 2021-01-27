@@ -57,7 +57,7 @@ TurnAroundManeuver turnAround;
 TestManeuver testManeuver;
 
 TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
-    return trackSegments.back() == currentSeg ? trackSegments.begin() : currentSeg + 1;
+    return trackSegments.back() == currentSeg ? trackSegments.begin() : std::next(currentSeg);
 }
 
 m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpeedSign, bool isFast) {
@@ -100,7 +100,7 @@ void updateTrackInfo(const CarProps& car, const LineInfo& lineInfo, const MainLi
             ++trackInfo.lap;
             trackInfo.lapStartTime = getTime();
         }
-        LOG_INFO("Segment %d became active (lap: %d)", static_cast<int32_t>(trackInfo.seg - trackSegments.begin()), static_cast<int32_t>(trackInfo.lap));
+        LOG_INFO("Segment %u became active (lap: %d)", static_cast<uint32_t>(std::distance(trackSegments.begin(), trackInfo.seg)), static_cast<uint32_t>(trackInfo.lap));
     }
 }
 
