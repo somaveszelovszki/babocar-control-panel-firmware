@@ -70,14 +70,13 @@ char nextSegment = START_SEGMENT;
 void updateTargetSegment() {
     char segId = '\0';
     radioRecvQueue.peek(segId, millisecond_t(0));
+    segId = nextSegment; // TODO TODO TODO
     const bool isLabyrinthFinished = 'X' == segId;
 
-//    const Segment *targetSeg =
-//        isLabyrinthFinished            ? laneChangeSeg                    :
-//        isBtw(segId.value(), 'A', 'Z') ? graph.findSegment(segId.value()) :
-//        startSeg;
-
-    const Segment *targetSeg = graph.findSegment(nextSegment);
+    const Segment *targetSeg =
+        isLabyrinthFinished    ? laneChangeSeg            :
+        isBtw(segId, 'A', 'Z') ? graph.findSegment(segId) :
+        startSeg;
 
     if (targetSeg != navigator.targetSegment()) {
         foundSegments.push_back(navigator.currentSegment());
