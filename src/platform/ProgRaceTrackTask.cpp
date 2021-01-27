@@ -131,18 +131,7 @@ extern "C" void runProgRaceTrackTask(void) {
     meter_t lastDistWithValidLine;
     meter_t lastDistWithSafetyCar;
 
-    m_per_sec_t testSpeedSlow = m_per_sec_t(2.25f);
-    m_per_sec_t testSpeedFast = m_per_sec_t(2.25f);
-
-    REGISTER_READ_WRITE_PARAM(testSpeedSlow);
-    REGISTER_READ_WRITE_PARAM(testSpeedFast);
-
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
-    uint32_t numLinesFront = 0;
-    uint32_t numLinesRear = 0;
-
-    REGISTER_READ_ONLY_PARAM(numLinesFront);
-    REGISTER_READ_ONLY_PARAM(numLinesRear);
 
     Sign targetSpeedSign;
 
@@ -175,9 +164,6 @@ extern "C" void runProgRaceTrackTask(void) {
             }
 
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
-
-            numLinesFront = lineInfo.front.lines.size();
-            numLinesRear = lineInfo.rear.lines.size();
 
             // sets default lateral control
             controlData.rearSteerEnabled    = true;
