@@ -225,7 +225,10 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
     const m_per_sec_t prevSpeed = controlData.speed;
 
-    if (isBtw(car.distance, this->lastJuncDist_ + centimeter_t(100), this->lastJuncDist_ + this->currentSeg_->length - centimeter_t(100))) {
+    if (!this->currentSeg_->isDeadEnd                                                                                                   &&
+        isBtw(car.distance, this->lastJuncDist_ + centimeter_t(50), this->lastJuncDist_ + this->currentSeg_->length - centimeter_t(50)) &&
+        1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                                     &&
+        1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type) {
         controlData.speed = this->targetSpeedSign_ * this->targetFastSpeed_;
     } else {
         controlData.speed = this->targetSpeedSign_ * this->targetSpeed_;
