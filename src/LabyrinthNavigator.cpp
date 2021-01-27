@@ -85,7 +85,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 
     // start going backward when a dead-end sign is detected
-    if (this->isDeadEnd(car, frontPattern)) {
+    if (this->isDeadEnd(car, frontPattern) && this->targetSpeedSign_ == sgn(car.speed)) {
         this->targetSpeedSign_ = -sgn(car.speed);
         LOG_ERROR("Dead-end detected! Something's wrong...");
     }
