@@ -109,9 +109,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     ControlData controlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    controlData.speed    = LABYRINTH_FAST_SPEED;
-    controlData.rampTime = millisecond_t(1000);
-
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
     REGISTER_WRITE_ONLY_PARAM(nextSegment);
@@ -134,10 +131,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             {
                 if (programState != prevProgramState) {
                     carOrientationUpdateQueue.overwrite(radian_t(0));
-                    controlData.speed = LABYRINTH_FAST_SPEED;
-                    controlData.rampTime = millisecond_t(500);
                     endTime = getTime() + second_t(20);
-
                     navigator.initialize();
                 }
 
