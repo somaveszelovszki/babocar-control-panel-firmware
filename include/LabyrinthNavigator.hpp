@@ -28,6 +28,8 @@ private:
 
     void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
 
+    void tryToggleTargetSpeedSign();
+
     void setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const;
 
     void setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const;
@@ -56,4 +58,5 @@ private:
     micro::LineInfo prevLineInfo_;
     micro::Pose correctedCarPose_;
     micro::meter_t lastOrientationUpdateDist_;
+    bool hasSpeedSignChanged_;
 };

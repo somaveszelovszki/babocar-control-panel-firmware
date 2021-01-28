@@ -17,7 +17,8 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segmen
     , isLastTarget_(false)
     , lastJuncDist_(0)
     , targetDir_(Direction::CENTER)
-    , targetSpeedSign_(Sign::POSITIVE) {}
+    , targetSpeedSign_(Sign::POSITIVE)
+    , hasSpeedSignChanged_(false) {}
 
 void LabyrinthNavigator::initialize() {
     this->currentSeg_ = this->startSeg_;
@@ -52,7 +53,8 @@ void LabyrinthNavigator::setTargetSegment(const Segment *targetSeg, bool isLast)
     // checks if car needs to change speed sign in order to follow route
     const Connection *nextConn = this->route_.firstConnection();
     if (nextConn && this->prevConn_ && nextConn->junction == this->prevConn_->junction && !this->currentSeg_->isLoop()) {
-        this->targetSpeedSign_ = -this->targetSpeedSign_;
+        LOG_DEBUG("Toggles speed sign to follow route");
+        this->tryToggleTargetSpeedSign();
     }
 }
 
@@ -79,15 +81,16 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
             // car has come out of the junction, checks if it needs to change speed sign in order to follow route
             const Connection *nextConn = this->route_.firstConnection();
             if (nextConn && this->prevConn_ && nextConn->junction == this->prevConn_->junction) {
-                this->targetSpeedSign_ = -this->targetSpeedSign_;
+                LOG_DEBUG("Junction is over, toggles speed sign");
+                this->tryToggleTargetSpeedSign();
             }
         }
     }
 
     // start going backward when a dead-end sign is detected
     if (this->isDeadEnd(car, frontPattern) && this->targetSpeedSign_ == sgn(car.speed)) {
-        this->targetSpeedSign_ = -sgn(car.speed);
-        LOG_ERROR("Dead-end detected! Something's wrong...");
+        LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to %s", to_string(this->targetSpeedSign_));
+        this->tryToggleTargetSpeedSign();
     }
 
     this->setControl(car, lineInfo, mainLine, controlData);
@@ -181,6 +184,16 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
 
     } else {
         LOG_ERROR("Junction not found");
+    }
+
+    this->hasSpeedSignChanged_ = false;
+}
+
+void LabyrinthNavigator::tryToggleTargetSpeedSign() {
+    if (!this->hasSpeedSignChanged_) {
+        this->targetSpeedSign_ = -this->targetSpeedSign_;
+        this->hasSpeedSignChanged_ = true;
+        LOG_DEBUG("Labyrinth target speed sign changed to %s", to_string(this->targetSpeedSign_));
     }
 }
 
