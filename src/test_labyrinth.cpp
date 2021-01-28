@@ -43,7 +43,7 @@ LabyrinthGraph buildTestLabyrinthGraph() {
     graph.addJunction(Junction(10, { centimeter_t(-1000), centimeter_t(60)  }));
     graph.addJunction(Junction(11, { centimeter_t(-540),  centimeter_t(60)  }));
     graph.addJunction(Junction(12, { centimeter_t(-140),  centimeter_t(0)   }));
-    graph.addJunction(Junction(13, { centimeter_t(380),   centimeter_t(0)   }));
+    graph.addJunction(Junction(13, { centimeter_t(380),   centimeter_t(-30) }));
 
     graph.connect(graph.findSegment('A'), graph.findJunction(1),  JunctionDecision(PI,          Direction::LEFT));
     graph.connect(graph.findSegment('A'), graph.findJunction(1),  JunctionDecision(PI,          Direction::RIGHT));
