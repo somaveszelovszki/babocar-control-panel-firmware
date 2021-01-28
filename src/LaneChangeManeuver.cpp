@@ -9,8 +9,9 @@ LaneChangeManeuver::LaneChangeManeuver()
     : Maneuver()
     , patternDir_(Sign::NEUTRAL)
     , patternSide_(Direction::CENTER)
+    , initialSpeedSign_(Sign::NEUTRAL)
     , safetyCarFollowSpeedSign_(Sign::NEUTRAL)
-    , state_(state_t::FollowTrajectory) {}
+    , state_(state_t::Stop) {}
 
 void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sign patternDir, const micro::Direction patternSide, const micro::Sign safetyCarFollowSpeedSign,
         const micro::m_per_sec_t speed, const micro::meter_t laneDistance) {
@@ -18,36 +19,35 @@ void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sig
 
     this->patternDir_               = patternDir;
     this->patternSide_              = patternSide;
+    this->initialSpeedSign_         = sgn(car.speed);
     this->safetyCarFollowSpeedSign_ = safetyCarFollowSpeedSign;
-    this->speed_                    = speed;
+    this->speed_                    = this->safetyCarFollowSpeedSign_ * speed;
     this->laneDistance_             = laneDistance;
-    this->state_                    = state_t::FollowTrajectory;
+    this->state_                    = state_t::Stop;
 
     this->trajectory_.clear();
-    this->buildTrajectory(car);
 }
 
 void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
     switch (this->state_) {
+    case state_t::Stop:
+        controlData.speed    = m_per_sec_t(0);
+        controlData.rampTime = millisecond_t(200);
+
+        controlData.rearSteerEnabled   = false;
+        controlData.lineControl.actual = mainLine.centerLine;
+        controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
+
+        if (abs(car.speed) < cm_per_sec_t(2)) {
+            this->buildTrajectory(car);
+            this->state_ = state_t::FollowTrajectory;
+        }
+        break;
 
     case state_t::FollowTrajectory:
         controlData = this->trajectory_.update(car);
 
         if (this->trajectory_.finished(car, lineInfo, centimeter_t(20))) {
-            if (Sign::POSITIVE == this->safetyCarFollowSpeedSign_) {
-                this->finish();
-            } else {
-                this->reverseStopTimer_.start(second_t(3));
-                this->state_ = state_t::ReverseWait;
-            }
-        }
-        break;
-
-    case state_t::ReverseWait:
-        controlData.speed    = m_per_sec_t(0);
-        controlData.rampTime = millisecond_t(500);
-
-        if (this->reverseStopTimer_.checkTimeout()) {
             this->finish();
         }
         break;
@@ -63,22 +63,30 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
     const Sign laneDistSign = Direction::LEFT == this->patternSide_ ? Sign::POSITIVE : Sign::NEGATIVE;
 
-    if (this->safetyCarFollowSpeedSign_ == this->patternDir_) {
+    if (this->safetyCarFollowSpeedSign_ == this->initialSpeedSign_ * this->patternDir_) {
 
         this->trajectory_.appendSineArc(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(100), laneDistSign * this->laneDistance_ }.rotate(car.pose.angle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(110), laneDistSign * this->laneDistance_ }.rotate(car.pose.angle),
                 car.pose.angle
             },
             this->speed_,
         }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
+
+        this->trajectory_.appendLine(Trajectory::config_t{
+            Pose{
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(car.pose.angle),
+                car.pose.angle
+            },
+            this->speed_
+        });
 
     } else {
         meter_t radius = this->laneDistance_ / 2;
 
         if (radius < cfg::MIN_TURN_RADIUS) {
 
-            const meter_t sineArcWidth = cfg::MIN_TURN_RADIUS - radius;
+            const meter_t sineArcWidth = centimeter_t(5) + cfg::MIN_TURN_RADIUS - radius;
             radius = cfg::MIN_TURN_RADIUS;
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
@@ -108,13 +116,13 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
                 laneDistSign * PI,
                 this->speed_);
         }
-    }
 
-    this->trajectory_.appendLine(Trajectory::config_t{
-        Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(40), centimeter_t(0) }.rotate(car.pose.angle + PI),
-            car.pose.angle + PI
-        },
-        this->speed_
-    });
+        this->trajectory_.appendLine(Trajectory::config_t{
+            Pose{
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(car.pose.angle + PI),
+                car.pose.angle + PI
+            },
+            this->speed_
+        });
+    }
 }

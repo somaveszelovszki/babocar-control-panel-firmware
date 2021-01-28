@@ -15,14 +15,15 @@ public:
 
 private:
     enum class state_t : uint8_t {
-        FollowTrajectory,
-        ReverseWait
+        Stop,
+        FollowTrajectory
     };
 
     void buildTrajectory(const micro::CarProps& car);
 
     micro::Sign patternDir_;
     micro::Direction patternSide_;
+    micro::Sign initialSpeedSign_;
     micro::Sign safetyCarFollowSpeedSign_;
     micro::m_per_sec_t speed_;
     micro::meter_t laneDistance_;
