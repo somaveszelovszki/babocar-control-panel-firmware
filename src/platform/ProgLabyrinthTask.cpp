@@ -78,7 +78,7 @@ void updateTargetSegment() {
         isBtw(segId, 'A', 'Z') ? graph.findSegment(segId) :
         startSeg;
 
-    if (targetSeg != navigator.targetSegment()) {
+    if (targetSeg != navigator.targetSegment() || (isLabyrinthFinished && !navigator.isLastTarget())) {
         foundSegments.push_back(navigator.currentSegment());
         navigator.setTargetSegment(targetSeg, isLabyrinthFinished);
         endTime += second_t(15);
