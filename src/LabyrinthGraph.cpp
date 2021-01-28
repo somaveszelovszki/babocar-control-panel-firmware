@@ -224,7 +224,7 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::ve
     }
 
     if (closest.second.junc) {
-        LOG_DEBUG("closest with good orientation: (%f, %f)", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
+        LOG_DEBUG("closest with correct topology: (%f, %f)", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
     }
 
     if (closest.second.dist < centimeter_t(120)) {
