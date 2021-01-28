@@ -16,6 +16,8 @@ public:
     const Segment* targetSegment() const;
     const micro::Pose& correctedCarPose() const;
 
+    bool isLastTarget() const;
+
     void setTargetSegment(const Segment *targetSeg, bool isLast);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;

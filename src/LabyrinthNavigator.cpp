@@ -36,6 +36,10 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
     return this->correctedCarPose_;
 }
 
+bool LabyrinthNavigator::isLastTarget() const {
+    return this->isLastTarget_;
+}
+
 void LabyrinthNavigator::setTargetSegment(const Segment *targetSeg, bool isLast) {
     LOG_DEBUG("Next target segment: %c", targetSeg->name);
     this->route_ = LabyrinthRoute::create(*this->prevConn_, *this->currentSeg_, *targetSeg, true);
