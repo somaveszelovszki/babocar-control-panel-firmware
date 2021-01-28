@@ -21,8 +21,6 @@
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_gpio.h>
 
-#include <micro/sensor/MadgwickAHRS.hpp>
-
 using namespace micro;
 
 extern CanManager vehicleCanManager;
@@ -61,13 +59,15 @@ void updateCarOrientedDistance(CarProps& car) {
     car.orientedDistance = car.distance - orientedSectionStartDist;
 }
 
-void updateCarPose(const radian_t yaw) {
-
+void updateCarPose() {
     static radian_t prevYaw = { 0 };
     static meter_t prevDist = { 0 };
+    static microsecond_t prevTime = getExactTime();
+
+    const microsecond_t now = getExactTime();
 
     const meter_t d_dist      = car.distance - prevDist;
-    const radian_t d_angle    = normalizePM180(yaw - prevYaw);
+    const radian_t d_angle    = car.yawRate * (now - prevTime);
     const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST);
 
     car.pose.angle += d_angle / 2;
@@ -77,7 +77,7 @@ void updateCarPose(const radian_t yaw) {
 
     updateCarOrientedDistance(car);
     prevDist = car.distance;
-    prevYaw  = yaw;
+    prevTime = now;
 }
 
 void initializeVehicleCan() {
@@ -104,12 +104,12 @@ extern "C" void runVehicleStateTask(void) {
     initializeVehicleCan();
 
     gyro.initialize();
-    MadgwickAHRS madgwick(gyro.gyroMeanError().Z.get());
     WatchdogTimer gyroDataWd(millisecond_t(15));
-    millisecond_t lastValidGyroDataTime = getTime();
 
     REGISTER_READ_ONLY_PARAM(car);
     REGISTER_READ_ONLY_PARAM(isRemoteControlled);
+
+    LowPassFilter<rad_per_sec_t, 3> yawRateFilter(rad_per_sec_t(0));
 
     while (true) {
         while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
@@ -127,34 +127,28 @@ extern "C" void runVehicleStateTask(void) {
         radian_t orientation;
         if (carOrientationUpdateQueue.receive(orientation, millisecond_t(0))) {
             car.pose.angle = orientation;
-            madgwick.reset({ madgwick.roll(), madgwick.pitch(), orientation });
         }
 
         if (dataReadySemaphore.take(millisecond_t(0))) {
 
-            const millisecond_t sampleTime = getExactTime();
             const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
-            const point3<m_per_sec2_t> accelData = gyro.readAccelData();
-
-            if (!micro::isinf(gyroData.X) && !micro::isinf(accelData.X)) {
-                madgwick.update(sampleTime, gyroData, accelData);
-                car.yawRate = gyroData.Z;
+            if (!micro::isinf(gyroData.X)) {
+                car.yawRate = yawRateFilter.update(gyroData.Z);
                 gyroDataWd.reset();
-                lastValidGyroDataTime = getTime();
             }
         }
 
-        updateCarPose(madgwick.yaw());
-
+        updateCarPose();
         carPropsQueue.overwrite(car);
 
-        if (gyroDataWd.hasTimedOut()) {
+        const bool isGyroOk = !gyroDataWd.hasTimedOut();
+        if (!isGyroOk) {
             LOG_ERROR("Gyro timed out");
             gyro.initialize();
             gyroDataWd.reset();
         }
 
-        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && getTime() - lastValidGyroDataTime < millisecond_t(50));
+        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && isGyroOk);
         os_sleep(millisecond_t(5));
     }
 }
