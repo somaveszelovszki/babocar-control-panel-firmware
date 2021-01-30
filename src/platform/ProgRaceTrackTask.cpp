@@ -35,6 +35,8 @@ Sign safetyCarFollowSpeedSign = Sign::POSITIVE;
 
 namespace {
 
+constexpr centimeter_t MAX_VALID_SAFETY_CAR_DISTANCE = centimeter_t(120);
+
 m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.3f);
 m_per_sec_t SAFETY_CAR_FAST_MAX_SPEED     = m_per_sec_t(1.7f);
 m_per_sec_t REACH_SAFETY_CAR_SPEED        = m_per_sec_t(0.6f);
@@ -183,8 +185,8 @@ extern "C" void runProgRaceTrackTask(void) {
                 if (overtakeSeg == trackInfo.seg && (1 == trackInfo.lap || 3 == trackInfo.lap) && trackInfo.lap != lastOvertakeLap) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::OvertakeSafetyCar));
                     LOG_DEBUG("Starts overtake");
-                } else if (car.distance - lastDistWithSafetyCar > centimeter_t(150) && trackInfo.seg->isFast) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Test));
+                } else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackInfo.seg->isFast) {
+                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                     LOG_DEBUG("Safety car left the track, starts race");
                 }
                 break;
@@ -220,7 +222,7 @@ extern "C" void runProgRaceTrackTask(void) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Finish));
                     LOG_DEBUG("Race finished");
 
-                } else if (trackInfo.lap <= 3 && distFromSafetyCar < (trackInfo.seg->isFast ? centimeter_t(120) : centimeter_t(60))) {
+                } else if (trackInfo.lap <= 3 && distFromSafetyCar < (trackInfo.seg->isFast ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
