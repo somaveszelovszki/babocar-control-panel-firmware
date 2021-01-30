@@ -8,7 +8,7 @@ OvertakeManeuver::OvertakeManeuver()
     , state_(state_t::Prepare) {}
 
 void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign targetSpeedSign,
-    const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightEndSpeed, const micro::m_per_sec_t endSpeed,
+    const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightSpeed, const micro::m_per_sec_t endSpeed,
     const micro::meter_t sectionLength, const micro::meter_t prepareDistance, const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
     const micro::meter_t sideDistance) {
     Maneuver::initialize();
@@ -16,7 +16,7 @@ void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign 
     this->initialCarProps_    = car;
     this->beginSpeed_         = targetSpeedSign * beginSpeed;
     this->straightStartSpeed_ = targetSpeedSign * straightStartSpeed;
-    this->straightEndSpeed_   = targetSpeedSign * straightEndSpeed;
+    this->straightSpeed_      = targetSpeedSign * straightSpeed;
     this->endSpeed_           = targetSpeedSign * endSpeed;
     this->sectionLength_      = sectionLength;
     this->prepareDistance_    = prepareDistance;
@@ -57,6 +57,8 @@ void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, Mai
 
 void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
 
+    static constexpr meter_t STRAIGHT_SPEED_RAMP_DIST = meter_t(2);
+
     const point2m posDiff           = car.pose.pos - this->initialCarProps_.pose.pos;
     const meter_t fastSectionLength = this->sectionLength_ - posDiff.length() - this->beginSineArcLength_ - this->endSineArcLength_;
     const radian_t forwardAngle     = posDiff.getAngle();
@@ -76,10 +78,18 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
 
     this->trajectory_.appendLine(Trajectory::config_t{
         Pose{
-            this->trajectory_.lastConfig().pose.pos + vec2m{ fastSectionLength, centimeter_t(0) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.pos + vec2m{ STRAIGHT_SPEED_RAMP_DIST, centimeter_t(0) }.rotate(forwardAngle),
             this->trajectory_.lastConfig().pose.angle
         },
-        this->straightEndSpeed_
+        this->straightSpeed_
+    });
+
+    this->trajectory_.appendLine(Trajectory::config_t{
+        Pose{
+            this->trajectory_.lastConfig().pose.pos + vec2m{ fastSectionLength - STRAIGHT_SPEED_RAMP_DIST, centimeter_t(0) }.rotate(forwardAngle),
+            this->trajectory_.lastConfig().pose.angle
+        },
+        this->straightSpeed_
     });
 
     this->trajectory_.appendSineArc(Trajectory::config_t{

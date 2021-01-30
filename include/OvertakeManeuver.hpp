@@ -8,7 +8,7 @@ public:
     OvertakeManeuver();
 
     void initialize(const micro::CarProps& car, const micro::Sign targetSpeedSign,
-        const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightEndSpeed, const micro::m_per_sec_t endSpeed,
+        const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightSpeed, const micro::m_per_sec_t endSpeed,
         const micro::meter_t sectionLength, const micro::meter_t prepareDistance, const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
         const micro::meter_t sideDistance);
 
@@ -26,7 +26,7 @@ private:
 
     micro::m_per_sec_t beginSpeed_;
     micro::m_per_sec_t straightStartSpeed_;
-    micro::m_per_sec_t straightEndSpeed_;
+    micro::m_per_sec_t straightSpeed_;
     micro::m_per_sec_t endSpeed_;
 
     micro::meter_t sectionLength_;

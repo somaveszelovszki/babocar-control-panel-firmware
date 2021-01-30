@@ -39,8 +39,8 @@ m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.3f);
 m_per_sec_t SAFETY_CAR_FAST_MAX_SPEED     = m_per_sec_t(1.7f);
 m_per_sec_t REACH_SAFETY_CAR_SPEED        = m_per_sec_t(0.6f);
 m_per_sec_t OVERTAKE_BEGIN_SPEED          = m_per_sec_t(1.0f);
-m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(2.6f);
-m_per_sec_t OVERTAKE_STRAIGHT_END_SPEED   = m_per_sec_t(2.6f);
+m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(1.2f);
+m_per_sec_t OVERTAKE_STRAIGHT_SPEED       = m_per_sec_t(2.0f);
 m_per_sec_t OVERTAKE_END_SPEED            = m_per_sec_t(1.8f);
 m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.2f);
 
@@ -190,7 +190,7 @@ extern "C" void runProgRaceTrackTask(void) {
             case cfg::ProgramState::OvertakeSafetyCar:
                 if (programState != prevProgramState) {
                     overtake.initialize(car, targetSpeedSign,
-                        OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_END_SPEED, OVERTAKE_END_SPEED,
+                        OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_SPEED, OVERTAKE_END_SPEED,
                         OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
                         OVERTAKE_SIDE_DISTANCE);
                 }
