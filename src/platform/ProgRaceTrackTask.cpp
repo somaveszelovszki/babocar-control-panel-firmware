@@ -212,12 +212,6 @@ extern "C" void runProgRaceTrackTask(void) {
             case cfg::ProgramState::Race:
                 controlData = getControl(car, trackInfo, mainLine, targetSpeedSign);
 
-                // the first 3 laps are dedicated to the safety-car follow task,
-                // changing the line offset and angle might ruin the car's capability to detect the safety car
-                if (trackInfo.lap <= 3) {
-                    controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
-                }
-
                 if (trackInfo.lap > cfg::NUM_RACE_LAPS) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Finish));
                     LOG_DEBUG("Race finished");
