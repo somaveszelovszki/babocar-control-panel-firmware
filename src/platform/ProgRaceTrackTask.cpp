@@ -39,10 +39,10 @@ m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.3f);
 m_per_sec_t SAFETY_CAR_FAST_MAX_SPEED     = m_per_sec_t(1.7f);
 m_per_sec_t REACH_SAFETY_CAR_SPEED        = m_per_sec_t(0.6f);
 m_per_sec_t OVERTAKE_BEGIN_SPEED          = m_per_sec_t(1.0f);
-m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(2.2f);
-m_per_sec_t OVERTAKE_STRAIGHT_END_SPEED   = m_per_sec_t(2.2f);
-m_per_sec_t OVERTAKE_END_SPEED            = m_per_sec_t(1.6f);
-m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.0f);
+m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(2.6f);
+m_per_sec_t OVERTAKE_STRAIGHT_END_SPEED   = m_per_sec_t(2.6f);
+m_per_sec_t OVERTAKE_END_SPEED            = m_per_sec_t(1.8f);
+m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.2f);
 
 meter_t OVERTAKE_SECTION_LENGTH           = centimeter_t(700);
 meter_t OVERTAKE_PREPARE_DISTANCE         = centimeter_t(70);
