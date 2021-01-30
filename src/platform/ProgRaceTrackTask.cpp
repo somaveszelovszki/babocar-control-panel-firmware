@@ -281,16 +281,6 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Test:
-//                if (programState != prevProgramState) {
-//                    testManeuver.initialize(car);
-//                }
-//
-//                testManeuver.update(car, lineInfo, mainLine, controlData);
-//
-//                if (testManeuver.finished()) {
-//                    LOG_DEBUG("Test trajectory finished");
-//                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Error));
-//                }
                 controlData.speed = m_per_sec_t(1.0f);
                 controlData.rampTime = millisecond_t(0);
                 break;
