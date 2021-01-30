@@ -59,7 +59,7 @@ TurnAroundManeuver turnAround;
 TestManeuver testManeuver;
 
 m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpeedSign, bool isFast) {
-    return targetSpeedSign * map(distFromSafetyCar, meter_t(0.2f), meter_t(0.7f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
+    return targetSpeedSign * map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
 }
 
 TrackSegments::const_iterator getFastSegment(const RaceTrackInfo& trackInfo, const uint32_t fastSeg) {
