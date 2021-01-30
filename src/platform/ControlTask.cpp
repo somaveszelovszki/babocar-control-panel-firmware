@@ -27,7 +27,7 @@ queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
-PID_Params motorControllerParams = { 0.7f, 0.002f, 0.0f };
+PID_Params motorControllerParams = { 0.5f, 0.002f, 0.0f };
 
 struct ServoOffsets {
     micro::radian_t front;
