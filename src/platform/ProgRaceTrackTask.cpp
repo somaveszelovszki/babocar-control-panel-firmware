@@ -50,8 +50,8 @@ meter_t OVERTAKE_BEGIN_SINE_ARC_LENGTH    = centimeter_t(180);
 meter_t OVERTAKE_END_SINE_ARC_LENGTH      = centimeter_t(180);
 meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
 
-meter_t TURN_AROUND_RADIUS                = centimeter_t(50);
-meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(90);
+meter_t TURN_AROUND_RADIUS                = centimeter_t(60);
+meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(70);
 
 RaceTrackInfo trackInfo(trackSegments);
 OvertakeManeuver overtake;
