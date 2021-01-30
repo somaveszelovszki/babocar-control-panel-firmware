@@ -1,6 +1,7 @@
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
+#include <micro/utils/ControlData.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
@@ -10,20 +11,32 @@
 using namespace micro;
 
 extern queue_t<char, 1> radioRecvQueue;
+extern queue_t<ControlData, 1> controlQueue;
 
 namespace {
 
 void waitStartSignal() {
     char startCounter = '\0';
 
+    ControlData controlData;
+    controlData.speed = m_per_sec_t(0);
+    controlData.rampTime = millisecond_t(0);
+    controlData.rearSteerEnabled = false;
+    controlData.lineControl.actual = {};
+    controlData.lineControl.target = {};
+
     do {
         char prevStartCounter = startCounter;
         radioRecvQueue.peek(startCounter, millisecond_t(10));
+
         if (startCounter != prevStartCounter) {
             LOG_DEBUG("Start counter: %c", startCounter);
             prevStartCounter = startCounter;
         }
+
+        controlQueue.overwrite(controlData);
         os_sleep(millisecond_t(50));
+
     } while (!('0' == startCounter || isBtw(startCounter, 'A', 'Z')));
 
     LOG_DEBUG("Started!");
