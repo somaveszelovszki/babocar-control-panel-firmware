@@ -44,14 +44,14 @@ m_per_sec_t OVERTAKE_STRAIGHT_SPEED       = m_per_sec_t(2.0f);
 m_per_sec_t OVERTAKE_END_SPEED            = m_per_sec_t(1.8f);
 m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.2f);
 
-meter_t OVERTAKE_SECTION_LENGTH           = centimeter_t(700);
+meter_t OVERTAKE_SECTION_LENGTH           = centimeter_t(800);
 meter_t OVERTAKE_PREPARE_DISTANCE         = centimeter_t(70);
 meter_t OVERTAKE_BEGIN_SINE_ARC_LENGTH    = centimeter_t(180);
 meter_t OVERTAKE_END_SINE_ARC_LENGTH      = centimeter_t(180);
 meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
 
-meter_t TURN_AROUND_RADIUS                = centimeter_t(60);
-meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(70);
+meter_t TURN_AROUND_RADIUS                = centimeter_t(40);
+meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(60);
 
 RaceTrackInfo trackInfo(trackSegments);
 OvertakeManeuver overtake;
