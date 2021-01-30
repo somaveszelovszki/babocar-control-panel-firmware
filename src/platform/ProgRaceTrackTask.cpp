@@ -115,6 +115,8 @@ extern "C" void runProgRaceTrackTask(void) {
 
     Sign targetSpeedSign;
 
+    uint8_t lastOvertakeLap = 0;
+
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
@@ -178,7 +180,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
 
-                if (overtakeSeg == trackInfo.seg && (1 == trackInfo.lap || 3 == trackInfo.lap)) {
+                if (overtakeSeg == trackInfo.seg && (1 == trackInfo.lap || 3 == trackInfo.lap) && trackInfo.lap != lastOvertakeLap) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::OvertakeSafetyCar));
                     LOG_DEBUG("Starts overtake");
                 } else if (car.distance - lastDistWithSafetyCar > centimeter_t(150) && trackInfo.seg->isFast) {
@@ -189,6 +191,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::OvertakeSafetyCar:
                 if (programState != prevProgramState) {
+                    lastOvertakeLap = trackInfo.lap;
                     overtake.initialize(car, targetSpeedSign,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_SPEED, OVERTAKE_END_SPEED,
                         OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
