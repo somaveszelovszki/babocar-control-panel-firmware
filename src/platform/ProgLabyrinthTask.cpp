@@ -111,6 +111,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
+    REGISTER_READ_WRITE_PARAM(safetyCarFollowSpeedSign);
     REGISTER_WRITE_ONLY_PARAM(nextSegment);
 
     enforceGraphValidity();
