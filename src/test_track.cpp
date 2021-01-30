@@ -26,23 +26,23 @@ struct TrackSpeeds {
 TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
 //  ||  fast   ||        slow1       ||                        slow2                        ||        slow3       ||                        slow4                        ||
 //  ||  (all)  || prepare    chicane || prepare   begin_chi round_begin round_end   end_chi || prepare    chicane || prepare   begin_chi round_begin round_end   end_chi ||
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }, // Lap 1
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }, // Lap 2
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }, // Lap 3
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }, // Lap 4
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }, // Lap 5
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }, // Lap 6
-    { { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f }, { 2.50f } }  // Finish
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }, // Lap 1
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }, // Lap 2
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }, // Lap 3
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }, // Lap 4
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }, // Lap 5
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }, // Lap 6
+    { { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f } }  // Finish
 };
 
 BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS] = {
     //     slow1            slow2            slow3            slow4
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 1
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 2
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 3
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 4
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 5
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }  // Lap 6
+    { centimeter_t(100), centimeter_t(100), centimeter_t(100), centimeter_t(100) }, // Lap 1
+    { centimeter_t(100), centimeter_t(100), centimeter_t(100), centimeter_t(100) }, // Lap 2
+    { centimeter_t(100), centimeter_t(100), centimeter_t(100), centimeter_t(100) }, // Lap 3
+    { centimeter_t(100), centimeter_t(100), centimeter_t(100), centimeter_t(100) }, // Lap 4
+    { centimeter_t(100), centimeter_t(100), centimeter_t(100), centimeter_t(100) }, // Lap 5
+    { centimeter_t(100), centimeter_t(100), centimeter_t(100), centimeter_t(100) }  // Lap 6
 };
 
 const TrackSpeeds& getSpeeds(uint8_t lap) {
