@@ -103,12 +103,12 @@ ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trac
     }
 
     ControlData controlData;
-    controlData.speed                    = fastSpeedEnabled ? getSpeeds(trackInfo.lap).fast : m_per_sec_t(2.0f);
+    controlData.speed                    = fastSpeedEnabled ? getSpeeds(trackInfo.lap).fast : m_per_sec_t(1.5f);
     controlData.rampTime                 = millisecond_t(500);
-    controlData.rearSteerEnabled         = true;
+    controlData.rearSteerEnabled         = false;
     controlData.lineControl.actual       = mainLine.centerLine;
-    controlData.lineControl.target.pos   = mapByTrackSegDistance<millimeter_t>(car, trackInfo, trackInfo.segStartLine.pos, millimeter_t(0));
-    controlData.lineControl.target.angle = mapByTrackSegDistance<radian_t>(car, trackInfo, trackInfo.segStartLine.angle, radian_t(0));
+    controlData.lineControl.target.pos   = centimeter_t(0);
+    controlData.lineControl.target.angle = radian_t(0);
     return controlData;
 }
 
