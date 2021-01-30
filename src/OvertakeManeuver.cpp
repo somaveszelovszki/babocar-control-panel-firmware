@@ -39,7 +39,7 @@ void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, Mai
         controlData.lineControl.actual  = mainLine.centerLine;
         controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 
-        if (car.orientedDistance >= this->prepareDistance_) {
+        if (car.orientedDistance >= this->prepareDistance_ && car.distance - this->initialCarProps_.distance >= this->prepareDistance_) {
             this->buildTrajectory(car);
             this->state_ = state_t::FollowTrajectory;
         }
@@ -59,7 +59,7 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
 
     const point2m posDiff           = car.pose.pos - this->initialCarProps_.pose.pos;
     const meter_t fastSectionLength = this->sectionLength_ - posDiff.length() - this->beginSineArcLength_ - this->endSineArcLength_;
-    const radian_t forwardAngle     = car.pose.angle;//posDiff.getAngle();
+    const radian_t forwardAngle     = posDiff.getAngle();
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,
