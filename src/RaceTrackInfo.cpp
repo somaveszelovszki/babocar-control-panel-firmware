@@ -9,12 +9,13 @@ RaceTrackInfo::RaceTrackInfo(const TrackSegments& segments)
     , seg(segments.end())
     , lap(0) {}
 
-void RaceTrackInfo::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine) {
+void RaceTrackInfo::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine, const micro::ControlData& controlData) {
     TrackSegments::const_iterator nextSeg = this->nextSegment();
     if (nextSeg->hasBecomeActive(car, *this, lineInfo.front.pattern)) {
-        this->seg              = nextSeg;
-        this->segStartCarProps = car;
-        this->segStartLine     = mainLine.centerLine;
+        this->seg                 = nextSeg;
+        this->segStartCarProps    = car;
+        this->segStartControlData = controlData;
+        this->segStartLine        = mainLine.centerLine;
 
         if (this->segments.begin() == this->seg) {
             LOG_INFO("Lap %u finished (time: %f seconds)", static_cast<uint32_t>(this->lap), static_cast<second_t>(getTime() - this->lapStartTime).get());

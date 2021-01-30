@@ -21,77 +21,77 @@ TEST(raceTrackInfo, test) {
 
     car.distance = meter_t(0);
     lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::BRAKE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::BRAKE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::BRAKE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::BRAKE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     car.distance += trackInfo.seg->length + millimeter_t(1);
     lineInfo.front.pattern = { LinePattern::ACCELERATE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
-    trackInfo.update(car, lineInfo, mainLine);
+    trackInfo.update(car, lineInfo, mainLine, controlData);
 
     EXPECT_EQ(2, trackInfo.lap);
 }

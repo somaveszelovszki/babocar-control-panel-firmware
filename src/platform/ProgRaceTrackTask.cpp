@@ -145,15 +145,15 @@ extern "C" void runProgRaceTrackTask(void) {
 
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
 
+            // when in turn-around state, does not update track info to prevent logic errors caused by possible line pattern detections
+            if (cfg::ProgramState::TurnAround != programState) {
+                trackInfo.update(car, lineInfo, mainLine, controlData);
+            }
+
             // sets default lateral control
             controlData.rearSteerEnabled    = true;
             controlData.lineControl.actual  = mainLine.centerLine;
             controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
-
-            // when in turn-around state, does not update track info to prevent logic errors caused by possible line pattern detections
-            if (cfg::ProgramState::TurnAround != programState) {
-                trackInfo.update(car, lineInfo, mainLine);
-            }
 
             const meter_t distFromSafetyCar = Sign::POSITIVE == targetSpeedSign ? distances.front : distances.rear;
             if (distFromSafetyCar < centimeter_t(100)) {
