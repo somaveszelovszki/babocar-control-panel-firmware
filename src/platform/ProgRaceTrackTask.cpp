@@ -19,6 +19,7 @@
 #include <Distances.hpp>
 #include <track.hpp>
 #include <OvertakeManeuver.hpp>
+#include <RaceTrackInfo.hpp>
 #include <TestManeuver.hpp>
 #include <TurnAroundManeuver.hpp>
 
@@ -52,22 +53,19 @@ meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
 meter_t TURN_AROUND_RADIUS                = centimeter_t(50);
 meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(90);
 
+RaceTrackInfo trackInfo(trackSegments);
 OvertakeManeuver overtake;
 TurnAroundManeuver turnAround;
 TestManeuver testManeuver;
-
-TrackSegments::const_iterator nextSegment(const TrackSegments::const_iterator currentSeg) {
-    return trackSegments.back() == currentSeg ? trackSegments.begin() : std::next(currentSeg);
-}
 
 m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpeedSign, bool isFast) {
     return targetSpeedSign * map(distFromSafetyCar, meter_t(0.2f), meter_t(0.7f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
 }
 
-TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const uint32_t fastSeg) {
-    TrackSegments::const_iterator it = trackSegments.begin();
+TrackSegments::const_iterator getFastSegment(const RaceTrackInfo& trackInfo, const uint32_t fastSeg) {
+    TrackSegments::const_iterator it = trackInfo.segments.begin();
     uint32_t numFastSegs = 0;
-    for (; it != trackSegments.end(); ++it) {
+    for (; it != trackInfo.segments.end(); ++it) {
         if (it->isFast && ++numFastSegs == fastSeg) {
             break;
         }
@@ -75,8 +73,8 @@ TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments,
     return it;
 }
 
-TrackSegments::const_iterator getFastSegment(const TrackSegments& trackSegments, const cfg::ProgramState programState) {
-    return getFastSegment(trackSegments,
+TrackSegments::const_iterator getFastSegment(const RaceTrackInfo& trackInfo, const cfg::ProgramState programState) {
+    return getFastSegment(trackInfo.segments,
         cfg::ProgramState::Race          == programState ? 1 :
         cfg::ProgramState::Race_segFast2 == programState ? 2 :
         cfg::ProgramState::Race_segFast3 == programState ? 3 :
@@ -88,23 +86,7 @@ bool shouldHandle(const cfg::ProgramState programState) {
     return isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::ReachSafetyCar), enum_cast(cfg::ProgramState::Test));
 }
 
-void updateTrackInfo(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine, TrackInfo& trackInfo) {
-    TrackSegments::const_iterator nextSeg = nextSegment(trackInfo.seg);
-    if (nextSeg->hasBecomeActive(car, trackInfo, lineInfo.front.pattern)) {
-        trackInfo.seg = nextSeg;
-        trackInfo.segStartCarProps = car;
-        trackInfo.segStartLine = mainLine.centerLine;
-
-        if (trackSegments.begin() == trackInfo.seg) {
-            LOG_INFO("Lap %d finished (time: %f seconds)", static_cast<int32_t>(trackInfo.lap), static_cast<second_t>(getTime() - trackInfo.lapStartTime).get());
-            ++trackInfo.lap;
-            trackInfo.lapStartTime = getTime();
-        }
-        LOG_INFO("Segment %u became active (lap: %d)", static_cast<uint32_t>(std::distance(trackSegments.begin(), trackInfo.seg)), static_cast<uint32_t>(trackInfo.lap));
-    }
-}
-
-ControlData getControl(const micro::CarProps& car, const TrackInfo& trackInfo, const micro::MainLine& mainLine, const Sign targetSpeedSign)
+ControlData getControl(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const micro::MainLine& mainLine, const Sign targetSpeedSign)
 {
     ControlData controlData = trackInfo.seg->getControl(car, trackInfo, mainLine);
     controlData.speed = targetSpeedSign * controlData.speed;
@@ -124,9 +106,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    TrackInfo trackInfo;
-
-    TrackSegments::const_iterator overtakeSeg = getFastSegment(trackSegments, 3);
+    TrackSegments::const_iterator overtakeSeg = getFastSegment(trackInfo.segments, 3);
 
     meter_t lastDistWithValidLine;
     meter_t lastDistWithSafetyCar;
@@ -145,12 +125,12 @@ extern "C" void runProgRaceTrackTask(void) {
 
             // runs for the first time that this task handles the program state
             if (!shouldHandle(prevProgramState)) {
-                if ((trackInfo.seg = getFastSegment(trackSegments, programState)) != trackSegments.end()) { // race
+                if ((trackInfo.seg = getFastSegment(trackInfo.segments, programState)) != trackInfo.segments.end()) { // race
                     trackInfo.lap = 3;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                 } else { // reach safety car
                     trackInfo.lap = 1;
-                    trackInfo.seg = trackSegments.begin();
+                    trackInfo.seg = trackInfo.segments.begin();
                 }
 
                 lastDistWithValidLine = car.distance;
@@ -170,7 +150,7 @@ extern "C" void runProgRaceTrackTask(void) {
             controlData.lineControl.actual  = mainLine.centerLine;
             controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 
-            updateTrackInfo(car, lineInfo, mainLine, trackInfo);
+            trackInfo.update(car, lineInfo, mainLine);
 
             const meter_t distFromSafetyCar = Sign::POSITIVE == targetSpeedSign ? distances.front : distances.rear;
             if (distFromSafetyCar < centimeter_t(100)) {
@@ -238,9 +218,9 @@ extern "C" void runProgRaceTrackTask(void) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
-                } else if (Sign::NEGATIVE == targetSpeedSign                 &&
-                           trackInfo.lap == 2                                &&
-                           trackInfo.seg == getFastSegment(trackSegments, 1) &&
+                } else if (Sign::NEGATIVE == targetSpeedSign                      &&
+                           trackInfo.lap == 2                                     &&
+                           trackInfo.seg == getFastSegment(trackInfo.segments, 1) &&
                            car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
 
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::TurnAround));

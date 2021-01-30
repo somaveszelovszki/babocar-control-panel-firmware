@@ -1,3 +1,4 @@
+#include <RaceTrackInfo.hpp>
 #include <track.hpp>
 
 using namespace micro;
@@ -53,15 +54,15 @@ const BrakeOffsets& getBrakeOffsets(uint8_t lap) {
 }
 
 template <typename T>
-T mapByTrackSegDistance(const CarProps& car, const TrackInfo& trackInfo, const T& start, const T& end) {
+T mapByTrackSegDistance(const CarProps& car, const RaceTrackInfo& trackInfo, const T& start, const T& end) {
     return map(car.distance, trackInfo.segStartCarProps.distance, trackInfo.segStartCarProps.distance + trackInfo.seg->length, start, end);
 }
 
-radian_t getFixOrientationLineAngle(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+radian_t getFixOrientationLineAngle(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     return trackInfo.segStartCarProps.pose.angle - car.pose.angle - mainLine.centerLine.angle;
 }
 
-bool hasBecomeActive_Fast(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Fast(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     static bool signDetected = false;
     static meter_t lastSignDist = meter_t(0);
 
@@ -80,63 +81,63 @@ bool hasBecomeActive_Fast(const CarProps& car, const TrackInfo& trackInfo, const
     return active;
 }
 
-bool hasBecomeActive_Slow1_prepare(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow1_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return LinePattern::BRAKE == pattern.type;
 }
 
-bool hasBecomeActive_Slow1_chicane(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow1_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow2_prepare(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow2_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return LinePattern::BRAKE == pattern.type;
 }
 
-bool hasBecomeActive_Slow2_begin_chicane(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow2_begin_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow2_round_begin(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow2_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow2_round_end(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow2_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow2_end_chicane(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow2_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow3_prepare(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow3_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return LinePattern::BRAKE == pattern.type;
 }
 
-bool hasBecomeActive_Slow3_chicane(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow3_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow4_prepare(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow4_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return LinePattern::BRAKE == pattern.type;
 }
 
-bool hasBecomeActive_Slow4_begin_chicane(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow4_begin_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow4_round_begin(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow4_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow4_round_end(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow4_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow4_end_chicane(const CarProps& car, const TrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_Slow4_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-ControlData getControl_CommonFast(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     static bool fastSpeedEnabled = true;
 
     if (fastSpeedEnabled && abs(mainLine.centerLine.pos) > centimeter_t(12)) {
@@ -155,7 +156,7 @@ ControlData getControl_CommonFast(const CarProps& car, const TrackInfo& trackInf
     return controlData;
 }
 
-ControlData getControl_CommonSlow(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_CommonSlow(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData;
     controlData.rampTime                 = millisecond_t(500);
     controlData.rearSteerEnabled         = true;
@@ -165,23 +166,23 @@ ControlData getControl_CommonSlow(const CarProps& car, const TrackInfo& trackInf
     return controlData;
 }
 
-ControlData getControl_Fast1(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Fast1(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     return  getControl_CommonFast(car, trackInfo, mainLine);
 }
 
-ControlData getControl_Fast2(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Fast2(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     return  getControl_CommonFast(car, trackInfo, mainLine);
 }
 
-ControlData getControl_Fast3(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Fast3(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     return  getControl_CommonFast(car, trackInfo, mainLine);
 }
 
-ControlData getControl_Fast4(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Fast4(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     return  getControl_CommonFast(car, trackInfo, mainLine);
 }
 
-ControlData getControl_Slow1_prepare(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow1_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
@@ -192,7 +193,7 @@ ControlData getControl_Slow1_prepare(const CarProps& car, const TrackInfo& track
     return controlData;
 }
 
-ControlData getControl_Slow1_chicane(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow1_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow1_chicane;
@@ -202,7 +203,7 @@ ControlData getControl_Slow1_chicane(const CarProps& car, const TrackInfo& track
     return controlData;
 }
 
-ControlData getControl_Slow2_prepare(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow2_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
@@ -213,7 +214,7 @@ ControlData getControl_Slow2_prepare(const CarProps& car, const TrackInfo& track
     return controlData;
 }
 
-ControlData getControl_Slow2_begin_chicane(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow2_begin_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow2_begin_chicane;
@@ -223,7 +224,7 @@ ControlData getControl_Slow2_begin_chicane(const CarProps& car, const TrackInfo&
     return controlData;
 }
 
-ControlData getControl_Slow2_round_begin(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow2_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow2_round_begin;
@@ -233,7 +234,7 @@ ControlData getControl_Slow2_round_begin(const CarProps& car, const TrackInfo& t
     return controlData;
 }
 
-ControlData getControl_Slow2_round_end(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow2_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow2_round_end;
@@ -243,7 +244,7 @@ ControlData getControl_Slow2_round_end(const CarProps& car, const TrackInfo& tra
     return controlData;
 }
 
-ControlData getControl_Slow2_end_chicane(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow2_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow2_end_chicane;
@@ -253,7 +254,7 @@ ControlData getControl_Slow2_end_chicane(const CarProps& car, const TrackInfo& t
     return controlData;
 }
 
-ControlData getControl_Slow3_prepare(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow3_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
@@ -264,7 +265,7 @@ ControlData getControl_Slow3_prepare(const CarProps& car, const TrackInfo& track
     return controlData;
 }
 
-ControlData getControl_Slow3_chicane(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow3_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow3_chicane;
@@ -274,7 +275,7 @@ ControlData getControl_Slow3_chicane(const CarProps& car, const TrackInfo& track
     return controlData;
 }
 
-ControlData getControl_Slow4_prepare(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow4_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
@@ -285,7 +286,7 @@ ControlData getControl_Slow4_prepare(const CarProps& car, const TrackInfo& track
     return controlData;
 }
 
-ControlData getControl_Slow4_begin_chicane(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow4_begin_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow4_begin_chicane;
@@ -295,7 +296,7 @@ ControlData getControl_Slow4_begin_chicane(const CarProps& car, const TrackInfo&
     return controlData;
 }
 
-ControlData getControl_Slow4_round_begin(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow4_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow4_round_begin;
@@ -305,7 +306,7 @@ ControlData getControl_Slow4_round_begin(const CarProps& car, const TrackInfo& t
     return controlData;
 }
 
-ControlData getControl_Slow4_round_end(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow4_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow4_round_end;
@@ -315,7 +316,7 @@ ControlData getControl_Slow4_round_end(const CarProps& car, const TrackInfo& tra
     return controlData;
 }
 
-ControlData getControl_Slow4_end_chicane(const CarProps& car, const TrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_Slow4_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = getSpeeds(trackInfo.lap).slow4_end_chicane;

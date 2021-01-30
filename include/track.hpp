@@ -16,25 +16,17 @@ struct BrakeOffsets {
     micro::meter_t slow4;
 };
 
-struct TrackInfo;
+struct RaceTrackInfo;
 class LabyrinthGraph;
 
 struct TrackSegment {
     bool isFast;
     micro::meter_t length;
-    std::function<bool(const micro::CarProps&, const TrackInfo&, const micro::LinePattern&)> hasBecomeActive;
-    std::function<micro::ControlData(const micro::CarProps&, const TrackInfo&, const micro::MainLine&)> getControl;
+    std::function<bool(const micro::CarProps&, const RaceTrackInfo&, const micro::LinePattern&)> hasBecomeActive;
+    std::function<micro::ControlData(const micro::CarProps&, const RaceTrackInfo&, const micro::MainLine&)> getControl;
 };
 
 typedef micro::vec<TrackSegment, 20> TrackSegments;
-
-struct TrackInfo {
-    uint8_t lap = 0;
-    micro::millisecond_t lapStartTime;
-    TrackSegments::const_iterator seg;
-    micro::CarProps segStartCarProps;
-    micro::OrientedLine segStartLine;
-};
 
 extern const TrackSegments testTrackSegments;
 extern const TrackSegments raceTrackSegments;
