@@ -7,10 +7,10 @@ TurnAroundManeuver::TurnAroundManeuver()
     : Maneuver()
     , state_(state_t::Stop) {}
 
-void TurnAroundManeuver::initialize(const CarProps& car, const m_per_sec_t speed, const meter_t sineArcLength, const meter_t circleRadius) {
+void TurnAroundManeuver::initialize(const CarProps& car, const Sign targetSpeedSign, const m_per_sec_t speed, const meter_t sineArcLength, const meter_t circleRadius) {
     Maneuver::initialize();
 
-    this->speed_         = -sgn(car.speed) * speed;
+    this->speed_         = targetSpeedSign * speed;
     this->sineArcLength_ = sineArcLength;
     this->circleRadius_  = circleRadius;
     this->state_         = state_t::Stop;

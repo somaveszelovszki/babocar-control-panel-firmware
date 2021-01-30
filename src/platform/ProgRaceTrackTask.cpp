@@ -106,7 +106,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    TrackSegments::const_iterator overtakeSeg = getFastSegment(trackInfo.segments, 3);
+    const TrackSegments::const_iterator overtakeSeg = getFastSegment(trackInfo.segments, 3);
 
     meter_t lastDistWithValidLine;
     meter_t lastDistWithSafetyCar;
@@ -127,10 +127,12 @@ extern "C" void runProgRaceTrackTask(void) {
             if (!shouldHandle(prevProgramState)) {
                 if ((trackInfo.seg = getFastSegment(trackInfo.segments, programState)) != trackInfo.segments.end()) { // race
                     trackInfo.lap = 3;
+                    targetSpeedSign = Sign::POSITIVE;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                 } else { // reach safety car
                     trackInfo.lap = 1;
                     trackInfo.seg = trackInfo.segments.begin();
+                    targetSpeedSign = safetyCarFollowSpeedSign;
                 }
 
                 lastDistWithValidLine = car.distance;
@@ -139,8 +141,6 @@ extern "C" void runProgRaceTrackTask(void) {
                 trackInfo.lapStartTime = getTime();
                 trackInfo.segStartCarProps = car;
                 trackInfo.segStartLine = mainLine.centerLine;
-
-                targetSpeedSign = safetyCarFollowSpeedSign;
             }
 
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
@@ -150,7 +150,10 @@ extern "C" void runProgRaceTrackTask(void) {
             controlData.lineControl.actual  = mainLine.centerLine;
             controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 
-            trackInfo.update(car, lineInfo, mainLine);
+            // when in turn-around state, does not update track info to prevent logic errors caused by possible line pattern detections
+            if (cfg::ProgramState::TurnAround != programState) {
+                trackInfo.update(car, lineInfo, mainLine);
+            }
 
             const meter_t distFromSafetyCar = Sign::POSITIVE == targetSpeedSign ? distances.front : distances.rear;
             if (distFromSafetyCar < centimeter_t(100)) {
@@ -163,7 +166,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             switch (programState) {
             case cfg::ProgramState::ReachSafetyCar:
-                controlData.speed = REACH_SAFETY_CAR_SPEED;
+                controlData.speed = targetSpeedSign * REACH_SAFETY_CAR_SPEED;
                 controlData.rampTime = millisecond_t(0);
                 if (safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, false) < controlData.speed) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
@@ -186,7 +189,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::OvertakeSafetyCar:
                 if (programState != prevProgramState) {
-                    overtake.initialize(car,
+                    overtake.initialize(car, targetSpeedSign,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_END_SPEED, OVERTAKE_END_SPEED,
                         OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
                         OVERTAKE_SIDE_DISTANCE);
@@ -235,7 +238,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::TurnAround:
                 if (programState != prevProgramState) {
-                    turnAround.initialize(car, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
+                    turnAround.initialize(car, -targetSpeedSign, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
                 }
 
                 turnAround.update(car, lineInfo, mainLine, controlData);

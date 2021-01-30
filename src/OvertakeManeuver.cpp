@@ -7,19 +7,17 @@ OvertakeManeuver::OvertakeManeuver()
     : Maneuver()
     , state_(state_t::Prepare) {}
 
-void OvertakeManeuver::initialize(const micro::CarProps& car,
+void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign targetSpeedSign,
     const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightEndSpeed, const micro::m_per_sec_t endSpeed,
     const micro::meter_t sectionLength, const micro::meter_t prepareDistance, const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
     const micro::meter_t sideDistance) {
     Maneuver::initialize();
 
-    const Sign speedSign = sgn(car.speed);
-
     this->initialCarProps_    = car;
-    this->beginSpeed_         = speedSign * beginSpeed;
-    this->straightStartSpeed_ = speedSign * straightStartSpeed;
-    this->straightEndSpeed_   = speedSign * straightEndSpeed;
-    this->endSpeed_           = speedSign * endSpeed;
+    this->beginSpeed_         = targetSpeedSign * beginSpeed;
+    this->straightStartSpeed_ = targetSpeedSign * straightStartSpeed;
+    this->straightEndSpeed_   = targetSpeedSign * straightEndSpeed;
+    this->endSpeed_           = targetSpeedSign * endSpeed;
     this->sectionLength_      = sectionLength;
     this->prepareDistance_    = prepareDistance;
     this->beginSineArcLength_ = beginSineArcLength;
