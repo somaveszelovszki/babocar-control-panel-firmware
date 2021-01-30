@@ -13,7 +13,7 @@ constexpr micro::radian_t WHEEL_MAX_DELTA                 = micro::degree_t(26);
 constexpr micro::radian_t DIST_SENSOR_SERVO_MAX_DELTA     = micro::degree_t(45);
 constexpr float           DIST_SENSOR_SERVO_TRANSFER_RATE = 1.0f;
 constexpr bool            DIST_SENSOR_SERVO_ENABLED       = false;
-constexpr micro::meter_t  MIN_TURN_RADIUS                 = micro::centimeter_t(50);
+constexpr micro::meter_t  MIN_TURN_RADIUS                 = micro::centimeter_t(40);
 
 constexpr bool            USE_SAFETY_ENABLE_SIGNAL        = true;
 constexpr bool            INDICATOR_LEDS_ENABLED          = true;
