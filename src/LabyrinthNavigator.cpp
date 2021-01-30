@@ -18,7 +18,8 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segmen
     , lastJuncDist_(0)
     , targetDir_(Direction::CENTER)
     , targetSpeedSign_(Sign::POSITIVE)
-    , hasSpeedSignChanged_(false) {}
+    , hasSpeedSignChanged_(false)
+    , random_(0) {}
 
 void LabyrinthNavigator::initialize() {
     this->currentSeg_ = this->startSeg_;
@@ -156,38 +157,51 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         this->correctedCarPose_.pos = junc->pos;
 
         const Connection *nextConn = this->route_.firstConnection();
-        if (junc != nextConn->junction) {
-            LOG_ERROR("Unexpected junction, resets navigator");
-            this->reset(*junc, negOri);
-        }
-
-        if (!nextConn) {
-            LOG_ERROR("No target segment set, chooses target direction randomly");
+        if (nextConn) {
+            if (junc != nextConn->junction) {
+                LOG_ERROR("Unexpected junction, resets navigator");
+                this->reset(*junc, negOri);
+                nextConn = this->route_.firstConnection();
+            }
+        } else {
+            LOG_WARN("No target segment set, chooses target direction randomly");
 
             // Finds a valid next junction connection - may be any of the current segment's connections that are linked to the current junction.
-            nextConn = *std::find_if(this->currentSeg_->edges.begin(), this->currentSeg_->edges.end(), [junc](const Connection *c) {
-                return c->junction->id == junc->id;
-            });
+            micro::vec<Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> validConnections;
+            for (Connection *c : this->currentSeg_->edges) {
+                if (c->junction->id == junc->id) {
+                    validConnections.push_back(c);
+                }
+            }
+
+            nextConn = validConnections[this->random_.get(0, validConnections.size())];
         }
 
-        if (nextConn) {
-            this->targetDir_ = nextConn->getDecision(*nextConn->getOtherSegment(*this->route_.startSeg)).direction;
-            LOG_DEBUG("Target direction: %s", to_string(this->targetDir_));
+        this->targetDir_ = nextConn->getDecision(*nextConn->getOtherSegment(*this->route_.startSeg)).direction;
+        LOG_DEBUG("Target direction: %s", to_string(this->targetDir_));
 
-            this->route_.pop_front();
-            this->currentSeg_ = this->route_.startSeg;
-            LOG_INFO("Current segment: %c", this->currentSeg_->name);
-
-        } else {
-            LOG_ERROR("No next connection found, resets navigator");
-            this->reset(*junc, negOri);
-        }
+        this->route_.pop_front();
+        this->currentSeg_ = this->route_.startSeg;
+        LOG_INFO("Current segment: %c", this->currentSeg_->name);
 
         this->lastJuncDist_ = car.distance;
         this->prevConn_     = nextConn;
 
     } else {
-        LOG_ERROR("Junction not found");
+        LOG_ERROR("Junction not found, chooses target direction randomly");
+        const uint8_t targetLineIdx = this->random_.get(0, numOutSegments);
+
+        switch (numOutSegments) {
+        case 3:
+            this->targetDir_ = 0 == targetLineIdx ? Direction::LEFT : 1 == targetLineIdx ? Direction::CENTER : Direction::RIGHT;
+            break;
+        case 2:
+            this->targetDir_ = 0 == targetLineIdx ? Direction::LEFT : Direction::RIGHT;
+            break;
+        default:
+            this->targetDir_ = Direction::CENTER;
+            break;
+        }
     }
 
     this->hasSpeedSignChanged_ = false;

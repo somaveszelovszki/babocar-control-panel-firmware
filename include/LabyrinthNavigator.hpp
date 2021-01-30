@@ -1,6 +1,7 @@
 #pragma once
 
 #include <micro/control/maneuver.hpp>
+#include <micro/math/random_generator.hpp>
 
 #include <LabyrinthGraph.hpp>
 #include <LabyrinthRoute.hpp>
@@ -61,4 +62,5 @@ private:
     micro::Pose correctedCarPose_;
     micro::meter_t lastOrientationUpdateDist_;
     bool hasSpeedSignChanged_;
+    micro::random_generator random_;
 };
