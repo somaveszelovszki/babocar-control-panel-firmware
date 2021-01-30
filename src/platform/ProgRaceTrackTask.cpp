@@ -171,8 +171,8 @@ extern "C" void runProgRaceTrackTask(void) {
             switch (programState) {
             case cfg::ProgramState::ReachSafetyCar:
                 controlData.speed = targetSpeedSign * REACH_SAFETY_CAR_SPEED;
-                controlData.rampTime = millisecond_t(0);
-                if (safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, false) < controlData.speed) {
+                controlData.rampTime = millisecond_t(500);
+                if (distFromSafetyCar != centimeter_t(0) && abs(safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackInfo.seg->isFast)) < abs(controlData.speed)) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
                 }
