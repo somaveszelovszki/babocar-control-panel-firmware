@@ -81,59 +81,15 @@ bool hasBecomeActive_Fast(const CarProps& car, const RaceTrackInfo& trackInfo, c
     return active;
 }
 
-bool hasBecomeActive_Slow1_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_BrakeSign(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return LinePattern::BRAKE == pattern.type;
 }
 
-bool hasBecomeActive_Slow1_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
+bool hasBecomeActive_SingleLine(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
+    return LinePattern::SINGLE_LINE == pattern.type;
 }
 
-bool hasBecomeActive_Slow2_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow2_begin_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow2_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow2_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow2_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow3_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow3_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow4_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow4_begin_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow4_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow4_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow4_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
+bool hasBecomeActive_distance(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
@@ -329,22 +285,22 @@ ControlData getControl_Slow4_end_chicane(const CarProps& car, const RaceTrackInf
 } // namespace
 
 const TrackSegments testTrackSegments = {
-    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast1               },
-    { false, meter_t(0.0f), hasBecomeActive_Slow1_prepare,       getControl_Slow1_prepare       },
-    { false, meter_t(0.0f), hasBecomeActive_Slow1_chicane,       getControl_Slow1_chicane       },
-    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast2               },
-    { false, meter_t(0.0f), hasBecomeActive_Slow2_prepare,       getControl_Slow2_prepare       },
-    { false, meter_t(0.0f), hasBecomeActive_Slow2_begin_chicane, getControl_Slow2_begin_chicane },
-    { false, meter_t(0.0f), hasBecomeActive_Slow2_round_begin,   getControl_Slow2_round_begin   },
-    { false, meter_t(0.0f), hasBecomeActive_Slow2_round_end,     getControl_Slow2_round_end     },
-    { false, meter_t(0.0f), hasBecomeActive_Slow2_end_chicane,   getControl_Slow2_end_chicane   },
-    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast3               },
-    { false, meter_t(0.0f), hasBecomeActive_Slow3_prepare,       getControl_Slow3_prepare       },
-    { false, meter_t(0.0f), hasBecomeActive_Slow3_chicane,       getControl_Slow3_chicane       },
-    { true,  meter_t(0.0f), hasBecomeActive_Fast,                getControl_Fast4               },
-    { false, meter_t(0.0f), hasBecomeActive_Slow4_prepare,       getControl_Slow4_prepare       },
-    { false, meter_t(0.0f), hasBecomeActive_Slow4_begin_chicane, getControl_Slow4_begin_chicane },
-    { false, meter_t(0.0f), hasBecomeActive_Slow4_round_begin,   getControl_Slow4_round_begin   },
-    { false, meter_t(0.0f), hasBecomeActive_Slow4_round_end,     getControl_Slow4_round_end     },
-    { false, meter_t(0.0f), hasBecomeActive_Slow4_end_chicane,   getControl_Slow4_end_chicane   }
+    { true,  meter_t(5.0f), hasBecomeActive_Fast,       getControl_Fast1               },
+    { false, meter_t(3.0f), hasBecomeActive_BrakeSign,  getControl_Slow1_prepare       },
+    { false, meter_t(1.5f), hasBecomeActive_SingleLine, getControl_Slow1_chicane       },
+    { true,  meter_t(5.0f), hasBecomeActive_Fast,       getControl_Fast2               },
+    { false, meter_t(3.0f), hasBecomeActive_BrakeSign,  getControl_Slow2_prepare       },
+    { false, meter_t(1.5f), hasBecomeActive_SingleLine, getControl_Slow2_begin_chicane },
+    { false, meter_t(1.6f), hasBecomeActive_distance,   getControl_Slow2_round_begin   },
+    { false, meter_t(1.6f), hasBecomeActive_distance,   getControl_Slow2_round_end     },
+    { false, meter_t(1.5f), hasBecomeActive_distance,   getControl_Slow2_end_chicane   },
+    { true,  meter_t(5.0f), hasBecomeActive_Fast,       getControl_Fast3               },
+    { false, meter_t(3.0f), hasBecomeActive_BrakeSign,  getControl_Slow3_prepare       },
+    { false, meter_t(1.5f), hasBecomeActive_SingleLine, getControl_Slow3_chicane       },
+    { true,  meter_t(5.0f), hasBecomeActive_Fast,       getControl_Fast4               },
+    { false, meter_t(3.0f), hasBecomeActive_BrakeSign,  getControl_Slow4_prepare       },
+    { false, meter_t(1.8f), hasBecomeActive_SingleLine, getControl_Slow4_begin_chicane },
+    { false, meter_t(1.6f), hasBecomeActive_distance,   getControl_Slow4_round_begin   },
+    { false, meter_t(1.6f), hasBecomeActive_distance,   getControl_Slow4_round_end     },
+    { false, meter_t(1.8f), hasBecomeActive_distance,   getControl_Slow4_end_chicane   }
 };
