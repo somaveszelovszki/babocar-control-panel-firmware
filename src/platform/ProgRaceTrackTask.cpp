@@ -179,6 +179,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::FollowSafetyCar:
+                controlData = getControl(car, trackInfo, mainLine, targetSpeedSign);
                 controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackInfo.seg->isFast);
                 controlData.rampTime = millisecond_t(0);
 
