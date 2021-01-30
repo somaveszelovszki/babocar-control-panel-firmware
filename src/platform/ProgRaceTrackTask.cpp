@@ -164,7 +164,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 lastDistWithSafetyCar = car.distance;
             }
 
-            if (LinePattern::NONE != lineInfo.front.pattern.type) {
+            if (LinePattern::NONE != lineInfo.front.pattern.type || LinePattern::NONE != lineInfo.rear.pattern.type) {
                 lastDistWithValidLine = car.distance;
             }
 
