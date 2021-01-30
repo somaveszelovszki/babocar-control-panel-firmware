@@ -13,13 +13,13 @@ LaneChangeManeuver::LaneChangeManeuver()
     , safetyCarFollowSpeedSign_(Sign::NEUTRAL)
     , state_(state_t::Stop) {}
 
-void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sign patternDir, const micro::Direction patternSide, const micro::Sign safetyCarFollowSpeedSign,
-        const micro::m_per_sec_t speed, const micro::meter_t laneDistance) {
+void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sign initialSpeedSign, const micro::Sign patternDir, const micro::Direction patternSide,
+    const micro::Sign safetyCarFollowSpeedSign, const micro::m_per_sec_t speed, const micro::meter_t laneDistance) {
     Maneuver::initialize();
 
     this->patternDir_               = patternDir;
     this->patternSide_              = patternSide;
-    this->initialSpeedSign_         = sgn(car.speed);
+    this->initialSpeedSign_         = initialSpeedSign;
     this->safetyCarFollowSpeedSign_ = safetyCarFollowSpeedSign;
     this->speed_                    = this->safetyCarFollowSpeedSign_ * speed;
     this->laneDistance_             = laneDistance;
@@ -61,13 +61,13 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
         this->speed_
     }, car.distance);
 
-    const Sign laneDistSign = Direction::LEFT == this->patternSide_ ? Sign::POSITIVE : Sign::NEGATIVE;
+    const Sign laneDistSign = (Direction::LEFT == this->patternSide_ ? Sign::POSITIVE : Sign::NEGATIVE) * this->initialSpeedSign_ * this->safetyCarFollowSpeedSign_;
+    const radian_t forwardAngle = Sign::POSITIVE == this->safetyCarFollowSpeedSign_ ? car.pose.angle : normalize360(car.pose.angle + PI);
 
     if (this->safetyCarFollowSpeedSign_ == this->initialSpeedSign_ * this->patternDir_) {
-
         this->trajectory_.appendSineArc(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(110), laneDistSign * this->laneDistance_ }.rotate(car.pose.angle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(110), laneDistSign * this->laneDistance_ }.rotate(forwardAngle),
                 car.pose.angle
             },
             this->speed_,
@@ -75,7 +75,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
         this->trajectory_.appendLine(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(car.pose.angle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle),
                 car.pose.angle
             },
             this->speed_
@@ -86,40 +86,40 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
         if (radius < cfg::MIN_TURN_RADIUS) {
 
-            const meter_t sineArcWidth = centimeter_t(5) + cfg::MIN_TURN_RADIUS - radius;
+            const meter_t sineArcWidth = cfg::MIN_TURN_RADIUS - radius;
             radius = cfg::MIN_TURN_RADIUS;
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
                 Pose{
-                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), -laneDistSign * sineArcWidth }.rotate(car.pose.angle),
+                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(60), -laneDistSign * sineArcWidth }.rotate(forwardAngle),
                     car.pose.angle
                 },
                 this->speed_,
-            }, car.pose.angle, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+            }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
 
             this->trajectory_.appendCircle(
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), laneDistSign * radius }.rotate(car.pose.angle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), laneDistSign * radius }.rotate(forwardAngle),
                 laneDistSign * PI,
                 this->speed_);
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
                 Pose{
-                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), laneDistSign * sineArcWidth }.rotate(car.pose.angle + PI),
+                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(60), laneDistSign * sineArcWidth }.rotate(forwardAngle + PI),
                     car.pose.angle + PI
                 },
                 this->speed_,
-            }, car.pose.angle + PI, Trajectory::orientationUpdate_t::FIX_ORIENTATION, radian_t(0), PI);
+            }, car.pose.angle + PI, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
 
         } else {
             this->trajectory_.appendCircle(
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), laneDistSign * radius }.rotate(car.pose.angle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), laneDistSign * radius }.rotate(forwardAngle),
                 laneDistSign * PI,
                 this->speed_);
         }
 
         this->trajectory_.appendLine(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(car.pose.angle + PI),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle + PI),
                 car.pose.angle + PI
             },
             this->speed_

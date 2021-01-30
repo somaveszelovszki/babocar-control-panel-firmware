@@ -8,8 +8,8 @@ class LaneChangeManeuver : public micro::Maneuver {
 public:
     LaneChangeManeuver();
 
-    void initialize(const micro::CarProps& car, const micro::Sign patternDir, const micro::Direction patternSide, const micro::Sign safetyCarFollowSpeedSign,
-        const micro::m_per_sec_t speed, const micro::meter_t laneDistance);
+    void initialize(const micro::CarProps& car, const micro::Sign initialSpeedSign, const micro::Sign patternDir, const micro::Direction patternSide,
+        const micro::Sign safetyCarFollowSpeedSign, const micro::m_per_sec_t speed, const micro::meter_t laneDistance);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
