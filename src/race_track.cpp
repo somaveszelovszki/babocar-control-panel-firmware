@@ -6,33 +6,36 @@ using namespace micro;
 namespace {
 
 struct TrackSpeeds {
-    micro::m_per_sec_t fast;
+    micro::m_per_sec_t fast1;
     micro::m_per_sec_t slow1_prepare;
     micro::m_per_sec_t slow1_round_begin;
     micro::m_per_sec_t slow1_round_end;
+    micro::m_per_sec_t fast2;
     micro::m_per_sec_t slow2_prepare;
     micro::m_per_sec_t slow2_begin;
     micro::m_per_sec_t slow2_round_begin;
     micro::m_per_sec_t slow2_round_end;
+    micro::m_per_sec_t fast3;
     micro::m_per_sec_t slow3_prepare;
     micro::m_per_sec_t slow3_round_begin;
     micro::m_per_sec_t slow3_round_end;
     micro::m_per_sec_t slow3_end;
+    micro::m_per_sec_t fast4;
     micro::m_per_sec_t slow4_prepare;
     micro::m_per_sec_t slow4_round_begin;
     micro::m_per_sec_t slow4_round_end;
 };
 
 TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
-//  ||  fast   ||             slow1             ||                   slow2                  ||                   slow3                  ||             slow4             ||
-//  ||  (all)  || prepare  round_begin round_end|| prepare     begin   round_begin round_end|| prepare  round_begin round_end     end   || prepare  round_begin round_end||
-    { { 3.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 1
-    { { 4.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 2
-    { { 3.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 3
-    { { 5.00f }, { 2.05f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.20f }, { 2.20f }, { 2.10f }, { 2.10f }, { 2.10f }, { 1.70f }, { 1.95f }, { 1.95f }, { 1.95f } }, // Lap 4
-    { { 5.80f }, { 2.05f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.30f }, { 2.25f }, { 2.25f }, { 2.25f }, { 1.80f }, { 1.95f }, { 1.95f }, { 1.95f } }, // Lap 5
-    { { 6.50f }, { 2.05f }, { 2.05f }, { 2.05f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.30f }, { 2.25f }, { 2.25f }, { 2.25f }, { 1.80f }, { 1.95f }, { 1.95f }, { 1.95f } }, // Lap 6
-    { { 7.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f }, { 0.00f } }  // Finish
+//  ||  fast1  ||             slow1             ||  fast2  ||                   slow2                  ||  fast3  ||                   slow3                  ||  fast4  ||             slow4             ||
+//  ||         || prepare  round_begin round_end||         || prepare     begin   round_begin round_end||         || prepare  round_begin round_end     end   ||         || prepare  round_begin round_end||
+    { { 3.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.70f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 1.70f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 4.00f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 1
+    { { 4.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 4.00f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 4.00f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 4.00f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 2
+    { { 3.50f }, { 1.80f }, { 1.80f }, { 1.80f }, { 3.00f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 1.70f }, { 2.00f }, { 2.00f }, { 2.00f }, { 1.70f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 3
+    { { 5.00f }, { 2.05f }, { 2.05f }, { 2.05f }, { 3.00f }, { 1.80f }, { 1.80f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.10f }, { 2.10f }, { 2.10f }, { 1.70f }, { 3.00f }, { 1.95f }, { 1.95f }, { 1.95f } }, // Lap 4
+    { { 5.80f }, { 2.05f }, { 2.05f }, { 2.05f }, { 3.00f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.30f }, { 3.00f }, { 2.25f }, { 2.25f }, { 2.25f }, { 1.80f }, { 3.00f }, { 1.95f }, { 1.95f }, { 1.95f } }, // Lap 5
+    { { 6.50f }, { 2.05f }, { 2.05f }, { 2.05f }, { 3.00f }, { 1.80f }, { 1.80f }, { 2.30f }, { 2.30f }, { 3.00f }, { 2.25f }, { 2.25f }, { 2.25f }, { 1.80f }, { 3.00f }, { 1.95f }, { 1.95f }, { 1.95f } }, // Lap 6
+    { { 7.00f }                                                                                                                                                                                            }  // Finish
 };
 
 BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS] = {
@@ -133,7 +136,7 @@ bool hasBecomeActive_Slow4_round_end(const CarProps& car, const RaceTrackInfo& t
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
+ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine, const m_per_sec_t targetSpeed) {
     static bool fastSpeedEnabled = true;
 
     if (fastSpeedEnabled && abs(mainLine.centerLine.pos) > centimeter_t(12)) {
@@ -143,7 +146,7 @@ ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trac
     }
 
     ControlData controlData;
-    controlData.speed                    = fastSpeedEnabled ? getSpeeds(trackInfo.lap).fast : m_per_sec_t(2.0f);
+    controlData.speed                    = fastSpeedEnabled ? targetSpeed : m_per_sec_t(2.0f);
     controlData.rampTime                 = millisecond_t(500);
     controlData.rearSteerEnabled         = true;
     controlData.lineControl.actual       = mainLine.centerLine;
@@ -163,14 +166,14 @@ ControlData getControl_CommonSlow(const CarProps& car, const RaceTrackInfo& trac
 }
 
 ControlData getControl_Fast1(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
-    return  getControl_CommonFast(car, trackInfo, mainLine);
+    return  getControl_CommonFast(car, trackInfo, mainLine, getSpeeds(trackInfo.lap).fast1);
 }
 
 ControlData getControl_Slow1_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
-    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow1 ? speeds.slow1_prepare : speeds.fast;
+    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow1 ? speeds.slow1_prepare : speeds.fast1;
     controlData.lineControl.target.pos   = mapByTrackSegDistance<millimeter_t>(car, trackInfo, trackInfo.segStartLine.pos, sgn(car.speed) * centimeter_t(0));
     controlData.lineControl.target.angle = mapByTrackSegDistance<radian_t>(car, trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
 
@@ -198,14 +201,14 @@ ControlData getControl_Slow1_round_end(const CarProps& car, const RaceTrackInfo&
 }
 
 ControlData getControl_Fast2(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
-    return  getControl_CommonFast(car, trackInfo, mainLine);
+    return  getControl_CommonFast(car, trackInfo, mainLine, getSpeeds(trackInfo.lap).fast2);
 }
 
 ControlData getControl_Slow2_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
-    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow2 ? speeds.slow2_prepare : speeds.fast;
+    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow2 ? speeds.slow2_prepare : speeds.fast2;
     controlData.lineControl.target.pos   = mapByTrackSegDistance<millimeter_t>(car, trackInfo, trackInfo.segStartLine.pos, sgn(car.speed) * centimeter_t(0));
     controlData.lineControl.target.angle = mapByTrackSegDistance<radian_t>(car, trackInfo, trackInfo.segStartLine.angle, degree_t(15));
 
@@ -244,14 +247,14 @@ ControlData getControl_Slow2_round_end(const CarProps& car, const RaceTrackInfo&
 }
 
 ControlData getControl_Fast3(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
-    return  getControl_CommonFast(car, trackInfo, mainLine);
+    return  getControl_CommonFast(car, trackInfo, mainLine, getSpeeds(trackInfo.lap).fast3);
 }
 
 ControlData getControl_Slow3_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData   = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
-    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow3 ? speeds.slow3_prepare : speeds.fast;
+    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow3 ? speeds.slow3_prepare : speeds.fast3;
     controlData.lineControl.target.pos   = mapByTrackSegDistance<millimeter_t>(car, trackInfo, trackInfo.segStartLine.pos, sgn(car.speed) * centimeter_t(0));
     controlData.lineControl.target.angle = mapByTrackSegDistance<radian_t>(car, trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
 
@@ -289,14 +292,14 @@ ControlData getControl_Slow3_end(const CarProps& car, const RaceTrackInfo& track
 }
 
 ControlData getControl_Fast4(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
-    return  getControl_CommonFast(car, trackInfo, mainLine);
+    return  getControl_CommonFast(car, trackInfo, mainLine, getSpeeds(trackInfo.lap).fast4);
 }
 
 ControlData getControl_Slow4_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
     const TrackSpeeds& speeds = getSpeeds(trackInfo.lap);
 
-    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow4 ? speeds.slow4_prepare : speeds.fast;
+    controlData.speed = car.distance - trackInfo.segStartCarProps.distance > getBrakeOffsets(trackInfo.lap).slow4 ? speeds.slow4_prepare : speeds.fast4;
     controlData.lineControl.target.pos   = mapByTrackSegDistance<millimeter_t>(car, trackInfo, trackInfo.segStartLine.pos, sgn(car.speed) * centimeter_t(0));
     controlData.lineControl.target.angle = mapByTrackSegDistance<radian_t>(car, trackInfo, trackInfo.segStartLine.angle, degree_t(-15));
 
