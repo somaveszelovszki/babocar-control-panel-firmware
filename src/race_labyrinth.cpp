@@ -29,19 +29,19 @@ LabyrinthGraph buildRaceLabyrinthGraph() {
     graph.addSegment(Segment('T', centimeter_t(196), false));
     graph.addSegment(Segment('U', centimeter_t(438), false));
 
-    graph.addJunction(Junction(1,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(2,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(3,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(4,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(5,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(6,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(7,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(8,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(9,  { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(10, { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(11, { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(12, { centimeter_t(0), centimeter_t(0) }));
-    graph.addJunction(Junction(13, { centimeter_t(0), centimeter_t(0) }));
+    graph.addJunction(Junction(1,  { centimeter_t(-195), centimeter_t(829) }));
+    graph.addJunction(Junction(2,  { centimeter_t(  -7), centimeter_t(771) }));
+    graph.addJunction(Junction(3,  { centimeter_t( 207), centimeter_t(709) }));
+    graph.addJunction(Junction(4,  { centimeter_t(-221), centimeter_t(707) }));
+    graph.addJunction(Junction(5,  { centimeter_t(-321), centimeter_t(571) }));
+    graph.addJunction(Junction(6,  { centimeter_t(  -3), centimeter_t(579) }));
+    graph.addJunction(Junction(7,  { centimeter_t(-221), centimeter_t(476) }));
+    graph.addJunction(Junction(8,  { centimeter_t(-143), centimeter_t(471) }));
+    graph.addJunction(Junction(9,  { centimeter_t( -29), centimeter_t(357) }));
+    graph.addJunction(Junction(10, { centimeter_t(  86), centimeter_t(233) }));
+    graph.addJunction(Junction(11, { centimeter_t(-242), centimeter_t(119) }));
+    graph.addJunction(Junction(12, { centimeter_t( 207), centimeter_t(114) }));
+    graph.addJunction(Junction(13, { centimeter_t(-143), centimeter_t(  0) }));
 
     graph.connect(graph.findSegment('A'), graph.findJunction(1),  JunctionDecision(PI,          Direction::LEFT));
     graph.connect(graph.findSegment('A'), graph.findJunction(1),  JunctionDecision(PI,          Direction::RIGHT));
