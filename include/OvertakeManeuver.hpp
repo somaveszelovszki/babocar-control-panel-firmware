@@ -1,5 +1,6 @@
 #pragma once
 
+#include <micro/container/map.hpp>
 #include <micro/control/maneuver.hpp>
 #include <micro/utils/trajectory.hpp>
 
@@ -22,7 +23,9 @@ private:
 
     void buildTrajectory(const micro::CarProps& car);
 
-    micro::CarProps initialCarProps_;
+    micro::sorted_map<float, micro::point2m, 100> previousCarPositions_;
+    micro::meter_t initialDistance_;
+    micro::Sign targetSpeedSign_;
 
     micro::m_per_sec_t beginSpeed_;
     micro::m_per_sec_t straightStartSpeed_;

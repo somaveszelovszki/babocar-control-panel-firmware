@@ -1,10 +1,12 @@
 #include <micro/math/numeric.hpp>
+#include <micro/utils/log.hpp>
 #include <OvertakeManeuver.hpp>
 
 using namespace micro;
 
 OvertakeManeuver::OvertakeManeuver()
     : Maneuver()
+    , targetSpeedSign_(Sign::POSITIVE)
     , state_(state_t::Prepare) {}
 
 void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign targetSpeedSign,
@@ -13,11 +15,14 @@ void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign 
     const micro::meter_t sideDistance) {
     Maneuver::initialize();
 
-    this->initialCarProps_    = car;
-    this->beginSpeed_         = targetSpeedSign * beginSpeed;
-    this->straightStartSpeed_ = targetSpeedSign * straightStartSpeed;
-    this->straightSpeed_      = targetSpeedSign * straightSpeed;
-    this->endSpeed_           = targetSpeedSign * endSpeed;
+    this->previousCarPositions_.emplace(car.distance.get(), car.pose.pos);
+
+    this->initialDistance_    = car.distance;
+    this->targetSpeedSign_    = targetSpeedSign;
+    this->beginSpeed_         = this->targetSpeedSign_ * beginSpeed;
+    this->straightStartSpeed_ = this->targetSpeedSign_ * straightStartSpeed;
+    this->straightSpeed_      = this->targetSpeedSign_ * straightSpeed;
+    this->endSpeed_           = this->targetSpeedSign_ * endSpeed;
     this->sectionLength_      = sectionLength;
     this->prepareDistance_    = prepareDistance;
     this->beginSineArcLength_ = beginSineArcLength;
@@ -30,6 +35,11 @@ void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign 
 }
 
 void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
+
+    if (car.distance - meter_t(this->previousCarPositions_.back()->first) >= centimeter_t(10)) {
+        this->previousCarPositions_.emplace(car.distance.get(), car.pose.pos);
+    }
+
     switch (this->state_) {
 
     case state_t::Prepare:
@@ -39,7 +49,7 @@ void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, Mai
         controlData.lineControl.actual  = mainLine.centerLine;
         controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 
-        if (car.orientedDistance >= this->prepareDistance_ && car.distance - this->initialCarProps_.distance >= this->prepareDistance_) {
+        if (car.orientedDistance >= this->prepareDistance_ && car.distance - this->initialDistance_ >= this->prepareDistance_) {
             this->buildTrajectory(car);
             this->state_ = state_t::FollowTrajectory;
         }
@@ -59,9 +69,16 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
 
     static constexpr meter_t STRAIGHT_SPEED_RAMP_DIST = meter_t(2);
 
-    const point2m posDiff           = car.pose.pos - this->initialCarProps_.pose.pos;
-    const meter_t fastSectionLength = this->sectionLength_ - posDiff.length() - this->beginSineArcLength_ - this->endSineArcLength_;
-    const radian_t forwardAngle     = posDiff.getAngle();
+    const meter_t distDiff          = car.distance - this->initialDistance_;
+    const meter_t fastSectionLength = this->sectionLength_ - distDiff - this->beginSineArcLength_ - this->endSineArcLength_;
+
+    const point2m anglePosDiff = car.pose.pos - this->previousCarPositions_.lerp((car.distance - this->prepareDistance_ / 2).get());
+    const radian_t forwardAngle1 = anglePosDiff.getAngle();
+    const radian_t forwardAngle2 = Sign::POSITIVE == this->targetSpeedSign_ ? car.pose.angle : normalize360(car.pose.angle + PI);
+
+    const radian_t forwardAngle = avg(forwardAngle1, forwardAngle2);
+
+    LOG_DEBUG("Overtake: start pos: (%f, %f) | forward angle: %fdeg", car.pose.pos.X.get(), car.pose.pos.Y.get(), static_cast<degree_t>(forwardAngle).get());
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,
