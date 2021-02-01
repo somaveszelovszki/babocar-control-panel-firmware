@@ -101,7 +101,7 @@ extern "C" void runLineDetectTask(void) {
             vehicleCanManager.periodicSend<can::LineDetectControl>(vehicleCanSubscriberId, cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain);
         }
 
-        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId));
+        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && 1 == lineInfo.front.lines.size() && 1 == lineInfo.rear.lines.size());
         os_sleep(millisecond_t(1));
     }
 }
