@@ -224,7 +224,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 } else if (Sign::NEGATIVE == targetSpeedSign                      &&
                            trackInfo.lap == 2                                     &&
                            trackInfo.seg == getFastSegment(trackInfo.segments, 1) &&
-                           car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
+                           car.distance - trackInfo.segStartCarProps.distance > meter_t(6)) {
 
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::TurnAround));
                     LOG_DEBUG("Starts turn-around.");
