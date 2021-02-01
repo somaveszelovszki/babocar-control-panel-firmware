@@ -31,7 +31,7 @@ extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<Distances, 1> distancesQueue;
 
-Sign safetyCarFollowSpeedSign = Sign::POSITIVE;
+Sign safetyCarFollowSpeedSign = Sign::NEGATIVE;
 
 namespace {
 
