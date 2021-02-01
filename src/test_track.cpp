@@ -321,7 +321,7 @@ ControlData getControl_Slow4_round_end(const CarProps& car, const RaceTrackInfo&
 ControlData getControl_Slow4_end_chicane(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
-    controlData.speed = getSpeeds(trackInfo.lap).slow2_end_chicane;
+    controlData.speed = getSpeeds(trackInfo.lap).slow4_end_chicane;
 
     return controlData;
 }
