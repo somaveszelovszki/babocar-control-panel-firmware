@@ -5,7 +5,6 @@
 #include <micro/port/semaphore.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
-#include <micro/sensor/Filter.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
@@ -109,8 +108,6 @@ extern "C" void runVehicleStateTask(void) {
     REGISTER_READ_ONLY_PARAM(car);
     REGISTER_READ_ONLY_PARAM(isRemoteControlled);
 
-    LowPassFilter<rad_per_sec_t, 3> yawRateFilter(rad_per_sec_t(0));
-
     while (true) {
         while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
             vehicleCanFrameHandler.handleFrame(rxCanFrame);
@@ -133,7 +130,7 @@ extern "C" void runVehicleStateTask(void) {
 
             const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
             if (!micro::isinf(gyroData.X)) {
-                car.yawRate = yawRateFilter.update(gyroData.Z);
+                car.yawRate = gyroData.Z;
                 gyroDataWd.reset();
             }
         }

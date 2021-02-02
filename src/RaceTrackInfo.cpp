@@ -11,7 +11,7 @@ RaceTrackInfo::RaceTrackInfo(const TrackSegments& segments)
 
 void RaceTrackInfo::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine, const micro::ControlData& controlData) {
     TrackSegments::const_iterator nextSeg = this->nextSegment();
-    if (nextSeg->hasBecomeActive(car, *this, lineInfo.front.pattern)) {
+    if (nextSeg->hasBecomeActive(car, *this, (car.speed >= m_per_sec_t(0) ? lineInfo.front : lineInfo.rear).pattern)) {
         this->seg                 = nextSeg;
         this->segStartCarProps    = car;
         this->segStartControlData = controlData;

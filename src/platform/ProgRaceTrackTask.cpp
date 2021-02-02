@@ -31,23 +31,23 @@ extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<Distances, 1> distancesQueue;
 
-Sign safetyCarFollowSpeedSign = Sign::POSITIVE;
+Sign safetyCarFollowSpeedSign = Sign::NEGATIVE;
 
 namespace {
 
 constexpr centimeter_t MAX_VALID_SAFETY_CAR_DISTANCE = centimeter_t(120);
 
-m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.3f);
+m_per_sec_t SAFETY_CAR_SLOW_MAX_SPEED     = m_per_sec_t(1.15f);
 m_per_sec_t SAFETY_CAR_FAST_MAX_SPEED     = m_per_sec_t(1.7f);
 m_per_sec_t REACH_SAFETY_CAR_SPEED        = m_per_sec_t(0.6f);
 m_per_sec_t OVERTAKE_BEGIN_SPEED          = m_per_sec_t(1.0f);
 m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(1.5f);
-m_per_sec_t OVERTAKE_STRAIGHT_SPEED       = m_per_sec_t(3.0f);
+m_per_sec_t OVERTAKE_STRAIGHT_SPEED       = m_per_sec_t(3.5f);
 m_per_sec_t OVERTAKE_END_SPEED            = m_per_sec_t(1.8f);
-m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.2f);
+m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.0f);
 
 meter_t OVERTAKE_SECTION_LENGTH           = centimeter_t(800);
-meter_t OVERTAKE_PREPARE_DISTANCE         = centimeter_t(70);
+meter_t OVERTAKE_PREPARE_DISTANCE         = centimeter_t(100);
 meter_t OVERTAKE_BEGIN_SINE_ARC_LENGTH    = centimeter_t(180);
 meter_t OVERTAKE_END_SINE_ARC_LENGTH      = centimeter_t(180);
 meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
@@ -224,7 +224,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 } else if (Sign::NEGATIVE == targetSpeedSign                      &&
                            trackInfo.lap == 2                                     &&
                            trackInfo.seg == getFastSegment(trackInfo.segments, 1) &&
-                           car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
+                           car.distance - trackInfo.segStartCarProps.distance > meter_t(6)) {
 
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::TurnAround));
                     LOG_DEBUG("Starts turn-around.");

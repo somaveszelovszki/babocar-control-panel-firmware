@@ -9,6 +9,13 @@
 
 #include <functional>
 
+struct AccelerationRamps {
+    micro::millisecond_t fast1;
+    micro::millisecond_t fast2;
+    micro::millisecond_t fast3;
+    micro::millisecond_t fast4;
+};
+
 struct BrakeOffsets {
     micro::meter_t slow1;
     micro::meter_t slow2;
