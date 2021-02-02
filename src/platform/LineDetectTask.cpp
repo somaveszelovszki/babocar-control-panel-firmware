@@ -101,7 +101,9 @@ extern "C" void runLineDetectTask(void) {
             vehicleCanManager.periodicSend<can::LineDetectControl>(vehicleCanSubscriberId, cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain);
         }
 
-        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && 1 == lineInfo.front.lines.size() && 1 == lineInfo.rear.lines.size());
+        const bool areLinesOk = !((1 != lineInfo.front.lines.size() || 1 != lineInfo.rear.lines.size()) && abs(car.speed) < m_per_sec_t(0.01f));
+
+        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && areLinesOk);
         os_sleep(millisecond_t(1));
     }
 }
