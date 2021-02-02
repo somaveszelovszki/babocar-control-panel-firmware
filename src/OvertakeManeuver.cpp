@@ -78,7 +78,11 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
 
     const radian_t forwardAngle = avg(forwardAngle1, forwardAngle2);
 
-    LOG_DEBUG("Overtake: start pos: (%f, %f) | forward angle: %fdeg", car.pose.pos.X.get(), car.pose.pos.Y.get(), static_cast<degree_t>(forwardAngle).get());
+    LOG_DEBUG("Overtake: start pos: (%f, %f) | fwdAngle1: %fdeg | fwdAngle2: %fdeg | fwdAngle: %fdeg",
+        car.pose.pos.X.get(), car.pose.pos.Y.get(),
+        static_cast<degree_t>(forwardAngle1).get(),
+        static_cast<degree_t>(forwardAngle2).get(),
+        static_cast<degree_t>(forwardAngle).get());
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,
