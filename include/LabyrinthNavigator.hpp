@@ -27,6 +27,9 @@ private:
     const micro::LinePattern& frontLinePattern(const micro::LineInfo& lineInfo) const;
     const micro::LinePattern& rearLinePattern(const micro::LineInfo& lineInfo) const;
 
+    const micro::Lines& frontLines(const micro::LineInfo& lineInfo) const;
+    const micro::Lines& rearLines(const micro::LineInfo& lineInfo) const;
+
     void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
 
     void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
@@ -38,6 +41,8 @@ private:
     void setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const;
 
     void reset(const Junction& junc, micro::radian_t negOri);
+
+    void updateRoute();
 
     bool isTargetLineOverrideEnabled(const micro::CarProps& car, const micro::LineInfo& lineInfo) const;
 
@@ -53,14 +58,17 @@ private:
     const Segment *startSeg_;
     const Connection *prevConn_;
     const Segment *currentSeg_;
+    const Segment *targetSeg_;
     LabyrinthRoute route_;
     bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
     micro::Sign targetSpeedSign_;
+    bool isSpeedSignChangeInProgress_;
     micro::LineInfo prevLineInfo_;
     micro::Pose correctedCarPose_;
     micro::meter_t lastOrientationUpdateDist_;
     bool hasSpeedSignChanged_;
+    bool isInJunction_;
     micro::random_generator random_;
 };
