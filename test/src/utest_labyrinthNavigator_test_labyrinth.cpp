@@ -1,7 +1,10 @@
 #include <micro/container/vec.hpp>
 #include <micro/test/utils.hpp>
 
+#define private public
 #include <LabyrinthNavigator.hpp>
+#undef private
+
 #include <cfg_car.hpp>
 #include <track.hpp>
 
@@ -138,6 +141,20 @@ TEST(labyrinthNavigator_test_labyrinth, W_O) {
 
 
 
+    car.pose.pos   = { centimeter_t(440), meter_t(0) };
+    car.pose.angle = radian_t(0);
+    car.distance   = centimeter_t(460);
+
+    lineInfo.front.lines   = { { centimeter_t(0), 1 } };
+    lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
+    lineInfo.rear.lines    = { { centimeter_t(0), 1 } };
+    lineInfo.rear.pattern  = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
+
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+    car.speed = controlData.speed;
+
+
 
 
     car.pose.pos   = { centimeter_t(370), meter_t(0) };
@@ -194,6 +211,64 @@ TEST(labyrinthNavigator_test_labyrinth, W_O) {
     lineInfo.rear.lines    = { { centimeter_t(0), 1 } };
     lineInfo.rear.pattern  = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
 
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+    car.speed = controlData.speed;
+}
+
+
+TEST(labyrinthNavigator_test_labyrinth, F_H) {
+    LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED);
+    navigator.initialize();
+
+    navigator.currentSeg_          = graph.findSegment('F');
+    navigator.prevConn_            = graph.findConnection(*navigator.currentSeg_, *graph.findSegment('G'));
+    navigator.route_               = LabyrinthRoute::create(*navigator.prevConn_, *navigator.currentSeg_, *graph.findSegment('H'), true);
+    navigator.isLastTarget_        = false;
+    navigator.lastJuncDist_        = meter_t(1);
+    navigator.targetDir_           = Direction::CENTER;
+    navigator.targetSpeedSign_     = Sign::POSITIVE;
+    navigator.hasSpeedSignChanged_ = false;
+
+    CarProps car;
+    LineInfo lineInfo;
+    MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
+    ControlData controlData;
+    controlData.speed = LABYRINTH_FAST_SPEED;
+    controlData.rampTime = millisecond_t(500);
+
+    car.pose.pos   = { meter_t(-17.5f), meter_t(0.6f) };
+    car.pose.angle = PI;
+    car.distance   = meter_t(2);
+    car.speed      = m_per_sec_t(1);
+
+    lineInfo.front.lines   = { { centimeter_t(0), 1 } };
+    lineInfo.front.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
+    lineInfo.rear.lines    = { { centimeter_t(0), 1 } };
+    lineInfo.rear.pattern  = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
+
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+
+    lineInfo.front.pattern = { LinePattern::JUNCTION_1, Sign::NEGATIVE, Direction::CENTER, meter_t(0) };
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+
+    lineInfo.front.pattern = { LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT, meter_t(0) };
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+
+    lineInfo.rear.pattern = { LinePattern::JUNCTION_1, Sign::NEGATIVE, Direction::CENTER, meter_t(0) };
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+    car.speed = controlData.speed;
+
+    lineInfo.rear.pattern = { LinePattern::JUNCTION_1, Sign::POSITIVE, Direction::CENTER, meter_t(0) };
+    micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+    navigator.update(car, lineInfo, mainLine, controlData);
+    car.speed = controlData.speed;
+
+    lineInfo.rear.pattern = { LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER, meter_t(0) };
     micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
     navigator.update(car, lineInfo, mainLine, controlData);
     car.speed = controlData.speed;
