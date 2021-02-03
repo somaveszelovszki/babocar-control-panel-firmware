@@ -164,7 +164,7 @@ extern "C" void runControlTask(void) {
 
     initializeVehicleCan();
 
-    WatchdogTimer controlDataWatchdog(millisecond_t(200));
+    WatchdogTimer controlDataWatchdog(millisecond_t(500));
 
     REGISTER_READ_WRITE_PARAM(motorControllerParams.P);
     REGISTER_READ_WRITE_PARAM(motorControllerParams.I);
