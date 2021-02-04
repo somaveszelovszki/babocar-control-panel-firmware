@@ -67,26 +67,18 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
         this->trajectory_.appendSineArc(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(110), -this->laneDistance_ }.rotate(forwardAngle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(110), -this->laneDistance_ + centimeter_t(8) }.rotate(forwardAngle),
                 car.pose.angle
             },
             this->speed_,
         }, forwardAngle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
-
-        this->trajectory_.appendLine(Trajectory::config_t{
-            Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle),
-                car.pose.angle
-            },
-            this->speed_
-        });
 
     } else {
         meter_t radius = this->laneDistance_ / 2;
 
         if (radius < cfg::MIN_TURN_RADIUS) {
 
-            const meter_t sineArcWidth = cfg::MIN_TURN_RADIUS - radius;
+            const meter_t sineArcWidth = 2 * (cfg::MIN_TURN_RADIUS - radius) + centimeter_t(5);
             radius = cfg::MIN_TURN_RADIUS;
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
@@ -102,27 +94,11 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
                 PI,
                 this->speed_);
 
-            this->trajectory_.appendSineArc(Trajectory::config_t{
-                Pose{
-                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(60), sineArcWidth }.rotate(forwardAngle + PI),
-                    car.pose.angle + PI
-                },
-                this->speed_,
-            }, car.pose.angle + PI, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
-
         } else {
             this->trajectory_.appendCircle(
                 this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), radius }.rotate(forwardAngle),
                 PI,
                 this->speed_);
         }
-
-        this->trajectory_.appendLine(Trajectory::config_t{
-            Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle + PI),
-                car.pose.angle + PI
-            },
-            this->speed_
-        });
     }
 }
