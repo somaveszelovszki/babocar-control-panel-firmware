@@ -181,7 +181,6 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
                     this->route_.pop_front();
                     this->currentSeg_ = this->route_.startSeg;
                     this->prevConn_   = nextConn;
-                    LOG_INFO("Current segment: %c", this->currentSeg_->name);
 
                 } else {
                     LOG_ERROR("Unexpected junction, resets navigator");
@@ -199,7 +198,8 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
                     }
                 }
 
-                nextConn = validConnections[this->random_.get(0, validConnections.size())];
+                this->prevConn_ = validConnections[this->random_.get(0, validConnections.size())];
+                this->currentSeg_ = this->prevConn_->getOtherSegment(*this->currentSeg_);
             }
 
         } else {
@@ -225,6 +225,8 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
             break;
         }
     }
+
+    LOG_INFO("Current segment: %c", this->currentSeg_->name);
 
     this->hasSpeedSignChanged_ = false;
 }
@@ -320,6 +322,7 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
     });
 
     this->currentSeg_ = this->prevConn_->getOtherSegment(*prevSeg);
+    this->targetDir_ = this->prevConn_->getDecision(*this->currentSeg_).direction;
 }
 
 void LabyrinthNavigator::updateRoute() {
