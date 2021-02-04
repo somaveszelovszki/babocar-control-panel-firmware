@@ -214,9 +214,6 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
             LOG_ERROR("Current segment does not connect to found junction, resets navigator");
             this->reset(*junc, negOri);
         }
-
-        this->lastJuncDist_ = car.distance;
-
     } else {
         LOG_ERROR("Junction not found, chooses target direction randomly");
         const uint8_t targetLineIdx = this->random_.get(0, numOutSegments);
@@ -236,6 +233,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
 
     LOG_INFO("Current segment: %c", this->currentSeg_->name);
 
+    this->lastJuncDist_ = car.distance;
     this->hasSpeedSignChanged_ = false;
 }
 
