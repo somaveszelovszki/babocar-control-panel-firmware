@@ -33,7 +33,7 @@ const Segment* LabyrinthNavigator::currentSegment() const {
 }
 
 const Segment* LabyrinthNavigator::targetSegment() const {
-    return this->route_.destSeg;
+    return this->targetSeg_;
 }
 
 const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
