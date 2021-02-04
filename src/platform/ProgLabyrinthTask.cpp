@@ -155,8 +155,8 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
             case cfg::ProgramState::LaneChange:
                 if (programState != prevProgramState) {
-                    laneChange.initialize(car, sgn(car.speed), lineInfo.front.pattern.dir, lineInfo.front.pattern.side,
-                        safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                    const LinePattern& pattern = (LinePattern::LANE_CHANGE == lineInfo.front.pattern.type ? lineInfo.front : lineInfo.rear).pattern;
+                    laneChange.initialize(car, sgn(car.speed), pattern.dir, pattern.side, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
                 }
 
                 laneChange.update(car, lineInfo, mainLine, controlData);
