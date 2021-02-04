@@ -16,6 +16,17 @@ T track_map_linear(const micro::CarProps& car, const RaceTrackInfo& trackInfo, c
     return map(car.distance, trackInfo.segStartCarProps.distance, trackInfo.segStartCarProps.distance + trackInfo.seg->length, start, end);
 }
 
+template <typename T>
+T track_map_pyramid(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const T& start, const T& middle, const T& end) {
+    const meter_t startDist  = trackInfo.segStartCarProps.distance;
+    const meter_t middleDist = startDist + trackInfo.seg->length / 2;
+    const meter_t endDist    = startDist + trackInfo.seg->length;
+
+    return isBtw(car.distance, startDist, middleDist) ?
+        map(car.distance, startDist, middleDist, start, middle) :
+        map(car.distance, middleDist, endDist, middle, end);
+}
+
 bool hasBecomeActive_Fast(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const micro::LinePattern& pattern);
 bool hasBecomeActive_BrakeSign(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const micro::LinePattern& pattern);
 bool hasBecomeActive_SingleLine(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const micro::LinePattern& pattern);
