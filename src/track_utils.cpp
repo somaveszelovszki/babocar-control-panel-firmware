@@ -2,6 +2,22 @@
 
 using namespace micro;
 
+millimeter_t track_map_pos_linear(const CarProps& car, const RaceTrackInfo& trackInfo, const millimeter_t& end) {
+    return track_map_linear(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, end);
+}
+
+millimeter_t track_map_pos_pyramid(const CarProps& car, const RaceTrackInfo& trackInfo, const millimeter_t& middle, const millimeter_t& end) {
+    return track_map_pyramid(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, middle, end);
+}
+
+radian_t track_map_angle_linear(const CarProps& car, const RaceTrackInfo& trackInfo, const radian_t& end) {
+    return track_map_linear(car, trackInfo, trackInfo.segStartControlData.lineControl.target.angle, end);
+}
+
+radian_t track_map_angle_pyramid(const CarProps& car, const RaceTrackInfo& trackInfo, const radian_t& middle, const radian_t& end) {
+    return track_map_pyramid(car, trackInfo, trackInfo.segStartControlData.lineControl.target.angle, middle, end);
+}
+
 bool hasBecomeActive_Fast(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
     static bool signDetected = false;
     static meter_t lastSignDist = meter_t(0);

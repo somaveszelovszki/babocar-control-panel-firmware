@@ -121,7 +121,7 @@ ControlData getControl_Slow2_prepare(const CarProps& car, const RaceTrackInfo& t
     controlData.rampTime = track_get(accelerationRamps, trackInfo.lap).fast2;
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
-        controlData.lineControl.target.angle = track_map_linear<radian_t>(car, trackInfo, trackInfo.segStartControlData.lineControl.target.angle, ROUND_LINE_ANGLE_SAFETY_CAR);
+        controlData.lineControl.target.angle = track_map_angle_linear(car, trackInfo, ROUND_LINE_ANGLE_SAFETY_CAR);
     } else {
         controlData.lineControl.target.angle = radian_t(0);
     }
@@ -135,8 +135,8 @@ ControlData getControl_Slow2_begin_chicane(const CarProps& car, const RaceTrackI
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow2_begin_chicane;
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
-        controlData.lineControl.target.pos   = track_map_linear<millimeter_t>(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, sgn(car.speed) * ROUND_LINE_OFFSET_SAFETY_CAR);
-        controlData.lineControl.target.angle = track_map_linear<radian_t>(car, trackInfo, trackInfo.segStartControlData.lineControl.target.angle, -ROUND_LINE_ANGLE_SAFETY_CAR);
+        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_SAFETY_CAR);
+        controlData.lineControl.target.angle = track_map_angle_linear(car, trackInfo, -ROUND_LINE_ANGLE_SAFETY_CAR);
     } else {
         controlData.lineControl.target.angle = radian_t(0);
     }
@@ -153,7 +153,7 @@ ControlData getControl_Slow2_round_begin(const CarProps& car, const RaceTrackInf
         controlData.lineControl.target.pos   = sgn(car.speed) * ROUND_LINE_OFFSET_SAFETY_CAR;
         controlData.lineControl.target.angle = -ROUND_LINE_ANGLE_SAFETY_CAR;
     } else {
-        controlData.lineControl.target.pos   = track_map_linear<millimeter_t>(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, sgn(car.speed) * ROUND_LINE_OFFSET_RACE);
+        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE);
         controlData.lineControl.target.angle = radian_t(0);
     }
 
@@ -169,7 +169,7 @@ ControlData getControl_Slow2_round_end(const CarProps& car, const RaceTrackInfo&
         controlData.lineControl.target.pos   = sgn(car.speed) * ROUND_LINE_OFFSET_SAFETY_CAR;
         controlData.lineControl.target.angle = -ROUND_LINE_ANGLE_SAFETY_CAR;
     } else {
-        controlData.lineControl.target.pos   = track_map_linear<millimeter_t>(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE, centimeter_t(0));
+        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, centimeter_t(0));
         controlData.lineControl.target.angle = radian_t(0);
     }
 
@@ -225,7 +225,7 @@ ControlData getControl_Slow4_round_begin(const CarProps& car, const RaceTrackInf
 
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow4_round_begin;
 
-    controlData.lineControl.target.pos   = track_map_linear<millimeter_t>(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, sgn(car.speed) * ROUND_LINE_OFFSET_RACE);
+    controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE);
     controlData.lineControl.target.angle = radian_t(0);
 
     return controlData;
@@ -236,7 +236,7 @@ ControlData getControl_Slow4_round_end(const CarProps& car, const RaceTrackInfo&
 
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow4_round_end;
 
-    controlData.lineControl.target.pos   = track_map_linear<millimeter_t>(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE, centimeter_t(0));
+    controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, centimeter_t(0));
     controlData.lineControl.target.angle = radian_t(0);
 
     return controlData;
