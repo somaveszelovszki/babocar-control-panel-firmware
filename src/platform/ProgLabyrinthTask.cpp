@@ -33,9 +33,10 @@ extern Sign safetyCarFollowSpeedSign;
 
 namespace {
 
-m_per_sec_t LABYRINTH_SPEED      = m_per_sec_t(1.0f);
-m_per_sec_t LABYRINTH_FAST_SPEED = m_per_sec_t(1.0f);
-m_per_sec_t LANE_CHANGE_SPEED    = m_per_sec_t(0.65f);
+m_per_sec_t LABYRINTH_SPEED          = m_per_sec_t(1.0f);
+m_per_sec_t LABYRINTH_FAST_SPEED     = m_per_sec_t(1.2f);
+m_per_sec_t LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.85f);
+m_per_sec_t LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
 
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
@@ -53,7 +54,7 @@ const LabyrinthGraph graph = buildLabyrinthGraph();
 const Segment *startSeg = graph.findSegment(START_SEGMENT);
 const Connection *prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
 const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED);
+LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
 vec<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
