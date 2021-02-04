@@ -39,14 +39,14 @@ m_per_sec_t LANE_CHANGE_SPEED    = m_per_sec_t(0.65f);
 
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
-#if LABYRINTH == TEST_LABYRINTH
+#if TRACK == RACE_TRACK
+#define START_SEGMENT       'W'
+#define PREV_SEGMENT        'N'
+#define LANE_CHANGE_SEGMENT 'B'
+#elif TRACK == TEST_TRACK
 #define START_SEGMENT       'W'
 #define PREV_SEGMENT        'M'
 #define LANE_CHANGE_SEGMENT 'N'
-#elif LABYRINTH == RACE_LABYRINTH
-#define START_SEGMENT       'A'
-#define PREV_SEGMENT        ' '
-#define LANE_CHANGE_SEGMENT ' '
 #endif
 
 const LabyrinthGraph graph = buildLabyrinthGraph();
