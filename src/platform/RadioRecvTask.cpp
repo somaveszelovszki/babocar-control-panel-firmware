@@ -26,11 +26,11 @@ extern "C" void runRadioRecvTask(void) {
     while (true) {
         const char radioRecv = radioRecvValue;
         if (radioRecv != prevRadioRecv) {
-            radioRecvQueue.overwrite(radioRecv);
             LOG_INFO("Received character: %c", radioRecv);
             prevRadioRecv = radioRecv;
         }
 
+        radioRecvQueue.overwrite(radioRecv);
         SystemManager::instance().notify(true);
         os_sleep(millisecond_t(20));
     }
