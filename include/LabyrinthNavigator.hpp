@@ -23,6 +23,8 @@ public:
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
+    bool isReducedLineScanEnabled() const;
+
 private:
     const micro::LinePattern& frontLinePattern(const micro::LineInfo& lineInfo) const;
     const micro::LinePattern& rearLinePattern(const micro::LineInfo& lineInfo) const;

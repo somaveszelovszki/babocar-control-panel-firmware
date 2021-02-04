@@ -111,6 +111,11 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 }
 
+bool LabyrinthNavigator::isReducedLineScanEnabled() const {
+    const micro::LinePattern& frontPattern = this->frontLinePattern(this->prevLineInfo_);
+    return isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir;
+}
+
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
     return Sign::POSITIVE == this->targetSpeedSign_ ? lineInfo.front.pattern : lineInfo.rear.pattern;
 }

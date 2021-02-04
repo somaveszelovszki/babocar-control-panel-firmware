@@ -26,7 +26,7 @@
 using namespace micro;
 
 extern queue_t<CarProps, 1> carPropsQueue;
-extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
+extern queue_t<LineDetectControl, 1> lineDetectControlQueue;
 extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<Distances, 1> distancesQueue;
@@ -104,6 +104,7 @@ extern "C" void runProgRaceTrackTask(void) {
     CarProps car;
     LineInfo lineInfo;
     ControlData controlData;
+    LineDetectControl lineDetectControlData;
     Distances distances;
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
@@ -159,6 +160,9 @@ extern "C" void runProgRaceTrackTask(void) {
             controlData.lineControl.actual  = mainLine.centerLine;
             controlData.lineControl.target  = { millimeter_t(0), radian_t(0) };
 
+            lineDetectControlData.domain = linePatternDomain_t::Race;
+            lineDetectControlData.isReducedScanRangeEnabled = false;
+
             const meter_t distFromSafetyCar = Sign::POSITIVE == targetSpeedSign ? distances.front : distances.rear;
             if (distFromSafetyCar < centimeter_t(100)) {
                 lastDistWithSafetyCar = car.distance;
@@ -212,6 +216,11 @@ extern "C" void runProgRaceTrackTask(void) {
 
             case cfg::ProgramState::Race:
                 controlData = getControl(car, trackInfo, mainLine, targetSpeedSign);
+
+                lineDetectControlData.isReducedScanRangeEnabled = trackInfo.lap >= 4 &&
+                                                                  (car.speed > m_per_sec_t(0) ?
+                                                                      lineInfo.front.lines.size() == 1 :
+                                                                      lineInfo.rear.lines.size() == 1);
 
                 if (trackInfo.lap > cfg::NUM_RACE_LAPS) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Finish));
@@ -274,7 +283,7 @@ extern "C" void runProgRaceTrackTask(void) {
             }
 
             controlQueue.overwrite(controlData);
-            linePatternDomainQueue.overwrite(linePatternDomain_t::Race);
+            lineDetectControlQueue.overwrite(lineDetectControlData);
         }
 
         prevProgramState = programState;

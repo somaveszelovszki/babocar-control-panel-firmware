@@ -24,7 +24,7 @@ using namespace micro;
 extern queue_t<CarProps, 1> carPropsQueue;
 extern queue_t<point2m, 1> carPosUpdateQueue;
 extern queue_t<radian_t, 1> carOrientationUpdateQueue;
-extern queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
+extern queue_t<LineDetectControl, 1> lineDetectControlQueue;
 extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<radian_t, 1> carOrientationUpdateQueue;
@@ -107,6 +107,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
     LineInfo lineInfo;
     ControlData controlData;
+    LineDetectControl lineDetectControlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
@@ -121,9 +122,11 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
 
-            linePatternDomainQueue.overwrite(linePatternDomain_t::Labyrinth);
             lineInfoQueue.peek(lineInfo, millisecond_t(0));
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+
+            lineDetectControlData.domain = linePatternDomain_t::Labyrinth;
+            lineDetectControlData.isReducedScanRangeEnabled = false;
 
             switch (programState) {
             case cfg::ProgramState::NavigateLabyrinth:
@@ -137,6 +140,8 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
                 updateTargetSegment();
                 navigator.update(car, lineInfo, mainLine, controlData);
+
+                lineDetectControlData.isReducedScanRangeEnabled = navigator.isReducedLineScanEnabled();
 
                 const Pose correctedCarPose = navigator.correctedCarPose();
                 if (correctedCarPose.angle != car.pose.angle) {
@@ -170,6 +175,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             }
 
             controlQueue.overwrite(controlData);
+            lineDetectControlQueue.overwrite(lineDetectControlData);
         }
 
         prevProgramState = programState;

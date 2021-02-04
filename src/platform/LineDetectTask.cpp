@@ -15,7 +15,7 @@ using namespace micro;
 extern CanManager vehicleCanManager;
 
 extern queue_t<CarProps, 1> carPropsQueue;
-queue_t<linePatternDomain_t, 1> linePatternDomainQueue;
+queue_t<LineDetectControl, 1> lineDetectControlQueue;
 queue_t<LineInfo, 1> lineInfoQueue;
 
 namespace {
@@ -90,15 +90,11 @@ extern "C" void runLineDetectTask(void) {
         }
 
         if (lineDetectControlTimer.checkTimeout()) {
-            linePatternDomain_t domain = linePatternDomain_t::Labyrinth;
-            linePatternDomainQueue.receive(domain, millisecond_t(0));
+            LineDetectControl control;
+            lineDetectControlQueue.receive(control, millisecond_t(0));
 
-            const bool isFwd                     = car.speed >= m_per_sec_t(0);
-            const bool isRace                    = linePatternDomain_t::Race == domain;
-            const bool isReducedScanRangeEnabled = isRace && ((isFwd && lineInfo.front.lines.size() == 1) || (!isFwd && lineInfo.rear.lines.size() == 1));
-            const uint8_t scanRangeRadius        = isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0;
-
-            vehicleCanManager.periodicSend<can::LineDetectControl>(vehicleCanSubscriberId, cfg::INDICATOR_LEDS_ENABLED, scanRangeRadius, domain);
+            vehicleCanManager.periodicSend<can::LineDetectControl>(vehicleCanSubscriberId, cfg::INDICATOR_LEDS_ENABLED,
+                control.isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0, control.domain);
         }
 
         const bool areLinesOk = !((1 != lineInfo.front.lines.size() || 1 != lineInfo.rear.lines.size()) && abs(car.speed) < m_per_sec_t(0.01f));
