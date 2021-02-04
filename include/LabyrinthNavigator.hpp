@@ -8,8 +8,8 @@
 
 class LabyrinthNavigator : public micro::Maneuver {
 public:
-    LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn,
-        const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed);
+    LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn, const Segment *laneChangeSeg,
+        const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed, const micro::m_per_sec_t targetDeadEndSpeed);
 
     void initialize();
 
@@ -36,7 +36,7 @@ private:
 
     void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
 
-    void tryToggleTargetSpeedSign();
+    void tryToggleTargetSpeedSign(const micro::meter_t currentDist);
 
     void setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const;
 
@@ -56,17 +56,20 @@ private:
 
     const micro::m_per_sec_t targetSpeed_;
     const micro::m_per_sec_t targetFastSpeed_;
+    const micro::m_per_sec_t targetDeadEndSpeed_;
     const LabyrinthGraph& graph_;
     const Segment *startSeg_;
     const Connection *prevConn_;
     const Segment *currentSeg_;
     const Segment *targetSeg_;
+    const Segment *laneChangeSeg_;
     LabyrinthRoute route_;
     bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
     micro::Sign targetSpeedSign_;
     bool isSpeedSignChangeInProgress_;
+    micro::meter_t lastSpeedSignChangeDistance_;
     micro::LineInfo prevLineInfo_;
     micro::Pose correctedCarPose_;
     micro::meter_t lastOrientationUpdateDist_;

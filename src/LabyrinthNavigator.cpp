@@ -4,16 +4,18 @@
 
 using namespace micro;
 
-LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn,
-    const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed)
+LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn, const Segment *laneChangeSeg,
+    const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed, const micro::m_per_sec_t targetDeadEndSpeed)
     : Maneuver()
     , targetSpeed_(targetSpeed)
     , targetFastSpeed_(targetFastSpeed)
+    , targetDeadEndSpeed_(targetDeadEndSpeed)
     , graph_(graph)
     , startSeg_(startSeg)
     , prevConn_(prevConn)
     , currentSeg_(this->startSeg_)
     , targetSeg_(startSeg)
+    , laneChangeSeg_(laneChangeSeg)
     , route_(startSeg)
     , isLastTarget_(false)
     , lastJuncDist_(0)
@@ -85,7 +87,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         // start going backward when a dead-end sign is detected
         if (this->isDeadEnd(car, frontPattern)) {
             LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to %s", to_string(this->targetSpeedSign_));
-            this->tryToggleTargetSpeedSign();
+            this->tryToggleTargetSpeedSign(car.distance);
         }
     }
 
@@ -98,7 +100,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     if (!this->isInJunction_) {
         const Connection *nextConn = this->route_.firstConnection();
         if (nextConn && this->prevConn_ && nextConn->junction == this->prevConn_->junction && !this->currentSeg_->isLoop()) {
-            this->tryToggleTargetSpeedSign();
+            this->tryToggleTargetSpeedSign(car.distance);
         }
     }
 
@@ -237,11 +239,12 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
     this->hasSpeedSignChanged_ = false;
 }
 
-void LabyrinthNavigator::tryToggleTargetSpeedSign() {
+void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDist) {
     if (!this->hasSpeedSignChanged_) {
         this->targetSpeedSign_             = -this->targetSpeedSign_;
         this->isSpeedSignChangeInProgress_ = true;
         this->hasSpeedSignChanged_         = true;
+        this->lastSpeedSignChangeDistance_ = currentDist;
         LOG_DEBUG("Labyrinth target speed sign changed to %s", to_string(this->targetSpeedSign_));
     }
 }
@@ -287,11 +290,16 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
     const m_per_sec_t prevSpeed = controlData.speed;
 
-    if (!this->currentSeg_->isDeadEnd                                                                                                   &&
-        isBtw(car.distance, this->lastJuncDist_ + centimeter_t(50), this->lastJuncDist_ + this->currentSeg_->length - centimeter_t(50)) &&
-        1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                                     &&
-        1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type) {
+    if (this->currentSeg_->isDeadEnd) {
+        controlData.speed = this->targetSpeedSign_ * this->targetDeadEndSpeed_;
+
+    } else if (isBtw(car.distance, this->lastJuncDist_ + centimeter_t(20), this->lastJuncDist_ + this->currentSeg_->length - centimeter_t(20)) &&
+               1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                                     &&
+               1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                                      &&
+               car.distance - this->lastSpeedSignChangeDistance_ >= centimeter_t(100)                                                          &&
+               !(this->isLastTarget_ && this->currentSeg_ == this->laneChangeSeg_)) {
         controlData.speed = this->targetSpeedSign_ * this->targetFastSpeed_;
+
     } else {
         controlData.speed = this->targetSpeedSign_ * this->targetSpeed_;
     }
