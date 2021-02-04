@@ -109,54 +109,6 @@ bool hasBecomeActive_distance(const CarProps& car, const RaceTrackInfo& trackInf
     return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
 }
 
-bool hasBecomeActive_Slow1_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow1_round(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::SINGLE_LINE == pattern.type;
-}
-
-bool hasBecomeActive_Slow2_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow2_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow2_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow2_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow3_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow3_round_begin(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow3_round_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow3_end(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
-bool hasBecomeActive_Slow4_prepare(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return LinePattern::BRAKE == pattern.type;
-}
-
-bool hasBecomeActive_Slow4_round(const CarProps& car, const RaceTrackInfo& trackInfo, const LinePattern& pattern) {
-    return car.distance - trackInfo.segStartCarProps.distance > trackInfo.seg->length;
-}
-
 ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine, const m_per_sec_t targetSpeed) {
     static bool fastSpeedEnabled = true;
 
