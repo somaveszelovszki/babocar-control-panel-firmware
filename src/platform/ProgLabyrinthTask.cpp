@@ -34,7 +34,7 @@ extern Sign safetyCarFollowSpeedSign;
 namespace {
 
 m_per_sec_t LABYRINTH_SPEED      = m_per_sec_t(1.0f);
-m_per_sec_t LABYRINTH_FAST_SPEED = m_per_sec_t(1.25f);
+m_per_sec_t LABYRINTH_FAST_SPEED = m_per_sec_t(1.0f);
 m_per_sec_t LANE_CHANGE_SPEED    = m_per_sec_t(0.65f);
 
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
