@@ -86,8 +86,8 @@ ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-PID_Params frontParams = { 1.70f, 0.00f, 100.00f };
-PID_Params rearParams  = { 0.40f, 0.00f, 40.00f };
+PID_Params frontParams = { 2.20f, 0.00f, 160.00f };
+PID_Params rearParams  = { 0.60f, 0.00f, 60.00f };
 
 constexpr uint32_t D_FILTER_SIZE = 20;
 infinite_buffer<std::pair<centimeter_t, degree_t>, D_FILTER_SIZE> prevLineErrors;
