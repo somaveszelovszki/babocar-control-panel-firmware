@@ -149,7 +149,7 @@ ControlData getControl_Slow2_begin(const CarProps& car, const RaceTrackInfo& tra
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
         controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, -ROUND_LINE_OFFSET_SAFETY_CAR, centimeter_t(0));
-        controlData.lineControl.target.angle = track_map_angle_linear(car, trackInfo, ROUND_LINE_ANGLE_SAFETY_CAR / 2);
+        controlData.lineControl.target.angle = track_map_angle_pyramid(car, trackInfo, ROUND_LINE_ANGLE_SAFETY_CAR, radian_t(0));
     } else {
         controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, -ROUND_LINE_OFFSET_RACE, centimeter_t(0));
         controlData.lineControl.target.angle = radian_t(0);
@@ -165,7 +165,7 @@ ControlData getControl_Slow2_round_begin(const CarProps& car, const RaceTrackInf
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
         controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, ROUND_LINE_OFFSET_SAFETY_CAR);
-        controlData.lineControl.target.angle = track_map_angle_pyramid(car, trackInfo, -ROUND_LINE_ANGLE_SAFETY_CAR, -ROUND_LINE_ANGLE_SAFETY_CAR);
+        controlData.lineControl.target.angle = track_map_angle_linear(car, trackInfo, -ROUND_LINE_ANGLE_SAFETY_CAR);
     } else {
         controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, ROUND_LINE_OFFSET_RACE);
         controlData.lineControl.target.angle = radian_t(0);
