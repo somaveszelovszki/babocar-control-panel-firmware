@@ -26,5 +26,5 @@ TEST(TurnAroundManeuver, simple) {
     maneuver.initialize(car, Sign::POSITIVE, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
     maneuver.update(car, lineInfo, mainLine, controlData);
 
-    EXPECT_NEAR_UNIT(centimeter_t(270), maneuver.trajectory_.length(), centimeter_t(5));
+    EXPECT_NEAR_UNIT(centimeter_t(300), maneuver.trajectory_.length(), centimeter_t(5));
 }

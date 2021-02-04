@@ -10,11 +10,11 @@ using namespace micro;
 
 namespace {
 
-const meter_t TRAJECTORY_LENGTH_SINE   = centimeter_t(158);
-const meter_t TRAJECTORY_LENGTH_CIRCLE = centimeter_t(275);
+const meter_t TRAJECTORY_LENGTH_SINE   = centimeter_t(124);
+const meter_t TRAJECTORY_LENGTH_CIRCLE = centimeter_t(190);
 
-const point2m TRAJECTORY_END_POS_SINE   = { centimeter_t(140), centimeter_t(-60) };
-const point2m TRAJECTORY_END_POS_CIRCLE = { centimeter_t(-30), centimeter_t(60) };
+const point2m TRAJECTORY_END_POS_SINE   = { centimeter_t(110), centimeter_t(-52) };
+const point2m TRAJECTORY_END_POS_CIRCLE = { centimeter_t(60), centimeter_t(55) };
 
 void test(const micro::Sign& initialSpeedSign, const micro::Sign patternDir, const micro::Direction patternSide, const micro::Sign safetyCarFollowSpeedSign,
     const meter_t expectedLength, const point2m& expectedEndPos) {
