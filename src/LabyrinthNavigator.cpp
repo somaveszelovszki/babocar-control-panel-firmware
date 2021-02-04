@@ -196,18 +196,17 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
                 }
 
             } else {
-                LOG_WARN("No next connection available, chooses target direction randomly");
+                LOG_WARN("No next connection available, chooses next connection randomly");
+                nextConn = this->randomConnection(*junc, *this->currentSeg_);
 
-                // finds a valid next junction connection - may be any of the current segment's connections that are linked to the current junction
-                micro::vec<Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> validConnections;
-                for (Connection *c : this->currentSeg_->edges) {
-                    if (c->junction->id == junc->id) {
-                        validConnections.push_back(c);
-                    }
+                if (nextConn) {
+                    this->currentSeg_ = nextConn->getOtherSegment(*this->currentSeg_);
+                    this->targetDir_  = nextConn->getDecision(*this->currentSeg_).direction;
+                    this->prevConn_   = nextConn;
+                } else {
+                    LOG_ERROR("nextConn is nullptr after finding a valid connection. Something's wrong...");
+                    this->reset(*junc, negOri);
                 }
-
-                this->prevConn_ = validConnections[this->random_.get(0, validConnections.size())];
-                this->currentSeg_ = this->prevConn_->getOtherSegment(*this->currentSeg_);
             }
 
         } else {
@@ -215,20 +214,8 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
             this->reset(*junc, negOri);
         }
     } else {
-        LOG_ERROR("Junction not found, chooses target direction randomly");
-        const uint8_t targetLineIdx = this->random_.get(0, numOutSegments);
-
-        switch (numOutSegments) {
-        case 3:
-            this->targetDir_ = 0 == targetLineIdx ? Direction::LEFT : 1 == targetLineIdx ? Direction::CENTER : Direction::RIGHT;
-            break;
-        case 2:
-            this->targetDir_ = 0 == targetLineIdx ? Direction::LEFT : Direction::RIGHT;
-            break;
-        default:
-            this->targetDir_ = Direction::CENTER;
-            break;
-        }
+        LOG_ERROR("Junction not found, chooses target direction randomly. Something's wrong...");
+        this->targetDir_ = this->randomDirection(numOutSegments);
     }
 
     LOG_INFO("Current segment: %c", this->currentSeg_->name);
@@ -326,15 +313,20 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
     if (sideSegments == junc.segments.end()) {
         sideSegments = junc.getSideSegments(normalize360(negOri + PI)); // if side segments are not found, tries the other orientation
     }
+
     const Segment *prevSeg = sideSegments->second.begin()->second;
-
-    // Finds a valid junction connection - may be any of the segment's connections that are linked to the current junction.
-    this->prevConn_ = *std::find_if(prevSeg->edges.begin(), prevSeg->edges.end(), [&junc](const Connection *c) {
-        return c->junction->id == junc.id;
-    });
-
-    this->currentSeg_ = this->prevConn_->getOtherSegment(*prevSeg);
-    this->targetDir_ = this->prevConn_->getDecision(*this->currentSeg_).direction;
+    if (prevSeg) {
+        const Connection * const nextConn = this->randomConnection(junc, *prevSeg);
+        if (nextConn) {
+            this->currentSeg_ = nextConn->getOtherSegment(*prevSeg);
+            this->targetDir_  = nextConn->getDecision(*this->currentSeg_).direction;
+            this->prevConn_   = nextConn;
+        } else {
+            LOG_ERROR("nextConn is nullptr after finding a random valid connection. Something's wrong...");
+        }
+    } else {
+        LOG_ERROR("prevSeg is nullptr after getting side segments. Something's wrong...");
+    }
 }
 
 void LabyrinthNavigator::updateRoute() {
@@ -358,6 +350,38 @@ bool LabyrinthNavigator::isTargetLineOverrideEnabled(const CarProps& car, const 
 
 bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const {
     return LinePattern::NONE == pattern.type && (this->currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
+}
+
+const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
+    micro::vec<Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> validConnections;
+
+    for (Connection *c : seg.edges) {
+        if (c->junction->id == junc.id) {
+            validConnections.push_back(c);
+        }
+    }
+
+    return validConnections.size() > 0 ? validConnections[this->random_.get(0, validConnections.size())] : nullptr;
+}
+
+Direction LabyrinthNavigator::randomDirection(const uint8_t numOutSegments) {
+    const uint8_t targetLineIdx = this->random_.get(0, numOutSegments);
+
+    Direction dir = Direction::CENTER;
+
+    switch (numOutSegments) {
+    case 3:
+        dir = 0 == targetLineIdx ? Direction::LEFT : 1 == targetLineIdx ? Direction::CENTER : Direction::RIGHT;
+        break;
+    case 2:
+        dir = 0 == targetLineIdx ? Direction::LEFT : Direction::RIGHT;
+        break;
+    default:
+        dir = Direction::CENTER;
+        break;
+    }
+
+    return dir;
 }
 
 bool LabyrinthNavigator::isJunction(const LinePattern& pattern) {

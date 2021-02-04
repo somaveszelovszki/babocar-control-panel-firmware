@@ -50,6 +50,10 @@ private:
 
     bool isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const;
 
+    const Connection* randomConnection(const Junction& junc, const Segment& seg);
+
+    micro::Direction randomDirection(const uint8_t numOutSegments);
+
     static bool isJunction(const micro::LinePattern& pattern);
 
     static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
