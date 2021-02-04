@@ -119,7 +119,7 @@ ControlData getControl_CommonFast(const CarProps& car, const RaceTrackInfo& trac
     }
 
     ControlData controlData;
-    controlData.speed                    = fastSpeedEnabled ? targetSpeed : m_per_sec_t(1.5f);
+    controlData.speed                    = fastSpeedEnabled ? targetSpeed : m_per_sec_t(2.0f);
     controlData.rearSteerEnabled         = false;
     controlData.lineControl.actual       = mainLine.centerLine;
     controlData.lineControl.target.pos   = centimeter_t(0);
