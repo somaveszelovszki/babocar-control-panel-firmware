@@ -74,4 +74,12 @@ void TurnAroundManeuver::buildTrajectory(const micro::CarProps& car) {
         },
         this->speed_
     }, normalize360(forwardAngle + PI), Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
+
+    this->trajectory_.appendLine(Trajectory::config_t{
+        Pose{
+            this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(30), centimeter_t(0) }.rotate(forwardAngle + PI),
+            normalize360(forwardAngle + PI)
+        },
+        this->speed_
+    });
 }
