@@ -121,6 +121,10 @@ extern "C" void runProgRaceTrackTask(void) {
 
     uint8_t lastOvertakeLap = 0;
 
+    m_per_sec_t targetSpeed = m_per_sec_t(1);
+
+    REGISTER_READ_WRITE_PARAM(targetSpeed);
+
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
@@ -274,7 +278,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Test:
-                controlData.speed = m_per_sec_t(1.0f);
+                controlData.speed = targetSpeed;
                 controlData.rampTime = millisecond_t(500);
                 break;
 
