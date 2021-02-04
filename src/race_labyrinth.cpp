@@ -66,8 +66,8 @@ LabyrinthGraph buildRaceLabyrinthGraph() {
     graph.connect(graph.findSegment('R'), graph.findJunction(5),   JunctionDecision(3 * PI_2,    Direction::LEFT));
     
     graph.connect(graph.findSegment('D'), graph.findJunction(6),   JunctionDecision(radian_t(0), Direction::CENTER));
-    graph.connect(graph.findSegment('E'), graph.findJunction(6),   JunctionDecision(PI_2,        Direction::RIGHT));
-    graph.connect(graph.findSegment('F'), graph.findJunction(6),   JunctionDecision(PI_2,        Direction::LEFT));
+    graph.connect(graph.findSegment('E'), graph.findJunction(6),   JunctionDecision(PI,          Direction::RIGHT));
+    graph.connect(graph.findSegment('F'), graph.findJunction(6),   JunctionDecision(PI,          Direction::LEFT));
     
     graph.connect(graph.findSegment('F'), graph.findJunction(7),   JunctionDecision(radian_t(0), Direction::LEFT));
     graph.connect(graph.findSegment('S'), graph.findJunction(7),   JunctionDecision(radian_t(0), Direction::RIGHT));
