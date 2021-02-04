@@ -250,11 +250,11 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             case cfg::ProgramState::Finish:
-                if (car.distance - trackInfo.segStartCarProps.distance < meter_t(2.0f)) {
+                if (trackInfo.seg->isFast && car.distance - trackInfo.segStartCarProps.distance < meter_t(2.0f)) {
                     controlData = getControl(car, trackInfo, mainLine, targetSpeedSign);
                 } else {
                     controlData.speed = m_per_sec_t(0);
-                    controlData.rampTime = millisecond_t(1000);
+                    controlData.rampTime = millisecond_t(1500);
                 }
                 break;
 
