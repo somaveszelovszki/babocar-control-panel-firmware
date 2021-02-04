@@ -12,9 +12,10 @@ using namespace micro;
 
 namespace {
 
-m_per_sec_t LABYRINTH_SPEED      = m_per_sec_t(1.0f);
-m_per_sec_t LABYRINTH_FAST_SPEED = m_per_sec_t(1.0f);
-m_per_sec_t LANE_CHANGE_SPEED    = m_per_sec_t(0.8f);
+m_per_sec_t LABYRINTH_SPEED          = m_per_sec_t(1.0f);
+m_per_sec_t LABYRINTH_FAST_SPEED     = m_per_sec_t(1.0f);
+m_per_sec_t LABYRINTH_DEAD_END_SPEED = m_per_sec_t(1.0f);
+m_per_sec_t LANE_CHANGE_SPEED        = m_per_sec_t(0.8f);
 
 #define START_SEGMENT       'W'
 #define PREV_SEGMENT        'M'
@@ -28,7 +29,7 @@ const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
 } // namespace
 
 TEST(labyrinthNavigator_test_labyrinth, W_O) {
-    LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED);
+    LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
     navigator.initialize();
 
     CarProps car;
@@ -218,7 +219,7 @@ TEST(labyrinthNavigator_test_labyrinth, W_O) {
 
 
 TEST(labyrinthNavigator_test_labyrinth, F_H) {
-    LabyrinthNavigator navigator(graph, startSeg, prevConn, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED);
+    LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
     navigator.initialize();
 
     navigator.currentSeg_          = graph.findSegment('F');
