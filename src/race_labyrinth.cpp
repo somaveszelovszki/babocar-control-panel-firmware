@@ -91,7 +91,7 @@ LabyrinthGraph buildRaceLabyrinthGraph() {
     
     graph.connect(graph.findSegment('J'), graph.findJunction(12),  JunctionDecision(PI_2,        Direction::RIGHT));
     graph.connect(graph.findSegment('T'), graph.findJunction(12),  JunctionDecision(PI_2,        Direction::LEFT));
-    graph.connect(graph.findSegment('U'), graph.findJunction(12),  JunctionDecision(radian_t(0), Direction::CENTER));
+    graph.connect(graph.findSegment('U'), graph.findJunction(12),  JunctionDecision(3 * PI_2,    Direction::CENTER));
     
     graph.connect(graph.findSegment('N'), graph.findJunction(13),  JunctionDecision(PI,          Direction::CENTER));
     graph.connect(graph.findSegment('O'), graph.findJunction(13),  JunctionDecision(radian_t(0), Direction::LEFT));
