@@ -42,7 +42,6 @@ LabyrinthGraph buildRaceLabyrinthGraph() {
     graph.addJunction(Junction(11, { centimeter_t(-242), centimeter_t(119) }));
     graph.addJunction(Junction(12, { centimeter_t( 207), centimeter_t(114) }));
     graph.addJunction(Junction(13, { centimeter_t(-143), centimeter_t(  0) }));
-    graph.addJunction(Junction(14, { centimeter_t( 207), centimeter_t(478) }));
 
     graph.connect(graph.findSegment('A'), graph.findJunction(1),   JunctionDecision(3 * PI_2,    Direction::CENTER));
     graph.connect(graph.findSegment('B'), graph.findJunction(1),   JunctionDecision(PI_2,        Direction::LEFT));
