@@ -230,7 +230,7 @@ extern "C" void runProgRaceTrackTask(void) {
                     LOG_DEBUG("Starts turn-around.");
                 }
 
-                if (car.distance - lastDistWithValidLine > meter_t(2)) {
+                if (car.distance - lastDistWithValidLine > meter_t(4) && trackInfo.lap >= 4) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Error));
                     LOG_ERROR("An error has occurred. Car stopped.");
                 }
