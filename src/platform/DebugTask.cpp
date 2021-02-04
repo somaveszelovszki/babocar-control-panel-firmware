@@ -14,6 +14,8 @@ using namespace micro;
 
 namespace {
 
+#define FAILING_TASKS_LOG_ENABLED false
+
 constexpr uint32_t MAX_PARAMS_BUFFER_SIZE = 1024;
 
 typedef uint8_t rxParams_t[MAX_PARAMS_BUFFER_SIZE];
@@ -32,6 +34,8 @@ bool monitorTasks() {
 
     const SystemManager::TaskStates failingTasks = SystemManager::instance().failingTasks();
 
+#if FAILING_TASKS_LOG_ENABLED
+
     if (failingTasks.size() && failureLogTimer.checkTimeout()) {
         char msg[LOG_MSG_MAX_SIZE];
         uint32_t idx = 0;
@@ -44,6 +48,8 @@ bool monitorTasks() {
         msg[idx] = '\0';
         LOG_ERROR("Failing tasks: %s", msg);
     }
+
+#endif // FAILING_TASKS_LOG_ENABLED
 
     return failingTasks.size() == 0;
 }
