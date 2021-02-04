@@ -41,9 +41,9 @@ sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     { { 0.10f }, { 2.40f, 0.00f, 120.00f } },
     { { 1.00f }, { 2.40f, 0.00f, 120.00f } },
     { { 1.50f }, { 1.80f, 0.00f, 120.00f } },
-    { { 2.00f }, { 2.20f, 0.00f, 140.00f } },
-    { { 2.25f }, { 2.20f, 0.00f, 160.00f } },
-    { { 2.50f }, { 2.20f, 0.00f, 160.00f } },
+    { { 2.00f }, { 1.70f, 0.00f, 120.00f } },
+    { { 2.25f }, { 1.70f, 0.00f, 120.00f } },
+    { { 2.50f }, { 1.70f, 0.00f, 120.00f } },
     { { 3.00f }, { 1.60f, 0.00f, 120.00f } },
     { { 3.50f }, { 1.10f, 0.00f, 100.00f } },
     { { 4.00f }, { 0.90f, 0.00f, 100.00f } },
@@ -58,9 +58,9 @@ sorted_map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
     { { 0.10f }, { 0.80f, 0.00f, 30.00f } },
     { { 1.00f }, { 0.80f, 0.00f, 30.00f } },
     { { 1.50f }, { 0.50f, 0.00f, 30.00f } },
-    { { 2.00f }, { 0.60f, 0.00f, 40.00f } },
-    { { 2.25f }, { 0.60f, 0.00f, 60.00f } },
-    { { 2.50f }, { 0.60f, 0.00f, 60.00f } },
+    { { 2.00f }, { 0.40f, 0.00f, 40.00f } },
+    { { 2.25f }, { 0.40f, 0.00f, 40.00f } },
+    { { 2.50f }, { 0.40f, 0.00f, 40.00f } },
     { { 3.00f }, { 0.30f, 0.00f, 45.00f } },
     { { 3.50f }, { 0.00f, 0.00f, 45.00f } },
     { { 4.00f }, { 0.00f, 0.00f,  0.00f } },
@@ -86,11 +86,11 @@ ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-PID_Params frontParams = { 2.20f, 0.00f, 160.00f };
-PID_Params rearParams  = { 0.60f, 0.00f, 60.00f };
+PID_Params frontParams = { 1.70f, 0.00f, 120.00f };
+PID_Params rearParams  = { 0.40f, 0.00f, 40.00f };
 
-constexpr uint32_t D_FILTER_SIZE = 20;
-infinite_buffer<std::pair<centimeter_t, degree_t>, D_FILTER_SIZE> prevLineErrors;
+constexpr uint32_t D_FILTER_SIZE = 30;
+infinite_buffer<std::pair<centimeter_t, degree_t>, 100> prevLineErrors;
 
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
