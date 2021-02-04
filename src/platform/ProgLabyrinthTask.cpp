@@ -40,7 +40,7 @@ m_per_sec_t LANE_CHANGE_SPEED    = m_per_sec_t(0.65f);
 constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 
 #if TRACK == RACE_TRACK
-#define START_SEGMENT       'W'
+#define START_SEGMENT       'U'
 #define PREV_SEGMENT        'N'
 #define LANE_CHANGE_SEGMENT 'B'
 #elif TRACK == TEST_TRACK
