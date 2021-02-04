@@ -63,8 +63,9 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 
     // does not handle pattern changes while car is changing speed sign
     if (this->isSpeedSignChangeInProgress_) {
-        if (sgn(car.speed) == this->targetSpeedSign_ && LinePattern::SINGLE_LINE == frontPattern.type && 1 == this->frontLines(lineInfo).size()) {
+        if (sgn(car.speed) == this->targetSpeedSign_ && LinePattern::SINGLE_LINE == frontPattern.type) {
             this->isSpeedSignChangeInProgress_ = false;
+            LOG_DEBUG("Speed sign change finished");
         }
     } else {
         if (frontPattern != prevFrontPattern) {
