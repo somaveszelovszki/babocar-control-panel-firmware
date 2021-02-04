@@ -115,10 +115,10 @@ ControlData getControl_Slow1_round(const CarProps& car, const RaceTrackInfo& tra
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow1_round;
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
-        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_SAFETY_CAR, centimeter_t(0));
+        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, ROUND_LINE_OFFSET_SAFETY_CAR, centimeter_t(0));
         controlData.lineControl.target.angle = track_map_angle_linear(car, trackInfo, radian_t(0));
     } else {
-        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE, centimeter_t(0));
+        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, ROUND_LINE_OFFSET_RACE, centimeter_t(0));
         controlData.lineControl.target.angle = radian_t(0);
     }
 
@@ -148,10 +148,10 @@ ControlData getControl_Slow2_begin(const CarProps& car, const RaceTrackInfo& tra
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow2_begin;
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
-        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, sgn(car.speed) * -ROUND_LINE_OFFSET_SAFETY_CAR, centimeter_t(0));
+        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, -ROUND_LINE_OFFSET_SAFETY_CAR, centimeter_t(0));
         controlData.lineControl.target.angle = track_map_angle_linear(car, trackInfo, ROUND_LINE_ANGLE_SAFETY_CAR / 2);
     } else {
-        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, sgn(car.speed) * -ROUND_LINE_OFFSET_RACE, centimeter_t(0));
+        controlData.lineControl.target.pos   = track_map_pos_pyramid(car, trackInfo, -ROUND_LINE_OFFSET_RACE, centimeter_t(0));
         controlData.lineControl.target.angle = radian_t(0);
     }
 
@@ -164,10 +164,10 @@ ControlData getControl_Slow2_round_begin(const CarProps& car, const RaceTrackInf
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow2_round_begin;
 
     if (1 == trackInfo.lap || 3 == trackInfo.lap) {
-        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_SAFETY_CAR);
+        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, ROUND_LINE_OFFSET_SAFETY_CAR);
         controlData.lineControl.target.angle = track_map_angle_pyramid(car, trackInfo, -ROUND_LINE_ANGLE_SAFETY_CAR, -ROUND_LINE_ANGLE_SAFETY_CAR);
     } else {
-        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE);
+        controlData.lineControl.target.pos   = track_map_pos_linear(car, trackInfo, ROUND_LINE_OFFSET_RACE);
         controlData.lineControl.target.angle = radian_t(0);
     }
 
@@ -204,7 +204,7 @@ ControlData getControl_Slow3_round_begin(const CarProps& car, const RaceTrackInf
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow3_round_begin;
-    controlData.lineControl.target.pos = track_map_pos_linear(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE);
+    controlData.lineControl.target.pos = track_map_pos_linear(car, trackInfo, ROUND_LINE_OFFSET_RACE);
 
     return controlData;
 }
@@ -222,7 +222,7 @@ ControlData getControl_Slow3_end(const CarProps& car, const RaceTrackInfo& track
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow3_end;
-    controlData.lineControl.target.pos = track_map_pos_pyramid(car, trackInfo, sgn(car.speed) * -ROUND_LINE_OFFSET_RACE, centimeter_t(0));
+    controlData.lineControl.target.pos = track_map_pos_pyramid(car, trackInfo, -ROUND_LINE_OFFSET_RACE, centimeter_t(0));
 
     return controlData;
 }
@@ -241,7 +241,7 @@ ControlData getControl_Slow4_round(const CarProps& car, const RaceTrackInfo& tra
     ControlData controlData = getControl_CommonSlow(car, trackInfo, mainLine);
 
     controlData.speed = track_get(trackSpeeds, trackInfo.lap).slow4_round;
-    controlData.lineControl.target.pos = track_map_pos_pyramid(car, trackInfo, sgn(car.speed) * ROUND_LINE_OFFSET_RACE, centimeter_t(0));
+    controlData.lineControl.target.pos = track_map_pos_pyramid(car, trackInfo, ROUND_LINE_OFFSET_RACE, centimeter_t(0));
 
     return controlData;
 }

@@ -3,11 +3,15 @@
 using namespace micro;
 
 millimeter_t track_map_pos_linear(const CarProps& car, const RaceTrackInfo& trackInfo, const millimeter_t& end) {
-    return track_map_linear(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, end);
+    const millimeter_t end_ = sgn(car.speed) * end;
+    return track_map_linear(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, end_);
 }
 
 millimeter_t track_map_pos_pyramid(const CarProps& car, const RaceTrackInfo& trackInfo, const millimeter_t& middle, const millimeter_t& end) {
-    return track_map_pyramid(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, middle, end);
+    const Sign speedSign       = sgn(car.speed);
+    const millimeter_t middle_ = speedSign * middle;
+    const millimeter_t end_    = speedSign * end;
+    return track_map_pyramid(car, trackInfo, trackInfo.segStartControlData.lineControl.target.pos, middle_, end_);
 }
 
 radian_t track_map_angle_linear(const CarProps& car, const RaceTrackInfo& trackInfo, const radian_t& end) {
