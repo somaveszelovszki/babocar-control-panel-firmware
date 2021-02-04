@@ -15,8 +15,6 @@ void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign 
     const micro::meter_t sideDistance) {
     Maneuver::initialize();
 
-    this->previousCarPositions_.emplace(car.distance.get(), car.pose.pos);
-
     this->initialDistance_    = car.distance;
     this->targetSpeedSign_    = targetSpeedSign;
     this->beginSpeed_         = this->targetSpeedSign_ * beginSpeed;
@@ -35,11 +33,6 @@ void OvertakeManeuver::initialize(const micro::CarProps& car, const micro::Sign 
 }
 
 void OvertakeManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
-
-    if (car.distance - meter_t(this->previousCarPositions_.back()->first) >= centimeter_t(10)) {
-        this->previousCarPositions_.emplace(car.distance.get(), car.pose.pos);
-    }
-
     switch (this->state_) {
 
     case state_t::Prepare:
@@ -72,17 +65,9 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
     const meter_t distDiff          = car.distance - this->initialDistance_;
     const meter_t fastSectionLength = this->sectionLength_ - distDiff - this->beginSineArcLength_ - this->endSineArcLength_;
 
-    const point2m anglePosDiff = car.pose.pos - this->previousCarPositions_.lerp((car.distance - this->prepareDistance_ / 2).get());
-    const radian_t forwardAngle1 = anglePosDiff.getAngle();
-    const radian_t forwardAngle2 = Sign::POSITIVE == this->targetSpeedSign_ ? car.pose.angle : normalize360(car.pose.angle + PI);
+    const radian_t forwardAngle = Sign::POSITIVE == this->targetSpeedSign_ ? car.pose.angle : normalize360(car.pose.angle + PI);
 
-    const radian_t forwardAngle = avg(forwardAngle1, forwardAngle2);
-
-    LOG_DEBUG("Overtake: start pos: (%f, %f) | fwdAngle1: %fdeg | fwdAngle2: %fdeg | fwdAngle: %fdeg",
-        car.pose.pos.X.get(), car.pose.pos.Y.get(),
-        static_cast<degree_t>(forwardAngle1).get(),
-        static_cast<degree_t>(forwardAngle2).get(),
-        static_cast<degree_t>(forwardAngle).get());
+    LOG_DEBUG("Overtake: start pos: (%f, %f) | forward angle: %fdeg", car.pose.pos.X.get(), car.pose.pos.Y.get(), static_cast<degree_t>(forwardAngle).get());
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,
