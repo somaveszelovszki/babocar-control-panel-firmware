@@ -109,7 +109,8 @@ extern "C" void runProgRaceTrackTask(void) {
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    const TrackSegments::const_iterator overtakeSeg = getFastSegment(trackInfo.segments, 3);
+    const TrackSegments::const_iterator turnAroundSeg = getFastSegment(trackInfo.segments, 1);
+    const TrackSegments::const_iterator overtakeSeg   = getFastSegment(trackInfo.segments, 3);
 
     meter_t lastDistWithValidLine;
     meter_t lastDistWithSafetyCar;
@@ -230,10 +231,10 @@ extern "C" void runProgRaceTrackTask(void) {
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
-                } else if (Sign::NEGATIVE == targetSpeedSign                      &&
-                           trackInfo.lap == 2                                     &&
-                           trackInfo.seg == getFastSegment(trackInfo.segments, 1) &&
-                           car.distance - trackInfo.segStartCarProps.distance > meter_t(4)) {
+                } else if (Sign::NEGATIVE == targetSpeedSign &&
+                           trackInfo.lap == 2                &&
+                           trackInfo.seg == turnAroundSeg    &&
+                           car.distance - trackInfo.segStartCarProps.distance > meter_t(3)) {
 
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::TurnAround));
                     LOG_DEBUG("Starts turn-around.");
