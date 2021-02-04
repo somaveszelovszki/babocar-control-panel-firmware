@@ -12,7 +12,7 @@ const T& track_get(const T values[], uint8_t lap) {
 }
 
 template <typename T>
-T mapByTrackSegDistance(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const T& start, const T& end) {
+T track_map_linear(const micro::CarProps& car, const RaceTrackInfo& trackInfo, const T& start, const T& end) {
     return map(car.distance, trackInfo.segStartCarProps.distance, trackInfo.segStartCarProps.distance + trackInfo.seg->length, start, end);
 }
 
