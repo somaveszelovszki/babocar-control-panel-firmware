@@ -114,8 +114,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     REGISTER_READ_WRITE_PARAM(safetyCarFollowSpeedSign);
     REGISTER_WRITE_ONLY_PARAM(nextSegment);
 
-    enforceGraphValidity();
-
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
@@ -131,6 +129,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             case cfg::ProgramState::NavigateLabyrinth:
             {
                 if (programState != prevProgramState) {
+                    enforceGraphValidity();
                     carOrientationUpdateQueue.overwrite(radian_t(0));
                     endTime = getTime() + second_t(20);
                     navigator.initialize();
