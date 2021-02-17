@@ -42,7 +42,7 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
 
     case state_t::Stop:
         controlData.speed    = m_per_sec_t(0);
-        controlData.rampTime = millisecond_t(200);
+        controlData.rampTime = millisecond_t(800);
 
         controlData.rearSteerEnabled   = false;
         controlData.lineControl.actual = mainLine.centerLine;
@@ -77,7 +77,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
         this->trajectory_.appendSineArc(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(110), -this->laneDistance_ + centimeter_t(8) }.rotate(forwardAngle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(90), -this->laneDistance_ + centimeter_t(5) }.rotate(forwardAngle),
                 car.pose.angle
             },
             this->speed_,
@@ -88,7 +88,7 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
         if (radius < cfg::MIN_TURN_RADIUS) {
 
-            const meter_t sineArcWidth = 2 * (cfg::MIN_TURN_RADIUS - radius) + centimeter_t(5);
+            const meter_t sineArcWidth = 2 * (cfg::MIN_TURN_RADIUS - radius) + centimeter_t(10);
             radius = cfg::MIN_TURN_RADIUS;
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
