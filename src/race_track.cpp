@@ -31,24 +31,24 @@ struct TrackSpeeds {
 TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
 //  ||  fast1  ||        slow1       ||  fast2  ||                   slow2                  ||  fast3  ||                   slow3                  ||  fast4  ||        slow4       ||
 //  ||         || prepare     round  ||         || prepare     begin   round_begin round_end||         || prepare  round_begin round_end     end   ||         || prepare     round  ||
-    { { 3.50f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.60f }, { 1.60f }, { 1.60f }, { 1.60f }, { 3.50f }, { 2.00f }, { 2.00f } }, // Lap 1
-    { { 3.00f }, { 2.00f }, { 2.00f }, { 3.50f }, { 2.00f }, { 2.00f }, { 2.30f }, { 2.30f }, { 3.50f }, { 2.30f }, { 2.30f }, { 2.30f }, { 2.00f }, { 3.50f }, { 2.00f }, { 2.00f } }, // Lap 2
-    { { 3.00f }, { 1.20f }, { 1.20f }, { 3.30f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.60f }, { 2.20f }, { 2.00f }, { 2.00f } }, // Lap 3
-    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 1.80f }, { 2.00f }, { 2.50f }, { 2.50f }, { 3.00f }, { 2.30f }, { 2.30f }, { 2.30f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f } }, // Lap 4
-    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 1.80f }, { 2.00f }, { 2.50f }, { 2.50f }, { 3.00f }, { 2.30f }, { 2.30f }, { 2.30f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f } }, // Lap 5
-    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 1.80f }, { 2.00f }, { 2.50f }, { 2.50f }, { 3.00f }, { 2.30f }, { 2.30f }, { 2.30f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f } }, // Lap 6
-    { { 3.00f }                                                                                                                                                                                            }  // Finish
+    { { 1.00f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.60f }, { 1.60f }, { 1.60f }, { 1.60f }, { 3.50f }, { 2.00f }, { 2.00f } }, // Lap 1
+    { { 3.00f }, { 2.00f }, { 2.00f }, { 3.50f }, { 2.00f }, { 2.00f }, { 2.10f }, { 2.10f }, { 3.50f }, { 2.10f }, { 2.10f }, { 2.10f }, { 2.00f }, { 3.50f }, { 2.00f }, { 2.00f } }, // Lap 2
+    { { 3.30f }, { 1.20f }, { 1.20f }, { 3.30f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.60f }, { 2.20f }, { 2.00f }, { 2.00f } }, // Lap 3
+    { { 5.50f }, { 3.00f }, { 3.00f }, { 5.50f }, { 2.50f }, { 2.50f }, { 2.70f }, { 2.70f }, { 5.50f }, { 2.80f }, { 3.00f }, { 2.70f }, { 2.20f }, { 5.50f }, { 3.00f }, { 3.00f } }, // Lap 4
+    { { 6.00f }, { 3.00f }, { 3.00f }, { 6.00f }, { 2.50f }, { 2.50f }, { 2.70f }, { 2.70f }, { 6.00f }, { 2.80f }, { 3.00f }, { 2.70f }, { 2.20f }, { 6.00f }, { 3.00f }, { 3.00f } }, // Lap 5
+    { { 6.50f }, { 3.00f }, { 3.00f }, { 6.50f }, { 2.50f }, { 2.50f }, { 2.70f }, { 2.70f }, { 6.50f }, { 2.80f }, { 3.00f }, { 2.70f }, { 2.20f }, { 6.50f }, { 3.00f }, { 3.00f } }, // Lap 6
+    { { 3.00f }                                                                                                                                                                      }  // Finish
 };
 
 AccelerationRamps accelerationRamps[cfg::NUM_RACE_LAPS + 1] = {
-//  ||      slow1        ||      slow2        ||      slow3        ||      slow4        ||
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 1
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 2
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 3
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 4
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 5
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 6
-    { millisecond_t(1000)                                                                }  // Finish
+//  ||      fast1       ||      fast2       ||      fast3       ||      fast4       ||
+    { millisecond_t(800), millisecond_t(800), millisecond_t(800), millisecond_t(800) }, // Lap 1
+    { millisecond_t(800), millisecond_t(800), millisecond_t(800), millisecond_t(800) }, // Lap 2
+    { millisecond_t(800), millisecond_t(800), millisecond_t(800), millisecond_t(800) }, // Lap 3
+    { millisecond_t(800), millisecond_t(800), millisecond_t(800), millisecond_t(800) }, // Lap 4
+    { millisecond_t(600), millisecond_t(600), millisecond_t(600), millisecond_t(600) }, // Lap 5
+    { millisecond_t(600), millisecond_t(600), millisecond_t(600), millisecond_t(600) }, // Lap 6
+    { millisecond_t(600)                                                             }  // Finish
 };
 
 BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS] = {
