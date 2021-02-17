@@ -297,7 +297,7 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
     this->setTargetLine(car, lineInfo, mainLine);
 
     // enables rear wheel steering when coming out of a junction
-    controlData.rearSteerEnabled   = this->isTargetLineOverrideEnabled(car, lineInfo);
+    controlData.rearSteerEnabled   = true;
     controlData.lineControl.actual = mainLine.centerLine;
     controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
 }
