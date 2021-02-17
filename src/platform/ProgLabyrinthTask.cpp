@@ -142,7 +142,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 updateTargetSegment();
                 navigator.update(car, lineInfo, mainLine, controlData);
 
-                lineDetectControlData.isReducedScanRangeEnabled = navigator.isReducedLineScanEnabled();
+                lineDetectControlData.isReducedScanRangeEnabled = false;
 
                 const Pose correctedCarPose = navigator.correctedCarPose();
                 if (correctedCarPose.angle != car.pose.angle) {
