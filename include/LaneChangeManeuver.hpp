@@ -15,6 +15,7 @@ public:
 
 private:
     enum class state_t : uint8_t {
+        CheckOrientation,
         Stop,
         FollowTrajectory
     };

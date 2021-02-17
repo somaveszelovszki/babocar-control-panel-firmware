@@ -11,7 +11,7 @@ LaneChangeManeuver::LaneChangeManeuver()
     , patternSide_(Direction::CENTER)
     , initialSpeedSign_(Sign::NEUTRAL)
     , safetyCarFollowSpeedSign_(Sign::NEUTRAL)
-    , state_(state_t::Stop) {}
+    , state_(state_t::CheckOrientation) {}
 
 void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sign initialSpeedSign, const micro::Sign patternDir, const micro::Direction patternSide,
     const micro::Sign safetyCarFollowSpeedSign, const micro::m_per_sec_t speed, const micro::meter_t laneDistance) {
@@ -23,13 +23,23 @@ void LaneChangeManeuver::initialize(const micro::CarProps& car, const micro::Sig
     this->safetyCarFollowSpeedSign_ = safetyCarFollowSpeedSign;
     this->speed_                    = this->safetyCarFollowSpeedSign_ * speed;
     this->laneDistance_             = laneDistance;
-    this->state_                    = state_t::Stop;
+    this->state_                    = state_t::CheckOrientation;
 
     this->trajectory_.clear();
 }
 
 void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, MainLine& mainLine, ControlData& controlData) {
     switch (this->state_) {
+    case state_t::CheckOrientation:
+        controlData.rearSteerEnabled   = true;
+        controlData.lineControl.actual = mainLine.centerLine;
+        controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
+
+        if (abs(mainLine.centerLine.pos) < centimeter_t(3) && abs(mainLine.centerLine.angle) < degree_t(4)) {
+            this->state_ = state_t::Stop;
+        }
+        break;
+
     case state_t::Stop:
         controlData.speed    = m_per_sec_t(0);
         controlData.rampTime = millisecond_t(200);
