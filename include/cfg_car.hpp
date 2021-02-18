@@ -15,7 +15,7 @@ constexpr float           DIST_SENSOR_SERVO_TRANSFER_RATE = 1.0f;
 constexpr bool            DIST_SENSOR_SERVO_ENABLED       = false;
 constexpr micro::meter_t  MIN_TURN_RADIUS                 = micro::centimeter_t(40);
 
-constexpr bool            USE_SAFETY_ENABLE_SIGNAL        = true;
+constexpr bool            USE_SAFETY_ENABLE_SIGNAL        = false;
 constexpr bool            INDICATOR_LEDS_ENABLED          = true;
 constexpr uint8_t         REDUCED_LINE_DETECT_SCAN_RADIUS = 12;
 
