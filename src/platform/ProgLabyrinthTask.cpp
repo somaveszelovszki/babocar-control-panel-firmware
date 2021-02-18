@@ -44,10 +44,12 @@ constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 #define START_SEGMENT       'U'
 #define PREV_SEGMENT        'N'
 #define LANE_CHANGE_SEGMENT 'B'
+#define LAST_VALID_SEGMENT  'U'
 #elif TRACK == TEST_TRACK
 #define START_SEGMENT       'W'
 #define PREV_SEGMENT        'M'
 #define LANE_CHANGE_SEGMENT 'N'
+#define LAST_VALID_SEGMENT  'W'
 #endif
 
 const LabyrinthGraph graph = buildLabyrinthGraph();
@@ -74,8 +76,8 @@ void updateTargetSegment() {
     const bool isLabyrinthFinished = 'X' == segId;
 
     const Segment *targetSeg =
-        isLabyrinthFinished    ? laneChangeSeg            :
-        isBtw(segId, 'A', 'Z') ? graph.findSegment(segId) :
+        isLabyrinthFinished                   ? laneChangeSeg            :
+        isBtw(segId, 'A', LAST_VALID_SEGMENT) ? graph.findSegment(segId) :
         startSeg;
 
     if (targetSeg != navigator.targetSegment() || (isLabyrinthFinished && !navigator.isLastTarget())) {
