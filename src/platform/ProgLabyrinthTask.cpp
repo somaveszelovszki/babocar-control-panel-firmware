@@ -71,7 +71,6 @@ char nextSegment = START_SEGMENT;
 void updateTargetSegment() {
     char segId = '\0';
     radioRecvQueue.peek(segId, millisecond_t(0));
-    segId = nextSegment; // TODO TODO TODO
     const bool isLabyrinthFinished = 'X' == segId;
 
     const Segment *targetSeg =
