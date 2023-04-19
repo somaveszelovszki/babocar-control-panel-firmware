@@ -20,15 +20,10 @@ PanelLink<DistSensorPanelOutData, DistSensorPanelInData> rearDistSensorPanelLink
 
 Distances distances;
 
-void parseDistSensorPanelData(const DistSensorPanelOutData& rxData, const bool isFront) {
-
-    const meter_t distance = std::numeric_limits<uint16_t>::max() == rxData.distance_mm ? micro::numeric_limits<millimeter_t>::infinity() : millimeter_t(rxData.distance_mm);
-
-    if (isFront) {
-        distances.front = distance;
-    } else {
-        distances.rear = distance;
-    }
+millimeter_t parseDistSensorPanelData(const DistSensorPanelOutData& rxData) {
+    return std::numeric_limits<uint16_t>::max() == rxData.distance_mm
+            ? micro::numeric_limits<millimeter_t>::infinity()
+            : millimeter_t(rxData.distance_mm);
 }
 
 void fillDistSensorPanelData(DistSensorPanelInData& txData) {
@@ -48,13 +43,19 @@ extern "C" void runDistSensorTask(void) {
         frontDistSensorPanelLink.update();
         rearDistSensorPanelLink.update();
 
+        bool updated = false;
+
         if (frontDistSensorPanelLink.readAvailable(rxData)) {
-            parseDistSensorPanelData(rxData, true);
-            distancesQueue.overwrite(distances);
+            distances.front = parseDistSensorPanelData(rxData);
+            updated = true;
         }
 
         if (rearDistSensorPanelLink.readAvailable(rxData)) {
-            parseDistSensorPanelData(rxData, false);
+            distances.rear = parseDistSensorPanelData(rxData);
+            updated = true;
+        }
+
+        if (updated) {
             distancesQueue.overwrite(distances);
         }
 
