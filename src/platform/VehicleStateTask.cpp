@@ -59,7 +59,6 @@ void updateCarOrientedDistance(CarProps& car) {
 }
 
 void updateCarPose() {
-    static radian_t prevYaw = { 0 };
     static meter_t prevDist = { 0 };
     static microsecond_t prevTime = getExactTime();
 
@@ -67,12 +66,11 @@ void updateCarPose() {
 
     const meter_t d_dist      = car.distance - prevDist;
     const radian_t d_angle    = car.yawRate * (now - prevTime);
-    const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST);
+    const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST) + d_angle / 2;
 
-    car.pose.angle += d_angle / 2;
     car.pose.pos.X += d_dist * cos(speedAngle);
     car.pose.pos.Y += d_dist * sin(speedAngle);
-    car.pose.angle  = normalize360(car.pose.angle + d_angle / 2);
+    car.pose.angle  = normalize360(car.pose.angle + d_angle);
 
     updateCarOrientedDistance(car);
     prevDist = car.distance;
