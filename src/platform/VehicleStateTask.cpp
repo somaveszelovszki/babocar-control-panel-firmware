@@ -103,7 +103,6 @@ extern "C" void runVehicleStateTask(void) {
     gyro.initialize();
     WatchdogTimer gyroDataWd(millisecond_t(15));
 
-    REGISTER_READ_ONLY_PARAM(car);
     REGISTER_READ_ONLY_PARAM(isRemoteControlled);
 
     while (true) {

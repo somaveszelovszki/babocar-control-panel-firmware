@@ -4,13 +4,19 @@
 #include <micro/debug/params.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/semaphore.hpp>
+#include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
+#include <micro/utils/CarProps.hpp>
+#include <micro/utils/ControlData.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
 
 
 using namespace micro;
+
+extern queue_t<CarProps, 1> carPropsQueue;
+extern queue_t<ControlData, 1> lastControlQueue;
 
 namespace {
 
@@ -54,6 +60,20 @@ bool monitorTasks() {
     return failingTasks.size() == 0;
 }
 
+void serializeCar(const CarProps& car, const ControlData& controlData, char * const str, const uint32_t size) {
+    sprint(str, size, "C:%d,%d,%f,%f,%f,%f,%d,%f,%d,%f",
+           static_cast<millimeter_t>(car.pose.pos.X).get(),
+           static_cast<millimeter_t>(car.pose.pos.Y).get(),
+           car.pose.angle.get(),
+           car.speed.get(),
+           car.frontWheelAngle.get(),
+           car.rearWheelAngle.get(),
+           static_cast<millimeter_t>(controlData.lineControl.actual.pos).get(),
+           controlData.lineControl.actual.angle,
+           static_cast<millimeter_t>(controlData.lineControl.target.pos).get(),
+           controlData.lineControl.target.angle);
+}
+
 } // namespace
 
 extern "C" void runDebugTask(void) {
@@ -63,13 +83,24 @@ extern "C" void runDebugTask(void) {
     uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_PARAMS_BUFFER_SIZE);
 
     DebugLed debugLed(gpio_Led);
-    Timer debugParamsSendTimer(millisecond_t(200));
+    Timer carPropsSendTimer(millisecond_t(50));
+    Timer debugParamsSendTimer(millisecond_t(1000));
 
     while (true) {
         const rxParams_t *inCmd = rxBuffer.startRead();
         if (inCmd) {
             Params::instance().deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
             rxBuffer.finishRead();
+        }
+
+        if (carPropsSendTimer.checkTimeout()) {
+            CarProps car;
+            ControlData controlData;
+            carPropsQueue.peek(car, millisecond_t(0));
+            lastControlQueue.peek(controlData, millisecond_t(0));
+
+            serializeCar(car, controlData, paramsStr, MAX_PARAMS_BUFFER_SIZE);
+            transmit(paramsStr);
         }
 
         if (debugParamsSendTimer.checkTimeout()) {

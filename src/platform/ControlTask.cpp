@@ -24,6 +24,7 @@ extern queue_t<CarProps, 1> carPropsQueue;
 CanManager vehicleCanManager(can_Vehicle);
 
 queue_t<ControlData, 1> controlQueue;
+queue_t<ControlData, 1> lastControlQueue;
 
 namespace {
 
@@ -229,6 +230,8 @@ extern "C" void runControlTask(void) {
         vehicleCanManager.periodicSend<can::LongitudinalControl>(vehicleCanSubscriberId, controlData.speed, cfg::USE_SAFETY_ENABLE_SIGNAL, controlData.rampTime);
         vehicleCanManager.periodicSend<can::LateralControl>(vehicleCanSubscriberId, frontWheelTargetAngle, rearWheelTargetAngle, frontDistSensorServoTargetAngle);
         vehicleCanManager.periodicSend<can::SetMotorControlParams>(vehicleCanSubscriberId, motorControllerParams.P, motorControllerParams.I);
+
+        lastControlQueue.overwrite(controlData);
 
         SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut());
         os_sleep(millisecond_t(1));
