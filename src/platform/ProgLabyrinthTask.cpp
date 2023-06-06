@@ -68,8 +68,6 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
-char nextSegment = START_SEGMENT;
-
 void updateTargetSegment() {
     char segId = '\0';
     radioRecvQueue.peek(segId, millisecond_t(0));
@@ -113,9 +111,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
-
-    REGISTER_READ_WRITE_PARAM(safetyCarFollowSpeedSign);
-    REGISTER_WRITE_ONLY_PARAM(nextSegment);
 
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());

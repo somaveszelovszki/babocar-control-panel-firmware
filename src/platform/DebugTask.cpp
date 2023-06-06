@@ -12,11 +12,13 @@
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
 
-
 using namespace micro;
 
 extern queue_t<CarProps, 1> carPropsQueue;
 extern queue_t<ControlData, 1> lastControlQueue;
+
+Params globalParams('P');
+Params raceTrackParams('R');
 
 namespace {
 
@@ -61,7 +63,7 @@ bool monitorTasks() {
 }
 
 void serializeCar(const CarProps& car, const ControlData& controlData, char * const str, const uint32_t size) {
-    sprint(str, size, "C:%d,%d,%f,%f,%f,%f,%d,%f,%d,%f",
+    sprint(str, size, "C:%d,%d,%f,%f,%f,%f,%d,%f,%d,%f,%d",
            static_cast<millimeter_t>(car.pose.pos.X).get(),
            static_cast<millimeter_t>(car.pose.pos.Y).get(),
            car.pose.angle.get(),
@@ -71,7 +73,8 @@ void serializeCar(const CarProps& car, const ControlData& controlData, char * co
            static_cast<millimeter_t>(controlData.lineControl.actual.pos).get(),
            controlData.lineControl.actual.angle,
            static_cast<millimeter_t>(controlData.lineControl.target.pos).get(),
-           controlData.lineControl.target.angle);
+           controlData.lineControl.target.angle,
+           car.isRemoteControlled ? 1 : 0);
 }
 
 } // namespace
@@ -84,12 +87,12 @@ extern "C" void runDebugTask(void) {
 
     DebugLed debugLed(gpio_Led);
     Timer carPropsSendTimer(millisecond_t(50));
-    Timer debugParamsSendTimer(millisecond_t(1000));
 
     while (true) {
         const rxParams_t *inCmd = rxBuffer.startRead();
         if (inCmd) {
-            Params::instance().deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
+            globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
+            raceTrackParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
             rxBuffer.finishRead();
         }
 
@@ -103,8 +106,11 @@ extern "C" void runDebugTask(void) {
             transmit(paramsStr);
         }
 
-        if (debugParamsSendTimer.checkTimeout()) {
-            Params::instance().serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE);
+        if (globalParams.serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE) > 0) {
+            transmit(paramsStr);
+        }
+
+        if (raceTrackParams.serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE) > 0) {
             transmit(paramsStr);
         }
 

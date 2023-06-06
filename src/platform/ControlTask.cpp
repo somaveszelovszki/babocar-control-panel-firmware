@@ -87,9 +87,6 @@ ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-PID_Params frontParams = { 1.70f, 0.00f, 120.00f };
-PID_Params rearParams  = { 0.40f, 0.00f, 40.00f };
-
 constexpr uint32_t D_FILTER_SIZE = 30;
 infinite_buffer<std::pair<centimeter_t, degree_t>, 100> prevLineErrors;
 
@@ -111,7 +108,6 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     const radian_t actualControlAngle = actualLine.centerLine.angle;
     const radian_t targetControlAngle = targetLine.centerLine.angle;
 
-    //frontLinePosController.tune(frontParams);
     frontLinePosController.tune(frontLinePosControllerParams.lerp(abs(car.speed)));
 
     const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
@@ -129,7 +125,6 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
     if (controlData.rearSteerEnabled) {
-        //rearLinePosController.tune(rearParams);
         rearLinePosController.tune(rearLineAngleControllerParams.lerp(abs(car.speed)));
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
@@ -165,48 +160,6 @@ extern "C" void runControlTask(void) {
     initializeVehicleCan();
 
     WatchdogTimer controlDataWatchdog(millisecond_t(500));
-
-    REGISTER_READ_WRITE_PARAM(motorControllerParams.P);
-    REGISTER_READ_WRITE_PARAM(motorControllerParams.I);
-    REGISTER_READ_WRITE_PARAM(motorControllerParams.D);
-
-    REGISTER_READ_WRITE_PARAM(frontParams.P);
-    REGISTER_READ_WRITE_PARAM(frontParams.I);
-    REGISTER_READ_WRITE_PARAM(frontParams.D);
-
-    REGISTER_READ_WRITE_PARAM(rearParams.P);
-    REGISTER_READ_WRITE_PARAM(rearParams.I);
-    REGISTER_READ_WRITE_PARAM(rearParams.D);
-
-//    char paramName[32];
-//    uint32_t i = 0;
-//
-//    for (std::pair<m_per_sec_t, PID_Params>& param : frontLinePosControllerParams) {
-//        sprint(paramName, sizeof(paramName), "front%u_P", i);
-//        micro::Params::instance().registerParam(paramName, param.second.P, false, true);
-//
-//        sprint(paramName, sizeof(paramName), "front%u_I", i);
-//        micro::Params::instance().registerParam(paramName, param.second.I, false, true);
-//
-//        sprint(paramName, sizeof(paramName), "front%u_D", i);
-//        micro::Params::instance().registerParam(paramName, param.second.D, false, true);
-//
-//        ++i;
-//    }
-//
-//    i = 0;
-//    for (std::pair<m_per_sec_t, PID_Params>& param : rearLineAngleControllerParams) {
-//        sprint(paramName, sizeof(paramName), "rear%u_P", i);
-//        micro::Params::instance().registerParam(paramName, param.second.P, false, true);
-//
-//        sprint(paramName, sizeof(paramName), "rear%u_I", i);
-//        micro::Params::instance().registerParam(paramName, param.second.I, false, true);
-//
-//        sprint(paramName, sizeof(paramName), "rear%u_D", i);
-//        micro::Params::instance().registerParam(paramName, param.second.D, false, true);
-//
-//        ++i;
-//    }
 
     while (true) {
         while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {

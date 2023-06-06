@@ -30,6 +30,8 @@ extern queue_t<LineDetectControl, 1> lineDetectControlQueue;
 extern queue_t<LineInfo, 1> lineInfoQueue;
 extern queue_t<ControlData, 1> controlQueue;
 extern queue_t<Distances, 1> distancesQueue;
+extern Params globalParams;
+extern Params raceTrackParams;
 
 Sign safetyCarFollowSpeedSign = Sign::NEGATIVE;
 
@@ -123,7 +125,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     m_per_sec_t targetSpeed = m_per_sec_t(1);
 
-    REGISTER_READ_WRITE_PARAM(targetSpeed);
+    REGISTER_PARAM(globalParams, targetSpeed);
 
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
