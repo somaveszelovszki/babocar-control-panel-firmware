@@ -32,6 +32,40 @@ constexpr uint32_t SLOW4_ROUND_BEGIN   = 15u;
 constexpr uint32_t SLOW4_ROUND_END     = 16u;
 constexpr uint32_t SLOW4_END_CHICANE   = 17u;
 
+const TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
+//  ||  fast1  ||        slow1       ||  fast2  ||                       slow2                         ||  fast3  ||        slow3       ||  fast4  ||                        slow4                        ||
+//  ||         || prepare    chicane ||         || prepare   begin_chi round_begin round_end   end_chi ||         || prepare    chicane ||         || prepare   begin_chi round_begin round_end   end_chi ||
+    { { 1.70f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.80f }, { 1.80f }, { 3.00f }, { 1.70f }, { 1.70f }, { 2.00f }, { 2.00f }, { 1.70f } }, // Lap 1
+    { { 2.00f }, { 1.60f }, { 1.60f }, { 3.00f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 1.80f }, { 3.00f }, { 1.60f }, { 1.80f }, { 3.00f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 2
+    { { 3.00f }, { 1.50f }, { 1.50f }, { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.60f }, { 1.60f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 3
+    { { 3.00f }, { 2.00f }, { 2.00f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f } }, // Lap 4
+    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f } }, // Lap 5
+    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f } }, // Lap 6
+    { { 3.00f }                                                                                                                                                                                            }  // Finish
+};
+
+const AccelerationRamps accelerationRamps[cfg::NUM_RACE_LAPS + 1] = {
+//  ||      slow1        ||      slow2        ||      slow3        ||      slow4        ||
+    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 1
+    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 2
+    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 3
+    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 4
+    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 5
+    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 6
+    { millisecond_t(1000)                                                                }  // Finish
+};
+
+const BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS + 1] = {
+//  ||     slow1       ||     slow2       ||     slow3       ||     slow4       ||
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 1
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 2
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 3
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 4
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 5
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 6
+    { centimeter_t(0)                                                    }  // Finish
+};
+
 ControlData getControl_Fast1(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
     ControlData controlData = getControl_CommonFast(car, trackInfo, mainLine, track_get(trackSpeeds, trackInfo.lap)[FAST1]);
 
@@ -219,42 +253,6 @@ ControlData getControl_Slow4_end_chicane(const CarProps& car, const RaceTrackInf
     return controlData;
 }
 
-} // namespace
-
-TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1] = {
-//  ||  fast1  ||        slow1       ||  fast2  ||                       slow2                         ||  fast3  ||        slow3       ||  fast4  ||                        slow4                        ||
-//  ||         || prepare    chicane ||         || prepare   begin_chi round_begin round_end   end_chi ||         || prepare    chicane ||         || prepare   begin_chi round_begin round_end   end_chi ||
-    { { 1.70f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.80f }, { 1.80f }, { 3.00f }, { 1.70f }, { 1.70f }, { 2.00f }, { 2.00f }, { 1.70f } }, // Lap 1
-    { { 2.00f }, { 1.60f }, { 1.60f }, { 3.00f }, { 1.80f }, { 1.80f }, { 2.00f }, { 2.00f }, { 1.80f }, { 3.00f }, { 1.60f }, { 1.80f }, { 3.00f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 2
-    { { 3.00f }, { 1.50f }, { 1.50f }, { 3.00f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.20f }, { 1.70f }, { 1.60f }, { 1.60f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f }, { 1.80f } }, // Lap 3
-    { { 3.00f }, { 2.00f }, { 2.00f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f } }, // Lap 4
-    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f } }, // Lap 5
-    { { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f }, { 3.00f }, { 2.20f }, { 2.20f }, { 3.00f }, { 2.00f }, { 2.00f }, { 2.20f }, { 2.20f }, { 2.00f } }, // Lap 6
-    { { 3.00f }                                                                                                                                                                                            }  // Finish
-};
-
-AccelerationRamps accelerationRamps[cfg::NUM_RACE_LAPS + 1] = {
-//  ||      slow1        ||      slow2        ||      slow3        ||      slow4        ||
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 1
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 2
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 3
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 4
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 5
-    { millisecond_t(1000), millisecond_t(1000), millisecond_t(1000), millisecond_t(1000) }, // Lap 6
-    { millisecond_t(1000)                                                                }  // Finish
-};
-
-BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS + 1] = {
-//  ||     slow1       ||     slow2       ||     slow3       ||     slow4       ||
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 1
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 2
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 3
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 4
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 5
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 6
-    { centimeter_t(0)                                                    }  // Finish
-};
-
 const TrackSegments trackSegments = {
     { true,  meter_t(9.00f), hasBecomeActive_Fast,       getControl_Fast1               },
     { false, meter_t(3.00f), hasBecomeActive_BrakeSign,  getControl_Slow1_prepare       },
@@ -275,5 +273,11 @@ const TrackSegments trackSegments = {
     { false, meter_t(1.55f), hasBecomeActive_distance,   getControl_Slow4_round_end     },
     { false, meter_t(1.70f), hasBecomeActive_distance,   getControl_Slow4_end_chicane   }
 };
+
+} // namespace
+
+RaceTrackInfo buildRaceTrackInfo() {
+    return RaceTrackInfo(trackSpeeds, accelerationRamps, brakeOffsets, trackSegments);
+}
 
 #endif // TRACK == TEST_TRACK

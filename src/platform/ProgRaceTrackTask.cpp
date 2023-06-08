@@ -48,7 +48,8 @@ meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
 meter_t TURN_AROUND_RADIUS                = centimeter_t(40);
 meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(60);
 
-RaceTrackInfo trackInfo(trackSegments);
+RaceTrackInfo trackInfo = buildRaceTrackInfo();
+
 OvertakeManeuver overtake;
 TurnAroundManeuver turnAround;
 TestManeuver testManeuver;
@@ -57,10 +58,10 @@ m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpe
     return targetSpeedSign * map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
 }
 
-TrackSegments::const_iterator getFastSegment(const RaceTrackInfo& trackInfo, const uint32_t fastSeg) {
-    TrackSegments::const_iterator it = trackInfo.segments.begin();
+TrackSegments::const_iterator getFastSegment(const TrackSegments& segments, const uint32_t fastSeg) {
+    TrackSegments::const_iterator it = segments.begin();
     uint32_t numFastSegs = 0;
-    for (; it != trackInfo.segments.end(); ++it) {
+    for (; it != segments.end(); ++it) {
         if (it->isFast && ++numFastSegs == fastSeg) {
             break;
         }
@@ -68,8 +69,8 @@ TrackSegments::const_iterator getFastSegment(const RaceTrackInfo& trackInfo, con
     return it;
 }
 
-TrackSegments::const_iterator getFastSegment(const RaceTrackInfo& trackInfo, const cfg::ProgramState programState) {
-    return getFastSegment(trackInfo.segments,
+TrackSegments::const_iterator getFastSegment(const TrackSegments& segments, const cfg::ProgramState programState) {
+    return getFastSegment(segments,
         cfg::ProgramState::Race          == programState ? 1 :
         cfg::ProgramState::Race_segFast2 == programState ? 2 :
         cfg::ProgramState::Race_segFast3 == programState ? 3 :

@@ -3,6 +3,9 @@
 #include <track.hpp>
 
 struct RaceTrackInfo {
+    const TrackSpeeds * const speeds;
+    const AccelerationRamps * const accelerationRamps;
+    const BrakeOffsets * const brakeOffsets;
     const TrackSegments& segments;
     TrackSegments::const_iterator seg;
     micro::CarProps segStartCarProps;
@@ -11,7 +14,7 @@ struct RaceTrackInfo {
     uint8_t lap;
     micro::millisecond_t lapStartTime;
 
-    RaceTrackInfo(const TrackSegments& segments);
+    RaceTrackInfo(const TrackSpeeds * const speeds, const AccelerationRamps * const accelerationRamps, const BrakeOffsets * const brakeOffsets, const TrackSegments& segments);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, const micro::MainLine& mainLine, const micro::ControlData& controlData);
 

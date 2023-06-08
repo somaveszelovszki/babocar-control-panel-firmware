@@ -4,8 +4,11 @@
 
 using namespace micro;
 
-RaceTrackInfo::RaceTrackInfo(const TrackSegments& segments)
-    : segments(segments)
+RaceTrackInfo::RaceTrackInfo(const TrackSpeeds * const speeds, const AccelerationRamps * const accelerationRamps, const BrakeOffsets * const brakeOffsets, const TrackSegments& segments)
+    : speeds(speeds)
+    , accelerationRamps(accelerationRamps)
+    , brakeOffsets(brakeOffsets)
+    , segments(segments)
     , seg(segments.end())
     , lap(0) {}
 

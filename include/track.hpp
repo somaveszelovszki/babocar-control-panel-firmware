@@ -37,9 +37,5 @@ struct TrackSegment {
 
 using TrackSegments = micro::vec<TrackSegment, 20>;
 
-extern TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1];
-extern AccelerationRamps accelerationRamps[cfg::NUM_RACE_LAPS + 1];
-extern BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS + 1];
-extern const TrackSegments trackSegments;
-
+RaceTrackInfo buildRaceTrackInfo();
 LabyrinthGraph buildLabyrinthGraph();
