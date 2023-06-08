@@ -17,23 +17,14 @@
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <Distances.hpp>
-#include <track.hpp>
+#include <globals.hpp>
 #include <OvertakeManeuver.hpp>
 #include <RaceTrackInfo.hpp>
 #include <TestManeuver.hpp>
+#include <track.hpp>
 #include <TurnAroundManeuver.hpp>
 
 using namespace micro;
-
-extern queue_t<CarProps, 1> carPropsQueue;
-extern queue_t<LineDetectControl, 1> lineDetectControlQueue;
-extern queue_t<LineInfo, 1> lineInfoQueue;
-extern queue_t<ControlData, 1> controlQueue;
-extern queue_t<Distances, 1> distancesQueue;
-extern Params globalParams;
-extern Params raceTrackParams;
-
-Sign safetyCarFollowSpeedSign = Sign::NEGATIVE;
 
 namespace {
 
@@ -119,7 +110,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
-    Sign targetSpeedSign;
+    Sign targetSpeedSign = Sign::POSITIVE;
 
     uint8_t lastOvertakeLap = 0;
 
@@ -139,12 +130,10 @@ extern "C" void runProgRaceTrackTask(void) {
             if (!shouldHandle(prevProgramState)) {
                 if ((trackInfo.seg = getFastSegment(trackInfo.segments, programState)) != trackInfo.segments.end()) { // race
                     trackInfo.lap = 3;
-                    targetSpeedSign = Sign::POSITIVE;
                     SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                 } else { // reach safety car
                     trackInfo.lap = 1;
                     trackInfo.seg = trackInfo.segments.begin();
-                    targetSpeedSign = safetyCarFollowSpeedSign;
                 }
 
                 lastDistWithValidLine = car.distance;

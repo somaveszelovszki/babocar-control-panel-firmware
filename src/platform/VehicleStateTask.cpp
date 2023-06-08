@@ -10,6 +10,7 @@
 #include <micro/utils/timer.hpp>
 
 #include <cfg_car.hpp>
+#include <globals.hpp>
 
 #if GYRO_BOARD == GYRO_MPU9250
 #include <micro/hw/MPU9250_Gyroscope.hpp>
@@ -17,16 +18,7 @@
 #include <micro/hw/LSM6DSO_Gyroscope.hpp>
 #endif
 
-#include <stm32f4xx_hal.h>
-#include <stm32f4xx_hal_gpio.h>
-
 using namespace micro;
-
-extern CanManager vehicleCanManager;
-
-queue_t<CarProps, 1> carPropsQueue;
-queue_t<point2m, 1> carPosUpdateQueue;
-queue_t<radian_t, 1> carOrientationUpdateQueue;
 
 namespace {
 

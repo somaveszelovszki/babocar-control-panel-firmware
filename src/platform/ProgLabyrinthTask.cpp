@@ -15,21 +15,12 @@
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
+#include <globals.hpp>
 #include <LaneChangeManeuver.hpp>
 #include <LabyrinthNavigator.hpp>
 #include <track.hpp>
 
 using namespace micro;
-
-extern queue_t<CarProps, 1> carPropsQueue;
-extern queue_t<point2m, 1> carPosUpdateQueue;
-extern queue_t<radian_t, 1> carOrientationUpdateQueue;
-extern queue_t<LineDetectControl, 1> lineDetectControlQueue;
-extern queue_t<LineInfo, 1> lineInfoQueue;
-extern queue_t<ControlData, 1> controlQueue;
-extern queue_t<radian_t, 1> carOrientationUpdateQueue;
-extern queue_t<char, 1> radioRecvQueue;
-extern Sign safetyCarFollowSpeedSign;
 
 namespace {
 
@@ -158,7 +149,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             case cfg::ProgramState::LaneChange:
                 if (programState != prevProgramState) {
                     const LinePattern& pattern = (LinePattern::LANE_CHANGE == lineInfo.front.pattern.type ? lineInfo.front : lineInfo.rear).pattern;
-                    laneChange.initialize(car, sgn(car.speed), pattern.dir, pattern.side, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                    laneChange.initialize(car, sgn(car.speed), pattern.dir, pattern.side, Sign::POSITIVE, LANE_CHANGE_SPEED, LANE_DISTANCE);
                 }
 
                 laneChange.update(car, lineInfo, mainLine, controlData);

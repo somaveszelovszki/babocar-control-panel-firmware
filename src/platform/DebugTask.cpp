@@ -1,4 +1,3 @@
-#include <cfg_board.hpp>
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/params.hpp>
@@ -12,13 +11,11 @@
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
 
+#include <cfg_board.hpp>
+#include <Distances.hpp>
+#include <globals.hpp>
+
 using namespace micro;
-
-extern queue_t<CarProps, 1> carPropsQueue;
-extern queue_t<ControlData, 1> lastControlQueue;
-
-Params globalParams('P');
-Params raceTrackParams('R');
 
 namespace {
 
@@ -92,7 +89,6 @@ extern "C" void runDebugTask(void) {
         const rxParams_t *inCmd = rxBuffer.startRead();
         if (inCmd) {
             globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
-            raceTrackParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
             rxBuffer.finishRead();
         }
 
@@ -107,10 +103,6 @@ extern "C" void runDebugTask(void) {
         }
 
         if (globalParams.serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE) > 0) {
-            transmit(paramsStr);
-        }
-
-        if (raceTrackParams.serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE) > 0) {
             transmit(paramsStr);
         }
 

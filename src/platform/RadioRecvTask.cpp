@@ -6,14 +6,15 @@
 
 #include <cfg_board.hpp>
 #include <cfg_track.hpp>
+#include <globals.hpp>
 
 using namespace micro;
 
-queue_t<char, 1> radioRecvQueue;
-
 namespace {
+
 uint8_t radioRecvBuffer[1] = { 0 };
 volatile char radioRecvValue = '\0';
+
 } // namespace
 
 extern "C" void runRadioRecvTask(void) {

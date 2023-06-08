@@ -9,14 +9,9 @@
 
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
+#include <globals.hpp>
 
 using namespace micro;
-
-extern CanManager vehicleCanManager;
-
-extern queue_t<CarProps, 1> carPropsQueue;
-queue_t<LineDetectControl, 1> lineDetectControlQueue;
-queue_t<LineInfo, 1> lineInfoQueue;
 
 namespace {
 

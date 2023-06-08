@@ -7,11 +7,9 @@
 
 #include <cfg_board.hpp>
 #include <cfg_track.hpp>
+#include <globals.hpp>
 
 using namespace micro;
-
-extern queue_t<char, 1> radioRecvQueue;
-extern queue_t<ControlData, 1> controlQueue;
 
 namespace {
 

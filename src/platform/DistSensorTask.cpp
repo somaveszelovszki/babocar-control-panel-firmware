@@ -1,4 +1,3 @@
-#include <cfg_board.hpp>
 #include <Distances.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/PanelLink.hpp>
@@ -8,10 +7,10 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
+#include <cfg_board.hpp>
+#include <globals.hpp>
 
 using namespace micro;
-
-queue_t<Distances, 1> distancesQueue;
 
 namespace {
 

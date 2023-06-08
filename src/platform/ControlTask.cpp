@@ -16,15 +16,9 @@
 
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
+#include <globals.hpp>
 
 using namespace micro;
-
-extern queue_t<CarProps, 1> carPropsQueue;
-
-CanManager vehicleCanManager(can_Vehicle);
-
-queue_t<ControlData, 1> controlQueue;
-queue_t<ControlData, 1> lastControlQueue;
 
 namespace {
 

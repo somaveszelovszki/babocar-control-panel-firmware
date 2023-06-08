@@ -51,14 +51,15 @@ AccelerationRamps accelerationRamps[cfg::NUM_RACE_LAPS + 1] = {
     { millisecond_t(300)                                                             }  // Finish
 };
 
-BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS] = {
+BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS + 1] = {
 //  ||     slow1     ||     slow2     ||     slow3     ||     slow4     ||
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 1
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 2
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 3
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 4
     { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 5
-    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }  // Lap 6
+    { centimeter_t(0), centimeter_t(0), centimeter_t(0), centimeter_t(0) }, // Lap 6
+    { centimeter_t(0)                                                    }  // Finish
 };
 
 ControlData getControl_Fast1(const CarProps& car, const RaceTrackInfo& trackInfo, const MainLine& mainLine) {
