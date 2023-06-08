@@ -1,10 +1,13 @@
 #include <cfg_track.hpp>
+
+#if TRACK == RACE_TRACK
+
 #include <LabyrinthGraph.hpp>
 #include <track.hpp>
 
 using namespace micro;
 
-LabyrinthGraph buildRaceLabyrinthGraph() {
+LabyrinthGraph buildLabyrinthGraph() {
     LabyrinthGraph graph;
 
     graph.addSegment(Segment('A', centimeter_t(355), false));
@@ -99,3 +102,5 @@ LabyrinthGraph buildRaceLabyrinthGraph() {
     
     return graph;
 }
+
+#endif // TRACK == RACE_TRACK

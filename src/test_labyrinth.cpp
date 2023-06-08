@@ -1,10 +1,13 @@
 #include <cfg_track.hpp>
+
+#if TRACK == TEST_TRACK
+
 #include <LabyrinthGraph.hpp>
 #include <track.hpp>
 
 using namespace micro;
 
-LabyrinthGraph buildTestLabyrinthGraph() {
+LabyrinthGraph buildLabyrinthGraph() {
     LabyrinthGraph graph;
 
     graph.addSegment(Segment('A', centimeter_t(844),  false));
@@ -105,3 +108,5 @@ LabyrinthGraph buildTestLabyrinthGraph() {
 
     return graph;
 }
+
+#endif // TRACK == TEST_TRACK

@@ -9,6 +9,8 @@
 
 #include <functional>
 
+using TrackSpeeds = micro::vec<micro::m_per_sec_t, 20>;
+
 struct AccelerationRamps {
     micro::millisecond_t fast1;
     micro::millisecond_t fast2;
@@ -33,24 +35,11 @@ struct TrackSegment {
     std::function<micro::ControlData(const micro::CarProps&, const RaceTrackInfo&, const micro::MainLine&)> getControl;
 };
 
-typedef micro::vec<TrackSegment, 20> TrackSegments;
+using TrackSegments = micro::vec<TrackSegment, 20>;
 
-extern const TrackSegments testTrackSegments;
-extern const TrackSegments raceTrackSegments;
+extern TrackSpeeds trackSpeeds[cfg::NUM_RACE_LAPS + 1];
+extern AccelerationRamps accelerationRamps[cfg::NUM_RACE_LAPS + 1];
+extern BrakeOffsets brakeOffsets[cfg::NUM_RACE_LAPS + 1];
+extern const TrackSegments trackSegments;
 
-LabyrinthGraph buildTestLabyrinthGraph();
-LabyrinthGraph buildRaceLabyrinthGraph();
-
-#if TRACK == RACE_TRACK
-
-#define trackSegments           raceTrackSegments
-#define buildLabyrinthGraph()   buildRaceLabyrinthGraph()
-
-#elif TRACK == TEST_TRACK
-
-#define trackSegments           testTrackSegments
-#define buildLabyrinthGraph()   buildTestLabyrinthGraph()
-
-#else
-#error "TRACK must be set to either TEST_TRACK or RACE_TRACK"
-#endif
+LabyrinthGraph buildLabyrinthGraph();
