@@ -1,3 +1,5 @@
+#pragma once
+
 #include <micro/debug/params.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
