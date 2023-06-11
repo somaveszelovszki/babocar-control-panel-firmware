@@ -37,7 +37,6 @@ m_per_sec_t OVERTAKE_BEGIN_SPEED          = m_per_sec_t(1.0f);
 m_per_sec_t OVERTAKE_STRAIGHT_START_SPEED = m_per_sec_t(1.5f);
 m_per_sec_t OVERTAKE_STRAIGHT_SPEED       = m_per_sec_t(4.0f);
 m_per_sec_t OVERTAKE_END_SPEED            = m_per_sec_t(2.0f);
-m_per_sec_t TURN_AROUND_SPEED             = m_per_sec_t(1.0f);
 
 meter_t OVERTAKE_SECTION_LENGTH           = centimeter_t(820);
 meter_t OVERTAKE_PREPARE_DISTANCE         = centimeter_t(100);
@@ -45,16 +44,13 @@ meter_t OVERTAKE_BEGIN_SINE_ARC_LENGTH    = centimeter_t(140);
 meter_t OVERTAKE_END_SINE_ARC_LENGTH      = centimeter_t(180);
 meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
 
-meter_t TURN_AROUND_RADIUS                = centimeter_t(40);
-meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(60);
-
 RaceTrackController trackController(buildRaceTrackSections());
 
 OvertakeManeuver overtake;
 TestManeuver testManeuver;
 
-m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpeedSign, bool isFast) {
-    return targetSpeedSign * map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
+m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, bool isFast) {
+    return map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
 }
 
 uint32_t getFastSection(const uint32_t n) {
@@ -88,14 +84,11 @@ extern "C" void runProgRaceTrackTask(void) {
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    const uint32_t overtakeSeg   = getFastSection(3);
+    const uint32_t overtakeSection = getFastSection(3);
 
-    meter_t lastDistWithValidLine;
     meter_t lastDistWithSafetyCar;
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
-
-    Sign targetSpeedSign = Sign::POSITIVE;
 
     uint8_t lastOvertakeLap = 0;
 
@@ -121,7 +114,6 @@ extern "C" void runProgRaceTrackTask(void) {
                     trackController.setSection(car, 1, 0);
                 }
 
-                lastDistWithValidLine = car.distance;
                 lastDistWithSafetyCar = car.distance;
             }
 
@@ -132,30 +124,25 @@ extern "C" void runProgRaceTrackTask(void) {
             lineDetectControlData.domain = linePatternDomain_t::Race;
             lineDetectControlData.isReducedScanRangeEnabled = false;
 
-            const meter_t distFromSafetyCar = Sign::POSITIVE == targetSpeedSign ? distances.front : distances.rear;
-            if (distFromSafetyCar < centimeter_t(100)) {
+            if (distances.front < centimeter_t(100)) {
                 lastDistWithSafetyCar = car.distance;
-            }
-
-            if (LinePattern::NONE != lineInfo.front.pattern.type || LinePattern::NONE != lineInfo.rear.pattern.type) {
-                lastDistWithValidLine = car.distance;
             }
 
             switch (programState) {
             case cfg::ProgramState::ReachSafetyCar:
-                controlData.speed = targetSpeedSign * REACH_SAFETY_CAR_SPEED;
+                controlData.speed = REACH_SAFETY_CAR_SPEED;
                 controlData.rampTime = millisecond_t(500);
-                if (distFromSafetyCar != centimeter_t(0) && abs(safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
+                if (distances.front != centimeter_t(0) && abs(safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
 
             case cfg::ProgramState::FollowSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackController.isCurrentSectionFast());
+                controlData.speed = safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast());
                 controlData.rampTime = millisecond_t(0);
 
-                if (overtakeSeg == trackController.sectionNumber() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
+                if (overtakeSection == trackController.sectionNumber() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::OvertakeSafetyCar));
                     LOG_DEBUG("Starts overtake");
                 } else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackController.isCurrentSectionFast()) {
@@ -167,13 +154,13 @@ extern "C" void runProgRaceTrackTask(void) {
             case cfg::ProgramState::OvertakeSafetyCar:
                 if (programState != prevProgramState) {
                     lastOvertakeLap = trackController.lap();
-                    overtake.initialize(car, targetSpeedSign,
+                    overtake.initialize(car, Sign::POSITIVE,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_SPEED, OVERTAKE_END_SPEED,
                         OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
                         OVERTAKE_SIDE_DISTANCE);
                 }
 
-                controlData.speed = safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackController.isCurrentSectionFast());
+                controlData.speed = safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast());
                 overtake.update(car, lineInfo, mainLine, controlData);
 
                 if (overtake.finished()) {
@@ -192,7 +179,7 @@ extern "C" void runProgRaceTrackTask(void) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Finish));
                     LOG_DEBUG("Race finished");
 
-                } else if (trackController.lap() <= 3 && distFromSafetyCar < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
+                } else if (trackController.lap() <= 3 && distances.front < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
