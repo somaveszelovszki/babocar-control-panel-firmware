@@ -77,7 +77,7 @@ void updateTargetSegment() {
 }
 
 bool shouldHandle(const cfg::ProgramState programState) {
-    return isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::NavigateLabyrinth), enum_cast(cfg::ProgramState::LaneChange));
+    return isBtw(underlying_value(programState), underlying_value(cfg::ProgramState::NavigateLabyrinth), underlying_value(cfg::ProgramState::LaneChange));
 }
 
 void enforceGraphValidity() {
@@ -141,7 +141,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 }
 
                 if (navigator.finished()) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::LaneChange));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::LaneChange));
                 }
                 break;
             }
@@ -155,7 +155,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 laneChange.update(car, lineInfo, mainLine, controlData);
 
                 if (laneChange.finished()) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::ReachSafetyCar));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::ReachSafetyCar));
                 }
                 break;
             default:

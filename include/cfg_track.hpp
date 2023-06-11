@@ -33,10 +33,8 @@ enum class ProgramState : uint8_t {
     Race_segFast2        = 8,
     Race_segFast3        = 9,
     Race_segFast4        = 10,
-    TurnAround           = 11,
-    Finish               = 12,
-    Error                = 13,
-    Test                 = 14
+    Finish               = 11,
+    Test                 = 12
 };
 
 } // namespace cfg

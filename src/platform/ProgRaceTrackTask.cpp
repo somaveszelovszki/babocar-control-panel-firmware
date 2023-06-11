@@ -51,7 +51,6 @@ meter_t TURN_AROUND_SINE_ARC_LENGTH       = centimeter_t(60);
 RaceTrackController trackController(buildRaceTrackSections());
 
 OvertakeManeuver overtake;
-TurnAroundManeuver turnAround;
 TestManeuver testManeuver;
 
 m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, const Sign targetSpeedSign, bool isFast) {
@@ -72,7 +71,7 @@ uint32_t getFastSection(const cfg::ProgramState programState) {
 }
 
 bool shouldHandle(const cfg::ProgramState programState) {
-    return isBtw(enum_cast(programState), enum_cast(cfg::ProgramState::ReachSafetyCar), enum_cast(cfg::ProgramState::Test));
+    return isBtw(underlying_value(programState), underlying_value(cfg::ProgramState::ReachSafetyCar), underlying_value(cfg::ProgramState::Test));
 }
 
 } // namespace
@@ -89,7 +88,6 @@ extern "C" void runProgRaceTrackTask(void) {
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    const uint32_t turnAroundSeg = getFastSection(1);
     const uint32_t overtakeSeg   = getFastSection(3);
 
     meter_t lastDistWithValidLine;
@@ -118,7 +116,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 const uint32_t currentSection = getFastSection(programState);
                 if (currentSection != std::numeric_limits<uint32_t>::max()) { // race
                     trackController.setSection(car, 3, currentSection);
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Race));
                 } else { // reach safety car
                     trackController.setSection(car, 1, 0);
                 }
@@ -148,7 +146,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 controlData.speed = targetSpeedSign * REACH_SAFETY_CAR_SPEED;
                 controlData.rampTime = millisecond_t(500);
                 if (distFromSafetyCar != centimeter_t(0) && abs(safetyCarFollowSpeed(distFromSafetyCar, targetSpeedSign, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
@@ -158,10 +156,10 @@ extern "C" void runProgRaceTrackTask(void) {
                 controlData.rampTime = millisecond_t(0);
 
                 if (overtakeSeg == trackController.sectionNumber() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::OvertakeSafetyCar));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::OvertakeSafetyCar));
                     LOG_DEBUG("Starts overtake");
                 } else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackController.isCurrentSectionFast()) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Race));
                     LOG_DEBUG("Safety car left the track, starts race");
                 }
                 break;
@@ -179,7 +177,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 overtake.update(car, lineInfo, mainLine, controlData);
 
                 if (overtake.finished()) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Race));
                     LOG_DEBUG("Overtake finished, starts race");
                 }
                 break;
@@ -191,33 +189,13 @@ extern "C" void runProgRaceTrackTask(void) {
                                                                       lineInfo.rear.lines.size() == 1);
 
                 if (trackController.lap() > cfg::NUM_RACE_LAPS) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Finish));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Finish));
                     LOG_DEBUG("Race finished");
 
                 } else if (trackController.lap() <= 3 && distFromSafetyCar < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::FollowSafetyCar));
+                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
-                } else if (Sign::NEGATIVE == targetSpeedSign &&
-                           trackController.lap() == 2        &&
-                           trackController.sectionNumber() == turnAroundSeg    &&
-                           car.distance - trackController.getSectionStartDistance() > meter_t(3)) {
-
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::TurnAround));
-                    LOG_DEBUG("Starts turn-around.");
-                }
-                break;
-
-            case cfg::ProgramState::TurnAround:
-                if (programState != prevProgramState) {
-                    turnAround.initialize(car, -targetSpeedSign, TURN_AROUND_SPEED, TURN_AROUND_SINE_ARC_LENGTH, TURN_AROUND_RADIUS);
-                }
-
-                turnAround.update(car, lineInfo, mainLine, controlData);
-
-                if (turnAround.finished()) {
-                    targetSpeedSign = -targetSpeedSign;
-                    SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::Race));
                 }
                 break;
 
@@ -228,18 +206,13 @@ extern "C" void runProgRaceTrackTask(void) {
                 }
                 break;
 
-            case cfg::ProgramState::Error:
-                controlData.speed = m_per_sec_t(0);
-                controlData.rampTime = millisecond_t(1000);
-                break;
-
             case cfg::ProgramState::Test:
                 controlData.speed = targetSpeed;
                 controlData.rampTime = millisecond_t(500);
                 break;
 
             default:
-                LOG_ERROR("Invalid program state counter: [%u]", enum_cast(programState));
+                LOG_ERROR("Invalid program state counter: [%u]", underlying_value(programState));
                 break;
             }
 

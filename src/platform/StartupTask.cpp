@@ -65,6 +65,6 @@ extern "C" void runStartupTask(void) {
 
     if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {
         waitStartSignal();
-        SystemManager::instance().setProgramState(enum_cast(cfg::ProgramState::NavigateLabyrinth));
+        SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::NavigateLabyrinth));
     }
 }

@@ -386,5 +386,5 @@ bool LabyrinthNavigator::isJunction(const LinePattern& pattern) {
 }
 
 uint8_t LabyrinthNavigator::numJunctionSegments(const LinePattern& pattern) {
-    return isJunction(pattern) ? enum_cast(pattern.type) - enum_cast(LinePattern::JUNCTION_1) + 1 : 0;
+    return isJunction(pattern) ? underlying_value(pattern.type) - underlying_value(LinePattern::JUNCTION_1) + 1 : 0;
 }
