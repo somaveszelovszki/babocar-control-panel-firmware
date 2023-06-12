@@ -31,12 +31,16 @@ struct TrackSection {
         }
     };
 
+    struct ControlParameters {
+        micro::m_per_sec_t speed;
+        micro::millisecond_t rampTime;
+        std::pair<micro::OrientedLine, micro::OrientedLine> lineGradient;
+    };
+
     bool isFast = false;
     micro::meter_t length;
     TransitionCriteria transitionCriteria;
-    micro::m_per_sec_t speed;
-    micro::millisecond_t rampTime;
-    std::pair<micro::OrientedLine, micro::OrientedLine> lineGradient;
+    ControlParameters control;
     micro::CarProps startCarProps;
     bool transitionPatternDetected = false;
     bool fullSpeedEnabled = true;
@@ -45,6 +49,8 @@ struct TrackSection {
     micro::ControlData getControl(const micro::CarProps& car, const micro::MainLine& mainLine);
 
     micro::OrientedLine getTargetLine(const micro::CarProps& car) const;
+
+    void setControlParameters(const ControlParameters& control) { this->control = control; }
 };
 
 using LapTrackSections = micro::vec<TrackSection, 30>;

@@ -31,8 +31,8 @@ ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLi
         this->fullSpeedEnabled = true;
     }
 
-    controlData.speed    = this->fullSpeedEnabled ? this->speed : this->speed / 2;
-    controlData.rampTime = this->rampTime;
+    controlData.speed    = this->fullSpeedEnabled ? this->control.speed : this->control.speed / 2;
+    controlData.rampTime = this->control.rampTime;
 
     return controlData;
 }
@@ -42,7 +42,10 @@ micro::OrientedLine TrackSection::getTargetLine(const micro::CarProps& car) cons
         return micro::map(car.distance, this->startCarProps.distance, this->startCarProps.distance + this->length, from, to);
     };
 
-    return { map(lineGradient.first.pos, lineGradient.second.pos), map(lineGradient.first.angle, lineGradient.second.angle) };
+    return {
+        map(this->control.lineGradient.first.pos, this->control.lineGradient.second.pos),
+        map(this->control.lineGradient.first.angle, this->control.lineGradient.second.angle)
+    };
 }
 
 RaceTrackController::RaceTrackController(RaceTrackSections sections)

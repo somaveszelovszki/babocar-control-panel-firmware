@@ -87,17 +87,17 @@ LapTrackSections buildLapTrackSections(
         const Data<degree_t>& endLineAngles,
         const OrientedLine& lineGradientStart) {
 
-#define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                  \
-sections.push_back(TrackSection{                                                     \
-    isFast,                                                                          \
-    length,                                                                          \
-    TrackSection::TransitionCriteria::transitionCriteria,                            \
-    speeds.name,                                                                     \
-    rampTimes.name,                                                                  \
-    {                                                                                \
-        sections.empty() ? lineGradientStart : sections.back()->lineGradient.second, \
-        { endLinePositions.name, endLineAngles.name }                                \
-    }                                                                                \
+#define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                          \
+sections.push_back(TrackSection{                                                             \
+    isFast,                                                                                  \
+    length,                                                                                  \
+    TrackSection::TransitionCriteria::transitionCriteria,                                    \
+    speeds.name,                                                                             \
+    rampTimes.name,                                                                          \
+    {                                                                                        \
+        sections.empty() ? lineGradientStart : sections.back()->control.lineGradient.second, \
+        { endLinePositions.name, endLineAngles.name }                                        \
+    }                                                                                        \
 })
 
     LapTrackSections sections;
@@ -137,7 +137,7 @@ RaceTrackSections buildRaceTrackSections() {
     static_assert(sections.size() == endLineAngles.size(), "End line angles array size is incorrect!");
 
     for (uint32_t i = 0u; i < sections.size(); ++i) {
-        const OrientedLine lineGradientStart = i == 0 ? OrientedLine() : sections[i - 1].back()->lineGradient.second;
+        const OrientedLine lineGradientStart = i == 0 ? OrientedLine() : sections[i - 1].back()->control.lineGradient.second;
         sections[i] = buildLapTrackSections(speeds[i], rampTimes[i], endLinePositions[i], endLineAngles[i], lineGradientStart);
     }
 
