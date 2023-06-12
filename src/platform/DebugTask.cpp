@@ -25,6 +25,12 @@ namespace {
 
 #define FAILING_TASKS_LOG_ENABLED false
 
+#if RACE_TRACK == TRACK
+#define TRACK_CONTROL_PREFIX 'R'
+#else
+#define TRACK_CONTROL_PREFIX 'T'
+#endif
+
 constexpr uint32_t MAX_BUFFER_SIZE = 1024;
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
@@ -39,11 +45,10 @@ void transmit(const char * const data) {
 }
 
 bool monitorTasks() {
-    static Timer failureLogTimer(millisecond_t(100));
-
     const SystemManager::TaskStates failingTasks = SystemManager::instance().failingTasks();
 
 #if FAILING_TASKS_LOG_ENABLED
+    static Timer failureLogTimer(millisecond_t(100));
 
     if (failingTasks.size() && failureLogTimer.checkTimeout()) {
         char msg[LOG_MSG_MAX_SIZE];
@@ -64,7 +69,7 @@ bool monitorTasks() {
 }
 
 void serializeCar(const CarProps& car, const ControlData& controlData, char * const str, const uint32_t size) {
-    sprint(str, size, "C:%d,%d,%f,%f,%f,%f,%d,%f,%d,%f,%d%s",
+    sprint(str, size, "C:[%d,%d,%f,%f,%f,%f,%d,%f,%d,%f,%d]%s",
            static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get())),
            static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get())),
            car.pose.angle.get(),
@@ -81,7 +86,7 @@ void serializeCar(const CarProps& car, const ControlData& controlData, char * co
 
 void serializeTrackSectionControl(const LapControlParameters& lapControl, char * const str, const uint32_t size) {
     uint32_t idx = 0u;
-    str[idx++] = 'T';
+    str[idx++] = TRACK_CONTROL_PREFIX;
     str[idx++] = ':';
     str[idx++] = '[';
 
@@ -102,13 +107,13 @@ void serializeTrackSectionControl(const LapControlParameters& lapControl, char *
 }
 
 std::optional<LapControlParameters> deserializeTrackSectionControl(const char * const str, const uint32_t size) {
-    if (str[0] != 'T') {
+    if (str[0] != TRACK_CONTROL_PREFIX) {
         return std::nullopt;
     }
 
     LapControlParameters lapControl;
 
-    uint32_t idx = 3; // skips 'T:['
+    uint32_t idx = 3; // skips prefix + ':['
 
     while (str[idx++] == '[') {
         TrackSection::ControlParameters control;
