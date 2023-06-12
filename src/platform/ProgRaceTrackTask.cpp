@@ -76,12 +76,6 @@ extern "C" void runProgRaceTrackTask(void) {
 
     SystemManager::instance().registerTask();
 
-    CarProps car;
-    LineInfo lineInfo;
-    ControlData controlData;
-    LineDetectControl lineDetectControlData;
-    Distances distances;
-
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
     const uint32_t overtakeSection = getFastSection(3);
@@ -100,9 +94,19 @@ extern "C" void runProgRaceTrackTask(void) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
 
+            CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
+
+            LineInfo lineInfo;
             lineInfoQueue.peek(lineInfo, millisecond_t(0));
+
+            Distances distances;
             distancesQueue.peek(distances, millisecond_t(0));
+
+            LapControlParameters lapControl;
+            if (lapControlOverrideQueue.receive(lapControl, millisecond_t(0))) {
+                trackController.setControlParameters(lapControl);
+            }
 
             // runs for the first time that this task handles the program state
             if (!shouldHandle(prevProgramState)) {
@@ -119,8 +123,9 @@ extern "C" void runProgRaceTrackTask(void) {
 
             micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
 
-            controlData = trackController.update(car, lineInfo, mainLine);
+            ControlData controlData = trackController.update(car, lineInfo, mainLine);
 
+            LineDetectControl lineDetectControlData;
             lineDetectControlData.domain = linePatternDomain_t::Race;
             lineDetectControlData.isReducedScanRangeEnabled = false;
 
@@ -205,6 +210,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             controlQueue.overwrite(controlData);
             lineDetectControlQueue.overwrite(lineDetectControlData);
+            lapControlQueue.overwrite(trackController.getControlParameters());
         }
 
         prevProgramState = programState;

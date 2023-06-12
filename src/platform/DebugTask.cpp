@@ -14,6 +14,10 @@
 #include <cfg_board.hpp>
 #include <Distances.hpp>
 #include <globals.hpp>
+#include <RaceTrackController.hpp>
+
+#include <cmath>
+#include <optional>
 
 using namespace micro;
 
@@ -21,12 +25,12 @@ namespace {
 
 #define FAILING_TASKS_LOG_ENABLED false
 
-constexpr uint32_t MAX_PARAMS_BUFFER_SIZE = 1024;
+constexpr uint32_t MAX_BUFFER_SIZE = 1024;
 
-typedef uint8_t rxParams_t[MAX_PARAMS_BUFFER_SIZE];
+typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
 ring_buffer<rxParams_t, 3> rxBuffer;
 Log::message_t txLog;
-char paramsStr[MAX_PARAMS_BUFFER_SIZE];
+char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;
 
 void transmit(const char * const data) {
@@ -60,18 +64,84 @@ bool monitorTasks() {
 }
 
 void serializeCar(const CarProps& car, const ControlData& controlData, char * const str, const uint32_t size) {
-    sprint(str, size, "C:%d,%d,%f,%f,%f,%f,%d,%f,%d,%f,%d",
-           static_cast<millimeter_t>(car.pose.pos.X).get(),
-           static_cast<millimeter_t>(car.pose.pos.Y).get(),
+    sprint(str, size, "C:%d,%d,%f,%f,%f,%f,%d,%f,%d,%f,%d%s",
+           static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get())),
+           static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get())),
            car.pose.angle.get(),
            car.speed.get(),
            car.frontWheelAngle.get(),
            car.rearWheelAngle.get(),
-           static_cast<millimeter_t>(controlData.lineControl.actual.pos).get(),
-           controlData.lineControl.actual.angle,
-           static_cast<millimeter_t>(controlData.lineControl.target.pos).get(),
-           controlData.lineControl.target.angle,
-           car.isRemoteControlled ? 1 : 0);
+           static_cast<int32_t>(std::lround(controlData.lineControl.actual.pos.get())),
+           controlData.lineControl.actual.angle.get(),
+           static_cast<int32_t>(std::lround(controlData.lineControl.target.pos.get())),
+           controlData.lineControl.target.angle.get(),
+           car.isRemoteControlled ? 1 : 0,
+           LOG_SEPARATOR_SEQ);
+}
+
+void serializeTrackSectionControl(const LapControlParameters& lapControl, char * const str, const uint32_t size) {
+    uint32_t idx = 0u;
+    str[idx++] = 'T';
+    str[idx++] = ':';
+    str[idx++] = '[';
+
+    for (uint32_t i = 0u; i < lapControl.size(); ++i) {
+        const TrackSection::ControlParameters& control = lapControl[i];
+        idx += sprint(&str[idx], size - idx, "[%f,%u,%d,%f,%d,%f]%s",
+                      control.speed.get(),
+                      static_cast<uint32_t>(std::lround(control.rampTime.get())),
+                      static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get())),
+                      control.lineGradient.first.angle.get(),
+                      static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get())),
+                      control.lineGradient.second.angle.get(),
+                      i < lapControl.size() - 1 ? "," : "");
+    }
+
+    str[idx++] = ']';
+    strncpy_until(&str[idx], LOG_SEPARATOR_SEQ, size - idx);
+}
+
+std::optional<LapControlParameters> deserializeTrackSectionControl(const char * const str, const uint32_t size) {
+    if (str[0] != 'T') {
+        return std::nullopt;
+    }
+
+    LapControlParameters lapControl;
+
+    uint32_t idx = 3; // skips 'T:['
+
+    while (str[idx++] == '[') {
+        TrackSection::ControlParameters control;
+        float f = 0.0f;
+        int32_t i = 0u;
+
+        idx += micro::atof(str, &f) + 1;
+        control.speed = m_per_sec_t(f);
+
+        idx += micro::atoi(str, &i) + 1;
+        control.rampTime = millisecond_t(i);
+
+        idx += micro::atoi(str, &i) + 1;
+        control.lineGradient.first.pos = millimeter_t(i);
+
+        idx += micro::atof(str, &f) + 1;
+        control.lineGradient.first.angle = radian_t(f);
+
+        idx += micro::atoi(str, &i) + 1;
+        control.lineGradient.second.pos = millimeter_t(i);
+
+        idx += micro::atof(str, &f) + 1;
+        control.lineGradient.second.angle = radian_t(f);
+
+        ++idx; // skips ']'
+        if (str[idx] == ',') {
+            ++idx;
+        }
+
+        lapControl.push_back(control);
+    }
+
+    return lapControl;
 }
 
 } // namespace
@@ -80,7 +150,7 @@ extern "C" void runDebugTask(void) {
 
     SystemManager::instance().registerTask();
 
-    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_PARAMS_BUFFER_SIZE);
+    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_BUFFER_SIZE);
 
     DebugLed debugLed(gpio_Led);
     Timer carPropsSendTimer(millisecond_t(50));
@@ -88,7 +158,12 @@ extern "C" void runDebugTask(void) {
     while (true) {
         const rxParams_t *inCmd = rxBuffer.startRead();
         if (inCmd) {
-            globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_PARAMS_BUFFER_SIZE);
+            globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE);
+
+            if (const auto lapControl = deserializeTrackSectionControl(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE)) {
+                lapControlOverrideQueue.overwrite(*lapControl);
+            }
+
             rxBuffer.finishRead();
         }
 
@@ -98,16 +173,22 @@ extern "C" void runDebugTask(void) {
             carPropsQueue.peek(car, millisecond_t(0));
             lastControlQueue.peek(controlData, millisecond_t(0));
 
-            serializeCar(car, controlData, paramsStr, MAX_PARAMS_BUFFER_SIZE);
-            transmit(paramsStr);
+            serializeCar(car, controlData, txBuffer, MAX_BUFFER_SIZE);
+            transmit(txBuffer);
         }
 
-        if (globalParams.serializeAll(paramsStr, MAX_PARAMS_BUFFER_SIZE) > 0) {
-            transmit(paramsStr);
+        if (globalParams.serializeAll(txBuffer, MAX_BUFFER_SIZE) > 0) {
+            transmit(txBuffer);
         }
 
         if (Log::instance().receive(txLog)) {
             transmit(txLog);
+        }
+
+        LapControlParameters lapControl;
+        if (lapControlQueue.receive(lapControl, millisecond_t(0))) {
+            serializeTrackSectionControl(lapControl, txBuffer, MAX_BUFFER_SIZE);
+            transmit(txBuffer);
         }
 
         debugLed.update(monitorTasks());
@@ -117,10 +198,10 @@ extern "C" void runDebugTask(void) {
 }
 
 void micro_Command_Uart_RxCpltCallback() {
-    if (MAX_PARAMS_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
+    if (MAX_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
         rxBuffer.finishWrite();
     }
-    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_PARAMS_BUFFER_SIZE);
+    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_BUFFER_SIZE);
 }
 
 void micro_Command_Uart_TxCpltCallback() {

@@ -49,10 +49,9 @@ struct TrackSection {
     micro::ControlData getControl(const micro::CarProps& car, const micro::MainLine& mainLine);
 
     micro::OrientedLine getTargetLine(const micro::CarProps& car) const;
-
-    void setControlParameters(const ControlParameters& control) { this->control = control; }
 };
 
+using LapControlParameters = micro::vec<TrackSection::ControlParameters, 30>;
 using LapTrackSections = micro::vec<TrackSection, 30>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
@@ -73,6 +72,9 @@ public:
 
     uint32_t lap() const { return this->lap_; }
     uint32_t sectionNumber() const { return this->section_; }
+
+    LapControlParameters getControlParameters() const;
+    void setControlParameters(const LapControlParameters& lapControl);
 
 private:
     const LapTrackSections& lapSections() const;

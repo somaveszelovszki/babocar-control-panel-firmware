@@ -6,6 +6,7 @@
 #include <RaceTrackController.hpp>
 
 #include <limits>
+#include <algorithm>
 
 using namespace micro;
 
@@ -85,6 +86,22 @@ uint32_t RaceTrackController::getFastSectionIndex(uint32_t n) const {
     }
 
     return i < sections_[0].size() ? i : std::numeric_limits<uint32_t>::max();
+}
+
+LapControlParameters RaceTrackController::getControlParameters() const {
+    LapControlParameters lapControl;
+    const LapTrackSections& sections = this->lapSections();
+    std::transform(sections.begin(), sections.end(), std::back_inserter(lapControl), [](const TrackSection& s){ return s.control; });
+    return lapControl;
+}
+
+void RaceTrackController::setControlParameters(const LapControlParameters& lapControl) {
+    LapTrackSections& sections = this->lapSections();
+    if (sections.size() == lapControl.size()) {
+        for (uint32_t i = 0u; i < lapControl.size(); ++i) {
+            sections[i].control = lapControl[i];
+        }
+    }
 }
 
 const LapTrackSections& RaceTrackController::lapSections() const {
