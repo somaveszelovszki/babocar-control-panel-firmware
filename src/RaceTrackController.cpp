@@ -90,16 +90,19 @@ uint32_t RaceTrackController::getFastSectionIndex(uint32_t n) const {
 
 LapControlParameters RaceTrackController::getControlParameters() const {
     LapControlParameters lapControl;
-    const LapTrackSections& sections = this->lapSections();
-    std::transform(sections.begin(), sections.end(), std::back_inserter(lapControl), [](const TrackSection& s){ return s.control; });
+    const auto& sections = this->lapSections();
+    std::transform(sections.begin(), sections.end(), std::inserter(lapControl, lapControl.end()),
+        [](const auto& s){ return std::pair{s.name, s.control}; });
     return lapControl;
 }
 
 void RaceTrackController::setControlParameters(const LapControlParameters& lapControl) {
-    LapTrackSections& sections = this->lapSections();
-    if (sections.size() == lapControl.size()) {
-        for (uint32_t i = 0u; i < lapControl.size(); ++i) {
-            sections[i].control = lapControl[i];
+    auto& sections = this->lapSections();
+    for (const auto& [name, control] : lapControl) {
+        if (const auto it = std::find_if(sections.begin(), sections.end(),
+            [&name](const auto& s){ return s.name == name; });
+            it != sections.end()) {
+            it->control = control;
         }
     }
 }

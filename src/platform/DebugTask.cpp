@@ -90,16 +90,17 @@ void serializeTrackSectionControl(const LapControlParameters& lapControl, char *
     str[idx++] = ':';
     str[idx++] = '[';
 
-    for (uint32_t i = 0u; i < lapControl.size(); ++i) {
-        const TrackSection::ControlParameters& control = lapControl[i];
-        idx += sprint(&str[idx], size - idx, "[%f,%u,%d,%f,%d,%f]%s",
+    uint32_t i = 0u;
+    for (const auto& [name, control] : lapControl) {
+        idx += sprint(&str[idx], size - idx, "[%s,%f,%u,%d,%f,%d,%f]%s",
+                      name,
                       control.speed.get(),
                       static_cast<uint32_t>(std::lround(control.rampTime.get())),
                       static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get())),
                       control.lineGradient.first.angle.get(),
                       static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get())),
                       control.lineGradient.second.angle.get(),
-                      i < lapControl.size() - 1 ? "," : "");
+                      ++i < lapControl.size() ? "," : "");
     }
 
     str[idx++] = ']';
@@ -117,25 +118,28 @@ std::optional<LapControlParameters> deserializeTrackSectionControl(const char * 
 
     while (str[idx++] == '[') {
         TrackSection::ControlParameters control;
+        char name[sizeof(TrackSection::Name::MAX_SIZE)] = "";
         float f = 0.0f;
         int32_t i = 0u;
 
-        idx += micro::atof(str, &f) + 1;
+        idx += strncpy_until(name, &str[idx], size - idx, ',');
+
+        idx += micro::atof(&str[idx], &f) + 1;
         control.speed = m_per_sec_t(f);
 
-        idx += micro::atoi(str, &i) + 1;
+        idx += micro::atoi(&str[idx], &i) + 1;
         control.rampTime = millisecond_t(i);
 
-        idx += micro::atoi(str, &i) + 1;
+        idx += micro::atoi(&str[idx], &i) + 1;
         control.lineGradient.first.pos = millimeter_t(i);
 
-        idx += micro::atof(str, &f) + 1;
+        idx += micro::atof(&str[idx], &f) + 1;
         control.lineGradient.first.angle = radian_t(f);
 
-        idx += micro::atoi(str, &i) + 1;
+        idx += micro::atoi(&str[idx], &i) + 1;
         control.lineGradient.second.pos = millimeter_t(i);
 
-        idx += micro::atof(str, &f) + 1;
+        idx += micro::atof(&str[idx], &f) + 1;
         control.lineGradient.second.angle = radian_t(f);
 
         ++idx; // skips ']'
@@ -143,7 +147,7 @@ std::optional<LapControlParameters> deserializeTrackSectionControl(const char * 
             ++idx;
         }
 
-        lapControl.push_back(control);
+        lapControl.insert({name, control});
     }
 
     return lapControl;

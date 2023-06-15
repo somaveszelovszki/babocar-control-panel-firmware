@@ -89,6 +89,7 @@ LapTrackSections buildLapTrackSections(
 
 #define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                          \
 sections.push_back(TrackSection{                                                             \
+    #name,                                                                                   \
     isFast,                                                                                  \
     length,                                                                                  \
     TrackSection::TransitionCriteria::transitionCriteria,                                    \

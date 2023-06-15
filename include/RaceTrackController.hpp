@@ -12,6 +12,9 @@
 #include <optional>
 #include <utility>
 
+#include <etl/string.h>
+#include <etl/map.h>
+
 struct TrackSection {
     struct TransitionCriteria {
         std::optional<micro::LinePattern::type_t> patternType;
@@ -37,6 +40,9 @@ struct TrackSection {
         std::pair<micro::OrientedLine, micro::OrientedLine> lineGradient;
     };
 
+    using Name = etl::string<15>;
+
+    Name name;
     bool isFast = false;
     micro::meter_t length;
     TransitionCriteria transitionCriteria;
@@ -51,7 +57,7 @@ struct TrackSection {
     micro::OrientedLine getTargetLine(const micro::CarProps& car) const;
 };
 
-using LapControlParameters = micro::vec<TrackSection::ControlParameters, 30>;
+using LapControlParameters = etl::map<TrackSection::Name, TrackSection::ControlParameters, 30>;
 using LapTrackSections = micro::vec<TrackSection, 30>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
