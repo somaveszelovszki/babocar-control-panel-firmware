@@ -17,4 +17,4 @@ queue_t<char, 1> radioRecvQueue;
 
 CanManager vehicleCanManager(can_Vehicle);
 
-Params globalParams('P');
+ParamManager globalParams;

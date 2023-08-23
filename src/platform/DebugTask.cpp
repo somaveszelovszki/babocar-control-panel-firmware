@@ -1,6 +1,12 @@
+#include <cmath>
+#include <optional>
+#include <variant>
+
+#include <ArduinoJson.hpp>
+
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
-#include <micro/debug/params.hpp>
+#include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/semaphore.hpp>
 #include <micro/port/queue.hpp>
@@ -12,26 +18,16 @@
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
+#include <debug_protocol.hpp>
 #include <Distances.hpp>
 #include <globals.hpp>
 #include <RaceTrackController.hpp>
-
-#include <cmath>
-#include <optional>
 
 using namespace micro;
 
 namespace {
 
 #define FAILING_TASKS_LOG_ENABLED false
-
-#if RACE_TRACK == TRACK
-#define TRACK_CONTROL_PREFIX 'R'
-#else
-#define TRACK_CONTROL_PREFIX 'T'
-#endif
-
-constexpr uint32_t MAX_BUFFER_SIZE = 1024;
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
 ring_buffer<rxParams_t, 3> rxBuffer;
@@ -66,45 +62,6 @@ bool monitorTasks() {
 #endif // FAILING_TASKS_LOG_ENABLED
 
     return failingTasks.size() == 0;
-}
-
-void serializeCar(const CarProps& car, const ControlData& controlData, char * const str, const uint32_t size) {
-    sprint(str, size, "C:[%d,%d,%f,%f,%f,%f,%d,%f,%d,%f,%d]%s",
-           static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get())),
-           static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get())),
-           car.pose.angle.get(),
-           car.speed.get(),
-           car.frontWheelAngle.get(),
-           car.rearWheelAngle.get(),
-           static_cast<int32_t>(std::lround(controlData.lineControl.actual.pos.get())),
-           controlData.lineControl.actual.angle.get(),
-           static_cast<int32_t>(std::lround(controlData.lineControl.target.pos.get())),
-           controlData.lineControl.target.angle.get(),
-           car.isRemoteControlled ? 1 : 0,
-           LOG_SEPARATOR_SEQ);
-}
-
-void serializeTrackSectionControl(const LapControlParameters& lapControl, char * const str, const uint32_t size) {
-    uint32_t idx = 0u;
-    str[idx++] = TRACK_CONTROL_PREFIX;
-    str[idx++] = ':';
-    str[idx++] = '[';
-
-    uint32_t i = 0u;
-    for (const auto& [name, control] : lapControl) {
-        idx += sprint(&str[idx], size - idx, "[%s,%f,%u,%d,%f,%d,%f]%s",
-                      name,
-                      control.speed.get(),
-                      static_cast<uint32_t>(std::lround(control.rampTime.get())),
-                      static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get())),
-                      control.lineGradient.first.angle.get(),
-                      static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get())),
-                      control.lineGradient.second.angle.get(),
-                      ++i < lapControl.size() ? "," : "");
-    }
-
-    str[idx++] = ']';
-    strncpy_until(&str[idx], LOG_SEPARATOR_SEQ, size - idx);
 }
 
 std::optional<LapControlParameters> deserializeTrackSectionControl(const char * const str, const uint32_t size) {
@@ -153,6 +110,14 @@ std::optional<LapControlParameters> deserializeTrackSectionControl(const char * 
     return lapControl;
 }
 
+template <typename ...Args>
+size_t formatMessage(char * const output, const size_t size, const DebugMessageType type,  Args... args) {
+    size_t n = format(output, size, type);
+    n += format(&output[n], size - n, std::forward<Args>(args)...);
+    n += format(&output[n], size - n, DebugMessageSeparator{});
+    return n;
+}
+
 } // namespace
 
 extern "C" void runDebugTask(void) {
@@ -167,7 +132,7 @@ extern "C" void runDebugTask(void) {
     while (true) {
         const rxParams_t *inCmd = rxBuffer.startRead();
         if (inCmd) {
-            globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE);
+            //globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE);
 
             if (const auto lapControl = deserializeTrackSectionControl(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE)) {
                 lapControlOverrideQueue.overwrite(*lapControl);
@@ -182,11 +147,12 @@ extern "C" void runDebugTask(void) {
             carPropsQueue.peek(car, millisecond_t(0));
             lastControlQueue.peek(controlData, millisecond_t(0));
 
-            serializeCar(car, controlData, txBuffer, MAX_BUFFER_SIZE);
+            formatMessage(txBuffer, MAX_BUFFER_SIZE, DebugMessageType::Car, car, controlData);
             transmit(txBuffer);
         }
 
-        if (globalParams.serializeAll(txBuffer, MAX_BUFFER_SIZE) > 0) {
+        if (const auto changedParams = globalParams.update(); !changedParams.empty()) {
+            formatMessage(txBuffer, MAX_BUFFER_SIZE, DebugMessageType::Params, changedParams);
             transmit(txBuffer);
         }
 
@@ -196,7 +162,7 @@ extern "C" void runDebugTask(void) {
 
         LapControlParameters lapControl;
         if (lapControlQueue.receive(lapControl, millisecond_t(0))) {
-            serializeTrackSectionControl(lapControl, txBuffer, MAX_BUFFER_SIZE);
+            formatMessage(txBuffer, MAX_BUFFER_SIZE, DebugMessageType::TrackControl, lapControl);
             transmit(txBuffer);
         }
 

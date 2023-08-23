@@ -2,7 +2,7 @@
 #include <micro/container/infinite_buffer.hpp>
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
-#include <micro/debug/params.hpp>
+#include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>

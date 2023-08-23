@@ -1,5 +1,4 @@
-#include <cfg_board.hpp>
-#include <micro/debug/params.hpp>
+#include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/semaphore.hpp>
@@ -9,6 +8,7 @@
 #include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
+#include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <globals.hpp>
 

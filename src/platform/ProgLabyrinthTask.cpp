@@ -1,4 +1,4 @@
-#include <micro/debug/params.hpp>
+#include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>

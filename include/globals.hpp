@@ -1,6 +1,6 @@
 #pragma once
 
-#include <micro/debug/params.hpp>
+#include <micro/debug/ParamManager.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/utils/CarProps.hpp>
@@ -24,4 +24,4 @@ extern micro::queue_t<char, 1> radioRecvQueue;
 
 extern micro::CanManager vehicleCanManager;
 
-extern micro::Params globalParams;
+extern micro::ParamManager globalParams;
