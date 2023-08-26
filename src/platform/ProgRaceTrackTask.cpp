@@ -44,7 +44,7 @@ meter_t OVERTAKE_BEGIN_SINE_ARC_LENGTH    = centimeter_t(140);
 meter_t OVERTAKE_END_SINE_ARC_LENGTH      = centimeter_t(180);
 meter_t OVERTAKE_SIDE_DISTANCE            = centimeter_t(50);
 
-RaceTrackController trackController(buildRaceTrackSections());
+RaceTrackController trackController(buildTrackSections());
 
 OvertakeManeuver overtake;
 TestManeuver testManeuver;

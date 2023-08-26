@@ -5,8 +5,8 @@
 #include <micro/container/map.hpp>
 #include <micro/container/vec.hpp>
 
-#include <Graph.hpp>
 #include <cfg_track.hpp>
+#include <Graph.hpp>
 
 #include <algorithm>
 

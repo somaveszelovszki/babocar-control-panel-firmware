@@ -30,7 +30,7 @@ enum class DebugMessageType : char {
 };
 
 struct DebugMessageSeparator {
-    static constexpr auto value = micro::LOG_SEPARATOR;
+    static constexpr auto value = micro::Log::SEPARATOR;
 };
 
 size_t format(char* output, const size_t size, const DebugMessageType type);

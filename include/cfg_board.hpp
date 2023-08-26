@@ -6,6 +6,8 @@
 #include <micro/port/spi.hpp>
 #include <micro/port/uart.hpp>
 
+#if defined STM32F4
+
 extern CAN_HandleTypeDef  hcan1;
 extern I2C_HandleTypeDef  hi2c1;
 extern I2C_HandleTypeDef  hi2c3;
@@ -39,6 +41,33 @@ extern UART_HandleTypeDef huart6;
 #define uart_RadioModule        micro::uart_t{ &huart3 }
 #define uart_RearDistSensor     micro::uart_t{ &huart5 }
 #define uart_X                  micro::uart_t{ &huart6 }
+
+#else // !STM32F4
+
+#define can_Vehicle             micro::can_t{}
+
+#define gpio_GyroINT1           micro::gpio_t{}
+#define gpio_GyroINT2           micro::gpio_t{}
+
+#define gpio_Led                micro::gpio_t{}
+
+#define gpio_Btn1               micro::gpio_t{}
+#define gpio_Btn2               micro::gpio_t{}
+
+#define i2c_X                   micro::i2c_t{}
+
+#define spi_Gyro                micro::spi_t{}
+#define csGpio_Gyro             micro::gpio_t{}
+
+#define tim_System              micro::timer_t{}
+
+#define uart_FrontDistSensor    micro::uart_t{}
+#define uart_Debug              micro::uart_t{}
+#define uart_RadioModule        micro::uart_t{}
+#define uart_RearDistSensor     micro::uart_t{}
+#define uart_X                  micro::uart_t{}
+
+#endif // !STM32F4
 
 #define GYRO_MPU9250            1
 #define GYRO_LSM6DSO            2

@@ -1,7 +1,3 @@
-#include <cfg_track.hpp>
-
-#if TRACK == TEST_TRACK
-
 #include <RaceTrackController.hpp>
 
 using namespace micro;
@@ -133,7 +129,7 @@ sections.push_back(TrackSection{                                                
 
 } // namespace
 
-RaceTrackSections buildRaceTrackSections() {
+RaceTrackSections buildTestTrackSections() {
     RaceTrackSections sections;
 
     static_assert(sections.size() == speeds.size(), "Speeds array size is incorrect!");
@@ -142,12 +138,10 @@ RaceTrackSections buildRaceTrackSections() {
     static_assert(sections.size() == endLineAngles.size(), "End line angles array size is incorrect!");
 
     for (uint32_t i = 0u; i < sections.size(); ++i) {
-        const OrientedLine lineGradientStart = i == 0 ? OrientedLine() : sections[i - 1].back()->lineGradient.second;
+        const OrientedLine lineGradientStart = i == 0 ? OrientedLine() : sections[i - 1].back()->control.lineGradient.second;
         sections[i] = buildLapTrackSections(speeds[i], rampTimes[i], endLinePositions[i], endLineAngles[i], lineGradientStart);
     }
 
     return sections;
 }
-
-#endif // TRACK == RACE_TRACK
 
