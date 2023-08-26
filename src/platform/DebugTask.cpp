@@ -27,7 +27,7 @@ using namespace micro;
 
 namespace {
 
-#define FAILING_TASKS_LOG_ENABLED false
+#define FAILING_TASKS_LOG_ENABLED true
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
 ring_buffer<rxParams_t, 3> rxBuffer;
@@ -41,18 +41,18 @@ void transmit(const char * const data) {
 }
 
 bool monitorTasks() {
-    const SystemManager::TaskStates failingTasks = SystemManager::instance().failingTasks();
+    const auto failingTasks = SystemManager::instance().failingTasks();
 
 #if FAILING_TASKS_LOG_ENABLED
     static Timer failureLogTimer(millisecond_t(100));
 
     if (failingTasks.size() && failureLogTimer.checkTimeout()) {
-        char msg[LOG_MSG_MAX_SIZE];
+        Log::message_t msg;
         uint32_t idx = 0;
-        for (SystemManager::TaskStates::const_iterator it = failingTasks.begin(); it != failingTasks.end(); ++it) {
-            idx += strncpy_until(&msg[idx], it->details.pcTaskName, min(static_cast<uint32_t>(configMAX_TASK_NAME_LEN), LOG_MSG_MAX_SIZE - idx));
-            if (it != failingTasks.back()) {
-                idx += strncpy_until(&msg[idx], ", ", sizeof(", "), LOG_MSG_MAX_SIZE - idx);
+        for (size_t i = 0; i < failingTasks.size(); i++) {
+            idx += strncpy_until(&msg[idx], failingTasks[i].info.name.c_str(), sizeof(Log::message_t) - idx);
+            if (i < failingTasks.size() - 1) {
+                idx += strncpy_until(&msg[idx], ", ", sizeof(", "), sizeof(Log::message_t) - idx);
             }
         }
         msg[idx] = '\0';
