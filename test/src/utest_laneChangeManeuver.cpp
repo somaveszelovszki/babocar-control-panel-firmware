@@ -10,11 +10,11 @@ using namespace micro;
 
 namespace {
 
-const meter_t TRAJECTORY_LENGTH_SINE   = centimeter_t(124);
+const meter_t TRAJECTORY_LENGTH_SINE   = centimeter_t(105);
 const meter_t TRAJECTORY_LENGTH_CIRCLE = centimeter_t(190);
 
-const point2m TRAJECTORY_END_POS_SINE   = { centimeter_t(110), centimeter_t(-52) };
-const point2m TRAJECTORY_END_POS_CIRCLE = { centimeter_t(60), centimeter_t(55) };
+const point2m TRAJECTORY_END_POS_SINE   = { centimeter_t(90), centimeter_t(-55) };
+const point2m TRAJECTORY_END_POS_CIRCLE = { centimeter_t(60), centimeter_t(50) };
 
 void test(const micro::Sign& initialSpeedSign, const micro::Sign patternDir, const micro::Direction patternSide, const micro::Sign safetyCarFollowSpeedSign,
     const meter_t expectedLength, const point2m& expectedEndPos) {
@@ -25,6 +25,9 @@ void test(const micro::Sign& initialSpeedSign, const micro::Sign patternDir, con
     ControlData controlData;
 
     maneuver.initialize(car, initialSpeedSign, patternDir, patternSide, safetyCarFollowSpeedSign,  m_per_sec_t(1), centimeter_t(60));
+    
+    // updates maneuver twice to go through orientation check and build trajectory
+    maneuver.update(car, lineInfo, mainLine, controlData);
     maneuver.update(car, lineInfo, mainLine, controlData);
 
     EXPECT_NEAR_UNIT(expectedLength, maneuver.trajectory_.length(), centimeter_t(5));
