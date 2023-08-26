@@ -1,8 +1,8 @@
 #pragma once
 
-#include <micro/container/vec.hpp>
-
 #include <type_traits>
+
+#include <etl/vector.h>
 
 /* @brief Graph edge.
  */
@@ -24,5 +24,5 @@ struct Edge {
  */
 template <typename EdgeType, uint32_t N>
 struct Node {
-    micro::vec<EdgeType*, N> edges; // The edges.
+    etl::vector<EdgeType*, N> edges; // The edges.
 };

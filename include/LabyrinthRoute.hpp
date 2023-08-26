@@ -1,14 +1,16 @@
 #pragma once
 
-#include <LabyrinthGraph.hpp>
-
 #include <utility>
+
+#include <etl/vector.h>
+
+#include <LabyrinthGraph.hpp>
 
 struct LabyrinthRoute {
     static constexpr uint32_t MAX_LENGTH = 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS;
     const Segment* startSeg;
     const Segment* destSeg;
-    micro::vec<const Connection*, MAX_LENGTH> connections;
+    etl::vector<const Connection*, MAX_LENGTH> connections;
 
     explicit LabyrinthRoute(const Segment *currentSeg = nullptr);
 

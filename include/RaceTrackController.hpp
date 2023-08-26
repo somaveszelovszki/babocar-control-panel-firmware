@@ -1,19 +1,19 @@
 #pragma once
 
-#include <micro/container/vec.hpp>
-#include <micro/utils/CarProps.hpp>
-#include <micro/utils/ControlData.hpp>
-#include <micro/utils/Line.hpp>
-#include <micro/utils/LinePattern.hpp>
-
-#include <cfg_track.hpp>
-
 #include <array>
 #include <optional>
 #include <utility>
 
 #include <etl/string.h>
 #include <etl/map.h>
+#include <etl/vector.h>
+
+#include <micro/utils/CarProps.hpp>
+#include <micro/utils/ControlData.hpp>
+#include <micro/utils/Line.hpp>
+#include <micro/utils/LinePattern.hpp>
+
+#include <cfg_track.hpp>
 
 struct TrackSection {
     struct TransitionCriteria {
@@ -58,7 +58,7 @@ struct TrackSection {
 };
 
 using LapControlParameters = etl::map<TrackSection::Name, TrackSection::ControlParameters, 30>;
-using LapTrackSections = micro::vec<TrackSection, 30>;
+using LapTrackSections = etl::vector<TrackSection, 30>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
 class RaceTrackController {

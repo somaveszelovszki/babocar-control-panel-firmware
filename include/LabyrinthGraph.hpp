@@ -1,14 +1,15 @@
 #pragma once
 
+#include <algorithm>
+
+#include <etl/vector.h>
+
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
 #include <micro/container/map.hpp>
-#include <micro/container/vec.hpp>
 
 #include <cfg_track.hpp>
 #include <Graph.hpp>
-
-#include <algorithm>
 
 struct JunctionDecision {
     micro::radian_t orientation;
@@ -62,7 +63,7 @@ struct Connection : public Edge<Segment> {
 struct Junction {
     typedef micro::unsorted_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
     typedef micro::unsorted_map<micro::radian_t, side_segment_map, 2> segment_map;
-    typedef micro::vec<std::pair<micro::radian_t, micro::Direction>, 2> segment_info;
+    typedef etl::vector<std::pair<micro::radian_t, micro::Direction>, 2> segment_info;
 
     Junction(uint8_t id, const micro::point2<micro::meter_t>& pos)
         : id(id)
@@ -129,16 +130,16 @@ public:
     Junction* findJunction(uint8_t id);
     const Junction* findJunction(uint8_t id) const;
 
-    const Junction* findJunction(const micro::point2m& pos, const micro::vec<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
+    const Junction* findJunction(const micro::point2m& pos, const etl::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
     const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
 
     bool valid() const;
 
 private:
-    typedef micro::vec<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;
-    typedef micro::vec<Junction, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Junctions;
-    typedef micro::vec<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> Connections;
+    typedef etl::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;
+    typedef etl::vector<Junction, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Junctions;
+    typedef etl::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> Connections;
 
     Segments segments_;
     Junctions junctions_;

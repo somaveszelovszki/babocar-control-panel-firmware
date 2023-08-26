@@ -1,3 +1,5 @@
+#include <etl/vector.h>
+
 #include <micro/utils/log.hpp>
 
 #include <LabyrinthNavigator.hpp>
@@ -147,7 +149,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
     const radian_t posOri = round90(car.speed >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI);
     const radian_t negOri = round90(posOri + PI);
 
-    const micro::vec<std::pair<micro::radian_t, uint8_t>, 2> numSegments = {
+    const etl::vector<std::pair<micro::radian_t, uint8_t>, 2> numSegments = {
         { negOri, numInSegments  },
         { posOri, numOutSegments }
     };
@@ -348,7 +350,7 @@ bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::Line
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
-    micro::vec<Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> validConnections;
+    etl::vector<Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> validConnections;
 
     for (Connection *c : seg.edges) {
         if (c->junction->id == junc.id) {

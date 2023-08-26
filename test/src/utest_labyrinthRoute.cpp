@@ -1,4 +1,3 @@
-#include <micro/container/vec.hpp>
 #include <micro/test/utils.hpp>
 
 #include <LabyrinthGraph.hpp>

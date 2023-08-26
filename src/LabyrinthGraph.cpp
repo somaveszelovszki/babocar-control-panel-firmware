@@ -1,6 +1,7 @@
+#include <etl/vector.h>
+
 #include <micro/utils/log.hpp>
 #include <micro/math/unit_utils.hpp>
-#include <micro/container/vec.hpp>
 
 #include <LabyrinthGraph.hpp>
 
@@ -145,9 +146,10 @@ void LabyrinthGraph::connect(Segment *seg, Junction *junc, const JunctionDecisio
 
     if (otherSideSegments != junc->segments.end()) {
         for (Junction::side_segment_map::iterator out = otherSideSegments->second.begin(); out != otherSideSegments->second.end(); ++out) {
-            Connections::iterator conn = this->connections_.push_back(Connection(*seg, *out->second, *junc, decision, { otherSideSegments->first, out->first }));
-            seg->edges.push_back(to_raw_pointer(conn));
-            out->second->edges.push_back(to_raw_pointer(conn));
+            this->connections_.push_back(Connection(*seg, *out->second, *junc, decision, { otherSideSegments->first, out->first }));
+            auto& conn = connections_.back();
+            seg->edges.push_back(&conn);
+            out->second->edges.push_back(&conn);
         }
     }
 }
@@ -176,7 +178,7 @@ const Junction* LabyrinthGraph::findJunction(uint8_t id) const {
     return it != this->junctions_.end() ? to_raw_pointer(it) : nullptr;
 }
 
-const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::vec<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
+const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
 
     Junctions::const_iterator result = this->junctions_.end();
 

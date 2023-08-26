@@ -1,6 +1,6 @@
 #pragma once
 
-#include <micro/container/vec.hpp>
+#include <etl/vector.h>
 
 #include <LabyrinthGraph.hpp>
 
@@ -17,6 +17,6 @@ struct RouteConnection {
     RouteConnection& operator=(const RouteConnection&) = default;
 };
 
-typedef micro::vec<RouteConnection, 50> RouteConnections;
+typedef etl::vector<RouteConnection, 50> RouteConnections;
 
 void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const bool allowBackwardNavigation, const RouteConnections& expectedConnections);

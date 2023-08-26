@@ -1,3 +1,5 @@
+#include <etl/vector.h>
+
 #include <LabyrinthRoute.hpp>
 
 using namespace micro;
@@ -9,7 +11,7 @@ LabyrinthRoute::LabyrinthRoute(const Segment *currentSeg)
     , destSeg(currentSeg) {}
 
 void LabyrinthRoute::push_front(const Connection& c) {
-    this->connections.push_front(&c);
+    this->connections.insert(this->connections.begin(), &c);
     this->startSeg = c.getOtherSegment(*this->startSeg);
 }
 
@@ -56,7 +58,7 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
         bool isDistMinimized          = false;
         SegmentRouteInfo *prevSegInfo = nullptr;
     };
-    typedef micro::vec<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
+    typedef etl::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
 
     SegmentRouteInfos info;
 

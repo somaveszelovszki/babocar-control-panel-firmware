@@ -48,7 +48,7 @@ const Segment *startSeg = graph.findSegment(START_SEGMENT);
 const Connection *prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
 const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
 LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
-vec<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
+etl::vector<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
 struct JunctionPatternInfo {
