@@ -15,10 +15,11 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/str_utils.hpp>
+#include <micro/utils/variant_utils.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
-#include <debug_protocol.hpp>
+#include <DebugMessage.hpp>
 #include <Distances.hpp>
 #include <globals.hpp>
 #include <RaceTrackController.hpp>
@@ -28,6 +29,8 @@ using namespace micro;
 namespace {
 
 #define FAILING_TASKS_LOG_ENABLED true
+
+constexpr uint32_t MAX_BUFFER_SIZE = 1024;
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
 ring_buffer<rxParams_t, 3> rxBuffer;
@@ -61,61 +64,7 @@ bool monitorTasks() {
 
 #endif // FAILING_TASKS_LOG_ENABLED
 
-    return failingTasks.size() == 0;
-}
-
-std::optional<LapControlParameters> deserializeTrackSectionControl(const char * const str, const uint32_t size) {
-    if (str[0] != TRACK_CONTROL_PREFIX) {
-        return std::nullopt;
-    }
-
-    LapControlParameters lapControl;
-
-    uint32_t idx = 3; // skips prefix + ':['
-
-    while (str[idx++] == '[') {
-        TrackSection::ControlParameters control;
-        char name[sizeof(TrackSection::Name::MAX_SIZE)] = "";
-        float f = 0.0f;
-        int32_t i = 0u;
-
-        idx += strncpy_until(name, &str[idx], size - idx, ',');
-
-        idx += micro::atof(&str[idx], &f) + 1;
-        control.speed = m_per_sec_t(f);
-
-        idx += micro::atoi(&str[idx], &i) + 1;
-        control.rampTime = millisecond_t(i);
-
-        idx += micro::atoi(&str[idx], &i) + 1;
-        control.lineGradient.first.pos = millimeter_t(i);
-
-        idx += micro::atof(&str[idx], &f) + 1;
-        control.lineGradient.first.angle = radian_t(f);
-
-        idx += micro::atoi(&str[idx], &i) + 1;
-        control.lineGradient.second.pos = millimeter_t(i);
-
-        idx += micro::atof(&str[idx], &f) + 1;
-        control.lineGradient.second.angle = radian_t(f);
-
-        ++idx; // skips ']'
-        if (str[idx] == ',') {
-            ++idx;
-        }
-
-        lapControl.insert({name, control});
-    }
-
-    return lapControl;
-}
-
-template <typename ...Args>
-size_t formatMessage(char * const output, const size_t size, const DebugMessageType type,  Args... args) {
-    size_t n = format(output, size, type);
-    n += format(&output[n], size - n, std::forward<Args>(args)...);
-    n += format(&output[n], size - n, DebugMessageSeparator{});
-    return n;
+    return failingTasks.empty();
 }
 
 } // namespace
@@ -130,29 +79,44 @@ extern "C" void runDebugTask(void) {
     Timer carPropsSendTimer(millisecond_t(50));
 
     while (true) {
-        const rxParams_t *inCmd = rxBuffer.startRead();
-        if (inCmd) {
-            //globalParams.deserializeAll(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE);
-
-            if (const auto lapControl = deserializeTrackSectionControl(reinterpret_cast<const char*>(*inCmd), MAX_BUFFER_SIZE)) {
-                lapControlOverrideQueue.overwrite(*lapControl);
+        const auto data = [inCmd = rxBuffer.startRead()]() -> DebugMessage::value_type {
+            if (inCmd) {
+                const auto d = DebugMessage::parse(reinterpret_cast<const char*>(*inCmd));
+                rxBuffer.finishRead();
+                return d;
             }
+            return std::monostate{};
+        }();
 
-            rxBuffer.finishRead();
-        }
+        std::visit(micro::variant_visitor{
+            [](const std::monostate&){},
+            [](const std::tuple<CarProps, ControlData>& v){},
+
+            [](const ParamManager::Values& params){
+                const auto notifyAllParams = params.empty();
+                const auto outParams = globalParams.update(notifyAllParams, params);
+                if (!outParams.empty()) {
+                    DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, outParams);
+                }
+            },
+
+            [](const LapControlParameters& lapControl){
+                lapControlOverrideQueue.overwrite(lapControl);
+            }
+        }, data);
 
         if (carPropsSendTimer.checkTimeout()) {
-            CarProps car;
-            ControlData controlData;
+            std::tuple<CarProps, ControlData> data;
+            auto& [car, controlData] = data;
             carPropsQueue.peek(car, millisecond_t(0));
             lastControlQueue.peek(controlData, millisecond_t(0));
 
-            formatMessage(txBuffer, MAX_BUFFER_SIZE, DebugMessageType::Car, car, controlData);
+            DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, data);
             transmit(txBuffer);
         }
 
         if (const auto changedParams = globalParams.update(); !changedParams.empty()) {
-            formatMessage(txBuffer, MAX_BUFFER_SIZE, DebugMessageType::Params, changedParams);
+            DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, changedParams);
             transmit(txBuffer);
         }
 
@@ -162,7 +126,7 @@ extern "C" void runDebugTask(void) {
 
         LapControlParameters lapControl;
         if (lapControlQueue.receive(lapControl, millisecond_t(0))) {
-            formatMessage(txBuffer, MAX_BUFFER_SIZE, DebugMessageType::TrackControl, lapControl);
+            DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, lapControl);
             transmit(txBuffer);
         }
 
