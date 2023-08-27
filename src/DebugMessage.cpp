@@ -20,11 +20,10 @@ namespace {
 
 constexpr auto SEPARATOR_SIZE = std::char_traits<char>::length(micro::Log::SEPARATOR);
 
-constexpr auto NUMERIC_FRACTION_DIGITS = 2;
-
-auto serializeFloat(const float value) {
-    char str[20] = "";
-    micro::ftoa(value, str, sizeof(str), NUMERIC_FRACTION_DIGITS);
+auto serializeFloat(float value) {
+    value = std::llround(value * 100) / 100.0f + micro::sgn(value) * 0.000001f;
+    char str[12] = "";
+    micro::ftoa(value, str, sizeof(str), 2);
     return serialized(etl::string<sizeof(str)>(str));
 }
 } // namespace

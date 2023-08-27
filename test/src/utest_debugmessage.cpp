@@ -27,16 +27,16 @@ TEST(DebugMessage, formatCarProps) {
 
     car.pose.pos.X = millimeter_t(1);
     car.pose.pos.Y = millimeter_t(2);
-    car.pose.angle = radian_t(3);
+    car.pose.angle = radian_t(3.016);
     car.speed = m_per_sec_t(4);
-    car.frontWheelAngle = radian_t(0.1);
-    car.rearWheelAngle  = radian_t(0.2);
+    car.frontWheelAngle = radian_t(0.122);
+    car.rearWheelAngle  = radian_t(-0.218);
     car.isRemoteControlled = false;
 
     controlData.lineControl.actual.pos = millimeter_t(5);
-    controlData.lineControl.actual.angle = radian_t(0.3);
+    controlData.lineControl.actual.angle = radian_t(-0.324);
     controlData.lineControl.target.pos = millimeter_t(6);
     controlData.lineControl.target.angle = radian_t(0.4);
 
-    testFormat(data, "C:[1,2,3.00,4.00,0.10,0.20,5,0.30,6,0.40,0]\r\n");
+    testFormat(data, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\r\n");
 }
