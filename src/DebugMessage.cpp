@@ -4,6 +4,7 @@
 #include <variant>
 
 #include <ArduinoJson.h>
+#include <etl/string.h>
 
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
@@ -19,6 +20,13 @@ namespace {
 
 constexpr auto SEPARATOR_SIZE = std::char_traits<char>::length(micro::Log::SEPARATOR);
 
+constexpr auto NUMERIC_FRACTION_DIGITS = 2;
+
+auto serializeFloat(const float value) {
+    char str[20] = "";
+    micro::ftoa(value, str, sizeof(str), NUMERIC_FRACTION_DIGITS);
+    return serialized(etl::string<sizeof(str)>(str));
+}
 } // namespace
 
 size_t DebugMessage::format(char * const output, const size_t size, const reference_type& data) {
@@ -89,16 +97,16 @@ void DebugMessage::store(const std::tuple<CarProps, ControlData>& data) {
     const auto& [car, controlData] = data;
     auto items = jsonDoc_.to<JsonArray>();
 
-    items[0] = static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get()));
-    items[1] = static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get()));
-    items[2] = car.pose.angle.get();
-    items[3] = car.speed.get();
-    items[4] = car.frontWheelAngle.get();
-    items[5] = car.rearWheelAngle.get();
-    items[6] = static_cast<int32_t>(std::lround(controlData.lineControl.actual.pos.get()));
-    items[7] = controlData.lineControl.actual.angle.get();
-    items[8] = static_cast<int32_t>(std::lround(controlData.lineControl.target.pos.get()));
-    items[9] = controlData.lineControl.target.angle.get();
+    items[0]  = static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get()));
+    items[1]  = static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get()));
+    items[2]  = serializeFloat(car.pose.angle.get());
+    items[3]  = serializeFloat(car.speed.get());
+    items[4]  = serializeFloat(car.frontWheelAngle.get());
+    items[5]  = serializeFloat(car.rearWheelAngle.get());
+    items[6]  = static_cast<int32_t>(std::lround(controlData.lineControl.actual.pos.get()));
+    items[7]  = serializeFloat(controlData.lineControl.actual.angle.get());
+    items[8]  = static_cast<int32_t>(std::lround(controlData.lineControl.target.pos.get()));
+    items[9]  = serializeFloat(controlData.lineControl.target.angle.get());
     items[10] = car.isRemoteControlled ? 1 : 0;
 }
 
@@ -121,7 +129,13 @@ void DebugMessage::load(std::tuple<CarProps, ControlData>& data) {
 
 void DebugMessage::store(const ParamManager::Values& params) {
     for (const auto& [name, param] : params) {
-        std::visit([this, &name](const auto& v){ jsonDoc_[name.c_str()] = v; }, param);
+        std::visit([this, &name](const auto& v){
+            if constexpr (std::is_same_v<std::decay_t<decltype(v)>, float>) {
+                jsonDoc_[name.c_str()] = serializeFloat(v);
+            } else {
+                jsonDoc_[name.c_str()] = v;
+            }
+        }, param);
     }
 }
 
@@ -135,12 +149,12 @@ void DebugMessage::store(const LapControlParameters& lapControl) {
     size_t i = 0;
     for (const auto& [name, control] : lapControl) {
         sections[i][0] = name.c_str();
-        sections[i][1] = control.speed.get();
+        sections[i][1] = serializeFloat(control.speed.get());
         sections[i][2] = static_cast<uint32_t>(std::lround(control.rampTime.get()));
         sections[i][3] = static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get()));
-        sections[i][4] = control.lineGradient.first.angle.get();
+        sections[i][4] = serializeFloat(control.lineGradient.first.angle.get());
         sections[i][5] = static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get()));
-        sections[i][6] = control.lineGradient.second.angle.get();
+        sections[i][6] = serializeFloat(control.lineGradient.second.angle.get());
         i++;
     }
 }
