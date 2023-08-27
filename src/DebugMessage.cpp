@@ -143,17 +143,16 @@ void DebugMessage::load(ParamManager::Values& params) {
 }
 
 void DebugMessage::store(const LapControlParameters& lapControl) {
-    auto sections = jsonDoc_.to<JsonArray>();
 
     size_t i = 0;
     for (const auto& [name, control] : lapControl) {
-        sections[i][0] = name.c_str();
-        sections[i][1] = serializeFloat(control.speed.get());
-        sections[i][2] = static_cast<uint32_t>(std::lround(control.rampTime.get()));
-        sections[i][3] = static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get()));
-        sections[i][4] = serializeFloat(control.lineGradient.first.angle.get());
-        sections[i][5] = static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get()));
-        sections[i][6] = serializeFloat(control.lineGradient.second.angle.get());
+        auto section = jsonDoc_[name.c_str()];
+        section[0] = serializeFloat(control.speed.get());
+        section[1] = static_cast<uint32_t>(std::lround(control.rampTime.get()));
+        section[2] = static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get()));
+        section[3] = serializeFloat(control.lineGradient.first.angle.get());
+        section[4] = static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get()));
+        section[5] = serializeFloat(control.lineGradient.second.angle.get());
         i++;
     }
 }
