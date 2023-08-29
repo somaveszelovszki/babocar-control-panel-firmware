@@ -7,6 +7,7 @@
 #include <micro/test/utils.hpp>
 
 #include <DebugMessage.hpp>
+#include <RaceTrackController.hpp>
 
 using namespace micro;
 
@@ -18,11 +19,40 @@ namespace {
 #define TRACK_CONTROL_PREFIX_STR "T"
 #endif
 
-void testFormat(const DebugMessage::reference_type& data, const etl::string<sizeof(Log::message_t)>& expected) {
+void expectEqual(const std::tuple<CarProps, ControlData>& expected,
+                 const std::tuple<CarProps, ControlData>& result) {
+    EXPECT_EQ_MICRO_CAR_PROPS((std::get<0>(expected)), (std::get<0>(result)));
+    EXPECT_EQ_MICRO_CONTROL_DATA((std::get<1>(expected)), (std::get<1>(result)));
+}
+
+void expectEqual(const ParamManager::Values& expected, const ParamManager::Values& result) {
+    ASSERT_EQ(expected.size(), result.size());
+    for (const auto& [name, param] : result) {
+        // TODO
+    }
+}
+
+void expectEqual(const LapControlParameters& expected, const LapControlParameters& result) {
+    ASSERT_EQ(expected.size(), result.size());
+    for (const auto& [name, control] : expected) {
+        EXPECT_EQ_TRACK_CONTROL_PARAMETERS(control, result.at(name));
+    }
+}
+
+void testFormat(const DebugMessage::reference_type& data, const char * const expected) {
     Log::message_t msg;
     const auto size = DebugMessage::format(msg, sizeof(msg), data);
-    EXPECT_EQ(expected.size(), size);
-    EXPECT_STREQ(expected.c_str(), msg);
+    EXPECT_EQ(strlen(expected), size);
+    EXPECT_STREQ(expected, msg);
+}
+
+void testParse(const DebugMessage::value_type& expected, const char * const str) {
+    const auto result = DebugMessage::parse(str);
+    ASSERT_EQ(expected.index(), result.index());
+
+    std::visit(
+        [&result](const auto& exp){ expectEqual(exp, std::get<std::decay_t<decltype(exp)>>(result)); },
+        expected);
 }
 
 } // namespace
@@ -45,6 +75,26 @@ TEST(DebugMessage, formatCarProps) {
     controlData.lineControl.target.angle = radian_t(0.4);
 
     testFormat(data, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\r\n");
+}
+
+TEST(DebugMessage, parseCarProps) {
+    std::tuple<CarProps, ControlData> expected;
+    auto& [car, controlData] = expected;
+
+    car.pose.pos.X = millimeter_t(1);
+    car.pose.pos.Y = millimeter_t(2);
+    car.pose.angle = radian_t(3.02);
+    car.speed = m_per_sec_t(4);
+    car.frontWheelAngle = radian_t(0.12);
+    car.rearWheelAngle  = radian_t(-0.22);
+    car.isRemoteControlled = false;
+
+    controlData.lineControl.actual.pos = millimeter_t(5);
+    controlData.lineControl.actual.angle = radian_t(-0.32);
+    controlData.lineControl.target.pos = millimeter_t(6);
+    controlData.lineControl.target.angle = radian_t(0.4);
+
+    testParse(expected, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\r\n");
 }
 
 TEST(DebugMessage, formatParams) {

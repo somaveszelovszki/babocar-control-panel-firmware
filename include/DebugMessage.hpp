@@ -34,7 +34,6 @@ public:
     };
 
     using value_type = std::variant<
-        std::monostate,
         std::tuple<micro::CarProps, micro::ControlData>,
         micro::ParamManager::Values,
         LapControlParameters>;
@@ -48,7 +47,8 @@ public:
     static value_type parse(const char * const input);
 
 private:
-    static Type getType(const reference_type& data);
+    static Type getType(const reference_type& value);
+    static value_type getValue(const Type type);
 
     static size_t formatType(char* output, const size_t size, const Type type);
     static size_t parseType(const char * const input, Type& type);

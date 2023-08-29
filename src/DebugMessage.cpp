@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <variant>
 
@@ -28,30 +29,50 @@ auto serializeFloat(float value) {
 }
 } // namespace
 
-size_t DebugMessage::format(char * const output, const size_t size, const reference_type& data) {
-    return std::visit(
-        [output, size, &data](const auto& v){
+size_t DebugMessage::format(char * const output, const size_t size, const reference_type& value) {
+    auto n = formatType(output, size, getType(value));
+    std::visit(
+        [output, size, &n](const auto& v){
             DebugMessage msg;
             msg.store(v);
-
-            auto n = msg.formatType(output, size, getType(data));
             n += serializeJson(msg.jsonDoc_, &output[n], size - n);
-            n += msg.formatSeparator(&output[n], size - n);
-            return n;
-        }, data);
+        }, value);
+
+    n += formatSeparator(&output[n], size - n);
+    return n;
 }
 
 auto DebugMessage::parse(const char * const input) -> value_type {
-    // TODO
-    return std::monostate{};
+    Type type = Type::Unknown;
+    auto n = parseType(input, type);
+
+    auto value = getValue(type);
+
+    std::visit(
+        [input, n](auto& v){
+            DebugMessage msg;
+            deserializeJson(msg.jsonDoc_, &input[n]);
+            msg.load(v);
+        }, value);
+
+    return value;
 }
 
-auto DebugMessage::getType(const reference_type& data) -> Type {
-    switch (data.index()) {
+auto DebugMessage::getType(const reference_type& value) -> Type {
+    switch (value.index()) {
     case 0:  return Type::Car;
     case 1:  return Type::Params;
     case 2:  return Type::TrackControl;
     default: return Type::Unknown;
+    }
+}
+
+auto DebugMessage::getValue(const Type type) -> value_type {
+    switch (type) {
+    case Type::Car:          return std::tuple<CarProps, ControlData>{};
+    case Type::Params:       return ParamManager::Values{};
+    case Type::TrackControl: return LapControlParameters{};
+    default:                 throw std::runtime_error{"Invalid DebugMessage type"};
     }
 }
 
@@ -111,7 +132,7 @@ void DebugMessage::store(const std::tuple<CarProps, ControlData>& data) {
 
 void DebugMessage::load(std::tuple<CarProps, ControlData>& data) {
     auto& [car, controlData] = data;
-    auto items = jsonDoc_.to<JsonArray>();
+    auto items = jsonDoc_.as<JsonArray>();
 
     car.pose.pos.X      = millimeter_t(static_cast<float>(items[0].as<int32_t>()));
     car.pose.pos.Y      = millimeter_t(static_cast<float>(items[1].as<int32_t>()));

@@ -95,3 +95,9 @@ private:
     uint32_t lap_ = 0u;
     uint32_t section_ = 0u;
 };
+
+#define EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected, result)                               \
+    EXPECT_NEAR_UNIT_DEFAULT(expected.speed, result.speed);                                \
+    EXPECT_NEAR_UNIT_DEFAULT(expected.rampTime, result.rampTime);                          \
+    EXPECT_EQ_MICRO_ORIENTED_LINE(expected.lineGradient.first, result.lineGradient.first); \
+    EXPECT_EQ_MICRO_ORIENTED_LINE(expected.lineGradient.second, result.lineGradient.second)
