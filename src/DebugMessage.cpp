@@ -7,11 +7,13 @@
 #include <ArduinoJson.h>
 #include <etl/string.h>
 
+#include <micro/debug/ParamManager.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/log.hpp>
 #include <micro/utils/types.hpp>
 #include <micro/utils/str_utils.hpp>
+#include <micro/utils/units.hpp>
 
 #include <DebugMessage.hpp>
 
@@ -21,12 +23,35 @@ namespace {
 
 constexpr auto SEPARATOR_SIZE = std::char_traits<char>::length(micro::Log::SEPARATOR);
 
-auto serializeFloat(float value) {
+auto formatFloat(float value) {
     value = std::llround(value * 100) / 100.0f + micro::sgn(value) * 0.000001f;
     char str[12] = "";
     micro::ftoa(value, str, sizeof(str), 2);
     return serialized(etl::string<sizeof(str)>(str));
 }
+
+ParamManager::value_type parseParamValue(const JsonVariant& value) {
+    if (value.is<bool>()) {
+        return value.as<bool>();
+    } else if (value.is<uint8_t>()) {
+        return value.as<uint8_t>();
+    } else if (value.is<uint16_t>()) {
+        return value.as<uint16_t>();
+    } else if (value.is<uint32_t>()) {
+        return value.as<uint32_t>();
+    } else if (value.is<int8_t>()) {
+        return value.as<int8_t>();
+    } else if (value.is<int16_t>()) {
+        return value.as<int16_t>();
+    } else if (value.is<int32_t>()) {
+        return value.as<int32_t>();
+    } else if (value.is<float>()) {
+        return value.as<float>();
+    }
+
+    throw std::runtime_error{"Unknown param value type"};
+}
+
 } // namespace
 
 size_t DebugMessage::format(char * const output, const size_t size, const reference_type& value) {
@@ -119,14 +144,14 @@ void DebugMessage::store(const std::tuple<CarProps, ControlData>& data) {
 
     items[0]  = static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get()));
     items[1]  = static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get()));
-    items[2]  = serializeFloat(car.pose.angle.get());
-    items[3]  = serializeFloat(car.speed.get());
-    items[4]  = serializeFloat(car.frontWheelAngle.get());
-    items[5]  = serializeFloat(car.rearWheelAngle.get());
+    items[2]  = formatFloat(car.pose.angle.get());
+    items[3]  = formatFloat(car.speed.get());
+    items[4]  = formatFloat(car.frontWheelAngle.get());
+    items[5]  = formatFloat(car.rearWheelAngle.get());
     items[6]  = static_cast<int32_t>(std::lround(controlData.lineControl.actual.pos.get()));
-    items[7]  = serializeFloat(controlData.lineControl.actual.angle.get());
+    items[7]  = formatFloat(controlData.lineControl.actual.angle.get());
     items[8]  = static_cast<int32_t>(std::lround(controlData.lineControl.target.pos.get()));
-    items[9]  = serializeFloat(controlData.lineControl.target.angle.get());
+    items[9]  = formatFloat(controlData.lineControl.target.angle.get());
     items[10] = car.isRemoteControlled ? 1 : 0;
 }
 
@@ -151,7 +176,7 @@ void DebugMessage::store(const ParamManager::Values& params) {
     for (const auto& [name, param] : params) {
         std::visit([this, &name](const auto& v){
             if constexpr (std::is_same_v<std::decay_t<decltype(v)>, float>) {
-                jsonDoc_[name.c_str()] = serializeFloat(v);
+                jsonDoc_[name.c_str()] = formatFloat(v);
             } else {
                 jsonDoc_[name.c_str()] = v;
             }
@@ -160,7 +185,10 @@ void DebugMessage::store(const ParamManager::Values& params) {
 }
 
 void DebugMessage::load(ParamManager::Values& params) {
-    // TODO
+    for (auto entry : jsonDoc_.as<JsonObject>()) {
+        params.insert(std::make_pair(ParamManager::Name{
+            entry.key().c_str(), entry.key().size()}, parseParamValue(entry.value())));
+    }
 }
 
 void DebugMessage::store(const LapControlParameters& lapControl) {
@@ -168,16 +196,29 @@ void DebugMessage::store(const LapControlParameters& lapControl) {
     size_t i = 0;
     for (const auto& [name, control] : lapControl) {
         auto section = jsonDoc_[name.c_str()];
-        section[0] = serializeFloat(control.speed.get());
+        section[0] = formatFloat(control.speed.get());
         section[1] = static_cast<uint32_t>(std::lround(control.rampTime.get()));
         section[2] = static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get()));
-        section[3] = serializeFloat(control.lineGradient.first.angle.get());
+        section[3] = formatFloat(control.lineGradient.first.angle.get());
         section[4] = static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get()));
-        section[5] = serializeFloat(control.lineGradient.second.angle.get());
+        section[5] = formatFloat(control.lineGradient.second.angle.get());
         i++;
     }
 }
 
 void DebugMessage::load(LapControlParameters& lapControl) {
-    // TODO
+    for (auto entry : jsonDoc_.as<JsonObject>()) {
+        auto items = entry.value().as<JsonArray>();
+
+        TrackSection::ControlParameters control;
+        control.speed = m_per_sec_t(items[0].as<float>());
+        control.rampTime = millisecond_t(items[1].as<float>());
+        control.lineGradient.first.pos = millimeter_t(items[2].as<float>());
+        control.lineGradient.first.angle = radian_t(items[3].as<float>());
+        control.lineGradient.second.pos = millimeter_t(items[4].as<float>());
+        control.lineGradient.second.angle = radian_t(items[5].as<float>());
+
+        lapControl.insert(std::make_pair(ParamManager::Name{
+            entry.key().c_str(), entry.key().size()}, control));
+    }
 }
