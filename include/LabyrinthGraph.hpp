@@ -87,7 +87,7 @@ struct Junction {
     segment_map segments;
 
     segment_map::const_iterator getSideSegments(micro::radian_t orientation) const {
-        return const_cast<std::remove_const_t<decltype(this)>>(this)->getSideSegments(orientation);
+        return const_cast<Junction*>(this)->getSideSegments(orientation);
     }
 
     segment_map::iterator getSideSegments(micro::radian_t orientation) {
