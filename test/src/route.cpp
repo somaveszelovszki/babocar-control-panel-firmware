@@ -16,8 +16,9 @@ void checkRoute(const Connection& prevConn, const Segment& src, const Segment& d
     for (uint32_t i = 0; i < expectedConnections.size(); ++i) {
         EXPECT_EQ(seg, route.startSeg);
         const Connection *nextConn = route.firstConnection();
+        const auto decision = nextConn->getDecision(*(seg = nextConn->getOtherSegment(*seg)));
         EXPECT_EQ(expectedConnections[i].junction, nextConn->junction);
-        EXPECT_EQ(expectedConnections[i].decision, nextConn->getDecision(*(seg = nextConn->getOtherSegment(*seg))));
+        EXPECT_EQ_JUNCTION_DECISION(expectedConnections[i].decision, decision);
         route.pop_front();
     }
 

@@ -78,31 +78,31 @@ TEST(labyrinthGraph, junctions) {
     ASSERT_NE(nullptr, j1);
     ASSERT_EQ(2, j1->segments.size());
 
-    const Junction::segment_map::const_iterator j1_rightSideSegs = j1->getSideSegments(radian_t(0));
-    ASSERT_NE(nullptr, j1_rightSideSegs);
+    const auto j1_rightSideSegs = j1->getSideSegments(radian_t(0));
+    ASSERT_NE(j1->segments.end(), j1_rightSideSegs);
     ASSERT_EQ(2, j1_rightSideSegs->second.size());
-    EXPECT_EQ(graph.findSegment('B'), *j1_rightSideSegs->second.at(Direction::LEFT));
-    EXPECT_EQ(graph.findSegment('B'), *j1_rightSideSegs->second.at(Direction::RIGHT));
+    EXPECT_EQ(graph.findSegment('B'), j1_rightSideSegs->second.at(Direction::LEFT));
+    EXPECT_EQ(graph.findSegment('B'), j1_rightSideSegs->second.at(Direction::RIGHT));
 
-    const Junction::segment_map::const_iterator j1_leftSideSegs = j1->getSideSegments(PI);
-    ASSERT_NE(nullptr, j1_leftSideSegs);
+    const auto j1_leftSideSegs = j1->getSideSegments(PI);
+    ASSERT_NE(j1->segments.end(), j1_leftSideSegs);
     ASSERT_EQ(1, j1_leftSideSegs->second.size());
-    EXPECT_EQ(graph.findSegment('A'), *j1_leftSideSegs->second.at(Direction::CENTER));
+    EXPECT_EQ(graph.findSegment('A'), j1_leftSideSegs->second.at(Direction::CENTER));
 
     Junction * const j2 = graph.findJunction(2);
     ASSERT_NE(nullptr, j2);
     ASSERT_EQ(2, j2->segments.size());
 
-    const Junction::segment_map::const_iterator j2_rightSideSegs = j2->getSideSegments(radian_t(0));
-    ASSERT_NE(nullptr, j2_rightSideSegs);
+    const auto j2_rightSideSegs = j2->getSideSegments(radian_t(0));
+    ASSERT_NE(j2->segments.end(), j2_rightSideSegs);
     ASSERT_EQ(1, j2_rightSideSegs->second.size());
-    EXPECT_EQ(graph.findSegment('A'), *j2_rightSideSegs->second.at(Direction::CENTER));
+    EXPECT_EQ(graph.findSegment('A'), j2_rightSideSegs->second.at(Direction::CENTER));
 
-    const Junction::segment_map::const_iterator j2_leftSideSegs = j2->getSideSegments(PI);
-    ASSERT_NE(nullptr, j2_leftSideSegs);
+    const auto j2_leftSideSegs = j2->getSideSegments(PI);
+    ASSERT_NE(j2->segments.end(), j2_leftSideSegs);
     ASSERT_EQ(2, j2_leftSideSegs->second.size());
-    EXPECT_EQ(graph.findSegment('C'), *j2_leftSideSegs->second.at(Direction::LEFT));
-    EXPECT_EQ(graph.findSegment('C'), *j2_leftSideSegs->second.at(Direction::RIGHT));
+    EXPECT_EQ(graph.findSegment('C'), j2_leftSideSegs->second.at(Direction::LEFT));
+    EXPECT_EQ(graph.findSegment('C'), j2_leftSideSegs->second.at(Direction::RIGHT));
 }
 
 TEST(labyrinthGraph, connections) {

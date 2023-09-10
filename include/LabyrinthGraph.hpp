@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <etl/map.h>
 #include <etl/vector.h>
 
 #include <micro/utils/point2.hpp>
@@ -61,8 +62,8 @@ struct Connection : public Edge<Segment> {
 /* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    typedef micro::unsorted_map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
-    typedef micro::unsorted_map<micro::radian_t, side_segment_map, 2> segment_map;
+    typedef etl::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
+    typedef etl::map<micro::radian_t, side_segment_map, 2> segment_map;
     typedef etl::vector<std::pair<micro::radian_t, micro::Direction>, 2> segment_info;
 
     Junction(uint8_t id, const micro::point2<micro::meter_t>& pos)
@@ -86,13 +87,13 @@ struct Junction {
     segment_map segments;
 
     segment_map::const_iterator getSideSegments(micro::radian_t orientation) const {
-        return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const segment_map::entry_type& entry) {
-            return micro::eqWithOverflow360(orientation, entry.first, micro::PI_4);
-        });
+        return const_cast<std::remove_const_t<decltype(this)>>(this)->getSideSegments(orientation);
     }
 
     segment_map::iterator getSideSegments(micro::radian_t orientation) {
-        return const_cast<segment_map::iterator>(const_cast<const Junction*>(this)->getSideSegments(orientation));
+        return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const auto& entry) {
+            return micro::eqWithOverflow360(orientation, entry.first, micro::PI_4);
+        });
     }
 };
 
@@ -145,3 +146,7 @@ private:
     Junctions junctions_;
     Connections connections_;
 };
+
+#define EXPECT_EQ_JUNCTION_DECISION(expected, result)                                             \
+    EXPECT_TRUE(micro::eqWithOverflow360(expected.orientation, result.orientation, micro::PI_4)); \
+    EXPECT_EQ(expected.direction, result.direction)

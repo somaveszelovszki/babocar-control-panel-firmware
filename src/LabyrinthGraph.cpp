@@ -21,12 +21,12 @@ Status Junction::addSegment(Segment& seg, const JunctionDecision& decision) {
     segment_map::iterator sideSegments = this->getSideSegments(decision.orientation);
 
     if (sideSegments == this->segments.end()) {
-        this->segments.emplace(decision.orientation, side_segment_map());
+        this->segments.insert(std::make_pair(decision.orientation, side_segment_map()));
         sideSegments = this->getSideSegments(decision.orientation);
     }
 
-    if (!sideSegments->second.at(decision.direction)) {
-        sideSegments->second.emplace(decision.direction, &seg);
+    if (sideSegments->second.find(decision.direction) == sideSegments->second.end()) {
+        sideSegments->second.insert(std::make_pair(decision.direction, &seg));
         result = Status::OK;
     } else {
         result = Status::INVALID_DATA;
@@ -42,13 +42,12 @@ Segment* Junction::getSegment(radian_t orientation, Direction dir) const {
     segment_map::const_iterator sideSegments = this->getSideSegments(orientation);
 
     if (sideSegments != this->segments.end()) {
-        Segment * const * seg = sideSegments->second.at(dir);
-        if (seg) {
-            if (!(*seg)) {
+        if (const auto it = sideSegments->second.find(dir); it != sideSegments->second.end()) {
+            if (!it->second) {
                 LOG_ERROR("Junction %u: side segment in orientation: %fdeg and direction: %s is nullptr",
                     static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get(), to_string(dir));
             }
-            result = *seg;
+            result = it->second;
         } else {
             LOG_ERROR("Junction %u has no side segment in orientation: %fdeg in direction: %s",
                 static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get(), to_string(dir));
@@ -61,8 +60,8 @@ Segment* Junction::getSegment(radian_t orientation, Direction dir) const {
 }
 
 bool Junction::isConnected(const Segment& seg) const {
-    return std::find_if(this->segments.begin(), this->segments.end(), [seg] (const segment_map::entry_type& s1) {
-        return std::find_if(s1.second.begin(), s1.second.end(), [&seg] (const side_segment_map::entry_type& s2) {
+    return std::find_if(this->segments.begin(), this->segments.end(), [seg] (const auto& s1) {
+        return std::find_if(s1.second.begin(), s1.second.end(), [&seg] (const auto& s2) {
             return s2.second == &seg;
         }) != s1.second.end();
     }) != this->segments.end();
