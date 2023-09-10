@@ -7,7 +7,6 @@
 
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
-#include <micro/container/map.hpp>
 
 #include <cfg_track.hpp>
 #include <Graph.hpp>
@@ -62,9 +61,9 @@ struct Connection : public Edge<Segment> {
 /* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    typedef etl::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> side_segment_map;
-    typedef etl::map<micro::radian_t, side_segment_map, 2> segment_map;
-    typedef etl::vector<std::pair<micro::radian_t, micro::Direction>, 2> segment_info;
+    using side_segment_map = etl::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
+    using segment_map = etl::map<micro::radian_t, side_segment_map, 2>;
+    using segment_info = etl::vector<std::pair<micro::radian_t, micro::Direction>, 2>;
 
     Junction(uint8_t id, const micro::point2<micro::meter_t>& pos)
         : id(id)

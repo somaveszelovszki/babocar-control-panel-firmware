@@ -1,3 +1,5 @@
+#include <etl/map.h>
+
 #include <cfg_board.hpp>
 #include <micro/container/infinite_buffer.hpp>
 #include <micro/container/map.hpp>
@@ -30,7 +32,7 @@ struct ServoOffsets {
     micro::radian_t extra;
 };
 
-sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
+etl::map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     // speed        P      I      D
     { { 0.00f }, { 0.00f, 0.00f,   0.00f } },
     { { 0.10f }, { 2.20f, 0.00f, 120.00f } },
@@ -47,7 +49,7 @@ sorted_map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     { { 7.00f }, { 0.25f, 0.00f, 100.00f } }
 };
 
-sorted_map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
+etl::map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
     // speed        P      I      D
     { { 0.00f }, { 0.00f, 0.00f, 0.00f  } },
     { { 0.10f }, { 0.60f, 0.00f, 30.00f } },
