@@ -237,29 +237,29 @@ void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::
     if (this->isTargetLineOverrideEnabled(car, lineInfo)) {
         switch (this->targetSpeedSign_ * this->targetDir_) {
         case Direction::LEFT:
-            if (lineInfo.front.lines.size()) {
-                mainLine.frontLine = lineInfo.front.lines[0];
+            if (!lineInfo.front.lines.empty()) {
+                mainLine.frontLine = *lineInfo.front.lines.begin();
             }
-            if (lineInfo.rear.lines.size()) {
-                mainLine.rearLine = *lineInfo.rear.lines.back();
+            if (!lineInfo.rear.lines.empty()) {
+                mainLine.rearLine = *lineInfo.rear.lines.rbegin();
             }
             break;
 
         case Direction::CENTER:
             if (3 == lineInfo.front.lines.size()) {
-                mainLine.frontLine = lineInfo.front.lines[1];
+                mainLine.frontLine = *std::next(lineInfo.front.lines.begin());
             }
             if (3 == lineInfo.rear.lines.size()) {
-                mainLine.rearLine = lineInfo.rear.lines[1];
+                mainLine.rearLine = *std::next(lineInfo.rear.lines.begin());
             }
             break;
 
         case Direction::RIGHT:
             if (lineInfo.front.lines.size()) {
-                mainLine.frontLine = *lineInfo.front.lines.back();
+                mainLine.frontLine = *lineInfo.front.lines.rbegin();
             }
             if (lineInfo.rear.lines.size()) {
-                mainLine.rearLine = lineInfo.rear.lines[0];
+                mainLine.rearLine = *lineInfo.rear.lines.begin();
             }
             break;
         }
