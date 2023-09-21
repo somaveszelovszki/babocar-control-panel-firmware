@@ -2,8 +2,6 @@
 #include <optional>
 #include <variant>
 
-#include <ArduinoJson.hpp>
-
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/ParamManager.hpp>
@@ -20,7 +18,6 @@
 
 #include <cfg_board.hpp>
 #include <DebugMessage.hpp>
-#include <Distances.hpp>
 #include <globals.hpp>
 #include <RaceTrackController.hpp>
 
@@ -30,10 +27,10 @@ namespace {
 
 #define FAILING_TASKS_LOG_ENABLED true
 
-constexpr uint32_t MAX_BUFFER_SIZE = 1024;
+constexpr uint32_t MAX_BUFFER_SIZE = 256;
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
-ring_buffer<rxParams_t, 3> rxBuffer;
+ring_buffer<rxParams_t, 2> rxBuffer;
 Log::message_t txLog;
 char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;
@@ -79,31 +76,33 @@ extern "C" void runDebugTask(void) {
     Timer carPropsSendTimer(millisecond_t(50));
 
     while (true) {
-        const auto data = [inCmd = rxBuffer.startRead()]() -> DebugMessage::value_type {
-            if (inCmd) {
-                const auto d = DebugMessage::parse(reinterpret_cast<const char*>(*inCmd));
-                rxBuffer.finishRead();
-                return d;
+        const auto data = [inCmd = rxBuffer.startRead()]() -> std::optional<DebugMessage::value_type> {
+            if (!inCmd) {
+                return std::nullopt;
             }
-            return std::monostate{};
+
+            const auto d = DebugMessage::parse(const_cast<char*>(reinterpret_cast<const char*>(*inCmd)));
+            rxBuffer.finishRead();
+            return d;
         }();
 
-        std::visit(micro::variant_visitor{
-            [](const std::monostate&){},
-            [](const std::tuple<CarProps, ControlData>& v){},
+        if (data) {
+            std::visit(micro::variant_visitor{
+                [](const std::tuple<CarProps, ControlData>& v){},
 
-            [](const ParamManager::Values& params){
-                const auto notifyAllParams = params.empty();
-                const auto outParams = globalParams.update(notifyAllParams, params);
-                if (!outParams.empty()) {
-                    DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, outParams);
+                [](const ParamManager::Values& params){
+                    const auto notifyAllParams = params.empty();
+                    const auto outParams = globalParams.update(notifyAllParams, params);
+                    if (!outParams.empty()) {
+                        DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, outParams);
+                    }
+                },
+
+                [](const LapControlParameters& lapControl){
+                    lapControlOverrideQueue.overwrite(lapControl);
                 }
-            },
-
-            [](const LapControlParameters& lapControl){
-                lapControlOverrideQueue.overwrite(lapControl);
-            }
-        }, data);
+            }, *data);
+        }
 
         if (carPropsSendTimer.checkTimeout()) {
             std::tuple<CarProps, ControlData> data;

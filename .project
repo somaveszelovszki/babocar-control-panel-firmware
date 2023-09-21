@@ -28,6 +28,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>fmt-src</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-2-PROJECT_LOC%7D/micro-utils/thirdparty/fmt/src</locationURI>
+		</link>
+		<link>
 			<name>micro-utils</name>
 			<type>2</type>
 			<locationURI>PARENT-2-PROJECT_LOC/micro-utils</locationURI>
@@ -36,6 +41,11 @@
 			<name>micro-utils-src</name>
 			<type>2</type>
 			<locationURI>PARENT-2-PROJECT_LOC/micro-utils/src</locationURI>
+		</link>
+		<link>
+			<name>tiny-json</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/micro-utils/thirdparty/tiny-json</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

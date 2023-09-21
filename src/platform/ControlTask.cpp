@@ -2,7 +2,6 @@
 
 #include <cfg_board.hpp>
 #include <micro/container/infinite_buffer.hpp>
-#include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
@@ -10,6 +9,7 @@
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
 #include <micro/sensor/Filter.hpp>
+#include <micro/utils/algorithm.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
@@ -75,7 +75,6 @@ radian_t frontWheelTargetAngle;
 radian_t rearWheelTargetAngle;
 radian_t frontDistSensorServoTargetAngle;
 
-canFrame_t rxCanFrame;
 CanFrameHandler vehicleCanFrameHandler;
 CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
@@ -104,7 +103,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     const radian_t actualControlAngle = actualLine.centerLine.angle;
     const radian_t targetControlAngle = targetLine.centerLine.angle;
 
-    frontLinePosController.tune(frontLinePosControllerParams.lerp(abs(car.speed)));
+    frontLinePosController.tune(*micro::lerp(frontLinePosControllerParams, abs(car.speed)));
 
     const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
 
@@ -121,7 +120,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
     if (controlData.rearSteerEnabled) {
-        rearLinePosController.tune(rearLineAngleControllerParams.lerp(abs(car.speed)));
+        rearLinePosController.tune(*micro::lerp(rearLineAngleControllerParams, abs(car.speed)));
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
@@ -158,8 +157,8 @@ extern "C" void runControlTask(void) {
     WatchdogTimer controlDataWatchdog(millisecond_t(500));
 
     while (true) {
-        while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
-            vehicleCanFrameHandler.handleFrame(rxCanFrame);
+        while (const auto frame = vehicleCanManager.read(vehicleCanSubscriberId)) {
+            vehicleCanFrameHandler.handleFrame(*frame);
         }
 
         // if no control data is received for a given period, stops motor for safety reasons

@@ -32,7 +32,6 @@ hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro);
 
 semaphore_t dataReadySemaphore;
 
-canFrame_t rxCanFrame;
 CanFrameHandler vehicleCanFrameHandler;
 CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
@@ -95,8 +94,8 @@ extern "C" void runVehicleStateTask(void) {
     WatchdogTimer gyroDataWd(millisecond_t(15));
 
     while (true) {
-        while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
-            vehicleCanFrameHandler.handleFrame(rxCanFrame);
+        while (const auto frame = vehicleCanManager.read(vehicleCanSubscriberId)) {
+            vehicleCanFrameHandler.handleFrame(*frame);
         }
 
         point2m pos;

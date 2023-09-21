@@ -17,7 +17,6 @@ namespace {
 
 LineInfo lineInfo;
 
-canFrame_t rxCanFrame;
 CanFrameHandler vehicleCanFrameHandler;
 CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
@@ -65,8 +64,8 @@ extern "C" void runLineDetectTask(void) {
         CarProps car;
         carPropsQueue.peek(car, millisecond_t(0));
 
-        while (vehicleCanManager.read(vehicleCanSubscriberId, rxCanFrame)) {
-            vehicleCanFrameHandler.handleFrame(rxCanFrame);
+        while (const auto frame = vehicleCanManager.read(vehicleCanSubscriberId)) {
+            vehicleCanFrameHandler.handleFrame(*frame);
         }
 
         if (lineInfo.front.pattern != prevLineInfo.front.pattern) {

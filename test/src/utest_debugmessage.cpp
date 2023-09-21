@@ -46,12 +46,13 @@ void testFormat(const DebugMessage::reference_type& data, const char * const exp
     EXPECT_STREQ(expected, msg);
 }
 
-void testParse(const DebugMessage::value_type& expected, const char * const str) {
-    const auto result = DebugMessage::parse(str);
-    ASSERT_EQ(expected.index(), result.index());
+void testParse(const DebugMessage::value_type& expected, etl::string<512> json) {
+    const auto result = DebugMessage::parse(const_cast<char*>(json.c_str()));
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(expected.index(), result->index());
 
     std::visit(
-        [&result](const auto& exp){ expectEqual(exp, std::get<std::decay_t<decltype(exp)>>(result)); },
+        [&result](const auto& exp){ expectEqual(exp, std::get<std::decay_t<decltype(exp)>>(*result)); },
         expected);
 }
 

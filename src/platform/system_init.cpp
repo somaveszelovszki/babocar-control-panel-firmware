@@ -16,7 +16,7 @@ extern "C" void system_init(void) {
         Error_Handler();
     }
 
-    time_init(timer_t{ tim_System });
+    time_init(micro::timer_t{ tim_System });
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t, char*) {
