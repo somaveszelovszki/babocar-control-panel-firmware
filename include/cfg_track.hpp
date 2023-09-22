@@ -14,6 +14,7 @@ constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS_SIDE = 3;
 constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS      = MAX_NUM_CROSSING_SEGMENTS_SIDE * 2;
 constexpr micro::meter_t  MIN_JUNCTION_LENGTH            = micro::centimeter_t(20);
 constexpr uint8_t         NUM_RACE_LAPS                  = 6;
+constexpr uint8_t         MAX_NUM_RACE_SEGMENTS          = 25;
 constexpr micro::radian_t MAX_TARGET_LINE_ANGLE          = micro::degree_t(18);
 
 enum class ProgramState : uint8_t {

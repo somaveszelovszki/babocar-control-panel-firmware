@@ -83,7 +83,7 @@ MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
 constexpr uint32_t D_FILTER_SIZE = 30;
-infinite_buffer<std::pair<centimeter_t, degree_t>, 100> prevLineErrors;
+infinite_buffer<std::pair<centimeter_t, degree_t>, D_FILTER_SIZE + 1> prevLineErrors;
 
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 

@@ -27,7 +27,7 @@ namespace {
 
 #define FAILING_TASKS_LOG_ENABLED true
 
-constexpr uint32_t MAX_BUFFER_SIZE = 256;
+constexpr uint32_t MAX_BUFFER_SIZE = 512;
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
 ring_buffer<rxParams_t, 2> rxBuffer;

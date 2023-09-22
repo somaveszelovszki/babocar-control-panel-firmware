@@ -1,4 +1,7 @@
 #include <cfg_track.hpp>
+
+#if TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
+
 #include <LabyrinthGraph.hpp>
 #include <track.hpp>
 
@@ -99,3 +102,5 @@ LabyrinthGraph buildRaceLabyrinthGraph() {
     
     return graph;
 }
+
+#endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS

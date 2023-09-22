@@ -5,11 +5,19 @@
 
 class LabyrinthGraph;
 
+#if TRACK == TEST_TRACK || COMPILE_ALL_TRACKS
+
 RaceTrackSections buildTestTrackSections();
 LabyrinthGraph buildTestLabyrinthGraph();
 
+#endif // TRACK == TEST_TRACK || COMPILE_ALL_TRACKS
+
+#if TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
+
 RaceTrackSections buildRaceTrackSections();
 LabyrinthGraph buildRaceLabyrinthGraph();
+
+#endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
 
 #if TRACK == RACE_TRACK
 

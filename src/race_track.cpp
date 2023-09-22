@@ -1,4 +1,9 @@
+#include <cfg_track.hpp>
+
+#if TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
+
 #include <RaceTrackController.hpp>
+#include <track.hpp>
 
 using namespace micro;
 
@@ -140,3 +145,5 @@ RaceTrackSections buildRaceTrackSections() {
 
     return sections;
 }
+
+#endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS

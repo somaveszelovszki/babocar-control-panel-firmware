@@ -40,7 +40,7 @@ struct TrackSection {
         std::pair<micro::OrientedLine, micro::OrientedLine> lineGradient;
     };
 
-    using Name = etl::string<15>;
+    using Name = etl::string<20>;
 
     Name name;
     bool isFast = false;
@@ -57,8 +57,8 @@ struct TrackSection {
     micro::OrientedLine getTargetLine(const micro::CarProps& car) const;
 };
 
-using LapControlParameters = etl::map<TrackSection::Name, TrackSection::ControlParameters, 30>;
-using LapTrackSections = etl::vector<TrackSection, 30>;
+using LapControlParameters = etl::map<TrackSection::Name, TrackSection::ControlParameters, cfg::MAX_NUM_RACE_SEGMENTS>;
+using LapTrackSections = etl::vector<TrackSection, cfg::MAX_NUM_RACE_SEGMENTS>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
 class RaceTrackController {

@@ -14,6 +14,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC etl::etl micro_utils)
 
 if (BUILD_TESTS)
     message("Tests are enabled")
+    add_compile_definitions(COMPILE_ALL_TRACKS)
     enable_testing()
     add_subdirectory(test)
 endif()

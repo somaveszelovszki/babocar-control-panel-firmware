@@ -1,4 +1,3 @@
-#include <micro/container/infinite_buffer.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/math/numeric.hpp>
