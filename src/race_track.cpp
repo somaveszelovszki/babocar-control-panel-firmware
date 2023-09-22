@@ -88,42 +88,44 @@ LapTrackSections buildLapTrackSections(
         const Data<degree_t>& endLineAngles,
         const OrientedLine& lineGradientStart) {
 
-#define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                         \
-sections.push_back(TrackSection{                                                            \
-    #name,                                                                                  \
-    isFast,                                                                                 \
-    length,                                                                                 \
-    TrackSection::TransitionCriteria::transitionCriteria,                                   \
-    speeds.name,                                                                            \
-    rampTimes.name,                                                                         \
-    {                                                                                       \
-        sections.empty() ? lineGradientStart : sections.back().control.lineGradient.second, \
-        { endLinePositions.name, endLineAngles.name }                                       \
-    }                                                                                       \
+#define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                             \
+sections.push_back(TrackSection{                                                                \
+    #name,                                                                                      \
+    isFast,                                                                                     \
+    length,                                                                                     \
+    TrackSection::TransitionCriteria::transitionCriteria,                                       \
+    TrackSection::ControlParameters{                                                            \
+        speeds.name,                                                                            \
+        rampTimes.name,                                                                         \
+        {                                                                                       \
+            sections.empty() ? lineGradientStart : sections.back().control.lineGradient.second, \
+            { endLinePositions.name, endLineAngles.name }                                       \
+        }                                                                                       \
+    }                                                                                           \
 })
 
     LapTrackSections sections;
 
-    ADD_TRACK_SECTION(fast1,         true,  meter_t(5.60), pattern(LinePattern::BRAKE)      );
+    ADD_TRACK_SECTION(fast1,         true,  meter_t(5.60), pattern(LinePattern::BRAKE));
     ADD_TRACK_SECTION(slow1_prepare, false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
-    ADD_TRACK_SECTION(slow1_round1,  false, meter_t(1.20), distance()                       );
-    ADD_TRACK_SECTION(slow1_round2,  false, meter_t(1.20), acceleration()                   );
-    ADD_TRACK_SECTION(fast2,         true,  meter_t(7.30), pattern(LinePattern::BRAKE)      );
+    ADD_TRACK_SECTION(slow1_round1,  false, meter_t(1.20), distance());
+    ADD_TRACK_SECTION(slow1_round2,  false, meter_t(1.20), acceleration());
+    ADD_TRACK_SECTION(fast2,         true,  meter_t(7.30), pattern(LinePattern::BRAKE));
     ADD_TRACK_SECTION(slow2_prepare, false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
-    ADD_TRACK_SECTION(slow2_begin1,  false, meter_t(1.00), distance()                       );
-    ADD_TRACK_SECTION(slow2_begin2,  false, meter_t(1.00), distance()                       );
-    ADD_TRACK_SECTION(slow2_round1,  false, meter_t(1.90), distance()                       );
-    ADD_TRACK_SECTION(slow2_round2,  false, meter_t(1.40), acceleration()                   );
-    ADD_TRACK_SECTION(fast3,         true,  meter_t(7.70), pattern(LinePattern::BRAKE)      );
+    ADD_TRACK_SECTION(slow2_begin1,  false, meter_t(1.00), distance());
+    ADD_TRACK_SECTION(slow2_begin2,  false, meter_t(1.00), distance());
+    ADD_TRACK_SECTION(slow2_round1,  false, meter_t(1.90), distance());
+    ADD_TRACK_SECTION(slow2_round2,  false, meter_t(1.40), acceleration());
+    ADD_TRACK_SECTION(fast3,         true,  meter_t(7.70), pattern(LinePattern::BRAKE));
     ADD_TRACK_SECTION(slow3_prepare, false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
-    ADD_TRACK_SECTION(slow3_round1,  false, meter_t(1.90), distance()                       );
-    ADD_TRACK_SECTION(slow3_round2,  false, meter_t(1.70), distance()                       );
-    ADD_TRACK_SECTION(slow3_end1,    false, meter_t(0.80), distance()                       );
-    ADD_TRACK_SECTION(slow3_end2,    false, meter_t(0.80), acceleration()                   );
-    ADD_TRACK_SECTION(fast4,         true,  meter_t(7.30), pattern(LinePattern::BRAKE)      );
+    ADD_TRACK_SECTION(slow3_round1,  false, meter_t(1.90), distance());
+    ADD_TRACK_SECTION(slow3_round2,  false, meter_t(1.70), distance());
+    ADD_TRACK_SECTION(slow3_end1,    false, meter_t(0.80), distance());
+    ADD_TRACK_SECTION(slow3_end2,    false, meter_t(0.80), acceleration());
+    ADD_TRACK_SECTION(fast4,         true,  meter_t(7.30), pattern(LinePattern::BRAKE));
     ADD_TRACK_SECTION(slow4_prepare, false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
-    ADD_TRACK_SECTION(slow4_round1,  false, meter_t(1.10), distance()                       );
-    ADD_TRACK_SECTION(slow4_round2,  false, meter_t(1.10), acceleration()                   );
+    ADD_TRACK_SECTION(slow4_round1,  false, meter_t(1.10), distance());
+    ADD_TRACK_SECTION(slow4_round2,  false, meter_t(1.10), acceleration());
 
     return sections;
 }

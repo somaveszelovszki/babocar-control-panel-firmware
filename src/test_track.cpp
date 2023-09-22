@@ -90,18 +90,20 @@ LapTrackSections buildLapTrackSections(
         const Data<degree_t>& endLineAngles,
         const OrientedLine& lineGradientStart) {
 
-#define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                         \
-sections.push_back(TrackSection{                                                            \
-    #name,                                                                                  \
-    isFast,                                                                                 \
-    length,                                                                                 \
-    TrackSection::TransitionCriteria::transitionCriteria,                                   \
-    speeds.name,                                                                            \
-    rampTimes.name,                                                                         \
-    {                                                                                       \
-        sections.empty() ? lineGradientStart : sections.back().control.lineGradient.second, \
-        { endLinePositions.name, endLineAngles.name }                                       \
-    }                                                                                       \
+#define ADD_TRACK_SECTION(name, isFast, length, transitionCriteria)                             \
+sections.push_back(TrackSection{                                                                \
+    #name,                                                                                      \
+    isFast,                                                                                     \
+    length,                                                                                     \
+    TrackSection::TransitionCriteria::transitionCriteria,                                       \
+    TrackSection::ControlParameters{                                                            \
+        speeds.name,                                                                            \
+        rampTimes.name,                                                                         \
+        {                                                                                       \
+            sections.empty() ? lineGradientStart : sections.back().control.lineGradient.second, \
+            { endLinePositions.name, endLineAngles.name }                                       \
+        }                                                                                       \
+    }                                                                                           \
 })
 
     LapTrackSections sections;

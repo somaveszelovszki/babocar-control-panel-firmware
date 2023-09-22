@@ -30,7 +30,7 @@ struct TrackSection {
         }
 
         static TransitionCriteria acceleration() {
-            return { std::nullopt, micro::centimeter_t(150), micro::centimeter_t(25) };
+            return { micro::LinePattern::ACCELERATE, micro::centimeter_t(150), micro::centimeter_t(25) };
         }
     };
 
@@ -67,8 +67,6 @@ public:
 
     micro::ControlData update(const micro::CarProps& car, const micro::LineInfo& lineInfo, const micro::MainLine& mainLine);
 
-    void overrideSections(const LapTrackSections& sections);
-
     void setSection(const micro::CarProps& car, const uint32_t lap, const uint32_t section);
 
     uint32_t getFastSectionIndex(uint32_t n) const;
@@ -77,10 +75,10 @@ public:
     micro::meter_t getSectionStartDistance() const { return this->section().startCarProps.distance; }
 
     uint32_t lap() const { return this->lap_; }
-    uint32_t sectionNumber() const { return this->section_; }
+    uint32_t sectionIndex() const { return this->sectionIdx_; }
 
     LapControlParameters getControlParameters() const;
-    void setControlParameters(const LapControlParameters& lapControl);
+    void overrideControlParameters(const LapControlParameters& lapControl);
 
 private:
     const LapTrackSections& lapSections() const;
@@ -93,7 +91,7 @@ private:
     std::optional<LapTrackSections> sectionsOverride_;
 
     uint32_t lap_ = 0u;
-    uint32_t section_ = 0u;
+    uint32_t sectionIdx_ = 0u;
 };
 
 #define EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected, result)                               \

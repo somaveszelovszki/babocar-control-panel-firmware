@@ -104,7 +104,7 @@ extern "C" void runProgRaceTrackTask(void) {
 
             LapControlParameters lapControl;
             if (lapControlOverrideQueue.receive(lapControl, millisecond_t(0))) {
-                trackController.setControlParameters(lapControl);
+                trackController.overrideControlParameters(lapControl);
             }
 
             // runs for the first time that this task handles the program state
@@ -146,7 +146,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 controlData.speed = safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast());
                 controlData.rampTime = millisecond_t(0);
 
-                if (overtakeSection == trackController.sectionNumber() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
+                if (overtakeSection == trackController.sectionIndex() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::OvertakeSafetyCar));
                     LOG_DEBUG("Starts overtake");
                 } else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackController.isCurrentSectionFast()) {
