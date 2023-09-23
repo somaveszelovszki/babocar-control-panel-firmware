@@ -11,10 +11,10 @@
 using namespace micro;
 
 bool TrackSection::checkTransition(const CarProps& car, const LinePattern& pattern) {
-    this->transitionPatternDetected |= (!this->transitionCriteria.patternType || this->transitionCriteria.patternType == pattern.type);
-    return this->transitionPatternDetected
-            && car.distance - this->startCarProps.distance > this->length - this->transitionCriteria.distanceTolerance
-            && car.orientedDistance > this->transitionCriteria.minOrientedDistance;
+    transitionPatternDetected |= (!transitionCriteria.patternType || transitionCriteria.patternType == pattern.type);
+    return (transitionPatternDetected
+            || car.distance - startCarProps.distance > length + transitionCriteria.distanceTolerance)
+            && car.orientedDistance >= transitionCriteria.minOrientedDistance;
 }
 
 ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLine) {
@@ -22,30 +22,32 @@ ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLi
 
     controlData.lineControl.actual = mainLine.centerLine;
     controlData.lineControl.target = getTargetLine(car);
-    controlData.rearSteerEnabled   = !this->isFast;
+    controlData.rearSteerEnabled   = !isFast;
 
-    const bool isCloseToLine = abs(controlData.lineControl.actual.pos - controlData.lineControl.target.pos) < centimeter_t(12);
+    controlData.speed = [this, &car, &controlData](){
+        const bool isCloseToLine = abs(controlData.lineControl.actual.pos - controlData.lineControl.target.pos) < centimeter_t(12);
 
-    if (this->fullSpeedEnabled) {
-        this->fullSpeedEnabled = !this->isFast || isCloseToLine;
-    } else if (isCloseToLine && car.orientedDistance > centimeter_t(50)) {
-        this->fullSpeedEnabled = true;
-    }
+        if (fullSpeedEnabled) {
+            fullSpeedEnabled = !isFast || isCloseToLine;
+        } else if (isCloseToLine && car.orientedDistance > centimeter_t(50)) {
+            fullSpeedEnabled = true;
+        }
 
-    controlData.speed    = this->fullSpeedEnabled ? this->control.speed : this->control.speed / 2;
-    controlData.rampTime = this->control.rampTime;
+        return fullSpeedEnabled ? control.speed : control.speed / 2;
+    }();
 
+    controlData.rampTime = control.rampTime;
     return controlData;
 }
 
 micro::OrientedLine TrackSection::getTargetLine(const micro::CarProps& car) const {
-    const auto map = [&car, this](const auto& from, const auto& to){
-        return micro::map(car.distance, this->startCarProps.distance, this->startCarProps.distance + this->length, from, to);
+    const auto lerpDistance = [&car, this](const auto& from, const auto& to){
+        return micro::map(car.distance, startCarProps.distance, startCarProps.distance + length, from, to);
     };
 
     return {
-        map(this->control.lineGradient.first.pos, this->control.lineGradient.second.pos),
-        map(this->control.lineGradient.first.angle, this->control.lineGradient.second.angle)
+        lerpDistance(control.lineGradient.first.pos, control.lineGradient.second.pos),
+        lerpDistance(control.lineGradient.first.angle, control.lineGradient.second.angle)
     };
 }
 
@@ -53,27 +55,27 @@ RaceTrackController::RaceTrackController(RaceTrackSections sections)
     : sections_(std::move(sections)) {}
 
 ControlData RaceTrackController::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine) {
-    if (this->section().checkTransition(car, lineInfo.front.pattern)) {
-        this->sectionIdx_ = incr_overflow(this->sectionIdx_, this->lapSections().size());
+    if (section().checkTransition(car, lineInfo.front.pattern)) {
+        sectionIdx_ = incr_overflow(sectionIdx_, lapSections().size());
 
-        if (this->sectionIdx_ == 0) {
-            ++this->lap_;
+        if (sectionIdx_ == 0) {
+            ++lap_;
         }
 
-        this->section().startCarProps = car;
+        section().startCarProps = car;
     }
 
-    return this->section().getControl(car, mainLine);
+    return section().getControl(car, mainLine);
 }
 
-void RaceTrackController::setSection(const CarProps& car, const uint32_t lap, const uint32_t section) {
-    this->lap_ = lap;
-    this->sectionIdx_ = section;
-    this->section().startCarProps = car;
+void RaceTrackController::setSection(const CarProps& car, const size_t lap, const size_t sectionIdx) {
+    lap_ = lap;
+    sectionIdx_ = sectionIdx;
+    section().startCarProps = car;
 }
 
-uint32_t RaceTrackController::getFastSectionIndex(uint32_t n) const {
-    uint32_t i = 0u;
+size_t RaceTrackController::getFastSectionIndex(size_t n) const {
+    size_t i = 0u;
 
     for (; i < sections_[0].size(); ++i) {
         if (sections_[0][i].isFast && --n == 0) {
@@ -81,12 +83,12 @@ uint32_t RaceTrackController::getFastSectionIndex(uint32_t n) const {
         }
     }
 
-    return i < sections_[0].size() ? i : std::numeric_limits<uint32_t>::max();
+    return i < sections_[0].size() ? i : std::numeric_limits<size_t>::max();
 }
 
 LapControlParameters RaceTrackController::getControlParameters() const {
     LapControlParameters lapControl;
-    const auto& sections = this->lapSections();
+    const auto& sections = lapSections();
     std::transform(sections.begin(), sections.end(), std::inserter(lapControl, lapControl.end()),
         [](const auto& s){ return std::pair{s.name, s.control}; });
     return lapControl;
@@ -94,7 +96,7 @@ LapControlParameters RaceTrackController::getControlParameters() const {
 
 void RaceTrackController::overrideControlParameters(const LapControlParameters& lapControl) {
     if (!sectionsOverride_) {
-        sectionsOverride_ = this->lapSections();
+        sectionsOverride_ = lapSections();
     }
 
     for (const auto& [name, control] : lapControl) {
@@ -107,17 +109,17 @@ void RaceTrackController::overrideControlParameters(const LapControlParameters& 
 }
 
 const LapTrackSections& RaceTrackController::lapSections() const {
-    return this->sectionsOverride_ ? *this->sectionsOverride_ : this->sections_[this->lap_ - 1];
+    return sectionsOverride_ ? *sectionsOverride_ : sections_[lap_ - 1];
 }
 
 LapTrackSections& RaceTrackController::lapSections() {
-    return this->sectionsOverride_ ? *this->sectionsOverride_ : this->sections_[this->lap_ - 1];
+    return sectionsOverride_ ? *sectionsOverride_ : sections_[lap_ - 1];
 }
 
 const TrackSection& RaceTrackController::section() const {
-    return this->lapSections()[this->sectionIdx_];
+    return lapSections()[sectionIdx_];
 }
 
 TrackSection& RaceTrackController::section() {
-    return this->lapSections()[this->sectionIdx_];
+    return lapSections()[sectionIdx_];
 }

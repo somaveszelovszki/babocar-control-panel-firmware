@@ -67,15 +67,15 @@ public:
 
     micro::ControlData update(const micro::CarProps& car, const micro::LineInfo& lineInfo, const micro::MainLine& mainLine);
 
-    void setSection(const micro::CarProps& car, const uint32_t lap, const uint32_t section);
+    void setSection(const micro::CarProps& car, const size_t lap, const size_t sectionIdx);
 
-    uint32_t getFastSectionIndex(uint32_t n) const;
+    size_t getFastSectionIndex(const size_t n) const;
 
-    bool isCurrentSectionFast() const { return this->section().isFast; }
-    micro::meter_t getSectionStartDistance() const { return this->section().startCarProps.distance; }
+    bool isCurrentSectionFast() const { return section().isFast; }
+    micro::meter_t getSectionStartDistance() const { return section().startCarProps.distance; }
 
-    uint32_t lap() const { return this->lap_; }
-    uint32_t sectionIndex() const { return this->sectionIdx_; }
+    size_t lap() const { return lap_; }
+    size_t sectionIndex() const { return sectionIdx_; }
 
     LapControlParameters getControlParameters() const;
     void overrideControlParameters(const LapControlParameters& lapControl);
@@ -90,8 +90,8 @@ private:
     RaceTrackSections sections_;
     std::optional<LapTrackSections> sectionsOverride_;
 
-    uint32_t lap_ = 0u;
-    uint32_t sectionIdx_ = 0u;
+    size_t lap_ = 0u;
+    size_t sectionIdx_ = 0u;
 };
 
 #define EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected, result)                               \
