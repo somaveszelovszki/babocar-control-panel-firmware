@@ -18,7 +18,7 @@
 struct TrackSection {
     struct TransitionCriteria {
         std::optional<micro::LinePattern::type_t> patternType;
-        micro::meter_t distanceTolerance;
+        micro::meter_t maxDistanceOvershoot;
         micro::meter_t minOrientedDistance;
 
         static TransitionCriteria distance() {

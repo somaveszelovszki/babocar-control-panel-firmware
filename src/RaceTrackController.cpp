@@ -11,9 +11,9 @@
 using namespace micro;
 
 bool TrackSection::checkTransition(const CarProps& car, const LinePattern& pattern) {
-    transitionPatternDetected |= (!transitionCriteria.patternType || transitionCriteria.patternType == pattern.type);
+    transitionPatternDetected |= (transitionCriteria.patternType && transitionCriteria.patternType == pattern.type);
     return (transitionPatternDetected
-            || car.distance - startCarProps.distance > length + transitionCriteria.distanceTolerance)
+            || car.distance - startCarProps.distance >= length + transitionCriteria.maxDistanceOvershoot)
             && car.orientedDistance >= transitionCriteria.minOrientedDistance;
 }
 
@@ -25,7 +25,7 @@ ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLi
     controlData.rearSteerEnabled   = !isFast;
 
     controlData.speed = [this, &car, &controlData](){
-        const bool isCloseToLine = abs(controlData.lineControl.actual.pos - controlData.lineControl.target.pos) < centimeter_t(12);
+        const bool isCloseToLine = abs(controlData.lineControl.actual.pos - controlData.lineControl.target.pos) < centimeter_t(10);
 
         if (fullSpeedEnabled) {
             fullSpeedEnabled = !isFast || isCloseToLine;
