@@ -13,7 +13,10 @@ using namespace testing;
 
 namespace {
 
-RaceTrackSections buildSections() {
+RaceTrackSections buildSections(const bool enableLineOffset, const bool enableLineAngle) {
+   const auto offset = enableLineOffset ? centimeter_t(10) : centimeter_t(0);
+   const auto angle = enableLineAngle ? degree_t(15) : degree_t(0);
+
    LapTrackSections sections{
       {
          "fast",
@@ -25,7 +28,7 @@ RaceTrackSections buildSections() {
             millisecond_t(500),
             {
                OrientedLine{centimeter_t(0), degree_t(0)},
-               OrientedLine{centimeter_t(0), degree_t(0)}
+               OrientedLine{offset, angle}
             }
          }
       },
@@ -38,8 +41,8 @@ RaceTrackSections buildSections() {
             m_per_sec_t(1),
             millisecond_t(500),
             {
-               OrientedLine{centimeter_t(0), degree_t(0)},
-               OrientedLine{centimeter_t(0), degree_t(0)}
+               OrientedLine{offset, angle},
+               OrientedLine{-offset, -angle}
             }
          }
       },
@@ -52,7 +55,7 @@ RaceTrackSections buildSections() {
             m_per_sec_t(2),
             millisecond_t(500),
             {
-               OrientedLine{centimeter_t(0), degree_t(0)},
+               OrientedLine{-offset, -angle},
                OrientedLine{centimeter_t(0), degree_t(0)}
             }
          }
@@ -62,9 +65,9 @@ RaceTrackSections buildSections() {
    return {sections, sections}; // same track section parameters for 2 laps
 }
 
-class RaceTrackControllerTest : public Test {
+class RaceTrackControllerTestBase : public Test {
 public:
-   RaceTrackControllerTest() {
+   RaceTrackControllerTestBase(RaceTrackSections sections) : trackController_{std::move(sections)} {
       setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), degree_t(0)});
    }
 
@@ -82,13 +85,28 @@ protected:
    }
 
 protected:
-   RaceTrackController trackController_{buildSections()};
+   RaceTrackController trackController_;
    CarProps car_;
    LineInfo lineInfo_;
    MainLine mainLine_{cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST};
 };
 
-TEST_F(RaceTrackControllerTest, sameSection) {
+class RaceTrackControllerCenterLineTest : public RaceTrackControllerTestBase {
+public:
+   RaceTrackControllerCenterLineTest() : RaceTrackControllerTestBase(buildSections(false, false)) {}
+};
+
+class RaceTrackControllerOffsetTest : public RaceTrackControllerTestBase {
+public:
+   RaceTrackControllerOffsetTest() : RaceTrackControllerTestBase(buildSections(true, false)) {}
+};
+
+class RaceTrackControllerAngleTest : public RaceTrackControllerTestBase {
+public:
+   RaceTrackControllerAngleTest() : RaceTrackControllerTestBase(buildSections(false, true)) {}
+};
+
+TEST_F(RaceTrackControllerCenterLineTest, sameSection) {
    trackController_.setSection(car_, 1, 0);
 
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
@@ -98,7 +116,7 @@ TEST_F(RaceTrackControllerTest, sameSection) {
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
 }
 
-TEST_F(RaceTrackControllerTest, transitionPatternBeforeSectionDistance) {
+TEST_F(RaceTrackControllerCenterLineTest, transitionPatternBeforeSectionDistance) {
    trackController_.setSection(car_, 1, 0);
 
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
@@ -109,7 +127,7 @@ TEST_F(RaceTrackControllerTest, transitionPatternBeforeSectionDistance) {
    checkUpdate(1, 1,{m_per_sec_t(1), millisecond_t(500), true, {}});
 }
 
-TEST_F(RaceTrackControllerTest, transitionPatternAfterSectionDistance) {
+TEST_F(RaceTrackControllerCenterLineTest, transitionPatternAfterSectionDistance) {
    trackController_.setSection(car_, 1, 0);
 
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
@@ -120,7 +138,7 @@ TEST_F(RaceTrackControllerTest, transitionPatternAfterSectionDistance) {
    checkUpdate(1, 1,{m_per_sec_t(1), millisecond_t(500), true, {}});
 }
 
-TEST_F(RaceTrackControllerTest, transitionDistanceToleranceExceeded) {
+TEST_F(RaceTrackControllerCenterLineTest, transitionDistanceToleranceExceeded) {
    trackController_.setSection(car_, 1, 0);
 
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
@@ -129,7 +147,7 @@ TEST_F(RaceTrackControllerTest, transitionDistanceToleranceExceeded) {
    checkUpdate(1, 1,{m_per_sec_t(1), millisecond_t(500), true, {}});
 }
 
-TEST_F(RaceTrackControllerTest, transitionDistance) {
+TEST_F(RaceTrackControllerCenterLineTest, transitionDistance) {
    car_.distance = meter_t(3);
    trackController_.setSection(car_, 1, 1);
 
@@ -142,7 +160,7 @@ TEST_F(RaceTrackControllerTest, transitionDistance) {
    checkUpdate(1, 2,{m_per_sec_t(2), millisecond_t(500), true, {}});
 }
 
-TEST_F(RaceTrackControllerTest, transitionAcceleration) {
+TEST_F(RaceTrackControllerCenterLineTest, transitionAcceleration) {
    car_.distance = meter_t(3);
    trackController_.setSection(car_, 1, 2);
 
@@ -154,7 +172,7 @@ TEST_F(RaceTrackControllerTest, transitionAcceleration) {
    checkUpdate(2, 0,{m_per_sec_t(3), millisecond_t(500), false, {}});
 }
 
-TEST_F(RaceTrackControllerTest, limitFastSpeed) {
+TEST_F(RaceTrackControllerCenterLineTest, limitFastSpeed) {
    trackController_.setSection(car_, 1, 0);
 
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
