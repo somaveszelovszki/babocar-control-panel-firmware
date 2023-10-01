@@ -13,9 +13,12 @@ using namespace testing;
 
 namespace {
 
+constexpr auto LINE_OFFSET = centimeter_t(10);
+constexpr auto LINE_ANGLE = degree_t(15);
+
 RaceTrackSections buildSections(const bool enableLineOffset, const bool enableLineAngle) {
-   const auto offset = enableLineOffset ? centimeter_t(10) : centimeter_t(0);
-   const auto angle = enableLineAngle ? degree_t(15) : degree_t(0);
+   const auto offset = enableLineOffset ? LINE_OFFSET : centimeter_t(0);
+   const auto angle = enableLineAngle ? LINE_ANGLE : degree_t(0);
 
    LapTrackSections sections{
       {
@@ -118,29 +121,24 @@ TEST_F(RaceTrackControllerCenterLineTest, sameSection) {
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionPatternBeforeSectionDistance) {
    trackController_.setSection(car_, 1, 0);
-
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(3);
    setLine(LinePattern::BRAKE, {centimeter_t(0), degree_t(0)});
-   
    checkUpdate(1, 1,{m_per_sec_t(1), millisecond_t(500), true, {}});
 }
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionPatternAfterSectionDistance) {
    trackController_.setSection(car_, 1, 0);
-
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(5.5f);
    setLine(LinePattern::BRAKE, {centimeter_t(0), degree_t(0)});
-   
    checkUpdate(1, 1,{m_per_sec_t(1), millisecond_t(500), true, {}});
 }
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionDistanceToleranceExceeded) {
    trackController_.setSection(car_, 1, 0);
-
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(7);
@@ -150,7 +148,6 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionDistanceToleranceExceeded) {
 TEST_F(RaceTrackControllerCenterLineTest, transitionDistance) {
    car_.distance = meter_t(3);
    trackController_.setSection(car_, 1, 1);
-
    checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {}});
    
    car_.distance = meter_t(3.5f);
@@ -163,7 +160,6 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionDistance) {
 TEST_F(RaceTrackControllerCenterLineTest, transitionAcceleration) {
    car_.distance = meter_t(3);
    trackController_.setSection(car_, 1, 2);
-
    checkUpdate(1, 2, {m_per_sec_t(2), millisecond_t(500), true, {}});
    
    car_.distance = meter_t(3.5f);
@@ -174,7 +170,6 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionAcceleration) {
 
 TEST_F(RaceTrackControllerCenterLineTest, limitFastSpeed) {
    trackController_.setSection(car_, 1, 0);
-
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(1);
@@ -196,6 +191,118 @@ TEST_F(RaceTrackControllerCenterLineTest, limitFastSpeed) {
    car_.distance = meter_t(2.5f);
    car_.orientedDistance = centimeter_t(60);
    checkUpdate(1, 0,{m_per_sec_t(3), millisecond_t(500), false, {}});
+}
+
+TEST_F(RaceTrackControllerOffsetTest, interpolateUntilPattern) {
+   trackController_.setSection(car_, 1, 0);
+   checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
+   
+   car_.distance = meter_t(2.5f);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), degree_t(0)});
+   checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {
+      OrientedLine{centimeter_t(0), degree_t(0)},
+      OrientedLine{LINE_OFFSET / 2, degree_t(0)}
+   }});
+   
+   car_.distance = meter_t(5);
+   setLine(LinePattern::SINGLE_LINE, {LINE_OFFSET, degree_t(0)});
+   checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {
+      OrientedLine{LINE_OFFSET, degree_t(0)},
+      OrientedLine{LINE_OFFSET, degree_t(0)}
+   }});
+
+   car_.distance = meter_t(5.01f);
+   setLine(LinePattern::BRAKE, {LINE_OFFSET, degree_t(0)});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{LINE_OFFSET, degree_t(0)},
+      OrientedLine{LINE_OFFSET, degree_t(0)}
+   }});
+}
+
+TEST_F(RaceTrackControllerOffsetTest, interpolateUntilDistance) {
+   trackController_.setSection(car_, 1, 1);
+   setLine(LinePattern::SINGLE_LINE, {LINE_OFFSET, degree_t(0)});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{LINE_OFFSET, degree_t(0)},
+      OrientedLine{LINE_OFFSET, degree_t(0)}
+   }});
+   
+   car_.distance = meter_t(0.5f);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(1), degree_t(0)});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{centimeter_t(1), degree_t(0)},
+      OrientedLine{centimeter_t(0), degree_t(0)}
+   }});
+   
+   car_.distance = meter_t(0.75);
+   setLine(LinePattern::SINGLE_LINE, {-LINE_OFFSET / 2, degree_t(0)});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{-LINE_OFFSET / 2, degree_t(0)},
+      OrientedLine{-LINE_OFFSET / 2, degree_t(0)}
+   }});
+   
+   car_.distance = meter_t(1.1);
+   setLine(LinePattern::SINGLE_LINE, {-LINE_OFFSET, degree_t(0)});
+   checkUpdate(1, 2, {m_per_sec_t(2), millisecond_t(500), true, {
+      OrientedLine{-LINE_OFFSET, degree_t(0)},
+      OrientedLine{-LINE_OFFSET, degree_t(0)}
+   }});
+}
+
+TEST_F(RaceTrackControllerAngleTest, interpolateUntilPattern) {
+   trackController_.setSection(car_, 1, 0);
+   checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
+   
+   car_.distance = meter_t(2.5f);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), degree_t(0)});
+   checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {
+      OrientedLine{centimeter_t(0), degree_t(0)},
+      OrientedLine{centimeter_t(0), LINE_ANGLE / 2}
+   }});
+   
+   car_.distance = meter_t(5);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), LINE_ANGLE});
+   checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {
+      OrientedLine{centimeter_t(0), LINE_ANGLE},
+      OrientedLine{centimeter_t(0), LINE_ANGLE}
+   }});
+
+   car_.distance = meter_t(5.01f);
+   setLine(LinePattern::BRAKE, {centimeter_t(0), LINE_ANGLE});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{centimeter_t(0), LINE_ANGLE},
+      OrientedLine{centimeter_t(0), LINE_ANGLE}
+   }});
+}
+
+TEST_F(RaceTrackControllerAngleTest, interpolateUntilDistance) {
+   trackController_.setSection(car_, 1, 1);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), LINE_ANGLE});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{centimeter_t(0), LINE_ANGLE},
+      OrientedLine{centimeter_t(0), LINE_ANGLE}
+   }});
+   
+   car_.distance = meter_t(0.5f);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), degree_t(1)});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{centimeter_t(0), degree_t(1)},
+      OrientedLine{centimeter_t(0), degree_t(0)}
+   }});
+   
+   car_.distance = meter_t(0.75);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), -LINE_ANGLE / 2});
+   checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
+      OrientedLine{centimeter_t(0), -LINE_ANGLE / 2},
+      OrientedLine{centimeter_t(0), -LINE_ANGLE / 2}
+   }});
+   
+   car_.distance = meter_t(1.1);
+   setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), -LINE_ANGLE});
+   checkUpdate(1, 2, {m_per_sec_t(2), millisecond_t(500), true, {
+      OrientedLine{centimeter_t(0), -LINE_ANGLE},
+      OrientedLine{centimeter_t(0), -LINE_ANGLE}
+   }});
 }
 
 } // namespace
