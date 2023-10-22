@@ -1,17 +1,11 @@
 #pragma once
 
-#include <type_traits>
-
 #include <etl/vector.h>
 
 /* @brief Graph edge.
  */
 template <typename NodeType>
 struct Edge {
-    Edge()
-        : node1(nullptr)
-        , node2(nullptr) {}
-
     Edge(NodeType& node1, NodeType& node2)
         : node1(&node1)
         , node2(&node2) {}

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <etl/set.h>
 #include <etl/vector.h>
 
@@ -9,148 +11,88 @@
 using namespace micro;
 
 Segment* Connection::getOtherSegment(const Segment& seg) const {
-    return this->node1 == &seg ? this->node2 : this->node2 == &seg ? this->node1 : nullptr;
+    return node1 == &seg ? node2 : node1;
 }
 
 JunctionDecision Connection::getDecision(const Segment& seg) const {
-    return this->node1 == &seg ? this->decision1 : this->decision2;
+    return node1 == &seg ? decision1 : decision2;
 }
 
-Status Junction::addSegment(Segment& seg, const JunctionDecision& decision) {
-    Status result = Status::ERROR;
+void Junction::addSegment(Segment& seg, const JunctionDecision& decision) {
+    auto* side = getSideSegments(decision.orientation);
 
-    segment_map::iterator sideSegments = this->getSideSegments(decision.orientation);
-
-    if (sideSegments == this->segments.end()) {
-        this->segments.insert(std::make_pair(decision.orientation, side_segment_map()));
-        sideSegments = this->getSideSegments(decision.orientation);
+    if (!side) {
+        segments.insert(std::make_pair(decision.orientation, SideSegments()));
+        side = getSideSegments(decision.orientation);
     }
 
-    if (sideSegments->second.find(decision.direction) == sideSegments->second.end()) {
-        sideSegments->second.insert(std::make_pair(decision.direction, &seg));
-        result = Status::OK;
-    } else {
-        result = Status::INVALID_DATA;
-        LOG_ERROR("Junction %u already has one side segment in orientation: %fdeg and direction: %s",
-            static_cast<uint32_t>(this->id), static_cast<degree_t>(decision.orientation).get(), to_string(decision.direction));
-    }
-
-    return result;
+    side->insert(std::make_pair(decision.direction, &seg));
 }
 
 Segment* Junction::getSegment(radian_t orientation, Direction dir) const {
-    Segment *result = nullptr;
-    segment_map::const_iterator sideSegments = this->getSideSegments(orientation);
-
-    if (sideSegments != this->segments.end()) {
-        if (const auto it = sideSegments->second.find(dir); it != sideSegments->second.end()) {
-            if (!it->second) {
-                LOG_ERROR("Junction %u: side segment in orientation: %fdeg and direction: %s is nullptr",
-                    static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get(), to_string(dir));
-            }
-            result = it->second;
-        } else {
-            LOG_ERROR("Junction %u has no side segment in orientation: %fdeg in direction: %s",
-                static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get(), to_string(dir));
-        }
-    } else {
-        LOG_ERROR("Junction %u has no side segments in orientation: %fdeg", static_cast<uint32_t>(this->id), static_cast<degree_t>(orientation).get());
+    const auto* side = getSideSegments(orientation);
+    if (!side) {
+        LOG_ERROR("Junction %u has no side segments in orientation: %fdeg",
+            static_cast<uint32_t>(id), static_cast<degree_t>(orientation).get());
+        return nullptr;
     }
 
-    return result;
-}
-
-bool Junction::isConnected(const Segment& seg) const {
-    return std::find_if(this->segments.begin(), this->segments.end(), [seg] (const auto& s1) {
-        return std::find_if(s1.second.begin(), s1.second.end(), [&seg] (const auto& s2) {
-            return s2.second == &seg;
-        }) != s1.second.end();
-    }) != this->segments.end();
-}
-
-Junction::segment_info Junction::getSegmentInfo(radian_t orientation, const Segment& seg) const {
-    segment_info info;
-
-    const segment_map::const_iterator itSide = this->getSideSegments(orientation);
-    if (itSide != this->segments.end()) {
-        for (side_segment_map::const_iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
-            if (itSeg->second == &seg) {
-                info.push_back({ itSide->first, itSeg->first });
-            }
-        }
+    const auto itSeg = side->find(dir);
+    if (itSeg == side->end()) {
+        LOG_ERROR("Junction %u has no side segment in orientation: %fdeg in direction: %s",
+            static_cast<uint32_t>(id), static_cast<degree_t>(orientation).get(), to_string(dir));
+        return nullptr;
     }
 
-    return info;
+    return itSeg->second;
 }
 
-Junction::segment_info Junction::getSegmentInfo(const Segment& seg) const {
-    segment_info info;
+size_t Junction::getConnectionCount(const Segment& seg) const {
+    return std::accumulate(segments.begin(), segments.end(), 0, [&seg](auto& count, const auto& key_side){
+        const auto& side = key_side.second;
+        return count + std::count_if(side.begin(), side.end(),
+            [&seg](const auto& key_seg){ return key_seg.second == &seg; });
+    });
+}
 
-    for (segment_map::const_iterator itSide = this->segments.begin(); itSide != this->segments.end(); ++itSide) {
-        for (side_segment_map::const_iterator itSeg = itSide->second.begin(); itSeg != itSide->second.end(); ++itSeg) {
-            if (itSeg->second == &seg) {
-                info.push_back({ itSide->first, itSeg->first });
-            }
-        }
-    }
-
-    return info;
+auto Junction::getSideSegments(micro::radian_t orientation) -> SideSegments* {
+    const auto it = std::find_if(segments.begin(), segments.end(), [orientation] (const auto& entry) {
+        return micro::eqWithOverflow360(orientation, entry.first, micro::PI_4);
+    });
+    return it != segments.end() ? &it->second : nullptr;
 }
 
 bool Segment::isFloating() const {
-    Junction *j1 = nullptr;
-    bool floating = true;
-
-    if (this->isDeadEnd) {
-        floating = false; // a dead-end section cannot be floating (it only has one connected end by definition)
-    } else {
-        // iterates through all connections to check if the segment is connected to 2 different junctions,
-        // meaning that the segment is not floating
-        for (const Connection *c : this->edges) {
-            if (j1 != c->junction) {
-                if (j1) {
-                    floating = false;
-                    break;
-                }
-                j1 = c->junction;
-            }
-        }
-
-        // if the segment can be approached via the same junction, but in 2 different directions
-        // (e.g. LEFT and RIGHT or from different angles), then the segment is not floating, but it is closing into itself (loop)
-        if (floating) {
-            floating = !this->isLoop();
-        }
-    }
-
-    return floating;
+    return !isDeadEnd && edges.size() < 2;
 }
 
 bool Segment::isLoop() const {
-    return this->edges.size() > 0 && this->edges[0]->junction->getSegmentInfo(*this).size() == 2;
+    return edges.size() > 0 && edges[0]->junction->getConnectionCount(*this) == 2;
 }
 
 void LabyrinthGraph::addSegment(const Segment& seg) {
-    this->segments_.push_back(seg);
+    segments_.push_back(seg);
 }
 
 void LabyrinthGraph::addJunction(const Junction& junc) {
-    this->junctions_.push_back(junc);
+    junctions_.push_back(junc);
 }
 
 void LabyrinthGraph::connect(Segment *seg, Junction *junc, const JunctionDecision& decision) {
-
     junc->addSegment(*seg, decision);
 
-    Junction::segment_map::iterator otherSideSegments = junc->getSideSegments(round90(decision.orientation + PI));
+    const auto oppositeOrientation = micro::round90(decision.orientation + PI);
+    auto* oppositeSide = junc->getSideSegments(oppositeOrientation);
+    if (!oppositeSide) {
+        return;
+    }
 
-    if (otherSideSegments != junc->segments.end()) {
-        for (Junction::side_segment_map::iterator out = otherSideSegments->second.begin(); out != otherSideSegments->second.end(); ++out) {
-            this->connections_.push_back(Connection(*seg, *out->second, *junc, decision, { otherSideSegments->first, out->first }));
-            auto& conn = connections_.back();
-            seg->edges.push_back(&conn);
-            out->second->edges.push_back(&conn);
-        }
+    for (auto out = oppositeSide->begin(); out != oppositeSide->end(); ++out) {
+        const auto& [outDir, outSeg] = *out;
+        connections_.push_back(Connection(*seg, *outSeg, *junc, decision, { oppositeOrientation, outDir }));
+        auto& conn = connections_.back();
+        seg->edges.push_back(&conn);
+        outSeg->edges.push_back(&conn);
     }
 }
 
@@ -159,11 +101,11 @@ Segment* LabyrinthGraph::findSegment(char name) {
 }
 
 const Segment* LabyrinthGraph::findSegment(char name) const {
-    const Segments::const_iterator it = std::find_if(this->segments_.begin(), this->segments_.end(), [name](const Segment& seg) {
+    const Segments::const_iterator it = std::find_if(segments_.begin(), segments_.end(), [name](const Segment& seg) {
         return seg.name == name;
     });
 
-    return it != this->segments_.end() ? to_raw_pointer(it) : nullptr;
+    return it != segments_.end() ? to_raw_pointer(it) : nullptr;
 }
 
 Junction* LabyrinthGraph::findJunction(uint8_t id) {
@@ -171,16 +113,16 @@ Junction* LabyrinthGraph::findJunction(uint8_t id) {
 }
 
 const Junction* LabyrinthGraph::findJunction(uint8_t id) const {
-    const Junctions::const_iterator it = std::find_if(this->junctions_.begin(), this->junctions_.end(), [id](const Junction& junc) {
+    const Junctions::const_iterator it = std::find_if(junctions_.begin(), junctions_.end(), [id](const Junction& junc) {
         return junc.id == id;
     });
 
-    return it != this->junctions_.end() ? to_raw_pointer(it) : nullptr;
+    return it != junctions_.end() ? to_raw_pointer(it) : nullptr;
 }
 
 const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
 
-    Junctions::const_iterator result = this->junctions_.end();
+    Junctions::const_iterator result = junctions_.end();
 
     struct JunctionDist {
         Junctions::const_iterator junc;
@@ -192,11 +134,11 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vect
     // FIRST:  closest junction to current position
     // SECOND: closest junction to current position with the correct topology
     std::pair<JunctionDist, JunctionDist> closest = {
-        { this->junctions_.end(), micro::numeric_limits<meter_t>::infinity() },
-        { this->junctions_.end(), micro::numeric_limits<meter_t>::infinity() }
+        { junctions_.end(), micro::numeric_limits<meter_t>::infinity() },
+        { junctions_.end(), micro::numeric_limits<meter_t>::infinity() }
     };
 
-    for(Junctions::const_iterator it = this->junctions_.begin(); it != this->junctions_.end(); ++it) {
+    for(Junctions::const_iterator it = junctions_.begin(); it != junctions_.end(); ++it) {
         const meter_t dist = pos.distance(it->pos);
 
         if (dist < closest.first.dist) {
@@ -207,8 +149,8 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vect
         if (dist < closest.second.dist) {
             bool topologyOk = true;
             for (const std::pair<micro::radian_t, uint8_t>& numSegs : numSegments) {
-                const Junction::segment_map::const_iterator segments = it->getSideSegments(numSegs.first);
-                if (segments == it->segments.end() || segments->second.size() != numSegs.second) {
+                const auto* segments = it->getSideSegments(numSegs.first);
+                if (!segments || segments->size() != numSegs.second) {
                     topologyOk = false;
                     break;
                 }
@@ -240,21 +182,21 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vect
         result = closest.first.junc;
     }
 
-    return result != this->junctions_.end() ? to_raw_pointer(result) : nullptr;
+    return result != junctions_.end() ? to_raw_pointer(result) : nullptr;
 }
 
 const Connection* LabyrinthGraph::findConnection(const Segment& seg1, const Segment& seg2) const {
-    const auto it = std::find_if(this->connections_.begin(), this->connections_.end(), [&seg1, &seg2](const Connection& c) {
+    const auto it = std::find_if(connections_.begin(), connections_.end(), [&seg1, &seg2](const Connection& c) {
         return (c.node1->name == seg1.name && c.node2->name == seg2.name) || (c.node1->name == seg2.name && c.node2->name == seg1.name);
     });
 
-    return it != this->connections_.end() ? to_raw_pointer(it) : nullptr;
+    return it != connections_.end() ? to_raw_pointer(it) : nullptr;
 }
 
 bool LabyrinthGraph::valid() const {
     bool isValid = true;
 
-    for (const Segment& seg : this->segments_) {
+    for (const Segment& seg : segments_) {
 
         if (!isBtw(seg.name, 'A', 'Z')) {
             isValid = false;
@@ -267,7 +209,7 @@ bool LabyrinthGraph::valid() const {
 
         } else {
             etl::set<Junction*, 10> junctions;
-            for (const Connection& conn : this->connections_) {
+            for (const Connection& conn : connections_) {
                 if (conn.node1 == &seg || conn.node2 == &seg) {
                     junctions.insert(conn.junction);
                 }
@@ -277,8 +219,8 @@ bool LabyrinthGraph::valid() const {
                 isValid = false;
             } else {
                 uint32_t occurences = 0;
-                for (const Junction& junc : this->junctions_) {
-                    occurences += junc.getSegmentInfo(seg).size();
+                for (const Junction& junc : junctions_) {
+                    occurences += junc.getConnectionCount(seg);
                 }
 
                 if (occurences != (seg.isDeadEnd ? 1 : 2)) {

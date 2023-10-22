@@ -7,6 +7,7 @@
 
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
+#include <micro/math/unit_utils.hpp>
 
 #include <cfg_track.hpp>
 #include <Graph.hpp>
@@ -14,10 +15,6 @@
 struct JunctionDecision {
     micro::radian_t orientation;
     micro::Direction direction;
-
-    JunctionDecision()
-        : orientation(0)
-        , direction(micro::Direction::CENTER) {}
 
     JunctionDecision(micro::radian_t orientation, micro::Direction direction)
         : orientation(orientation)
@@ -44,12 +41,6 @@ struct Connection : public Edge<Segment> {
         , decision1(decision1)
         , decision2(decision2) {}
 
-    Connection()
-        : Edge()
-        , junction(nullptr)
-        , decision1()
-        , decision2() {}
-
     Segment* getOtherSegment(const Segment& seg) const;
 
     JunctionDecision getDecision(const Segment& seg) const;
@@ -61,54 +52,39 @@ struct Connection : public Edge<Segment> {
 /* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    using side_segment_map = etl::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
-    using segment_map = etl::map<micro::radian_t, side_segment_map, 2>;
-    using segment_info = etl::vector<std::pair<micro::radian_t, micro::Direction>, 2>;
+    using SideSegments = etl::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
+    using segment_map = etl::map<micro::radian_t, SideSegments, 2>;
 
-    Junction(uint8_t id, const micro::point2<micro::meter_t>& pos)
+    Junction(const uint8_t id, const micro::point2<micro::meter_t>& pos)
         : id(id)
         , pos(pos) {}
 
-    Junction() : Junction(0, {}) {}
-
-    micro::Status addSegment(Segment& seg, const JunctionDecision& decision);
+    void addSegment(Segment& seg, const JunctionDecision& decision);
 
     Segment* getSegment(micro::radian_t orientation, micro::Direction dir) const;
 
-    bool isConnected(const Segment& seg) const;
-
-    segment_info getSegmentInfo(micro::radian_t orientation, const Segment& seg) const;
-
-    segment_info getSegmentInfo(const Segment& seg) const;
+    size_t getConnectionCount(const Segment& seg) const;
 
     uint8_t id;
     micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
     segment_map segments;
 
-    segment_map::const_iterator getSideSegments(micro::radian_t orientation) const {
+    const SideSegments* getSideSegments(micro::radian_t orientation) const {
         return const_cast<Junction*>(this)->getSideSegments(orientation);
     }
 
-    segment_map::iterator getSideSegments(micro::radian_t orientation) {
-        return std::find_if(this->segments.begin(), this->segments.end(), [orientation] (const auto& entry) {
-            return micro::eqWithOverflow360(orientation, entry.first, micro::PI_4);
-        });
-    }
+    SideSegments* getSideSegments(micro::radian_t orientation);
 };
 
 /* @brief Labyrinth segment.
  */
 struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
-
     Segment(char name, micro::meter_t length, bool isDeadEnd)
         : name(name)
         , length(length)
         , isDeadEnd(isDeadEnd) {}
 
-    Segment() : Segment('_', micro::meter_t(0), false) {}
-
     bool isFloating() const;
-
     bool isLoop() const;
 
     char name;

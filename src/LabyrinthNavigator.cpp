@@ -174,7 +174,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         this->correctedCarPose_.pos = junc->pos;
 
         // checks if current segment connects to found junction
-        if (junc->getSegmentInfo(*this->currentSeg_).size() > 0) {
+        if (junc->getConnectionCount(*this->currentSeg_) > 0) {
             const Connection *nextConn = this->route_.firstConnection();
 
             // checks if next connection is available, meaning the route is not yet finished
@@ -306,24 +306,27 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
 void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
     // Finds a valid previous segment - may be any of the segments behind the car, connecting to the current junction.
-    Junction::segment_map::const_iterator sideSegments = junc.getSideSegments(negOri);
-    if (sideSegments == junc.segments.end()) {
-        sideSegments = junc.getSideSegments(normalize360(negOri + PI)); // if side segments are not found, tries the other orientation
+    auto* sideSegments = junc.getSideSegments(negOri);
+    if (!sideSegments) {
+        // if side segments are not found, tries the other orientation
+        sideSegments = junc.getSideSegments(micro::normalize360(negOri + PI));
     }
 
-    const Segment *prevSeg = sideSegments->second.begin()->second;
-    if (prevSeg) {
-        const Connection * const nextConn = this->randomConnection(junc, *prevSeg);
-        if (nextConn) {
-            this->currentSeg_ = nextConn->getOtherSegment(*prevSeg);
-            this->targetDir_  = nextConn->getDecision(*this->currentSeg_).direction;
-            this->prevConn_   = nextConn;
-        } else {
-            LOG_ERROR("nextConn is nullptr after finding a random valid connection. Something's wrong...");
-        }
-    } else {
+    const auto* prevSeg = sideSegments->begin()->second;
+    if (!prevSeg) {
         LOG_ERROR("prevSeg is nullptr after getting side segments. Something's wrong...");
+        return;
     }
+
+    const auto* nextConn = this->randomConnection(junc, *prevSeg);
+    if (!nextConn) {
+        LOG_ERROR("nextConn is nullptr after finding a random valid connection. Something's wrong...");
+        return;
+    }
+
+    this->currentSeg_ = nextConn->getOtherSegment(*prevSeg);
+    this->targetDir_  = nextConn->getDecision(*this->currentSeg_).direction;
+    this->prevConn_   = nextConn;
 }
 
 void LabyrinthNavigator::updateRoute() {
