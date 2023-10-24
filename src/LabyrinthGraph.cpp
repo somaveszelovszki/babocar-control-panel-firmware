@@ -3,7 +3,7 @@
 #include <etl/set.h>
 #include <etl/vector.h>
 
-#include <micro/utils/log.hpp>
+#include <micro/log/log.hpp>
 #include <micro/math/unit_utils.hpp>
 
 #include <LabyrinthGraph.hpp>
@@ -32,15 +32,15 @@ void Junction::addSegment(Segment& seg, const JunctionDecision& decision) {
 Segment* Junction::getSegment(radian_t orientation, Direction dir) const {
     const auto* side = getSideSegments(orientation);
     if (!side) {
-        LOG_ERROR("Junction %u has no side segments in orientation: %fdeg",
-            static_cast<uint32_t>(id), static_cast<degree_t>(orientation).get());
+        LOG_ERROR("Junction {} has no side segments in orientation: {}deg",
+            id, static_cast<degree_t>(orientation).get());
         return nullptr;
     }
 
     const auto itSeg = side->find(dir);
     if (itSeg == side->end()) {
-        LOG_ERROR("Junction %u has no side segment in orientation: %fdeg in direction: %s",
-            static_cast<uint32_t>(id), static_cast<degree_t>(orientation).get(), to_string(dir));
+        LOG_ERROR("Junction {} has no side segment in orientation: {}deg in direction: {}",
+            id, static_cast<degree_t>(orientation).get(), to_string(dir));
         return nullptr;
     }
 
@@ -129,7 +129,7 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vect
         meter_t dist;
     };
 
-    LOG_DEBUG("pos: (%f, %f)", pos.X.get(), pos.Y.get());
+    LOG_DEBUG("pos: ({}, {})", pos.X.get(), pos.Y.get());
 
     // FIRST:  closest junction to current position
     // SECOND: closest junction to current position with the correct topology
@@ -164,11 +164,11 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vect
     }
 
     if (closest.first.junc) {
-        LOG_DEBUG("closest: (%f, %f)", closest.first.junc->pos.X.get(), closest.first.junc->pos.Y.get());
+        LOG_DEBUG("closest: ({}, {})", closest.first.junc->pos.X.get(), closest.first.junc->pos.Y.get());
     }
 
     if (closest.second.junc) {
-        LOG_DEBUG("closest with correct topology: (%f, %f)", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
+        LOG_DEBUG("closest with correct topology: ({}, {})", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
     }
 
     if (closest.second.dist < centimeter_t(120)) {

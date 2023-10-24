@@ -40,9 +40,9 @@ void expectEqual(const LapControlParameters& expected, const LapControlParameter
 }
 
 void testFormat(const DebugMessage::reference_type& data, const char * const expected) {
-    Log::message_t msg;
+    char msg[100];
     const auto size = DebugMessage::format(msg, sizeof(msg), data);
-    EXPECT_EQ(strlen(expected), size);
+    EXPECT_EQ(etl::strlen(expected), size);
     EXPECT_STREQ(expected, msg);
 }
 

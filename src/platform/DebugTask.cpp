@@ -6,6 +6,7 @@
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
+#include <micro/log/log.hpp>
 #include <micro/port/semaphore.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
@@ -25,13 +26,11 @@ using namespace micro;
 
 namespace {
 
-#define FAILING_TASKS_LOG_ENABLED true
-
 constexpr uint32_t MAX_BUFFER_SIZE = 512;
 
 typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
 ring_buffer<rxParams_t, 2> rxBuffer;
-Log::message_t txLog;
+Log::Message txLog;
 char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;
 
@@ -43,23 +42,21 @@ void transmit(const char * const data) {
 bool monitorTasks() {
     const auto failingTasks = SystemManager::instance().failingTasks();
 
-#if FAILING_TASKS_LOG_ENABLED
-    static Timer failureLogTimer(millisecond_t(100));
+    static Timer failureLogTimer(millisecond_t(500));
 
     if (failingTasks.size() && failureLogTimer.checkTimeout()) {
-        Log::message_t msg;
-        uint32_t idx = 0;
-        for (size_t i = 0; i < failingTasks.size(); i++) {
-            idx += strncpy_until(&msg[idx], failingTasks[i].info.name.c_str(), sizeof(Log::message_t) - idx);
-            if (i < failingTasks.size() - 1) {
-                idx += strncpy_until(&msg[idx], ", ", sizeof(", "), sizeof(Log::message_t) - idx);
-            }
-        }
-        msg[idx] = '\0';
-        LOG_ERROR("Failing tasks: %s", msg);
+        // TODO implement join_to() in format.hpp
+        // Log::message_t msg;
+        // uint32_t idx = 0;
+        // for (size_t i = 0; i < failingTasks.size(); i++) {
+        //     idx += strncpy_until(&msg[idx], failingTasks[i].info.name.c_str(), sizeof(Log::message_t) - idx);
+        //     if (i < failingTasks.size() - 1) {
+        //         idx += strncpy_until(&msg[idx], ", ", sizeof(", "), sizeof(Log::message_t) - idx);
+        //     }
+        // }
+        // msg[idx] = '\0';
+        // LOG_ERROR("Failing tasks: %s", msg);
     }
-
-#endif // FAILING_TASKS_LOG_ENABLED
 
     return failingTasks.empty();
 }

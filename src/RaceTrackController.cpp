@@ -1,12 +1,12 @@
-#include <micro/math/numeric.hpp>
-#include <micro/math/unit_utils.hpp>
-#include <micro/port/timer.hpp>
-#include <micro/utils/log.hpp>
-
 #include <RaceTrackController.hpp>
 
 #include <limits>
 #include <algorithm>
+
+#include <micro/log/log.hpp>
+#include <micro/math/numeric.hpp>
+#include <micro/math/unit_utils.hpp>
+#include <micro/port/timer.hpp>
 
 using namespace micro;
 

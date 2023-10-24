@@ -1,6 +1,7 @@
-#include <micro/math/numeric.hpp>
-#include <micro/utils/log.hpp>
 #include <OvertakeManeuver.hpp>
+
+#include <micro/log/log.hpp>
+#include <micro/math/numeric.hpp>
 
 using namespace micro;
 
@@ -67,7 +68,7 @@ void OvertakeManeuver::buildTrajectory(const micro::CarProps& car) {
 
     const radian_t forwardAngle = Sign::POSITIVE == this->targetSpeedSign_ ? car.pose.angle : normalize360(car.pose.angle + PI);
 
-    LOG_DEBUG("Overtake: start pos: (%f, %f) | forward angle: %fdeg", car.pose.pos.X.get(), car.pose.pos.Y.get(), static_cast<degree_t>(forwardAngle).get());
+    LOG_DEBUG("Overtake: start pos: ({}, {}) | forward angle: {}deg", car.pose.pos.X.get(), car.pose.pos.Y.get(), static_cast<degree_t>(forwardAngle).get());
 
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,

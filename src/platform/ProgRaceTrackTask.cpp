@@ -1,5 +1,6 @@
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
+#include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/sensor/Filter.hpp>
 #include <micro/port/queue.hpp>
@@ -7,7 +8,6 @@
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
-#include <micro/utils/log.hpp>
 #include <micro/utils/state.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
@@ -203,7 +203,7 @@ extern "C" void runProgRaceTrackTask(void) {
                 break;
 
             default:
-                LOG_ERROR("Invalid program state counter: [%u]", underlying_value(programState));
+                LOG_ERROR("Invalid program state counter: [{}]", underlying_value(programState));
                 break;
             }
 

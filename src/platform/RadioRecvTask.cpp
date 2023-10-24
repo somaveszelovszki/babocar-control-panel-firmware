@@ -1,7 +1,7 @@
 #include <micro/debug/SystemManager.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
-#include <micro/utils/log.hpp>
+#include <micro/log/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
@@ -27,7 +27,7 @@ extern "C" void runRadioRecvTask(void) {
     while (true) {
         const char radioRecv = radioRecvValue;
         if (radioRecv != prevRadioRecv) {
-            LOG_INFO("Received character: %c", radioRecv);
+            LOG_INFO("Received character: {}", radioRecv);
             prevRadioRecv = radioRecv;
         }
 

@@ -4,7 +4,6 @@
 #include <micro/panel/DistSensorPanelData.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
-#include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>

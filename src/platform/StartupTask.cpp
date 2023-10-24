@@ -2,7 +2,7 @@
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/ControlData.hpp>
-#include <micro/utils/log.hpp>
+#include <micro/log/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
@@ -28,7 +28,7 @@ void waitStartSignal() {
         radioRecvQueue.peek(startCounter, millisecond_t(10));
 
         if (startCounter != prevStartCounter) {
-            LOG_DEBUG("Start counter: %c", startCounter);
+            LOG_DEBUG("Start counter: {}", startCounter);
             prevStartCounter = startCounter;
         }
 
@@ -54,13 +54,13 @@ extern "C" void runStartupTask(void) {
         if (gpioPinState_t::RESET == buttonState && gpioPinState_t::SET == prevButtonState) { // detects falling edges
             ++buttonClick;
             lastButtonClickTime = getTime();
-            LOG_DEBUG("Click! (%d)", buttonClick);
+            LOG_DEBUG("Click! ({})", buttonClick);
         }
         prevButtonState = buttonState;
         os_sleep(millisecond_t(50));
     }
 
-    LOG_DEBUG("Number of clicks: %d", buttonClick);
+    LOG_DEBUG("Number of clicks: {}", buttonClick);
     SystemManager::instance().setProgramState(static_cast<SystemManager::programState_t>(buttonClick));
 
     if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {

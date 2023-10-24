@@ -1,5 +1,6 @@
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
+#include <micro/log/log.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
 #include <micro/math/numeric.hpp>
@@ -7,7 +8,6 @@
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
-#include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
@@ -134,7 +134,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 const Pose correctedCarPose = navigator.correctedCarPose();
                 if (correctedCarPose.angle != car.pose.angle) {
                     carOrientationUpdateQueue.overwrite(correctedCarPose.angle);
-                    LOG_DEBUG("Car orientation updated: %f -> %f [deg]", static_cast<degree_t>(car.pose.angle).get(), static_cast<degree_t>(correctedCarPose.angle).get());
+                    LOG_DEBUG("Car orientation updated: {} -> {} [deg]", static_cast<degree_t>(car.pose.angle).get(), static_cast<degree_t>(correctedCarPose.angle).get());
                 }
                 if (correctedCarPose.pos != car.pose.pos) {
                     carPosUpdateQueue.overwrite(correctedCarPose.pos);

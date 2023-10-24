@@ -1,6 +1,6 @@
 #include <etl/vector.h>
 
-#include <micro/utils/log.hpp>
+#include <micro/log/log.hpp>
 
 #include <LabyrinthNavigator.hpp>
 
@@ -49,7 +49,7 @@ bool LabyrinthNavigator::isLastTarget() const {
 }
 
 void LabyrinthNavigator::setTargetSegment(const Segment *targetSeg, bool isLast) {
-    LOG_DEBUG("Next target segment: %c", targetSeg->name);
+    LOG_DEBUG("Next target segment: {}", targetSeg->name);
     this->targetSeg_    = targetSeg;
     this->isLastTarget_ = isLast;
 }
@@ -88,7 +88,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 
         // start going backward when a dead-end sign is detected
         if (this->isDeadEnd(car, frontPattern)) {
-            LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to %s", to_string(this->targetSpeedSign_));
+            LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to {}", to_string(this->targetSpeedSign_));
             this->tryToggleTargetSpeedSign(car.distance);
         }
     }
@@ -154,7 +154,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         { posOri, numOutSegments }
     };
 
-    LOG_DEBUG("Junction detected (car pos: (%f, %f), angle: %f deg, segments: (in: %u, out: %u))",
+    LOG_DEBUG("Junction detected (car pos: ({}, {}), angle: {} deg, segments: (in: {}, out: {}))",
         car.pose.pos.X.get(),
         car.pose.pos.Y.get(),
         static_cast<degree_t>(car.pose.angle).get(),
@@ -165,7 +165,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
 
     // checks if any junction has been found at the current position
     if (junc) {
-        LOG_DEBUG("Junction found: %u (%f, %f), current segment: %c",
+        LOG_DEBUG("Junction found: {} ({}, {}), current segment: {}",
             static_cast<uint32_t>(junc->id),
             junc->pos.X.get(),
             junc->pos.Y.get(),
@@ -181,7 +181,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
             if (nextConn) {
                 if (junc == nextConn->junction) {
                     this->targetDir_ = nextConn->getDecision(*nextConn->getOtherSegment(*this->route_.startSeg)).direction;
-                    LOG_DEBUG("Next connection ok, target direction: %s", to_string(this->targetDir_));
+                    LOG_DEBUG("Next connection ok, target direction: {}", to_string(this->targetDir_));
 
                     this->route_.pop_front();
                     this->currentSeg_ = this->route_.startSeg;
@@ -215,7 +215,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         this->targetDir_ = this->randomDirection(numOutSegments);
     }
 
-    LOG_INFO("Current segment: %c", this->currentSeg_->name);
+    LOG_INFO("Current segment: {}", this->currentSeg_->name);
 
     this->lastJuncDist_ = car.distance;
     this->hasSpeedSignChanged_ = false;
@@ -227,7 +227,7 @@ void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDi
         this->isSpeedSignChangeInProgress_ = true;
         this->hasSpeedSignChanged_         = true;
         this->lastSpeedSignChangeDistance_ = currentDist;
-        LOG_DEBUG("Labyrinth target speed sign changed to %s", to_string(this->targetSpeedSign_));
+        LOG_DEBUG("Labyrinth target speed sign changed to {}", to_string(this->targetSpeedSign_));
     }
 }
 
@@ -293,7 +293,7 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
     controlData.rampTime = millisecond_t(300);
 
     if (controlData.speed != prevSpeed) {
-        LOG_DEBUG("Target speed changed to %fm/s", controlData.speed.get());
+        LOG_DEBUG("Target speed changed to {}m/s", controlData.speed.get());
     }
 
     this->setTargetLine(car, lineInfo, mainLine);
@@ -330,7 +330,7 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
 }
 
 void LabyrinthNavigator::updateRoute() {
-    LOG_DEBUG("Updating route to: %c", this->targetSeg_->name);
+    LOG_DEBUG("Updating route to: {}", this->targetSeg_->name);
     this->route_ = LabyrinthRoute::create(*this->prevConn_, *this->currentSeg_, *this->targetSeg_, true);
 
     LOG_DEBUG("Planned route:");
@@ -338,7 +338,7 @@ void LabyrinthNavigator::updateRoute() {
     const Segment *prev = this->route_.startSeg;
     for (const Connection *c : this->route_.connections) {
         const Segment *next = c->getOtherSegment(*prev);
-        LOG_DEBUG("-> %c (%s)", next->name, to_string(c->getDecision(*next).direction));
+        LOG_DEBUG("-> {} ({})", next->name, to_string(c->getDecision(*next).direction));
         prev = next;
     }
 }

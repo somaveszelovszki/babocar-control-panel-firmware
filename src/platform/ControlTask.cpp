@@ -5,6 +5,7 @@
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
+#include <micro/log/log.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
@@ -13,7 +14,6 @@
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
-#include <micro/utils/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_car.hpp>

@@ -5,7 +5,7 @@
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
-#include <micro/utils/log.hpp>
+#include <micro/log/log.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
@@ -100,7 +100,7 @@ extern "C" void runVehicleStateTask(void) {
 
         point2m pos;
         if (carPosUpdateQueue.receive(pos, millisecond_t(0))) {
-            LOG_DEBUG("Car pos updated: (%f, %f) -> (%f, %f) | diff: %f [m]",
+            LOG_DEBUG("Car pos updated: {}, {}) -> ({}, {}) | diff: {} [m]",
                 car.pose.pos.X.get(), car.pose.pos.Y.get(), pos.X.get(), pos.Y.get(),
                 car.pose.pos.distance(pos).get());
             car.pose.pos = pos;

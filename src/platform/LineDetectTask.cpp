@@ -1,9 +1,9 @@
 #include <micro/debug/SystemManager.hpp>
+#include <micro/log/log.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
-#include <micro/utils/log.hpp>
 #include <micro/utils/LinePattern.hpp>
 #include <micro/utils/timer.hpp>
 
@@ -69,7 +69,7 @@ extern "C" void runLineDetectTask(void) {
         }
 
         if (lineInfo.front.pattern != prevLineInfo.front.pattern) {
-            LOG_INFO("Front pattern changed from [%s %s %s] to [%s %s %s]",
+            LOG_INFO("Front pattern changed from [{} {} {}] to [{} {} {}]",
                 to_string(prevLineInfo.front.pattern.type), to_string(prevLineInfo.front.pattern.dir), to_string(prevLineInfo.front.pattern.side),
                 to_string(lineInfo.front.pattern.type), to_string(lineInfo.front.pattern.dir), to_string(lineInfo.front.pattern.side));
 
@@ -77,7 +77,7 @@ extern "C" void runLineDetectTask(void) {
         }
 
         if (lineInfo.rear.pattern != prevLineInfo.rear.pattern) {
-            LOG_INFO("Rear pattern changed from [%s %s %s] to [%s %s %s]",
+            LOG_INFO("Rear pattern changed from [{} {} {}] to [{} {} {}]",
                 to_string(prevLineInfo.rear.pattern.type), to_string(prevLineInfo.rear.pattern.dir), to_string(prevLineInfo.rear.pattern.side),
                 to_string(lineInfo.rear.pattern.type), to_string(lineInfo.rear.pattern.dir), to_string(lineInfo.rear.pattern.side));
             prevLineInfo.rear = lineInfo.rear;
