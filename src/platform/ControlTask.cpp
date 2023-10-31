@@ -1,7 +1,7 @@
+#include <etl/circular_buffer.h>
 #include <etl/map.h>
 
 #include <cfg_board.hpp>
-#include <micro/container/infinite_buffer.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
@@ -83,7 +83,7 @@ MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 MainLine targetLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
 constexpr uint32_t D_FILTER_SIZE = 30;
-infinite_buffer<std::pair<centimeter_t, degree_t>, D_FILTER_SIZE + 1> prevLineErrors;
+etl::circular_buffer<std::pair<centimeter_t, degree_t>, D_FILTER_SIZE + 1> prevLineErrors;
 
 void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
@@ -105,7 +105,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
 
     frontLinePosController.tune(*micro::lerp(frontLinePosControllerParams, abs(car.speed)));
 
-    const std::pair<centimeter_t, degree_t>& peekBackLineError = prevLineErrors.peek_back(D_FILTER_SIZE);
+    const auto& peekBackLineError = *std::next(prevLineErrors.rbegin(), D_FILTER_SIZE);
 
     const centimeter_t posError = targetControlLinePos - actualControlLinePos;
     const degree_t angleError   = targetControlAngle - actualControlAngle;
@@ -113,7 +113,9 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     const centimeter_t posErrorDiff = (posError - peekBackLineError.first) / D_FILTER_SIZE;
     const degree_t angleErrorDiff   = (angleError - peekBackLineError.second) / D_FILTER_SIZE;
 
-    prevLineErrors.push_back({ posError, angleError });
+    if (prevLineErrors.full()) {
+        prevLineErrors.push({ posError, angleError });
+    }
 
     frontLinePosController.update(posError.get(), posErrorDiff.get());
     frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;

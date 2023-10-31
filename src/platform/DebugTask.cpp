@@ -12,7 +12,6 @@
 #include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
-#include <micro/utils/log.hpp>
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/variant_utils.hpp>
 #include <micro/utils/timer.hpp>
