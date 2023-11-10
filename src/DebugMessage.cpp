@@ -45,7 +45,7 @@ std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& 
    return std::nullopt;
 }
 
-Type getType(const DebugMessage::reference_type& value) {
+Type getFormatType(const DebugMessage::FormatInput& value) {
     switch (value.index()) {
     case 0:  return Type::Car;
     case 1:  return Type::Param;
@@ -54,7 +54,7 @@ Type getType(const DebugMessage::reference_type& value) {
     }
 }
 
-std::optional<DebugMessage::value_type> getValue(const Type type) {
+std::optional<DebugMessage::ParseResult> getParseValue(const Type type) {
     switch (type) {
     case Type::Car:          return std::tuple<CarProps, ControlData>{};
     case Type::Param:        return ParamManager::NamedParam{};
@@ -131,13 +131,16 @@ size_t store(char * const output, const size_t size, const ParamManager::NamedPa
     return n + micro::format_to_n(&output[n], size - n, "}}");
 }
 
-void load(char * const input, ParamManager::NamedParam& namedParam) {
+void load(char * const input, std::optional<ParamManager::NamedParam>& namedParam) {
     const auto json = micro::JSONParser(input).root();
     const auto param = *json.begin();
-    
-    auto& [name, value] = namedParam;
-    name = param.key();
-    value = *parseParamValue(param);
+
+    if (!param.exists()) {
+        namedParam = std::nullopt;
+        return;
+    }
+
+    namedParam = ParamManager::NamedParam{param.key(), *parseParamValue(param)};
 }
 
 size_t store(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
@@ -175,22 +178,22 @@ void load(char * const input, IndexedSectionControlParameters& sectionControl) {
 
 } // namespace
 
-size_t DebugMessage::format(char * const output, const size_t size, const reference_type& value) {
-    auto n = formatType(output, size, getType(value));
+size_t DebugMessage::format(char * const output, const size_t size, const FormatInput& input) {
+    auto n = formatType(output, size, getFormatType(input));
 
     n += std::visit(
         [output, size, n](const auto& v){ return store(&output[n], size - n, v); },
-        value);
+        input);
 
     n += formatSeparator(&output[n], size - n);
     return n;
 }
 
-auto DebugMessage::parse(char * const input) -> std::optional<value_type> {
+auto DebugMessage::parse(char * const input) -> std::optional<ParseResult> {
     Type type = Type::Unknown;
     auto n = parseType(input, type);
 
-    auto value = getValue(type);
+    auto value = getParseValue(type);
     if (!value) {
         return std::nullopt;
     }

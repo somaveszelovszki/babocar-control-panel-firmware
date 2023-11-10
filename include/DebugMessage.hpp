@@ -16,16 +16,16 @@ struct ControlData;
 
 class DebugMessage {
 public:
-    using value_type = std::variant<
+    using ParseResult = std::variant<
         std::tuple<micro::CarProps, micro::ControlData>,
-        micro::ParamManager::NamedParam,
+        std::optional<micro::ParamManager::NamedParam>,
         IndexedSectionControlParameters>;
 
-    using reference_type = std::variant<
+    using FormatInput = std::variant<
         std::reference_wrapper<const std::tuple<micro::CarProps, micro::ControlData>>,
         std::reference_wrapper<const micro::ParamManager::NamedParam>,
         std::reference_wrapper<const IndexedSectionControlParameters>>;
 
-    static size_t format(char * const output, const size_t size, const reference_type& data);
-    static std::optional<value_type> parse(char * const input);
+    static size_t format(char * const output, const size_t size, const FormatInput& input);
+    static std::optional<ParseResult> parse(char * const input);
 };

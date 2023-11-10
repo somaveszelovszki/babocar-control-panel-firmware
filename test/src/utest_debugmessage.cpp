@@ -26,16 +26,23 @@ void expectEqual(const std::tuple<CarProps, ControlData>& expected,
     EXPECT_EQ_MICRO_CONTROL_DATA((std::get<1>(expected)), (std::get<1>(result)));
 }
 
-void expectEqual(const ParamManager::NamedParam& expected, const ParamManager::NamedParam& result) {
-    EXPECT_EQ(expected.first, result.first);
-    ASSERT_EQ(expected.second.index(), result.second.index());
+void expectEqual(const std::optional<ParamManager::NamedParam>& expected,
+                 const std::optional<ParamManager::NamedParam>& result) {
+    ASSERT_EQ(expected.has_value(), result.has_value());
+    if (!expected) {
+        return;
+    }
+
+    EXPECT_EQ(expected->first, result->first);
+    ASSERT_EQ(expected->second.index(), result->second.index());
 
     std::visit(
-        [&result](const auto& exp){ EXPECT_EQ(exp, std::get<std::decay_t<decltype(exp)>>(result.second)); },
-        expected.second);
+        [&result](const auto& exp){ EXPECT_EQ(exp, std::get<std::decay_t<decltype(exp)>>(result->second)); },
+        expected->second);
 }
 
-void expectEqual(const IndexedSectionControlParameters& expected, const IndexedSectionControlParameters& result) {
+void expectEqual(const IndexedSectionControlParameters& expected,
+                 const IndexedSectionControlParameters& result) {
     EXPECT_EQ(expected.first, result.first);
     EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected.second, result.second);
 }
@@ -48,7 +55,7 @@ void testFormat(const T& data, const char * const expected) {
     EXPECT_STREQ(expected, msg);
 }
 
-void testParse(const DebugMessage::value_type& expected, etl::string<512> json) {
+void testParse(const DebugMessage::ParseResult& expected, etl::string<512> json) {
     const auto result = DebugMessage::parse(const_cast<char*>(json.c_str()));
     ASSERT_TRUE(result.has_value());
     ASSERT_EQ(expected.index(), result->index());
@@ -112,14 +119,15 @@ TEST(DebugMessage, formatParam) {
 }
 
 TEST(DebugMessage, parseParams) {
-    testParse(ParamManager::NamedParam{"b", false}, R"(P:{"b":false})" "\r\n");
-    testParse(ParamManager::NamedParam{"i8", 8}, R"(P:{"i8":8})" "\r\n");
-    testParse(ParamManager::NamedParam{"i16", 16}, R"(P:{"i16":16})" "\r\n");
-    testParse(ParamManager::NamedParam{"i32", 32}, R"(P:{"i32":32})" "\r\n");
-    testParse(ParamManager::NamedParam{"u8", 80}, R"(P:{"u8":80})" "\r\n");
-    testParse(ParamManager::NamedParam{"u16", 160}, R"(P:{"u16":160})" "\r\n");
-    testParse(ParamManager::NamedParam{"u32", 320}, R"(P:{"u32":320})" "\r\n");
-    testParse(ParamManager::NamedParam{"f", 1.2f}, R"(P:{"f":1.20})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"b", false}), R"(P:{"b":false})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"i8", 8}), R"(P:{"i8":8})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"i16", 16}), R"(P:{"i16":16})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"i32", 32}), R"(P:{"i32":32})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"u8", 80}), R"(P:{"u8":80})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"u16", 160}), R"(P:{"u16":160})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"u32", 320}), R"(P:{"u32":320})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"f", 1.2f}), R"(P:{"f":1.20})" "\r\n");
+    testParse(std::optional<ParamManager::NamedParam>(), R"(P:{})" "\r\n");
 }
 
 TEST(DebugMessage, formatTrackControl) {

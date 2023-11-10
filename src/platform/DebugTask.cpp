@@ -33,6 +33,8 @@ char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;
 std::tuple<CarProps, ControlData> carData;
 LapControlParameters lapControl;
+ParamManager::Values params;
+std::optional<DebugMessage::ParseResult> incomingMessage;
 
 void transmit(const char * const data) {
     uart_transmit(uart_Debug, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
@@ -48,50 +50,55 @@ extern "C" void runDebugTask(void) {
 
     DebugLed debugLed(gpio_Led);
     Timer carPropsSendTimer(millisecond_t(50));
+    Timer paramsSyncTimer(millisecond_t(25));
 
     while (true) {
-       const auto data = [inCmd = rxBuffer.startRead()]() -> std::optional<DebugMessage::value_type> {
-           if (!inCmd) {
-               return std::nullopt;
-           }
-
-           const auto d = DebugMessage::parse(const_cast<char*>(reinterpret_cast<const char*>(*inCmd)));
+       if (const auto inCmd = rxBuffer.startRead()) {
+           incomingMessage = DebugMessage::parse(const_cast<char*>(reinterpret_cast<const char*>(*inCmd)));
            rxBuffer.finishRead();
-           return d;
-       }();
+       }
 
-       if (data) {
+       if (incomingMessage) {
            std::visit(micro::variant_visitor{
                [](const std::tuple<CarProps, ControlData>& v){},
 
-               [](const ParamManager::NamedParam& param){
-//                   const auto outParams = params.empty()
-//                       ? globalParams.getAll()
-//                       : globalParams.update(params);
-//                   if (!outParams.empty()) {
-//                       DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, outParams);
-//                   }
+               [](const std::optional<ParamManager::NamedParam>& param){
+                   if (param) {
+                       if (globalParams.update(param->first, param->second)) {
+                           DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, *param);
+                           transmit(txBuffer);
+                       }
+                   } else {
+                       params = globalParams.getAll();
+                   }
                },
 
                [](const IndexedSectionControlParameters& sectionControl){
                    sectionControlOverrideQueue.send(sectionControl);
                }
-           }, *data);
+           }, *incomingMessage);
        }
 
-        if (carPropsSendTimer.checkTimeout()) {
-            auto& [car, controlData] = carData;
-            carPropsQueue.peek(car, millisecond_t(0));
-            lastControlQueue.peek(controlData, millisecond_t(0));
+       if (carPropsSendTimer.checkTimeout()) {
+           auto& [car, controlData] = carData;
+           carPropsQueue.peek(car, millisecond_t(0));
+           lastControlQueue.peek(controlData, millisecond_t(0));
 
-            DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, carData);
-            transmit(txBuffer);
-        }
+           DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, carData);
+           transmit(txBuffer);
+       }
 
-//       if (const auto changedParams = globalParams.sync(); !changedParams.empty()) {
-//           DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, changedParams);
-//           transmit(txBuffer);
-//       }
+       if (params.empty() && paramsSyncTimer.checkTimeout()) {
+           params = globalParams.sync();
+       }
+
+       if (!params.empty()) {
+           const auto lastElement = std::next(params.begin(), params.size() - 1);
+           const ParamManager::NamedParam param{lastElement->first, lastElement->second};
+           DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, param);
+           params.erase(lastElement);
+           transmit(txBuffer);
+       }
 
        if (Log::instance().receive(reinterpret_cast<Log::Message&>(txBuffer))) {
            transmit(txBuffer);
