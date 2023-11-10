@@ -82,7 +82,7 @@ extern "C" void runProgRaceTrackTask(void) {
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
     m_per_sec_t targetSpeed = m_per_sec_t(1);
-    // REGISTER_PARAM(globalParams, targetSpeed);
+    REGISTER_PARAM(globalParams, targetSpeed);
 
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());

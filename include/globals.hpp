@@ -24,4 +24,4 @@ extern micro::queue_t<micro::meter_t, 1> rearDistanceQueue;
 
 extern micro::CanManager vehicleCanManager;
 
-// extern micro::ParamManager globalParams;
+extern micro::ParamManager globalParams;

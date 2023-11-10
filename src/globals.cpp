@@ -18,4 +18,4 @@ queue_t<meter_t, 1> rearDistancesQueue;
 
 CanManager vehicleCanManager(can_Vehicle);
 
-// ParamManager globalParams;
+ParamManager globalParams;
