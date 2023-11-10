@@ -3,6 +3,7 @@
 
 #include <etl/string.h>
 
+#include <micro/debug/ParamManager.hpp>
 #include <micro/math/unit_utils.hpp>
 #include <micro/test/utils.hpp>
 
@@ -25,11 +26,13 @@ void expectEqual(const std::tuple<CarProps, ControlData>& expected,
     EXPECT_EQ_MICRO_CONTROL_DATA((std::get<1>(expected)), (std::get<1>(result)));
 }
 
-void expectEqual(const ParamManager::Values& expected, const ParamManager::Values& result) {
-    ASSERT_EQ(expected.size(), result.size());
-    for (const auto& [name, param] : result) {
-        // TODO
-    }
+void expectEqual(const ParamManager::NamedParam& expected, const ParamManager::NamedParam& result) {
+    EXPECT_EQ(expected.first, result.first);
+    ASSERT_EQ(expected.second.index(), result.second.index());
+
+    std::visit(
+        [&result](const auto& exp){ EXPECT_EQ(exp, std::get<std::decay_t<decltype(exp)>>(result.second)); },
+        expected.second);
 }
 
 void expectEqual(const IndexedSectionControlParameters& expected, const IndexedSectionControlParameters& result) {
@@ -37,7 +40,8 @@ void expectEqual(const IndexedSectionControlParameters& expected, const IndexedS
     EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected.second, result.second);
 }
 
-void testFormat(const DebugMessage::reference_type& data, const char * const expected) {
+template <typename T>
+void testFormat(const T& data, const char * const expected) {
     char msg[100];
     const auto size = DebugMessage::format(msg, sizeof(msg), data);
     EXPECT_EQ(etl::strlen(expected), size);
@@ -96,34 +100,26 @@ TEST(DebugMessage, parseCarProps) {
     testParse(expected, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\r\n");
 }
 
-TEST(DebugMessage, formatParams) {
-    const ParamManager::Values params{
-        std::make_pair(ParamManager::Name{"b"}, ParamManager::value_type{false}),
-        std::make_pair(ParamManager::Name{"i8"}, ParamManager::value_type{static_cast<int8_t>(8)}),
-        std::make_pair(ParamManager::Name{"i16"}, ParamManager::value_type{static_cast<int8_t>(16)}),
-        std::make_pair(ParamManager::Name{"i32"}, ParamManager::value_type{static_cast<int8_t>(32)}),
-        std::make_pair(ParamManager::Name{"u8"}, ParamManager::value_type{static_cast<uint8_t>(80)}),
-        std::make_pair(ParamManager::Name{"u16"}, ParamManager::value_type{static_cast<uint16_t>(160)}),
-        std::make_pair(ParamManager::Name{"u32"}, ParamManager::value_type{static_cast<uint32_t>(320)}),
-        std::make_pair(ParamManager::Name{"f"}, ParamManager::value_type{1.2f})
-    };
-
-    testFormat(params, R"(P:{"b":false,"f":1.20,"i16":16,"i32":32,"i8":8,"u16":160,"u32":320,"u8":80})" "\r\n");
+TEST(DebugMessage, formatParam) {
+    testFormat(ParamManager::NamedParam{"b", false}, R"(P:{"b":false})" "\r\n");
+    testFormat(ParamManager::NamedParam{"i8", static_cast<int8_t>(8)}, R"(P:{"i8":8})" "\r\n");
+    testFormat(ParamManager::NamedParam{"i16", static_cast<int16_t>(16)}, R"(P:{"i16":16})" "\r\n");
+    testFormat(ParamManager::NamedParam{"i32", static_cast<int32_t>(32)}, R"(P:{"i32":32})" "\r\n");
+    testFormat(ParamManager::NamedParam{"u8", static_cast<uint8_t>(80)}, R"(P:{"u8":80})" "\r\n");
+    testFormat(ParamManager::NamedParam{"u16", static_cast<uint16_t>(160)}, R"(P:{"u16":160})" "\r\n");
+    testFormat(ParamManager::NamedParam{"u32", static_cast<uint32_t>(320)}, R"(P:{"u32":320})" "\r\n");
+    testFormat(ParamManager::NamedParam{"f", 1.2f}, R"(P:{"f":1.20})" "\r\n");
 }
 
 TEST(DebugMessage, parseParams) {
-     const ParamManager::Values expected{
-        std::make_pair(ParamManager::Name{"b"}, ParamManager::value_type{false}),
-        std::make_pair(ParamManager::Name{"i8"}, ParamManager::value_type{static_cast<int8_t>(8)}),
-        std::make_pair(ParamManager::Name{"i16"}, ParamManager::value_type{static_cast<int8_t>(16)}),
-        std::make_pair(ParamManager::Name{"i32"}, ParamManager::value_type{static_cast<int8_t>(32)}),
-        std::make_pair(ParamManager::Name{"u8"}, ParamManager::value_type{static_cast<uint8_t>(80)}),
-        std::make_pair(ParamManager::Name{"u16"}, ParamManager::value_type{static_cast<uint16_t>(160)}),
-        std::make_pair(ParamManager::Name{"u32"}, ParamManager::value_type{static_cast<uint32_t>(320)}),
-        std::make_pair(ParamManager::Name{"f"}, ParamManager::value_type{1.2f})
-    };
-
-    testParse(expected, R"(P:{"b":false,"f":1.20,"i16":16,"i32":32,"i8":8,"u16":160,"u32":320,"u8":80})" "\r\n");
+    testParse(ParamManager::NamedParam{"b", false}, R"(P:{"b":false})" "\r\n");
+    testParse(ParamManager::NamedParam{"i8", 8}, R"(P:{"i8":8})" "\r\n");
+    testParse(ParamManager::NamedParam{"i16", 16}, R"(P:{"i16":16})" "\r\n");
+    testParse(ParamManager::NamedParam{"i32", 32}, R"(P:{"i32":32})" "\r\n");
+    testParse(ParamManager::NamedParam{"u8", 80}, R"(P:{"u8":80})" "\r\n");
+    testParse(ParamManager::NamedParam{"u16", 160}, R"(P:{"u16":160})" "\r\n");
+    testParse(ParamManager::NamedParam{"u32", 320}, R"(P:{"u32":320})" "\r\n");
+    testParse(ParamManager::NamedParam{"f", 1.2f}, R"(P:{"f":1.20})" "\r\n");
 }
 
 TEST(DebugMessage, formatTrackControl) {

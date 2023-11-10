@@ -64,7 +64,7 @@ extern "C" void runDebugTask(void) {
            std::visit(micro::variant_visitor{
                [](const std::tuple<CarProps, ControlData>& v){},
 
-               [](const ParamManager::Values& params){
+               [](const ParamManager::NamedParam& param){
 //                   const auto outParams = params.empty()
 //                       ? globalParams.getAll()
 //                       : globalParams.update(params);

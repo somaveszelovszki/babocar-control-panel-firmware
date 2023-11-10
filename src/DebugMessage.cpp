@@ -29,7 +29,7 @@ constexpr auto SEPARATOR_SIZE = std::char_traits<char>::length(micro::Log::SEPAR
 enum class Type : char {
     Unknown = '?',
     Car = 'C',
-    Params = 'P',
+    Param = 'P',
     TrackControl = TRACK_CONTROL_PREFIX
 };
 
@@ -48,7 +48,7 @@ std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& 
 Type getType(const DebugMessage::reference_type& value) {
     switch (value.index()) {
     case 0:  return Type::Car;
-    case 1:  return Type::Params;
+    case 1:  return Type::Param;
     case 2:  return Type::TrackControl;
     default: return Type::Unknown;
     }
@@ -57,7 +57,7 @@ Type getType(const DebugMessage::reference_type& value) {
 std::optional<DebugMessage::value_type> getValue(const Type type) {
     switch (type) {
     case Type::Car:          return std::tuple<CarProps, ControlData>{};
-    case Type::Params:       return ParamManager::Values{};
+    case Type::Param:        return ParamManager::NamedParam{};
     case Type::TrackControl: return IndexedSectionControlParameters{};
     default:                 return std::nullopt;
     }
@@ -115,35 +115,29 @@ void load(char * const input, std::tuple<CarProps, ControlData>& data) {
     car.isRemoteControlled               = !!(*json[10].as<int32_t>());
 }
 
-size_t store(char * const output, const size_t size, const ParamManager::Values& params) {
+size_t store(char * const output, const size_t size, const ParamManager::NamedParam& namedParam) {
+    const auto& [name, value] = namedParam;
+
     size_t n = micro::format_to_n(output, size, "{{");
 
-    size_t i = 0;
-    for (const auto& [name, value] : params) {
-        n += std::visit(
-            [output, size, n, &name](const auto& v){
-                if constexpr (std::is_floating_point_v<std::decay_t<decltype(v)>>) {
-                    return micro::format_to_n(&output[n], size - n, "\"{}\":{:.2f}", name.c_str(), v);
-                }
-                return micro::format_to_n(&output[n], size - n, "\"{}\":{}", name.c_str(), v);
-            }, value);
-
-        if (i++ != params.size() - 1) {
-            n += micro::format_to_n(&output[n], size - n, ",");
-        }
-    }
+    n += std::visit(
+        [output, size, n, &name](const auto& v){
+            if constexpr (std::is_floating_point_v<std::decay_t<decltype(v)>>) {
+                return micro::format_to_n(&output[n], size - n, "\"{}\":{:.2f}", name.c_str(), v);
+            }
+            return micro::format_to_n(&output[n], size - n, "\"{}\":{}", name.c_str(), v);
+        }, value);
 
     return n + micro::format_to_n(&output[n], size - n, "}}");
 }
 
-void load(char * const input, ParamManager::Values& params) {
+void load(char * const input, ParamManager::NamedParam& namedParam) {
     const auto json = micro::JSONParser(input).root();
-
-    for (auto param : json) {
-        if (const auto value = parseParamValue(param)) {
-            params.insert(std::make_pair(ParamManager::Name{param.key()}, *value));
-        }
-    }
+    const auto param = *json.begin();
+    
+    auto& [name, value] = namedParam;
+    name = param.key();
+    value = *parseParamValue(param);
 }
 
 size_t store(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
