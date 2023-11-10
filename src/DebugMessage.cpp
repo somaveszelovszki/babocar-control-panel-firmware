@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 #include <etl/string.h>
@@ -57,7 +58,7 @@ std::optional<DebugMessage::value_type> getValue(const Type type) {
     switch (type) {
     case Type::Car:          return std::tuple<CarProps, ControlData>{};
     case Type::Params:       return ParamManager::Values{};
-    case Type::TrackControl: return LapControlParameters{};
+    case Type::TrackControl: return IndexedSectionControlParameters{};
     default:                 return std::nullopt;
     }
 }
@@ -145,43 +146,37 @@ void load(char * const input, ParamManager::Values& params) {
     }
 }
 
-size_t store(char * const output, const size_t size, const LapControlParameters& lapControl) {
+size_t store(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
+    const auto& [index, control] = sectionControl;
+
     size_t n = micro::format_to_n(output, size, "{{");
 
-    size_t i = 0;
-    for (const auto& [name, control] : lapControl) {
-        n += micro::format_to_n(&output[n], size - n,
-            "\"{}\":[{:.2f},{},{},{:.2f},{},{:.2f}]",
-            name.c_str(),
-            control.speed.get(),
-            static_cast<uint32_t>(std::lround(control.rampTime.get())),
-            static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get())),
-            control.lineGradient.first.angle.get(),
-            static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get())),
-            control.lineGradient.second.angle.get());
-
-        if (i++ != lapControl.size() - 1) {
-            n += micro::format_to_n(&output[n], size - n, ",");
-        }
-    }
+    n += micro::format_to_n(&output[n], size - n,
+        "\"{}\":[{:.2f},{},{},{:.2f},{},{:.2f}]",
+        index,
+        control.speed.get(),
+        static_cast<uint32_t>(std::lround(control.rampTime.get())),
+        static_cast<int32_t>(std::lround(control.lineGradient.first.pos.get())),
+        control.lineGradient.first.angle.get(),
+        static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get())),
+        control.lineGradient.second.angle.get());
 
     return n + micro::format_to_n(&output[n], size - n, "}}");
 }
 
-void load(char * const input, LapControlParameters& lapControl) {
+void load(char * const input, IndexedSectionControlParameters& sectionControl) {
     const auto json = micro::JSONParser(input).root();
+    const auto params = *json.begin();
+    
+    auto& [index, control] = sectionControl;
 
-    for (auto params : json) {
-        TrackSection::ControlParameters control;
-        control.speed = m_per_sec_t(*params[0].as<float>());
-        control.rampTime = millisecond_t(*params[1].as<float>());
-        control.lineGradient.first.pos = millimeter_t(*params[2].as<float>());
-        control.lineGradient.first.angle = radian_t(*params[3].as<float>());
-        control.lineGradient.second.pos = millimeter_t(*params[4].as<float>());
-        control.lineGradient.second.angle = radian_t(*params[5].as<float>());
-
-        lapControl.insert(std::make_pair(ParamManager::Name{params.key()}, control));
-    }
+    index = static_cast<uint8_t>(std::atoi(params.key()));
+    control.speed = m_per_sec_t(*params[0].as<float>());
+    control.rampTime = millisecond_t(*params[1].as<float>());
+    control.lineGradient.first.pos = millimeter_t(*params[2].as<float>());
+    control.lineGradient.first.angle = radian_t(*params[3].as<float>());
+    control.lineGradient.second.pos = millimeter_t(*params[4].as<float>());
+    control.lineGradient.second.angle = radian_t(*params[5].as<float>());
 }
 
 } // namespace

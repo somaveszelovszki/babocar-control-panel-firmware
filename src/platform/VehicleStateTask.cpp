@@ -33,7 +33,7 @@ hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro);
 semaphore_t dataReadySemaphore;
 
 CanFrameHandler vehicleCanFrameHandler;
-CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
+CanSubscriber::Id vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
 void updateCarOrientedDistance(CarProps& car) {
     static meter_t orientedSectionStartDist;
@@ -50,12 +50,12 @@ void updateCarOrientedDistance(CarProps& car) {
 
 void updateCarPose() {
     static meter_t prevDist = { 0 };
-    static microsecond_t prevTime = getExactTime();
+    static microsecond_t prevTime;
 
     const microsecond_t now = getExactTime();
 
     const meter_t d_dist      = car.distance - prevDist;
-    const radian_t d_angle    = car.yawRate * (now - prevTime);
+    const radian_t d_angle    = car.yawRate * (prevTime > microsecond_t(0) ? now - prevTime : microsecond_t(0));
     const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST) + d_angle / 2;
 
     car.pose.pos.X += d_dist * cos(speedAngle);

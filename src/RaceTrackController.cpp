@@ -90,22 +90,20 @@ LapControlParameters RaceTrackController::getControlParameters() const {
     LapControlParameters lapControl;
     const auto& sections = lapSections();
     std::transform(sections.begin(), sections.end(), std::inserter(lapControl, lapControl.end()),
-        [](const auto& s){ return std::pair{s.name, s.control}; });
+        [](const auto& s){ return s.control; });
     return lapControl;
 }
 
-void RaceTrackController::overrideControlParameters(const LapControlParameters& lapControl) {
+void RaceTrackController::overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control) {
     if (!sectionsOverride_) {
         sectionsOverride_ = lapSections();
     }
 
-    for (const auto& [name, control] : lapControl) {
-        if (const auto it = std::find_if(sectionsOverride_->begin(), sectionsOverride_->end(),
-            [&name](const auto& s){ return s.name == name; });
-            it != sectionsOverride_->end()) {
-            it->control = control;
-        }
+    if (index >= sectionsOverride_->size()) {
+        return;
     }
+
+    (*sectionsOverride_)[index].control = control;
 }
 
 const LapTrackSections& RaceTrackController::lapSections() const {

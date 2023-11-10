@@ -40,9 +40,6 @@ struct TrackSection {
         std::pair<micro::OrientedLine, micro::OrientedLine> lineGradient;
     };
 
-    using Name = etl::string<20>;
-
-    Name name;
     bool isFast = false;
     micro::meter_t length;
     TransitionCriteria transitionCriteria;
@@ -57,7 +54,8 @@ struct TrackSection {
     micro::OrientedLine getTargetLine(const micro::CarProps& car) const;
 };
 
-using LapControlParameters = etl::map<TrackSection::Name, TrackSection::ControlParameters, cfg::MAX_NUM_RACE_SEGMENTS>;
+using IndexedSectionControlParameters = std::pair<size_t, TrackSection::ControlParameters>;
+using LapControlParameters = etl::vector<TrackSection::ControlParameters, cfg::MAX_NUM_RACE_SEGMENTS>;
 using LapTrackSections = etl::vector<TrackSection, cfg::MAX_NUM_RACE_SEGMENTS>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
@@ -78,7 +76,7 @@ public:
     size_t sectionIndex() const { return sectionIdx_; }
 
     LapControlParameters getControlParameters() const;
-    void overrideControlParameters(const LapControlParameters& lapControl);
+    void overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control);
 
 private:
     const LapTrackSections& lapSections() const;

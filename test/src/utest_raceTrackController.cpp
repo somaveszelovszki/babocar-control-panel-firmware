@@ -22,7 +22,6 @@ RaceTrackSections buildSections(const bool enableLineOffset, const bool enableLi
 
    LapTrackSections sections{
       {
-         "fast",
          true,
          meter_t{5},
          TrackSection::TransitionCriteria::pattern(LinePattern::BRAKE),
@@ -36,7 +35,6 @@ RaceTrackSections buildSections(const bool enableLineOffset, const bool enableLi
          }
       },
       {
-         "slow1",
          false,
          meter_t{1},
          TrackSection::TransitionCriteria::distance(),
@@ -50,7 +48,6 @@ RaceTrackSections buildSections(const bool enableLineOffset, const bool enableLi
          }
       },
       {
-         "slow2",
          false,
          meter_t{2},
          TrackSection::TransitionCriteria::acceleration(),

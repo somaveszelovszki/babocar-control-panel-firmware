@@ -32,11 +32,9 @@ void expectEqual(const ParamManager::Values& expected, const ParamManager::Value
     }
 }
 
-void expectEqual(const LapControlParameters& expected, const LapControlParameters& result) {
-    ASSERT_EQ(expected.size(), result.size());
-    for (const auto& [name, control] : expected) {
-        EXPECT_EQ_TRACK_CONTROL_PARAMETERS(control, result.at(name));
-    }
+void expectEqual(const IndexedSectionControlParameters& expected, const IndexedSectionControlParameters& result) {
+    EXPECT_EQ(expected.first, result.first);
+    EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected.second, result.second);
 }
 
 void testFormat(const DebugMessage::reference_type& data, const char * const expected) {
@@ -129,25 +127,25 @@ TEST(DebugMessage, parseParams) {
 }
 
 TEST(DebugMessage, formatTrackControl) {
-    const LapControlParameters lapControl{
-        std::make_pair(TrackSection::Name{"fast1"}, TrackSection::ControlParameters{
+    const IndexedSectionControlParameters sectionControl{
+        1, TrackSection::ControlParameters{
             m_per_sec_t{1.5f},
             millisecond_t{300},
             std::make_pair(OrientedLine{millimeter_t{5}, radian_t(0.2)},OrientedLine{millimeter_t{-5}, radian_t(-0.2)})
-        })
+        }
     };
 
-    testFormat(lapControl, TRACK_CONTROL_PREFIX_STR R"(:{"fast1":[1.50,300,5,0.20,-5,-0.20]})" "\r\n");
+    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\r\n");
 }
 
 TEST(DebugMessage, parseTrackControl) {
-    const LapControlParameters expected{
-        std::make_pair(TrackSection::Name{"fast1"}, TrackSection::ControlParameters{
+    const IndexedSectionControlParameters expected{
+        1, TrackSection::ControlParameters{
             m_per_sec_t{1.5f},
             millisecond_t{300},
             std::make_pair(OrientedLine{millimeter_t{5}, radian_t(0.2)},OrientedLine{millimeter_t{-5}, radian_t(-0.2)})
-        })
+        }
     };
 
-    testParse(expected, TRACK_CONTROL_PREFIX_STR R"(:{"fast1":[1.50,300,5,0.20,-5,-0.20]})" "\r\n");
+    testParse(expected, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\r\n");
 }

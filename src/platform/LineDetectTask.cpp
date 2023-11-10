@@ -18,7 +18,7 @@ namespace {
 LineInfo lineInfo;
 
 CanFrameHandler vehicleCanFrameHandler;
-CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
+CanSubscriber::Id vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
 void initializeVehicleCan() {
     vehicleCanFrameHandler.registerHandler(can::FrontLines::id(), [] (const uint8_t * const data) {

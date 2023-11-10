@@ -32,7 +32,7 @@ struct ServoOffsets {
     micro::radian_t extra;
 };
 
-etl::map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
+etl::map<m_per_sec_t, PID_Params, 15> frontLinePosControllerParams = {
     // speed        P      I      D
     { { 0.00f }, { 0.00f, 0.00f,   0.00f } },
     { { 0.10f }, { 2.20f, 0.00f, 120.00f } },
@@ -49,7 +49,7 @@ etl::map<m_per_sec_t, PID_Params, 20> frontLinePosControllerParams = {
     { { 7.00f }, { 0.25f, 0.00f, 100.00f } }
 };
 
-etl::map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
+etl::map<m_per_sec_t, PID_Params, 15> rearLineAngleControllerParams = {
     // speed        P      I      D
     { { 0.00f }, { 0.00f, 0.00f, 0.00f  } },
     { { 0.10f }, { 0.60f, 0.00f, 30.00f } },
@@ -63,7 +63,7 @@ etl::map<m_per_sec_t, PID_Params, 20> rearLineAngleControllerParams = {
     { { 4.00f }, { 0.00f, 0.00f,  0.00f } },
     { { 5.00f }, { 0.00f, 0.00f,  0.00f } },
     { { 6.00f }, { 0.00f, 0.00f,  0.00f } },
-    { { 9.00f }, { 0.00f, 0.00f,  0.00f } }
+    { { 7.00f }, { 0.00f, 0.00f,  0.00f } }
 };
 
 constexpr float SERVO_CONTROLLER_MAX_DELTA = static_cast<degree_t>(2 * cfg::WHEEL_MAX_DELTA).get();
@@ -76,7 +76,7 @@ radian_t rearWheelTargetAngle;
 radian_t frontDistSensorServoTargetAngle;
 
 CanFrameHandler vehicleCanFrameHandler;
-CanSubscriber::id_t vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
+CanSubscriber::Id vehicleCanSubscriberId = CanSubscriber::INVALID_ID;
 
 ControlData controlData;
 MainLine actualLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
@@ -114,8 +114,9 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     const degree_t angleErrorDiff   = (angleError - peekBackLineError.second) / D_FILTER_SIZE;
 
     if (prevLineErrors.full()) {
-        prevLineErrors.push({ posError, angleError });
+        prevLineErrors.pop();
     }
+    prevLineErrors.push({ posError, angleError });
 
     frontLinePosController.update(posError.get(), posErrorDiff.get());
     frontWheelTargetAngle = degree_t(frontLinePosController.output()) + targetControlAngle;

@@ -15,7 +15,6 @@
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
-#include <Distances.hpp>
 #include <globals.hpp>
 #include <OvertakeManeuver.hpp>
 #include <RaceTrackController.hpp>
@@ -76,35 +75,31 @@ extern "C" void runProgRaceTrackTask(void) {
     SystemManager::instance().registerTask();
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
-
     const uint32_t overtakeSection = getFastSection(3);
-
     meter_t lastDistWithSafetyCar;
+    uint8_t lastOvertakeLap = 0;
 
     cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
 
-    uint8_t lastOvertakeLap = 0;
-
     m_per_sec_t targetSpeed = m_per_sec_t(1);
-
-    REGISTER_PARAM(globalParams, targetSpeed);
+    // REGISTER_PARAM(globalParams, targetSpeed);
 
     while (true) {
         const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
         if (shouldHandle(programState)) {
-
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
 
             LineInfo lineInfo;
             lineInfoQueue.peek(lineInfo, millisecond_t(0));
 
-            Distances distances;
-            distancesQueue.peek(distances, millisecond_t(0));
+            micro::meter_t frontDistance;
+            frontDistanceQueue.peek(frontDistance, millisecond_t(0));
 
-            LapControlParameters lapControl;
-            if (lapControlOverrideQueue.receive(lapControl, millisecond_t(0))) {
-                trackController.overrideControlParameters(lapControl);
+            IndexedSectionControlParameters sectionControlOverride;
+            if (sectionControlOverrideQueue.receive(sectionControlOverride, millisecond_t(0))) {
+                const auto& [index, control] = sectionControlOverride;
+                trackController.overrideControlParameters(index, control);
             }
 
             // runs for the first time that this task handles the program state
@@ -128,7 +123,7 @@ extern "C" void runProgRaceTrackTask(void) {
             lineDetectControlData.domain = linePatternDomain_t::Race;
             lineDetectControlData.isReducedScanRangeEnabled = false;
 
-            if (distances.front < centimeter_t(100)) {
+            if (frontDistance < centimeter_t(100)) {
                 lastDistWithSafetyCar = car.distance;
             }
 
@@ -136,14 +131,14 @@ extern "C" void runProgRaceTrackTask(void) {
             case cfg::ProgramState::ReachSafetyCar:
                 controlData.speed = REACH_SAFETY_CAR_SPEED;
                 controlData.rampTime = millisecond_t(500);
-                if (distances.front != centimeter_t(0) && abs(safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
+                if (frontDistance != centimeter_t(0) && abs(safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
 
             case cfg::ProgramState::FollowSafetyCar:
-                controlData.speed = safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast());
+                controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
                 controlData.rampTime = millisecond_t(0);
 
                 if (overtakeSection == trackController.sectionIndex() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
@@ -164,7 +159,7 @@ extern "C" void runProgRaceTrackTask(void) {
                         OVERTAKE_SIDE_DISTANCE);
                 }
 
-                controlData.speed = safetyCarFollowSpeed(distances.front, trackController.isCurrentSectionFast());
+                controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
                 overtake.update(car, lineInfo, mainLine, controlData);
 
                 if (overtake.finished()) {
@@ -183,7 +178,7 @@ extern "C" void runProgRaceTrackTask(void) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Finish));
                     LOG_DEBUG("Race finished");
 
-                } else if (trackController.lap() <= 3 && distances.front < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
+                } else if (trackController.lap() <= 3 && frontDistance < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
                     SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
                     LOG_DEBUG("Reached safety car, starts following");
 
