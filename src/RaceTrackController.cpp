@@ -42,7 +42,7 @@ ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLi
 
 micro::OrientedLine TrackSection::getTargetLine(const micro::CarProps& car) const {
     const auto lerpDistance = [&car, this](const auto& from, const auto& to){
-        return micro::map(car.distance, startCarProps.distance, startCarProps.distance + length, from, to);
+        return micro::lerp(car.distance, startCarProps.distance, startCarProps.distance + length, from, to);
     };
 
     return {

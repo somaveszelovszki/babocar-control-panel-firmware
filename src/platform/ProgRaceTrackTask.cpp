@@ -48,7 +48,7 @@ OvertakeManeuver overtake;
 TestManeuver testManeuver;
 
 m_per_sec_t safetyCarFollowSpeed(meter_t distFromSafetyCar, bool isFast) {
-    return map(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
+    return micro::lerp(distFromSafetyCar, meter_t(0.3f), meter_t(0.8f), m_per_sec_t(0), isFast ? SAFETY_CAR_FAST_MAX_SPEED : SAFETY_CAR_SLOW_MAX_SPEED);
 }
 
 uint32_t getFastSection(const uint32_t n) {

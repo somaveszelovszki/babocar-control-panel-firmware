@@ -1,4 +1,4 @@
-#include <etl/vector.h>
+#include <micro/container/vector.hpp>
 
 #include <LabyrinthRoute.hpp>
 
@@ -58,7 +58,7 @@ LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment&
         bool isDistMinimized          = false;
         SegmentRouteInfo *prevSegInfo = nullptr;
     };
-    typedef etl::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
+    typedef micro::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
 
     SegmentRouteInfos info;
 

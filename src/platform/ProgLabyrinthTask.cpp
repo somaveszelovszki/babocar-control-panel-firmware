@@ -1,3 +1,4 @@
+#include <micro/container/vector.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/SystemManager.hpp>
 #include <micro/log/log.hpp>
@@ -48,7 +49,7 @@ const Segment *startSeg = graph.findSegment(START_SEGMENT);
 const Connection *prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
 const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
 LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
-etl::vector<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
+micro::vector<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
 struct JunctionPatternInfo {

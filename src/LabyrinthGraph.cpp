@@ -1,8 +1,8 @@
 #include <algorithm>
 
 #include <etl/set.h>
-#include <etl/vector.h>
 
+#include <micro/container/vector.hpp>
 #include <micro/log/log.hpp>
 #include <micro/math/unit_utils.hpp>
 
@@ -120,7 +120,7 @@ const Junction* LabyrinthGraph::findJunction(uint8_t id) const {
     return it != junctions_.end() ? to_raw_pointer(it) : nullptr;
 }
 
-const Junction* LabyrinthGraph::findJunction(const point2m& pos, const etl::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
+const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
 
     Junctions::const_iterator result = junctions_.end();
 

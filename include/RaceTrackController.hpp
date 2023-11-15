@@ -5,9 +5,9 @@
 #include <utility>
 
 #include <etl/string.h>
-#include <etl/map.h>
-#include <etl/vector.h>
 
+#include <micro/container/map.hpp>
+#include <micro/container/vector.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
@@ -55,8 +55,8 @@ struct TrackSection {
 };
 
 using IndexedSectionControlParameters = std::pair<size_t, TrackSection::ControlParameters>;
-using LapControlParameters = etl::vector<TrackSection::ControlParameters, cfg::MAX_NUM_RACE_SEGMENTS>;
-using LapTrackSections = etl::vector<TrackSection, cfg::MAX_NUM_RACE_SEGMENTS>;
+using LapControlParameters = micro::vector<TrackSection::ControlParameters, cfg::MAX_NUM_RACE_SEGMENTS>;
+using LapTrackSections = micro::vector<TrackSection, cfg::MAX_NUM_RACE_SEGMENTS>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
 class RaceTrackController {

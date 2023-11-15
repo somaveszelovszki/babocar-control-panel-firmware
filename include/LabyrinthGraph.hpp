@@ -2,9 +2,8 @@
 
 #include <algorithm>
 
-#include <etl/map.h>
-#include <etl/vector.h>
-
+#include <micro/container/map.hpp>
+#include <micro/container/vector.hpp>
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
 #include <micro/math/unit_utils.hpp>
@@ -14,7 +13,9 @@
 
 struct JunctionDecision {
     micro::radian_t orientation;
-    micro::Direction direction;
+    micro::Direction direction{micro::Direction::CENTER};
+
+    JunctionDecision() = default;
 
     JunctionDecision(micro::radian_t orientation, micro::Direction direction)
         : orientation(orientation)
@@ -35,6 +36,11 @@ struct Segment;
 /* @brief Labyrinth segment connection.
  */
 struct Connection : public Edge<Segment> {
+    Junction *junction{nullptr};
+    JunctionDecision decision1, decision2;
+
+    Connection() = default;
+
     Connection(Segment& seg1, Segment& seg2, Junction& junction, const JunctionDecision& decision1, const JunctionDecision& decision2)
         : Edge(seg1, seg2)
         , junction(&junction)
@@ -44,16 +50,19 @@ struct Connection : public Edge<Segment> {
     Segment* getOtherSegment(const Segment& seg) const;
 
     JunctionDecision getDecision(const Segment& seg) const;
-
-    Junction *junction;
-    JunctionDecision decision1, decision2;
 };
 
 /* @brief Labyrinth junction (cross-roads).
  */
 struct Junction {
-    using SideSegments = etl::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
-    using segment_map = etl::map<micro::radian_t, SideSegments, 2>;
+    using SideSegments = micro::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
+    using segment_map = micro::map<micro::radian_t, SideSegments, 2>;
+
+    uint8_t id{0};
+    micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
+    segment_map segments;
+
+    Junction() = default;
 
     Junction(const uint8_t id, const micro::point2<micro::meter_t>& pos)
         : id(id)
@@ -65,10 +74,6 @@ struct Junction {
 
     size_t getConnectionCount(const Segment& seg) const;
 
-    uint8_t id;
-    micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
-    segment_map segments;
-
     const SideSegments* getSideSegments(micro::radian_t orientation) const {
         return const_cast<Junction*>(this)->getSideSegments(orientation);
     }
@@ -79,6 +84,12 @@ struct Junction {
 /* @brief Labyrinth segment.
  */
 struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
+    char name{'\0'};
+    micro::meter_t length;  // The segment length.
+    bool isDeadEnd{false};
+
+    Segment() = default;
+
     Segment(char name, micro::meter_t length, bool isDeadEnd)
         : name(name)
         , length(length)
@@ -86,15 +97,11 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
 
     bool isFloating() const;
     bool isLoop() const;
-
-    char name;
-    micro::meter_t length;  // The segment length.
-    bool isDeadEnd;
 };
 
 class LabyrinthGraph {
 public:
-    LabyrinthGraph() {}
+    LabyrinthGraph() = default;
 
     void addSegment(const Segment& seg);
     void addJunction(const Junction& junc);
@@ -106,16 +113,16 @@ public:
     Junction* findJunction(uint8_t id);
     const Junction* findJunction(uint8_t id) const;
 
-    const Junction* findJunction(const micro::point2m& pos, const etl::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
+    const Junction* findJunction(const micro::point2m& pos, const micro::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
     const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
 
     bool valid() const;
 
 private:
-    typedef etl::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;
-    typedef etl::vector<Junction, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Junctions;
-    typedef etl::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> Connections;
+    typedef micro::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;
+    typedef micro::vector<Junction, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Junctions;
+    typedef micro::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> Connections;
 
     Segments segments_;
     Junctions junctions_;
