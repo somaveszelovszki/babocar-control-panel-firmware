@@ -1,7 +1,6 @@
 #include <algorithm>
 
-#include <etl/set.h>
-
+#include <micro/container/set.hpp>
 #include <micro/container/vector.hpp>
 #include <micro/log/log.hpp>
 #include <micro/math/unit_utils.hpp>
@@ -208,7 +207,7 @@ bool LabyrinthGraph::valid() const {
             isValid = false;
 
         } else {
-            etl::set<Junction*, 10> junctions;
+            micro::set<Junction*, 10> junctions;
             for (const Connection& conn : connections_) {
                 if (conn.node1 == &seg || conn.node2 == &seg) {
                     junctions.insert(conn.junction);
