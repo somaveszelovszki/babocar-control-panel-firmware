@@ -207,7 +207,7 @@ bool LabyrinthGraph::valid() const {
             isValid = false;
 
         } else {
-            micro::set<Junction*, 10> junctions;
+            micro::set<Junction*, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> junctions;
             for (const Connection& conn : connections_) {
                 if (conn.node1 == &seg || conn.node2 == &seg) {
                     junctions.insert(conn.junction);
