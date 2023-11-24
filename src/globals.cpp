@@ -1,5 +1,7 @@
 #include <globals.hpp>
+
 #include <cfg_board.hpp>
+#include <cfg_system.hpp>
 
 using namespace micro;
 
@@ -17,5 +19,6 @@ queue_t<char, 1> radioRecvQueue;
 queue_t<meter_t, 1> rearDistancesQueue;
 
 CanManager vehicleCanManager(can_Vehicle);
-
 ParamManager globalParams;
+TaskMonitor taskMonitor(cfg::NUM_MONITORED_TASKS);
+ProgramState programState;

@@ -3,7 +3,7 @@
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/ParamManager.hpp>
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
@@ -152,11 +152,10 @@ void initializeVehicleCan() {
 } // namespace
 
 extern "C" void runControlTask(void) {
-
-    SystemManager::instance().registerTask();
-
     initializeVehicleCan();
 
+    taskMonitor.registerInitializedTask();
+    
     WatchdogTimer controlDataWatchdog(millisecond_t(500));
 
     while (true) {
@@ -184,7 +183,7 @@ extern "C" void runControlTask(void) {
 
         lastControlQueue.overwrite(controlData);
 
-        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut());
+        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut());
         os_sleep(millisecond_t(1));
     }
 }

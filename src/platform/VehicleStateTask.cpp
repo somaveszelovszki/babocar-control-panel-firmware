@@ -1,5 +1,5 @@
 #include <micro/debug/ParamManager.hpp>
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/semaphore.hpp>
 #include <micro/port/queue.hpp>
@@ -85,12 +85,11 @@ void initializeVehicleCan() {
 } // namespace
 
 extern "C" void runVehicleStateTask(void) {
-
-    SystemManager::instance().registerTask();
-
     initializeVehicleCan();
-
     gyro.initialize();
+
+    taskMonitor.registerInitializedTask();
+
     WatchdogTimer gyroDataWd(millisecond_t(15));
 
     while (true) {
@@ -130,7 +129,7 @@ extern "C" void runVehicleStateTask(void) {
             gyroDataWd.reset();
         }
 
-        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && isGyroOk);
+        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && isGyroOk);
         os_sleep(millisecond_t(5));
     }
 }

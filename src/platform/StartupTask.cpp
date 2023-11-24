@@ -1,4 +1,4 @@
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/ControlData.hpp>
@@ -23,7 +23,7 @@ void waitStartSignal() {
     controlData.lineControl.actual = {};
     controlData.lineControl.target = {};
 
-    do {
+    while (startCounter != '0' && !isBtw(startCounter, 'A', 'Z')) {
         char prevStartCounter = startCounter;
         radioRecvQueue.peek(startCounter, millisecond_t(10));
 
@@ -35,7 +35,7 @@ void waitStartSignal() {
         controlQueue.overwrite(controlData);
         os_sleep(millisecond_t(50));
 
-    } while (!('0' == startCounter || isBtw(startCounter, 'A', 'Z')));
+    };
 
     LOG_DEBUG("Started!");
 }
@@ -61,10 +61,10 @@ extern "C" void runStartupTask(void) {
     }
 
     LOG_DEBUG("Number of clicks: {}", buttonClick);
-    SystemManager::instance().setProgramState(static_cast<SystemManager::programState_t>(buttonClick));
+    programState.set(static_cast<ProgramState::Value>(buttonClick));
 
-    if (cfg::ProgramState::WaitStartSignal == static_cast<cfg::ProgramState>(SystemManager::instance().programState())) {
+    if (ProgramState::WaitStartSignal == programState.get()) {
         waitStartSignal();
-        SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::NavigateLabyrinth));
+        programState.set(ProgramState::NavigateLabyrinth);
     }
 }

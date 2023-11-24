@@ -1,4 +1,4 @@
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
@@ -51,10 +51,8 @@ void initializeVehicleCan() {
 } // namespace
 
 extern "C" void runLineDetectTask(void) {
-
-    SystemManager::instance().registerTask();
-
     initializeVehicleCan();
+    taskMonitor.registerInitializedTask();
 
     Timer lineDetectControlTimer(can::LineDetectControl::period());
 
@@ -93,7 +91,7 @@ extern "C" void runLineDetectTask(void) {
 
         const bool areLinesOk = !((1 != lineInfo.front.lines.size() || 1 != lineInfo.rear.lines.size()) && abs(car.speed) < m_per_sec_t(0.01f));
 
-        SystemManager::instance().notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && areLinesOk);
+        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && areLinesOk);
         os_sleep(millisecond_t(1));
     }
 }

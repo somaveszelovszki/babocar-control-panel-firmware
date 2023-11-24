@@ -5,7 +5,7 @@
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/ParamManager.hpp>
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/port/semaphore.hpp>
 #include <micro/port/queue.hpp>
@@ -44,9 +44,9 @@ void transmit(const char * const data) {
 } // namespace
 
 extern "C" void runDebugTask(void) {
-    SystemManager::instance().registerTask();
-
     uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_BUFFER_SIZE);
+
+    taskMonitor.registerInitializedTask();
 
     DebugLed debugLed(gpio_Led);
     Timer carPropsSendTimer(millisecond_t(50));
@@ -118,8 +118,8 @@ extern "C" void runDebugTask(void) {
            transmit(txBuffer);
        }
 
-        SystemManager::instance().notify(true);
-        debugLed.update(SystemManager::instance().ok());
+        taskMonitor.notify(true);
+        debugLed.update(taskMonitor.ok());
         os_sleep(millisecond_t(1));
     }
 }

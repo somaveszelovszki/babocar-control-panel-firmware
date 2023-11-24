@@ -1,12 +1,14 @@
 #pragma once
 
 #include <micro/debug/ParamManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/panel/CanManager.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
 
+#include "ProgramState.hpp"
 #include "RaceTrackController.hpp"
 
 extern micro::queue_t<micro::radian_t, 1> carOrientationUpdateQueue;
@@ -23,5 +25,6 @@ extern micro::queue_t<char, 1> radioRecvQueue;
 extern micro::queue_t<micro::meter_t, 1> rearDistanceQueue;
 
 extern micro::CanManager vehicleCanManager;
-
 extern micro::ParamManager globalParams;
+extern micro::TaskMonitor taskMonitor;
+extern ProgramState programState;

@@ -1,6 +1,8 @@
+#include <utility>
+
 #include <micro/container/vector.hpp>
 #include <micro/debug/ParamManager.hpp>
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
@@ -77,15 +79,15 @@ void updateTargetSegment() {
     }
 }
 
-bool shouldHandle(const cfg::ProgramState programState) {
-    return isBtw(underlying_value(programState), underlying_value(cfg::ProgramState::NavigateLabyrinth), underlying_value(cfg::ProgramState::LaneChange));
+bool shouldHandle(const ProgramState::Value state) {
+    return isBtw(underlying_value(state), underlying_value(ProgramState::NavigateLabyrinth), underlying_value(ProgramState::LaneChange));
 }
 
 void enforceGraphValidity() {
     if (!graph.valid()) {
         while (true) {
             LOG_ERROR("Labyrinth graph is invalid!");
-            SystemManager::instance().notify(false);
+            taskMonitor.notify(false);
             os_sleep(millisecond_t(100));
         }
     }
@@ -94,19 +96,18 @@ void enforceGraphValidity() {
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
-
-    SystemManager::instance().registerTask();
+    taskMonitor.registerInitializedTask();
 
     LineInfo lineInfo;
     ControlData controlData;
     LineDetectControl lineDetectControlData;
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
 
-    cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
+    auto currentProgramState = ProgramState::INVALID;
 
     while (true) {
-        const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
-        if (shouldHandle(programState)) {
+        const auto prevProgramState = std::exchange(currentProgramState, programState.get());
+        if (shouldHandle(currentProgramState)) {
 
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
@@ -117,10 +118,10 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             lineDetectControlData.domain = linePatternDomain_t::Labyrinth;
             lineDetectControlData.isReducedScanRangeEnabled = false;
 
-            switch (programState) {
-            case cfg::ProgramState::NavigateLabyrinth:
+            switch (currentProgramState) {
+            case ProgramState::NavigateLabyrinth:
             {
-                if (programState != prevProgramState) {
+                if (currentProgramState != prevProgramState) {
                     enforceGraphValidity();
                     carOrientationUpdateQueue.overwrite(radian_t(0));
                     endTime = getTime() + second_t(20);
@@ -142,13 +143,13 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 }
 
                 if (navigator.finished()) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::LaneChange));
+                    programState.set(ProgramState::LaneChange);
                 }
                 break;
             }
 
-            case cfg::ProgramState::LaneChange:
-                if (programState != prevProgramState) {
+            case ProgramState::LaneChange:
+                if (currentProgramState != prevProgramState) {
                     const LinePattern& pattern = (LinePattern::LANE_CHANGE == lineInfo.front.pattern.type ? lineInfo.front : lineInfo.rear).pattern;
                     laneChange.initialize(car, sgn(car.speed), pattern.dir, pattern.side, Sign::POSITIVE, LANE_CHANGE_SPEED, LANE_DISTANCE);
                 }
@@ -156,10 +157,11 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 laneChange.update(car, lineInfo, mainLine, controlData);
 
                 if (laneChange.finished()) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::ReachSafetyCar));
+                    programState.set(ProgramState::ReachSafetyCar);
                 }
                 break;
             default:
+                LOG_ERROR("Invalid program state: {}", underlying_value(currentProgramState));
                 break;
             }
 
@@ -167,8 +169,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             lineDetectControlQueue.overwrite(lineDetectControlData);
         }
 
-        prevProgramState = programState;
-        SystemManager::instance().notify(true);
+        taskMonitor.notify(true);
         os_sleep(millisecond_t(2));
     }
 }

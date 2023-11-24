@@ -1,4 +1,4 @@
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
 #include <micro/log/log.hpp>
@@ -18,11 +18,10 @@ volatile char radioRecvValue = '\0';
 } // namespace
 
 extern "C" void runRadioRecvTask(void) {
-
-    SystemManager::instance().registerTask();
-
     char prevRadioRecv = radioRecvValue;
     uart_receive(uart_RadioModule, radioRecvBuffer, 1);
+
+    taskMonitor.registerInitializedTask();
 
     while (true) {
         const char radioRecv = radioRecvValue;
@@ -32,7 +31,7 @@ extern "C" void runRadioRecvTask(void) {
         }
 
         radioRecvQueue.overwrite(radioRecv);
-        SystemManager::instance().notify(true);
+        taskMonitor.notify(true);
         os_sleep(millisecond_t(20));
     }
 }

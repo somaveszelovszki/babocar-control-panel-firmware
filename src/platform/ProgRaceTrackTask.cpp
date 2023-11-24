@@ -1,5 +1,5 @@
 #include <micro/debug/ParamManager.hpp>
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/sensor/Filter.hpp>
@@ -55,38 +55,37 @@ uint32_t getFastSection(const uint32_t n) {
     return trackController.getFastSectionIndex(n);
 }
 
-uint32_t getFastSection(const cfg::ProgramState programState) {
+uint32_t getFastSection(const ProgramState::Value state) {
     return getFastSection(
-        cfg::ProgramState::Race          == programState ? 1 :
-        cfg::ProgramState::Race_segFast2 == programState ? 2 :
-        cfg::ProgramState::Race_segFast3 == programState ? 3 :
-        cfg::ProgramState::Race_segFast4 == programState ? 4 : micro::numeric_limits<uint32_t>::max()
+        ProgramState::Race          == state ? 1 :
+        ProgramState::Race_segFast2 == state ? 2 :
+        ProgramState::Race_segFast3 == state ? 3 :
+        ProgramState::Race_segFast4 == state ? 4 : micro::numeric_limits<uint32_t>::max()
     );
 }
 
-bool shouldHandle(const cfg::ProgramState programState) {
-    return isBtw(underlying_value(programState), underlying_value(cfg::ProgramState::ReachSafetyCar), underlying_value(cfg::ProgramState::Test));
+bool shouldHandle(const ProgramState::Value state) {
+    return isBtw(underlying_value(state), underlying_value(ProgramState::ReachSafetyCar), underlying_value(ProgramState::Test));
 }
 
 } // namespace
 
 extern "C" void runProgRaceTrackTask(void) {
+    m_per_sec_t targetSpeed = m_per_sec_t(1);
+    REGISTER_PARAM(globalParams, targetSpeed);
 
-    SystemManager::instance().registerTask();
+    taskMonitor.registerInitializedTask();
 
     MainLine mainLine(cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST);
     const uint32_t overtakeSection = getFastSection(3);
     meter_t lastDistWithSafetyCar;
     uint8_t lastOvertakeLap = 0;
 
-    cfg::ProgramState prevProgramState = cfg::ProgramState::INVALID;
-
-    m_per_sec_t targetSpeed = m_per_sec_t(1);
-    REGISTER_PARAM(globalParams, targetSpeed);
+    auto currentProgramState = ProgramState::INVALID;
 
     while (true) {
-        const cfg::ProgramState programState = static_cast<cfg::ProgramState>(SystemManager::instance().programState());
-        if (shouldHandle(programState)) {
+        const auto prevProgramState = std::exchange(currentProgramState, programState.get());
+        if (shouldHandle(currentProgramState)) {
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
 
@@ -104,10 +103,10 @@ extern "C" void runProgRaceTrackTask(void) {
 
             // runs for the first time that this task handles the program state
             if (!shouldHandle(prevProgramState)) {
-                const uint32_t currentSection = getFastSection(programState);
+                const uint32_t currentSection = getFastSection(currentProgramState);
                 if (currentSection != std::numeric_limits<uint32_t>::max()) { // race
                     trackController.setSection(car, 3, currentSection);
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Race));
+                    programState.set(ProgramState::Race);
                 } else { // reach safety car
                     trackController.setSection(car, 1, 0);
                 }
@@ -127,31 +126,31 @@ extern "C" void runProgRaceTrackTask(void) {
                 lastDistWithSafetyCar = car.distance;
             }
 
-            switch (programState) {
-            case cfg::ProgramState::ReachSafetyCar:
+            switch (currentProgramState) {
+            case ProgramState::ReachSafetyCar:
                 controlData.speed = REACH_SAFETY_CAR_SPEED;
                 controlData.rampTime = millisecond_t(500);
                 if (frontDistance != centimeter_t(0) && abs(safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
+                    programState.set(ProgramState::FollowSafetyCar);
                     LOG_DEBUG("Reached safety car, starts following");
                 }
                 break;
 
-            case cfg::ProgramState::FollowSafetyCar:
+            case ProgramState::FollowSafetyCar:
                 controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
                 controlData.rampTime = millisecond_t(0);
 
                 if (overtakeSection == trackController.sectionIndex() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::OvertakeSafetyCar));
+                    programState.set(ProgramState::OvertakeSafetyCar);
                     LOG_DEBUG("Starts overtake");
                 } else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackController.isCurrentSectionFast()) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Race));
+                    programState.set(ProgramState::Race);
                     LOG_DEBUG("Safety car left the track, starts race");
                 }
                 break;
 
-            case cfg::ProgramState::OvertakeSafetyCar:
-                if (programState != prevProgramState) {
+            case ProgramState::OvertakeSafetyCar:
+                if (currentProgramState != prevProgramState) {
                     lastOvertakeLap = trackController.lap();
                     overtake.initialize(car, Sign::POSITIVE,
                         OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_SPEED, OVERTAKE_END_SPEED,
@@ -163,42 +162,42 @@ extern "C" void runProgRaceTrackTask(void) {
                 overtake.update(car, lineInfo, mainLine, controlData);
 
                 if (overtake.finished()) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Race));
+                    programState.set(ProgramState::Race);
                     LOG_DEBUG("Overtake finished, starts race");
                 }
                 break;
 
-            case cfg::ProgramState::Race:
+            case ProgramState::Race:
                 lineDetectControlData.isReducedScanRangeEnabled = trackController.lap() >= 4 &&
                                                                   (car.speed > m_per_sec_t(0) ?
                                                                       lineInfo.front.lines.size() == 1 :
                                                                       lineInfo.rear.lines.size() == 1);
 
                 if (trackController.lap() > cfg::NUM_RACE_LAPS) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::Finish));
+                    programState.set(ProgramState::Finish);
                     LOG_DEBUG("Race finished");
 
                 } else if (trackController.lap() <= 3 && frontDistance < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
-                    SystemManager::instance().setProgramState(underlying_value(cfg::ProgramState::FollowSafetyCar));
+                    programState.set(ProgramState::FollowSafetyCar);
                     LOG_DEBUG("Reached safety car, starts following");
 
                 }
                 break;
 
-            case cfg::ProgramState::Finish:
+            case ProgramState::Finish:
                 if (!trackController.isCurrentSectionFast() || car.distance - trackController.getSectionStartDistance() > meter_t(2)) {
                     controlData.speed = m_per_sec_t(0);
                     controlData.rampTime = millisecond_t(1500);
                 }
                 break;
 
-            case cfg::ProgramState::Test:
+            case ProgramState::Test:
                 controlData.speed = targetSpeed;
                 controlData.rampTime = millisecond_t(500);
                 break;
 
             default:
-                LOG_ERROR("Invalid program state counter: [{}]", underlying_value(programState));
+                LOG_ERROR("Invalid program state: {}", underlying_value(currentProgramState));
                 break;
             }
 
@@ -207,8 +206,7 @@ extern "C" void runProgRaceTrackTask(void) {
             lapControlQueue.overwrite(trackController.getControlParameters());
         }
 
-        prevProgramState = programState;
-        SystemManager::instance().notify(true);
+        taskMonitor.notify(true);
         os_sleep(millisecond_t(1));
     }
 }

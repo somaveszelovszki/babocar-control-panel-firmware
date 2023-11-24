@@ -1,4 +1,4 @@
-#include <micro/debug/SystemManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
 #include <micro/panel/PanelLink.hpp>
 #include <micro/panel/DistSensorPanelData.hpp>
 #include <micro/port/queue.hpp>
@@ -43,8 +43,7 @@ bool handleDistanceSensor(
 } // namespace
 
 extern "C" void runDistSensorTask(void) {
-
-    SystemManager::instance().registerTask();
+    taskMonitor.registerInitializedTask();
 
     DistSensorPanelOutData rxData;
 
@@ -57,7 +56,7 @@ extern "C" void runDistSensorTask(void) {
         const auto rearState = true;
         #endif // REAR_DISTANCE_SENSOR_ENABLED
 
-        SystemManager::instance().notify(frontState && rearState);
+        taskMonitor.notify(frontState && rearState);
         os_sleep(millisecond_t(1));
     }
 }
