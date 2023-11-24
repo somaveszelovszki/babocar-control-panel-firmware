@@ -78,6 +78,7 @@ extern "C" void runLineDetectTask(void) {
             LOG_INFO("Rear pattern changed from [{} {} {}] to [{} {} {}]",
                 to_string(prevLineInfo.rear.pattern.type), to_string(prevLineInfo.rear.pattern.dir), to_string(prevLineInfo.rear.pattern.side),
                 to_string(lineInfo.rear.pattern.type), to_string(lineInfo.rear.pattern.dir), to_string(lineInfo.rear.pattern.side));
+
             prevLineInfo.rear = lineInfo.rear;
         }
 
@@ -89,9 +90,7 @@ extern "C" void runLineDetectTask(void) {
                 control.isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0, control.domain);
         }
 
-        const bool areLinesOk = !((1 != lineInfo.front.lines.size() || 1 != lineInfo.rear.lines.size()) && abs(car.speed) < m_per_sec_t(0.01f));
-
-        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && areLinesOk);
+        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId));
         os_sleep(millisecond_t(1));
     }
 }

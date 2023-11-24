@@ -36,6 +36,11 @@ bool handleDistanceSensor(
     if (panelLink.readAvailable(rxData)) {
         queue.overwrite(parseDistSensorPanelData(rxData));
     }
+    
+    if (frontDistSensorPanelLink.shouldSend()) {       
+        DistSensorPanelInData txData;
+        frontDistSensorPanelLink.send(txData);
+    }
 
     return panelLink.isConnected();
 }
@@ -45,15 +50,13 @@ bool handleDistanceSensor(
 extern "C" void runDistSensorTask(void) {
     taskMonitor.registerInitializedTask();
 
-    DistSensorPanelOutData rxData;
-
     while (true) {
-        const auto frontState = handleDistanceSensor(frontDistSensorPanelLink, frontDistanceQueue);
+        const bool frontState = handleDistanceSensor(frontDistSensorPanelLink, frontDistanceQueue);
 
         #if REAR_DISTANCE_SENSOR_ENABLED
-        const auto rearState = handleDistanceSensor(rearDistSensorPanelLink, rearDistanceQueue);
+        const bool rearState = handleDistanceSensor(rearDistSensorPanelLink, rearDistanceQueue);
         #else
-        const auto rearState = true;
+        const bool rearState = true;
         #endif // REAR_DISTANCE_SENSOR_ENABLED
 
         taskMonitor.notify(frontState && rearState);
