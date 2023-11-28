@@ -84,7 +84,7 @@ TEST(DebugMessage, formatCarProps) {
     controlData.lineControl.target.pos = millimeter_t(6);
     controlData.lineControl.target.angle = radian_t(0.4);
 
-    testFormat(data, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\r\n");
+    testFormat(data, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
 }
 
 TEST(DebugMessage, parseCarProps) {
@@ -104,30 +104,30 @@ TEST(DebugMessage, parseCarProps) {
     controlData.lineControl.target.pos = millimeter_t(6);
     controlData.lineControl.target.angle = radian_t(0.4);
 
-    testParse(expected, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\r\n");
+    testParse(expected, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
 }
 
 TEST(DebugMessage, formatParam) {
-    testFormat(ParamManager::NamedParam{"b", false}, R"(P:{"b":false})" "\r\n");
-    testFormat(ParamManager::NamedParam{"i8", static_cast<int8_t>(8)}, R"(P:{"i8":8})" "\r\n");
-    testFormat(ParamManager::NamedParam{"i16", static_cast<int16_t>(16)}, R"(P:{"i16":16})" "\r\n");
-    testFormat(ParamManager::NamedParam{"i32", static_cast<int32_t>(32)}, R"(P:{"i32":32})" "\r\n");
-    testFormat(ParamManager::NamedParam{"u8", static_cast<uint8_t>(80)}, R"(P:{"u8":80})" "\r\n");
-    testFormat(ParamManager::NamedParam{"u16", static_cast<uint16_t>(160)}, R"(P:{"u16":160})" "\r\n");
-    testFormat(ParamManager::NamedParam{"u32", static_cast<uint32_t>(320)}, R"(P:{"u32":320})" "\r\n");
-    testFormat(ParamManager::NamedParam{"f", 1.2f}, R"(P:{"f":1.20})" "\r\n");
+    testFormat(ParamManager::NamedParam{"b", false}, R"(P:{"b":false})" "\n");
+    testFormat(ParamManager::NamedParam{"i8", static_cast<int8_t>(8)}, R"(P:{"i8":8})" "\n");
+    testFormat(ParamManager::NamedParam{"i16", static_cast<int16_t>(16)}, R"(P:{"i16":16})" "\n");
+    testFormat(ParamManager::NamedParam{"i32", static_cast<int32_t>(32)}, R"(P:{"i32":32})" "\n");
+    testFormat(ParamManager::NamedParam{"u8", static_cast<uint8_t>(80)}, R"(P:{"u8":80})" "\n");
+    testFormat(ParamManager::NamedParam{"u16", static_cast<uint16_t>(160)}, R"(P:{"u16":160})" "\n");
+    testFormat(ParamManager::NamedParam{"u32", static_cast<uint32_t>(320)}, R"(P:{"u32":320})" "\n");
+    testFormat(ParamManager::NamedParam{"f", 1.2f}, R"(P:{"f":1.20})" "\n");
 }
 
 TEST(DebugMessage, parseParams) {
-    testParse(std::make_optional(ParamManager::NamedParam{"b", false}), R"(P:{"b":false})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"i8", 8}), R"(P:{"i8":8})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"i16", 16}), R"(P:{"i16":16})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"i32", 32}), R"(P:{"i32":32})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"u8", 80}), R"(P:{"u8":80})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"u16", 160}), R"(P:{"u16":160})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"u32", 320}), R"(P:{"u32":320})" "\r\n");
-    testParse(std::make_optional(ParamManager::NamedParam{"f", 1.2f}), R"(P:{"f":1.20})" "\r\n");
-    testParse(std::optional<ParamManager::NamedParam>(), R"(P:{})" "\r\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"b", false}), R"(P:{"b":false})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"i8", 8}), R"(P:{"i8":8})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"i16", 16}), R"(P:{"i16":16})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"i32", 32}), R"(P:{"i32":32})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"u8", 80}), R"(P:{"u8":80})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"u16", 160}), R"(P:{"u16":160})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"u32", 320}), R"(P:{"u32":320})" "\n");
+    testParse(std::make_optional(ParamManager::NamedParam{"f", 1.2f}), R"(P:{"f":1.20})" "\n");
+    testParse(std::optional<ParamManager::NamedParam>(), R"(P:{})" "\n");
 }
 
 TEST(DebugMessage, formatTrackControl) {
@@ -139,7 +139,7 @@ TEST(DebugMessage, formatTrackControl) {
         }
     };
 
-    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\r\n");
+    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\n");
 }
 
 TEST(DebugMessage, parseTrackControl) {
@@ -151,5 +151,5 @@ TEST(DebugMessage, parseTrackControl) {
         }
     };
 
-    testParse(expected, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\r\n");
+    testParse(expected, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\n");
 }

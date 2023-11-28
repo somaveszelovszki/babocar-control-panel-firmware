@@ -18,8 +18,6 @@ using namespace micro;
 
 namespace {
 
-constexpr auto SEPARATOR_SIZE = std::char_traits<char>::length(micro::Log::SEPARATOR);
-
 #if RACE_TRACK == TRACK
 #define TRACK_CONTROL_PREFIX 'R'
 #else
@@ -77,7 +75,7 @@ size_t parseType(const char * const input, Type& type) {
 }
 
 size_t formatSeparator(char* output, const size_t size) {
-    return micro::format_to_n(output, size, Log::SEPARATOR);
+    return micro::format_to_n(output, size, "{}", Log::SEPARATOR);
 }
 
 size_t store(char * const output, const size_t size, const std::tuple<CarProps, ControlData>& data) {
