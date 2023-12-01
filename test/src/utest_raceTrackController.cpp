@@ -16,58 +16,71 @@ namespace {
 constexpr auto LINE_OFFSET = centimeter_t(10);
 constexpr auto LINE_ANGLE = degree_t(15);
 
-RaceTrackSections buildSections(const bool enableLineOffset, const bool enableLineAngle) {
-   const auto offset = enableLineOffset ? LINE_OFFSET : centimeter_t(0);
-   const auto angle = enableLineAngle ? LINE_ANGLE : degree_t(0);
+class LapTrackSectionProvider : public ILapTrackSectionProvider {
+public:
+    LapTrackSectionProvider(const bool enableLineOffset, const bool enableLineAngle)
+        : enableLineOffset_{enableLineOffset}
+        , enableLineAngle_{enableLineAngle} {}
 
-   LapTrackSections sections{
-      {
-         true,
-         meter_t{5},
-         TrackSection::TransitionCriteria::pattern(LinePattern::BRAKE),
-         TrackSection::ControlParameters{
-            m_per_sec_t(3),
-            millisecond_t(500),
-            {
-               OrientedLine{centimeter_t(0), degree_t(0)},
-               OrientedLine{offset, angle}
-            }
-         }
-      },
-      {
-         false,
-         meter_t{1},
-         TrackSection::TransitionCriteria::distance(),
-         TrackSection::ControlParameters{
-            m_per_sec_t(1),
-            millisecond_t(500),
-            {
-               OrientedLine{offset, angle},
-               OrientedLine{-offset, -angle}
-            }
-         }
-      },
-      {
-         false,
-         meter_t{2},
-         TrackSection::TransitionCriteria::acceleration(),
-         TrackSection::ControlParameters{
-            m_per_sec_t(2),
-            millisecond_t(500),
-            {
-               OrientedLine{-offset, -angle},
-               OrientedLine{centimeter_t(0), degree_t(0)}
-            }
-         }
-      }
-   };
+    LapTrackSections operator()(const size_t) override {
+        const auto offset = enableLineOffset_ ? LINE_OFFSET : centimeter_t(0);
+        const auto angle = enableLineAngle_ ? LINE_ANGLE : degree_t(0);
 
-   return {sections, sections}; // same track section parameters for 2 laps
-}
+        return LapTrackSections{
+            {
+                true,
+                meter_t{5},
+                TrackSection::TransitionCriteria::pattern(LinePattern::BRAKE),
+                TrackSection::ControlParameters{
+                m_per_sec_t(3),
+                millisecond_t(500),
+                {
+                    OrientedLine{centimeter_t(0), degree_t(0)},
+                    OrientedLine{offset, angle}
+                }
+                }
+            },
+            {
+                false,
+                meter_t{1},
+                TrackSection::TransitionCriteria::distance(),
+                TrackSection::ControlParameters{
+                m_per_sec_t(1),
+                millisecond_t(500),
+                {
+                    OrientedLine{offset, angle},
+                    OrientedLine{-offset, -angle}
+                }
+                }
+            },
+            {
+                false,
+                meter_t{2},
+                TrackSection::TransitionCriteria::acceleration(),
+                TrackSection::ControlParameters{
+                m_per_sec_t(2),
+                millisecond_t(500),
+                {
+                    OrientedLine{-offset, -angle},
+                    OrientedLine{centimeter_t(0), degree_t(0)}
+                }
+                }
+            }
+        };
+    }
+
+    ~LapTrackSectionProvider() = default;
+
+private:
+    bool enableLineOffset_;
+    bool enableLineAngle_;
+};
 
 class RaceTrackControllerTestBase : public Test {
 public:
-   RaceTrackControllerTestBase(RaceTrackSections sections) : trackController_{std::move(sections)} {
+   RaceTrackControllerTestBase(const bool enableLineOffset, const bool enableLineAngle)
+      : lapTrackSectionProvider_{enableLineOffset, enableLineAngle}
+      , trackController_{lapTrackSectionProvider_} {
       setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), degree_t(0)});
    }
 
@@ -85,6 +98,7 @@ protected:
    }
 
 protected:
+   LapTrackSectionProvider lapTrackSectionProvider_;
    RaceTrackController trackController_;
    CarProps car_;
    LineInfo lineInfo_;
@@ -93,17 +107,17 @@ protected:
 
 class RaceTrackControllerCenterLineTest : public RaceTrackControllerTestBase {
 public:
-   RaceTrackControllerCenterLineTest() : RaceTrackControllerTestBase(buildSections(false, false)) {}
+   RaceTrackControllerCenterLineTest() : RaceTrackControllerTestBase(false, false) {}
 };
 
 class RaceTrackControllerOffsetTest : public RaceTrackControllerTestBase {
 public:
-   RaceTrackControllerOffsetTest() : RaceTrackControllerTestBase(buildSections(true, false)) {}
+   RaceTrackControllerOffsetTest() : RaceTrackControllerTestBase(true, false) {}
 };
 
 class RaceTrackControllerAngleTest : public RaceTrackControllerTestBase {
 public:
-   RaceTrackControllerAngleTest() : RaceTrackControllerTestBase(buildSections(false, true)) {}
+   RaceTrackControllerAngleTest() : RaceTrackControllerTestBase(false, true) {}
 };
 
 TEST_F(RaceTrackControllerCenterLineTest, sameSection) {

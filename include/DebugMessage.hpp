@@ -19,7 +19,7 @@ public:
     using ParseResult = std::variant<
         std::tuple<micro::CarProps, micro::ControlData>,
         std::optional<micro::ParamManager::NamedParam>,
-        IndexedSectionControlParameters>;
+        std::optional<IndexedSectionControlParameters>>;
 
     using FormatInput = std::variant<
         std::reference_wrapper<const std::tuple<micro::CarProps, micro::ControlData>>,

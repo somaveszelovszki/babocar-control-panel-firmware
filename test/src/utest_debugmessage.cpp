@@ -41,10 +41,15 @@ void expectEqual(const std::optional<ParamManager::NamedParam>& expected,
         expected->second);
 }
 
-void expectEqual(const IndexedSectionControlParameters& expected,
-                 const IndexedSectionControlParameters& result) {
-    EXPECT_EQ(expected.first, result.first);
-    EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected.second, result.second);
+void expectEqual(const std::optional<IndexedSectionControlParameters>& expected,
+                 const std::optional<IndexedSectionControlParameters>& result) {
+    ASSERT_EQ(expected.has_value(), result.has_value());
+    if (!expected) {
+        return;
+    }
+
+    EXPECT_EQ(expected->first, result->first);
+    EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected->second, result->second);
 }
 
 template <typename T>
@@ -118,7 +123,7 @@ TEST(DebugMessage, formatParam) {
     testFormat(ParamManager::NamedParam{"f", 1.2f}, R"(P:{"f":1.20})" "\n");
 }
 
-TEST(DebugMessage, parseParams) {
+TEST(DebugMessage, parseParam) {
     testParse(std::make_optional(ParamManager::NamedParam{"b", false}), R"(P:{"b":false})" "\n");
     testParse(std::make_optional(ParamManager::NamedParam{"i8", 8}), R"(P:{"i8":8})" "\n");
     testParse(std::make_optional(ParamManager::NamedParam{"i16", 16}), R"(P:{"i16":16})" "\n");
@@ -127,7 +132,7 @@ TEST(DebugMessage, parseParams) {
     testParse(std::make_optional(ParamManager::NamedParam{"u16", 160}), R"(P:{"u16":160})" "\n");
     testParse(std::make_optional(ParamManager::NamedParam{"u32", 320}), R"(P:{"u32":320})" "\n");
     testParse(std::make_optional(ParamManager::NamedParam{"f", 1.2f}), R"(P:{"f":1.20})" "\n");
-    testParse(std::optional<ParamManager::NamedParam>(), R"(P:{})" "\n");
+    testParse(std::optional<ParamManager::NamedParam>(), "P:{}\n");
 }
 
 TEST(DebugMessage, formatTrackControl) {
@@ -139,7 +144,7 @@ TEST(DebugMessage, formatTrackControl) {
         }
     };
 
-    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\n");
+    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.20,-5,-0.20]\n");
 }
 
 TEST(DebugMessage, parseTrackControl) {
@@ -151,5 +156,6 @@ TEST(DebugMessage, parseTrackControl) {
         }
     };
 
-    testParse(expected, TRACK_CONTROL_PREFIX_STR R"(:{"1":[1.50,300,5,0.20,-5,-0.20]})" "\n");
+    testParse(std::make_optional(expected), TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.20,-5,-0.20]\n");
+    testParse(std::optional<IndexedSectionControlParameters>(), TRACK_CONTROL_PREFIX_STR ":[]\n");
 }

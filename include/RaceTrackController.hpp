@@ -38,6 +38,14 @@ struct TrackSection {
         micro::m_per_sec_t speed;
         micro::millisecond_t rampTime;
         std::pair<micro::OrientedLine, micro::OrientedLine> lineGradient;
+
+        bool operator==(const ControlParameters& other) const {
+        	return speed == other.speed && rampTime == other.rampTime && lineGradient == other.lineGradient;
+        }
+
+        bool operator!=(const ControlParameters& other) const {
+        	return !(*this == other);
+        }
     };
 
     bool isFast = false;
@@ -59,9 +67,15 @@ using LapControlParameters = micro::vector<TrackSection::ControlParameters, cfg:
 using LapTrackSections = micro::vector<TrackSection, cfg::MAX_NUM_RACE_SEGMENTS>;
 using RaceTrackSections = std::array<LapTrackSections, cfg::NUM_RACE_LAPS + 1>;
 
+class ILapTrackSectionProvider {
+public:
+	virtual LapTrackSections operator()(const size_t lap) = 0;
+	~ILapTrackSectionProvider() = default;
+};
+
 class RaceTrackController {
 public:
-    explicit RaceTrackController(RaceTrackSections sections);
+    explicit RaceTrackController(ILapTrackSectionProvider& sectionProvider);
 
     micro::ControlData update(const micro::CarProps& car, const micro::LineInfo& lineInfo, const micro::MainLine& mainLine);
 
@@ -69,8 +83,8 @@ public:
 
     size_t getFastSectionIndex(const size_t n) const;
 
-    bool isCurrentSectionFast() const { return section().isFast; }
-    micro::meter_t getSectionStartDistance() const { return section().startCarProps.distance; }
+    bool isCurrentSectionFast() const { return sections_[sectionIdx_].isFast; }
+    micro::meter_t getSectionStartDistance() const { return sections_[sectionIdx_].startCarProps.distance; }
 
     size_t lap() const { return lap_; }
     size_t sectionIndex() const { return sectionIdx_; }
@@ -79,14 +93,9 @@ public:
     void overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control);
 
 private:
-    const LapTrackSections& lapSections() const;
-    LapTrackSections& lapSections();
-    const TrackSection& section() const;
-    TrackSection& section();
-
-private:
-    RaceTrackSections sections_;
-    std::optional<LapTrackSections> sectionsOverride_;
+    ILapTrackSectionProvider& sectionProvider_;
+    LapTrackSections sections_;
+    bool sectionsOverriden_{false};
 
     size_t lap_ = 0u;
     size_t sectionIdx_ = 0u;

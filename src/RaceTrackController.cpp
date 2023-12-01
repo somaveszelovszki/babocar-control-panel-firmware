@@ -51,73 +51,50 @@ micro::OrientedLine TrackSection::getTargetLine(const micro::CarProps& car) cons
     };
 }
 
-RaceTrackController::RaceTrackController(RaceTrackSections sections)
-    : sections_(std::move(sections)) {}
+RaceTrackController::RaceTrackController(ILapTrackSectionProvider& sectionProvider)
+    : sectionProvider_(sectionProvider) {}
 
 ControlData RaceTrackController::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine) {
-    if (section().checkTransition(car, lineInfo.front.pattern)) {
-        sectionIdx_ = incr_overflow(sectionIdx_, lapSections().size());
-
-        if (sectionIdx_ == 0) {
-            ++lap_;
-        }
-
-        section().startCarProps = car;
+    if (sections_[sectionIdx_].checkTransition(car, lineInfo.front.pattern)) {
+        const auto newSectionIdx = incr_overflow(sectionIdx_, sections_.size());
+        const auto newLap = newSectionIdx == 0 ? lap_ + 1 : lap_;
+        setSection(car, newLap, newSectionIdx);
     }
 
-    return section().getControl(car, mainLine);
+    return sections_[sectionIdx_].getControl(car, mainLine);
 }
 
 void RaceTrackController::setSection(const CarProps& car, const size_t lap, const size_t sectionIdx) {
-    lap_ = lap;
+    if (lap_ != lap) {
+        lap_ = lap;
+        sections_ = sectionProvider_(lap_);
+    }
+
     sectionIdx_ = sectionIdx;
-    section().startCarProps = car;
+    sections_[sectionIdx_].startCarProps = car;
 }
 
 size_t RaceTrackController::getFastSectionIndex(size_t n) const {
-    size_t i = 0u;
-
-    for (; i < sections_[0].size(); ++i) {
-        if (sections_[0][i].isFast && --n == 0) {
-            break;
+    for (size_t i = 0; i < sections_.size(); ++i) {
+        if (sections_[i].isFast && --n == 0) {
+            return i;
         }
     }
 
-    return i < sections_[0].size() ? i : std::numeric_limits<size_t>::max();
+    return std::numeric_limits<size_t>::max();
 }
 
 LapControlParameters RaceTrackController::getControlParameters() const {
     LapControlParameters lapControl;
-    const auto& sections = lapSections();
-    std::transform(sections.begin(), sections.end(), std::inserter(lapControl, lapControl.end()),
+    std::transform(sections_.begin(), sections_.end(), std::inserter(lapControl, lapControl.end()),
         [](const auto& s){ return s.control; });
     return lapControl;
 }
 
 void RaceTrackController::overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control) {
-    if (!sectionsOverride_) {
-        sectionsOverride_ = lapSections();
-    }
-
-    if (index >= sectionsOverride_->size()) {
+    if (index >= sections_.size()) {
         return;
     }
 
-    (*sectionsOverride_)[index].control = control;
-}
-
-const LapTrackSections& RaceTrackController::lapSections() const {
-    return sectionsOverride_ ? *sectionsOverride_ : sections_[lap_ - 1];
-}
-
-LapTrackSections& RaceTrackController::lapSections() {
-    return sectionsOverride_ ? *sectionsOverride_ : sections_[lap_ - 1];
-}
-
-const TrackSection& RaceTrackController::section() const {
-    return lapSections()[sectionIdx_];
-}
-
-TrackSection& RaceTrackController::section() {
-    return lapSections()[sectionIdx_];
+    sections_[index].control = control;
 }

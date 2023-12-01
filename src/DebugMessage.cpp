@@ -1,6 +1,5 @@
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 
 #include <etl/string.h>
 
@@ -18,17 +17,12 @@ using namespace micro;
 
 namespace {
 
-#if RACE_TRACK == TRACK
-#define TRACK_CONTROL_PREFIX 'R'
-#else
-#define TRACK_CONTROL_PREFIX 'T'
-#endif
-
 enum class Type : char {
     Unknown = '?',
     Car = 'C',
     Param = 'P',
-    TrackControl = TRACK_CONTROL_PREFIX
+    RaceTrackControl = 'R',
+    TestTrackControl = 'T'
 };
 
 std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& json) {
@@ -45,19 +39,38 @@ std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& 
 
 Type getFormatType(const DebugMessage::FormatInput& value) {
     switch (value.index()) {
-    case 0:  return Type::Car;
-    case 1:  return Type::Param;
-    case 2:  return Type::TrackControl;
-    default: return Type::Unknown;
+    case 0:
+    	return Type::Car;
+
+    case 1:
+    	return Type::Param;
+
+    case 2:
+#if RACE_TRACK == TRACK
+    	return Type::RaceTrackControl;
+#else
+    	return Type::TestTrackControl;
+#endif
+
+    default:
+    	return Type::Unknown;
     }
 }
 
 std::optional<DebugMessage::ParseResult> getParseValue(const Type type) {
     switch (type) {
-    case Type::Car:          return std::tuple<CarProps, ControlData>{};
-    case Type::Param:        return ParamManager::NamedParam{};
-    case Type::TrackControl: return IndexedSectionControlParameters{};
-    default:                 return std::nullopt;
+    case Type::Car:
+    	return std::tuple<CarProps, ControlData>{};
+
+    case Type::Param:
+    	return ParamManager::NamedParam{};
+
+    case Type::RaceTrackControl:
+    case Type::TestTrackControl:
+    	return IndexedSectionControlParameters{};
+
+    default:
+    	return std::nullopt;
     }
 }
 
@@ -144,10 +157,8 @@ void load(char * const input, std::optional<ParamManager::NamedParam>& namedPara
 size_t store(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
     const auto& [index, control] = sectionControl;
 
-    size_t n = micro::format_to_n(output, size, "{{");
-
-    n += micro::format_to_n(&output[n], size - n,
-        "\"{}\":[{:.2f},{},{},{:.2f},{},{:.2f}]",
+    return micro::format_to_n(output, size,
+        "[{},{:.2f},{},{},{:.2f},{},{:.2f}]",
         index,
         control.speed.get(),
         static_cast<uint32_t>(std::lround(control.rampTime.get())),
@@ -155,23 +166,26 @@ size_t store(char * const output, const size_t size, const IndexedSectionControl
         control.lineGradient.first.angle.get(),
         static_cast<int32_t>(std::lround(control.lineGradient.second.pos.get())),
         control.lineGradient.second.angle.get());
-
-    return n + micro::format_to_n(&output[n], size - n, "}}");
 }
 
-void load(char * const input, IndexedSectionControlParameters& sectionControl) {
+void load(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
     const auto json = micro::JSONParser(input).root();
-    const auto params = *json.begin();
     
-    auto& [index, control] = sectionControl;
+    if (json.empty()) {
+    	sectionControl = std::nullopt;
+    	return;
+    }
 
-    index = static_cast<uint8_t>(std::atoi(params.key()));
-    control.speed = m_per_sec_t(*params[0].as<float>());
-    control.rampTime = millisecond_t(*params[1].as<float>());
-    control.lineGradient.first.pos = millimeter_t(*params[2].as<float>());
-    control.lineGradient.first.angle = radian_t(*params[3].as<float>());
-    control.lineGradient.second.pos = millimeter_t(*params[4].as<float>());
-    control.lineGradient.second.angle = radian_t(*params[5].as<float>());
+    sectionControl = IndexedSectionControlParameters{};
+    auto& [index, control] = *sectionControl;
+
+    index = *json[0].as<size_t>();
+    control.speed = m_per_sec_t(*json[1].as<float>());
+    control.rampTime = millisecond_t(*json[2].as<float>());
+    control.lineGradient.first.pos = millimeter_t(*json[3].as<float>());
+    control.lineGradient.first.angle = radian_t(*json[4].as<float>());
+    control.lineGradient.second.pos = millimeter_t(*json[5].as<float>());
+    control.lineGradient.second.angle = radian_t(*json[6].as<float>());
 }
 
 } // namespace
@@ -189,7 +203,7 @@ size_t DebugMessage::format(char * const output, const size_t size, const Format
 
 auto DebugMessage::parse(char * const input) -> std::optional<ParseResult> {
     Type type = Type::Unknown;
-    auto n = parseType(input, type);
+    const auto n = parseType(input, type);
 
     auto value = getParseValue(type);
     if (!value) {

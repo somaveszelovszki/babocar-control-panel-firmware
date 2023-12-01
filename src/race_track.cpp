@@ -131,20 +131,13 @@ sections.push_back(TrackSection{                                                
 
 } // namespace
 
-RaceTrackSections buildRaceTrackSections() {
-    RaceTrackSections sections;
-
-    static_assert(sections.size() == speeds.size(), "Speeds array size is incorrect!");
-    static_assert(sections.size() == rampTimes.size(), "Ramp times array size is incorrect!");
-    static_assert(sections.size() == endLinePositions.size(), "End line positions array size is incorrect!");
-    static_assert(sections.size() == endLineAngles.size(), "End line angles array size is incorrect!");
-
-    for (uint32_t i = 0u; i < sections.size(); ++i) {
-        const OrientedLine lineGradientStart = i == 0 ? OrientedLine() : sections[i - 1].back().control.lineGradient.second;
-        sections[i] = buildLapTrackSections(speeds[i], rampTimes[i], endLinePositions[i], endLineAngles[i], lineGradientStart);
-    }
-
-    return sections;
+LapTrackSections RaceLapTrackSectionProvider::operator()(const size_t lap) {
+	const auto i = lap - 1;
+	const auto sections = buildLapTrackSections(speeds[i], rampTimes[i], endLinePositions[i], endLineAngles[i], lastLineGradient_);
+	lastLineGradient_ = sections.back().control.lineGradient.second;
+	return sections;
 }
+
+RaceLapTrackSectionProvider raceLapTrackSectionProvider;
 
 #endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
