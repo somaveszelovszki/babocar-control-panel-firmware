@@ -130,7 +130,7 @@ size_t formatBody(char * const output, const size_t size, const IndexedSectionCo
 
 void parseBody(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
     const auto json = micro::JSONParser(input).root();
-    
+
     if (json.empty()) {
     	sectionControl = std::nullopt;
     	return;
@@ -199,6 +199,5 @@ bool DebugMessage::parse(char * const input, std::optional<micro::ParamManager::
 }
 
 bool DebugMessage::parse(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
-	return parseOutput(input, Type::RaceTrackControl, sectionControl)
-	    || parseOutput(input, Type::TestTrackControl, sectionControl);
+	return parseOutput(input, Type::TestTrackControl, sectionControl);
 }
