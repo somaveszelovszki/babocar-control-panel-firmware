@@ -73,23 +73,22 @@ void testParse(const DebugMessage::ParseResult& expected, etl::string<512> json)
 } // namespace
 
 TEST(DebugMessage, formatCarProps) {
-    std::tuple<CarProps, ControlData> data;
-    auto& [car, controlData] = data;
+	DebugMessage::CarData car;
 
-    car.pose.pos.X = millimeter_t(1);
-    car.pose.pos.Y = millimeter_t(2);
-    car.pose.angle = radian_t(3.016);
-    car.speed = m_per_sec_t(4);
-    car.frontWheelAngle = radian_t(0.122);
-    car.rearWheelAngle  = radian_t(-0.218);
-    car.isRemoteControlled = false;
+    car.props.pose.pos.X = millimeter_t(1);
+    car.props.pose.pos.Y = millimeter_t(2);
+    car.props.pose.angle = radian_t(3.016);
+    car.props.speed = m_per_sec_t(4);
+    car.props.frontWheelAngle = radian_t(0.122);
+    car.props.rearWheelAngle  = radian_t(-0.218);
+    car.props.isRemoteControlled = false;
 
-    controlData.lineControl.actual.pos = millimeter_t(5);
-    controlData.lineControl.actual.angle = radian_t(-0.324);
-    controlData.lineControl.target.pos = millimeter_t(6);
-    controlData.lineControl.target.angle = radian_t(0.4);
+    car.control.lineControl.actual.pos = millimeter_t(5);
+    car.control.lineControl.actual.angle = radian_t(-0.324);
+    car.control.lineControl.target.pos = millimeter_t(6);
+    car.control.lineControl.target.angle = radian_t(0.4);
 
-    testFormat(data, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
+    testFormat(car, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
 }
 
 TEST(DebugMessage, parseCarProps) {

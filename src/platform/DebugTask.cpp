@@ -2,6 +2,9 @@
 #include <optional>
 #include <variant>
 
+#include <etl/circular_buffer.h>
+#include <etl/string.h>
+
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/ParamManager.hpp>
@@ -27,8 +30,11 @@ namespace {
 
 constexpr uint32_t MAX_BUFFER_SIZE = 128;
 
-typedef uint8_t rxParams_t[MAX_BUFFER_SIZE];
-ring_buffer<rxParams_t, 2> rxBuffer;
+struct rxBuffer_t{ char value[MAX_BUFFER_SIZE]; };
+rxBuffer_t rxBuffer;
+micro::mutex_t incomingMessagesMutex;
+etl::circular_buffer<rxBuffer_t, 4> incomingMessages;
+
 char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;
 std::tuple<CarProps, ControlData> carData;
@@ -36,15 +42,15 @@ LapControlParameters lapControl;
 LapControlParameters latestLapControl;
 ParamManager::Values params;
 
-void transmit(const char * const data) {
-    uart_transmit(uart_Debug, reinterpret_cast<uint8_t*>(const_cast<char*>(data)), strlen(data));
+void transmit() {
+    uart_transmit(uart_Debug, reinterpret_cast<uint8_t*>(txBuffer), etl::strlen(txBuffer));
     txSemaphore.take();
 }
 
 } // namespace
 
 extern "C" void runDebugTask(void) {
-    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_BUFFER_SIZE);
+    uart_receive(uart_Debug, reinterpret_cast<uint8_t*>(rxBuffer.value), MAX_BUFFER_SIZE);
 
     taskMonitor.registerInitializedTask();
 
@@ -54,11 +60,19 @@ extern "C" void runDebugTask(void) {
     Timer lapControlCheckTimer(second_t(1));
 
     while (true) {
-        if (const auto inCmd = rxBuffer.startRead()) {
-            rxBuffer.finishRead();
-            const auto incomingMessage = DebugMessage::parse(const_cast<char*>(reinterpret_cast<const char*>(*inCmd)));
+    	auto incomingBuffer = []() -> std::optional<rxBuffer_t> {
+    		std::scoped_lock lock{incomingMessagesMutex};
+    		if (incomingMessages.empty()) {
+    			return std::nullopt;
+    		}
 
-            if (incomingMessage) {
+		    const auto incomingBuffer = incomingMessages.front();
+		    incomingMessages.pop();
+		    return incomingBuffer;
+    	}();
+
+        if (incomingBuffer) {
+            if (const auto message = DebugMessage::parse(incomingBuffer->value)) {
                 std::visit(micro::variant_visitor{
                     [](const std::tuple<CarProps, ControlData>& v){},
 
@@ -66,7 +80,7 @@ extern "C" void runDebugTask(void) {
                         if (param) {
                             if (globalParams.update(param->first, param->second)) {
                                 DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, *param);
-                                transmit(txBuffer);
+                                transmit();
                             }
                         } else {
                             params = globalParams.getAll();
@@ -80,17 +94,17 @@ extern "C" void runDebugTask(void) {
                     		lapControlQueue.peek(lapControl, millisecond_t(0));
                     	}
                     }
-                }, *incomingMessage);
+                }, *message);
             }
         }
 
         if (carPropsSendTimer.checkTimeout()) {
-            auto& [car, controlData] = carData;
-            carPropsQueue.peek(car, millisecond_t(0));
-            lastControlQueue.peek(controlData, millisecond_t(0));
+            DebugMessage::CarData carData;
+            carPropsQueue.peek(carData.props, millisecond_t(0));
+            lastControlQueue.peek(carData.control, millisecond_t(0));
 
             DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, carData);
-            transmit(txBuffer);
+            transmit();
         }
 
         if (params.empty() && paramsSyncTimer.checkTimeout()) {
@@ -102,11 +116,11 @@ extern "C" void runDebugTask(void) {
             const ParamManager::NamedParam param{lastElement->first, lastElement->second};
             DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, param);
             params.erase(lastElement);
-            transmit(txBuffer);
+            transmit();
         }
 
         if (Log::instance().receive(reinterpret_cast<Log::Message&>(txBuffer))) {
-            transmit(txBuffer);
+            transmit();
         }
 
         if (lapControl.empty() && lapControlCheckTimer.checkTimeout()) {
@@ -125,7 +139,7 @@ extern "C" void runDebugTask(void) {
             const IndexedSectionControlParameters sectionControl{lastIndex, *lastElement};
             DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, sectionControl);
             lapControl.erase(lastElement);
-            transmit(txBuffer);
+            transmit();
         }
 
         taskMonitor.notify(true);
@@ -136,9 +150,11 @@ extern "C" void runDebugTask(void) {
 
 void micro_Command_Uart_RxCpltCallback() {
     if (MAX_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
-        rxBuffer.finishWrite();
+    	std::scoped_lock lock{incomingMessagesMutex};
+    	incomingMessages.push(rxBuffer);
     }
-    uart_receive(uart_Debug, *rxBuffer.startWrite(), MAX_BUFFER_SIZE);
+
+    uart_receive(uart_Debug, reinterpret_cast<uint8_t*>(rxBuffer.value), MAX_BUFFER_SIZE);
 }
 
 void micro_Command_Uart_TxCpltCallback() {

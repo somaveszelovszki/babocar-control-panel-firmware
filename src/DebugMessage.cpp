@@ -37,26 +37,6 @@ std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& 
    return std::nullopt;
 }
 
-Type getFormatType(const DebugMessage::FormatInput& value) {
-    switch (value.index()) {
-    case 0:
-    	return Type::Car;
-
-    case 1:
-    	return Type::Param;
-
-    case 2:
-#if RACE_TRACK == TRACK
-    	return Type::RaceTrackControl;
-#else
-    	return Type::TestTrackControl;
-#endif
-
-    default:
-    	return Type::Unknown;
-    }
-}
-
 std::optional<DebugMessage::ParseResult> getParseValue(const Type type) {
     switch (type) {
     case Type::Car:
@@ -91,22 +71,20 @@ size_t formatSeparator(char* output, const size_t size) {
     return micro::format_to_n(output, size, "{}", Log::SEPARATOR);
 }
 
-size_t store(char * const output, const size_t size, const std::tuple<CarProps, ControlData>& data) {
-    const auto& [car, controlData] = data;
-
+size_t store(char * const output, const size_t size, const DebugMessage::CarData& car) {
     return micro::format_to_n(output, size,
         "[{},{},{:.2f},{:.2f},{:.2f},{:.2f},{},{:.2f},{},{:.2f},{}]",
-        static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.X).get())),
-        static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.pose.pos.Y).get())),
-        car.pose.angle.get(),
-        car.speed.get(),
-        car.frontWheelAngle.get(),
-        car.rearWheelAngle.get(),
-        static_cast<int32_t>(std::lround(controlData.lineControl.actual.pos.get())),
-        controlData.lineControl.actual.angle.get(),
-        static_cast<int32_t>(std::lround(controlData.lineControl.target.pos.get())),
-        controlData.lineControl.target.angle.get(),
-        car.isRemoteControlled ? 1 : 0);
+        static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.props.pose.pos.X).get())),
+        static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.props.pose.pos.Y).get())),
+        car.props.pose.angle.get(),
+        car.props.speed.get(),
+        car.props.frontWheelAngle.get(),
+        car.props.rearWheelAngle.get(),
+        static_cast<int32_t>(std::lround(car.control.lineControl.actual.pos.get())),
+        car.control.lineControl.actual.angle.get(),
+        static_cast<int32_t>(std::lround(car.control.lineControl.target.pos.get())),
+		car.control.lineControl.target.angle.get(),
+        car.props.isRemoteControlled ? 1 : 0);
 }
 
 void load(char * const input, std::tuple<CarProps, ControlData>& data) {
@@ -188,17 +166,33 @@ void load(char * const input, std::optional<IndexedSectionControlParameters>& se
     control.lineGradient.second.angle = radian_t(*json[6].as<float>());
 }
 
-} // namespace
-
-size_t DebugMessage::format(char * const output, const size_t size, const FormatInput& input) {
-    auto n = formatType(output, size, getFormatType(input));
-
-    n += std::visit(
-        [output, size, n](const auto& v){ return store(&output[n], size - n, v); },
-        input);
-
+template <typename T>
+size_t formatInput(char * const output, const size_t size, const Type type, const T& input) {
+    auto n = formatType(output, size, type);
+    n += store(&output[n], size - n, input);
     n += formatSeparator(&output[n], size - n);
     return n;
+}
+
+} // namespace
+
+
+
+size_t DebugMessage::format(char * const output, const size_t size, const CarData& car) {
+	return formatInput(output, size, Type::Car, car);
+}
+
+size_t DebugMessage::format(char * const output, const size_t size, const micro::ParamManager::NamedParam& param) {
+	return formatInput(output, size, Type::Param, param);
+}
+size_t DebugMessage::format(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
+#if RACE_TRACK == TRACK
+    const auto type = Type::RaceTrackControl;
+#else
+    const auto type = Type::TestTrackControl;
+#endif
+
+	return formatInput(output, size, type, sectionControl);
 }
 
 auto DebugMessage::parse(char * const input) -> std::optional<ParseResult> {
