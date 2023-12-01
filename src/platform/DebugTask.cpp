@@ -1,6 +1,5 @@
 #include <cmath>
 #include <optional>
-#include <variant>
 
 #include <etl/circular_buffer.h>
 #include <etl/string.h>
@@ -16,7 +15,6 @@
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/str_utils.hpp>
-#include <micro/utils/variant_utils.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
@@ -47,6 +45,59 @@ void transmit() {
     txSemaphore.take();
 }
 
+bool handleIncomingParam(char * const input) {
+	std::optional<ParamManager::NamedParam> param;
+	if (!DebugMessage::parse(input, param)) {
+		return false;
+	}
+
+    if (param) {
+        if (globalParams.update(param->first, param->second)) {
+            DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, *param);
+            transmit();
+        }
+    } else {
+        params = globalParams.getAll();
+    }
+
+    return true;
+}
+
+bool handleIncomingSectionControl(char * const input) {
+	std::optional<IndexedSectionControlParameters> sectionControl;
+	if (!DebugMessage::parse(input, sectionControl)) {
+		return false;
+	}
+
+	if (sectionControl) {
+        sectionControlOverrideQueue.send(*sectionControl);
+	} else {
+		lapControlQueue.peek(lapControl, millisecond_t(0));
+	}
+
+	return true;
+}
+
+bool handleIncomingMessages() {
+	auto incomingBuffer = []() -> std::optional<rxBuffer_t> {
+		std::scoped_lock lock{incomingMessagesMutex};
+		if (incomingMessages.empty()) {
+			return std::nullopt;
+		}
+
+	    const auto incomingBuffer = incomingMessages.front();
+	    incomingMessages.pop();
+	    return incomingBuffer;
+	}();
+
+    if (!incomingBuffer) {
+    	return false;
+    }
+
+    return handleIncomingParam(incomingBuffer->value)
+        || handleIncomingSectionControl(incomingBuffer->value);
+}
+
 } // namespace
 
 extern "C" void runDebugTask(void) {
@@ -60,43 +111,7 @@ extern "C" void runDebugTask(void) {
     Timer lapControlCheckTimer(second_t(1));
 
     while (true) {
-    	auto incomingBuffer = []() -> std::optional<rxBuffer_t> {
-    		std::scoped_lock lock{incomingMessagesMutex};
-    		if (incomingMessages.empty()) {
-    			return std::nullopt;
-    		}
-
-		    const auto incomingBuffer = incomingMessages.front();
-		    incomingMessages.pop();
-		    return incomingBuffer;
-    	}();
-
-        if (incomingBuffer) {
-            if (const auto message = DebugMessage::parse(incomingBuffer->value)) {
-                std::visit(micro::variant_visitor{
-                    [](const std::tuple<CarProps, ControlData>& v){},
-
-                    [](const std::optional<ParamManager::NamedParam>& param){
-                        if (param) {
-                            if (globalParams.update(param->first, param->second)) {
-                                DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, *param);
-                                transmit();
-                            }
-                        } else {
-                            params = globalParams.getAll();
-                        }
-                    },
-
-                    [](const std::optional<IndexedSectionControlParameters>& sectionControl){
-                    	if (sectionControl) {
-                            sectionControlOverrideQueue.send(*sectionControl);
-                    	} else {
-                    		lapControlQueue.peek(lapControl, millisecond_t(0));
-                    	}
-                    }
-                }, *message);
-            }
-        }
+    	handleIncomingMessages();
 
         if (carPropsSendTimer.checkTimeout()) {
             DebugMessage::CarData carData;

@@ -37,23 +37,6 @@ std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& 
    return std::nullopt;
 }
 
-std::optional<DebugMessage::ParseResult> getParseValue(const Type type) {
-    switch (type) {
-    case Type::Car:
-    	return std::tuple<CarProps, ControlData>{};
-
-    case Type::Param:
-    	return ParamManager::NamedParam{};
-
-    case Type::RaceTrackControl:
-    case Type::TestTrackControl:
-    	return IndexedSectionControlParameters{};
-
-    default:
-    	return std::nullopt;
-    }
-}
-
 size_t formatType(char* output, const size_t size, const Type type) {
     return micro::format_to_n(output, size, "{}:", micro::underlying_value(type));
 }
@@ -71,7 +54,7 @@ size_t formatSeparator(char* output, const size_t size) {
     return micro::format_to_n(output, size, "{}", Log::SEPARATOR);
 }
 
-size_t store(char * const output, const size_t size, const DebugMessage::CarData& car) {
+size_t formatBody(char * const output, const size_t size, const DebugMessage::CarData& car) {
     return micro::format_to_n(output, size,
         "[{},{},{:.2f},{:.2f},{:.2f},{:.2f},{},{:.2f},{},{:.2f},{}]",
         static_cast<int32_t>(std::lround(static_cast<millimeter_t>(car.props.pose.pos.X).get())),
@@ -87,24 +70,23 @@ size_t store(char * const output, const size_t size, const DebugMessage::CarData
         car.props.isRemoteControlled ? 1 : 0);
 }
 
-void load(char * const input, std::tuple<CarProps, ControlData>& data) {
+void parseBody(char * const input, DebugMessage::CarData& car) {
     const auto json = micro::JSONParser(input).root();
-    auto& [car, controlData] = data;
 
-    car.pose.pos.X      = millimeter_t(static_cast<float>(*json[0].as<int32_t>()));
-    car.pose.pos.Y      = millimeter_t(static_cast<float>(*json[1].as<int32_t>()));
-    car.pose.angle      = radian_t(*json[2].as<float>());
-    car.speed           = m_per_sec_t(*json[3].as<float>());
-    car.frontWheelAngle = radian_t(*json[4].as<float>());
-    car.rearWheelAngle  = radian_t(*json[5].as<float>());
-    controlData.lineControl.actual.pos   = millimeter_t(static_cast<float>(*json[6].as<int32_t>()));
-    controlData.lineControl.actual.angle = radian_t(*json[7].as<float>());
-    controlData.lineControl.target.pos   = millimeter_t(static_cast<float>(*json[8].as<int32_t>()));
-    controlData.lineControl.target.angle = radian_t(*json[9].as<float>());
-    car.isRemoteControlled               = !!(*json[10].as<int32_t>());
+    car.props.pose.pos.X      = millimeter_t(static_cast<float>(*json[0].as<int32_t>()));
+    car.props.pose.pos.Y      = millimeter_t(static_cast<float>(*json[1].as<int32_t>()));
+    car.props.pose.angle      = radian_t(*json[2].as<float>());
+    car.props.speed           = m_per_sec_t(*json[3].as<float>());
+    car.props.frontWheelAngle = radian_t(*json[4].as<float>());
+    car.props.rearWheelAngle  = radian_t(*json[5].as<float>());
+    car.control.lineControl.actual.pos   = millimeter_t(static_cast<float>(*json[6].as<int32_t>()));
+    car.control.lineControl.actual.angle = radian_t(*json[7].as<float>());
+    car.control.lineControl.target.pos   = millimeter_t(static_cast<float>(*json[8].as<int32_t>()));
+    car.control.lineControl.target.angle = radian_t(*json[9].as<float>());
+    car.props.isRemoteControlled         = !!(*json[10].as<int32_t>());
 }
 
-size_t store(char * const output, const size_t size, const ParamManager::NamedParam& namedParam) {
+size_t formatBody(char * const output, const size_t size, const ParamManager::NamedParam& namedParam) {
     const auto& [name, value] = namedParam;
 
     size_t n = micro::format_to_n(output, size, "{{");
@@ -120,7 +102,7 @@ size_t store(char * const output, const size_t size, const ParamManager::NamedPa
     return n + micro::format_to_n(&output[n], size - n, "}}");
 }
 
-void load(char * const input, std::optional<ParamManager::NamedParam>& namedParam) {
+void parseBody(char * const input, std::optional<ParamManager::NamedParam>& namedParam) {
     const auto json = micro::JSONParser(input).root();
     const auto param = *json.begin();
 
@@ -132,7 +114,7 @@ void load(char * const input, std::optional<ParamManager::NamedParam>& namedPara
     namedParam = ParamManager::NamedParam{param.key(), *parseParamValue(param)};
 }
 
-size_t store(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
+size_t formatBody(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
     const auto& [index, control] = sectionControl;
 
     return micro::format_to_n(output, size,
@@ -146,7 +128,7 @@ size_t store(char * const output, const size_t size, const IndexedSectionControl
         control.lineGradient.second.angle.get());
 }
 
-void load(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
+void parseBody(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
     const auto json = micro::JSONParser(input).root();
     
     if (json.empty()) {
@@ -169,9 +151,21 @@ void load(char * const input, std::optional<IndexedSectionControlParameters>& se
 template <typename T>
 size_t formatInput(char * const output, const size_t size, const Type type, const T& input) {
     auto n = formatType(output, size, type);
-    n += store(&output[n], size - n, input);
+    n += formatBody(&output[n], size - n, input);
     n += formatSeparator(&output[n], size - n);
     return n;
+}
+
+template <typename T>
+bool parseOutput(char * const input, const Type type, T& output) {
+    Type incomingType = Type::Unknown;
+    const auto n = parseType(input, incomingType);
+    if (incomingType != type) {
+    	return false;
+    }
+
+    parseBody(&input[n], output);
+    return true;
 }
 
 } // namespace
@@ -185,6 +179,7 @@ size_t DebugMessage::format(char * const output, const size_t size, const CarDat
 size_t DebugMessage::format(char * const output, const size_t size, const micro::ParamManager::NamedParam& param) {
 	return formatInput(output, size, Type::Param, param);
 }
+
 size_t DebugMessage::format(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
 #if RACE_TRACK == TRACK
     const auto type = Type::RaceTrackControl;
@@ -195,18 +190,15 @@ size_t DebugMessage::format(char * const output, const size_t size, const Indexe
 	return formatInput(output, size, type, sectionControl);
 }
 
-auto DebugMessage::parse(char * const input) -> std::optional<ParseResult> {
-    Type type = Type::Unknown;
-    const auto n = parseType(input, type);
+bool DebugMessage::parse(char * const input, CarData& car) {
+	return parseOutput(input, Type::Car, car);
+}
 
-    auto value = getParseValue(type);
-    if (!value) {
-        return std::nullopt;
-    }
+bool DebugMessage::parse(char * const input, std::optional<micro::ParamManager::NamedParam>& namedParam) {
+	return parseOutput(input, Type::Param, namedParam);
+}
 
-    std::visit(
-        [input, n](auto& v){ load(&input[n], v); },
-        *value);
-
-    return value;
+bool DebugMessage::parse(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
+	return parseOutput(input, Type::RaceTrackControl, sectionControl)
+	    || parseOutput(input, Type::TestTrackControl, sectionControl);
 }

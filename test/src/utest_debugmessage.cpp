@@ -20,10 +20,10 @@ namespace {
 #define TRACK_CONTROL_PREFIX_STR "T"
 #endif
 
-void expectEqual(const std::tuple<CarProps, ControlData>& expected,
-                 const std::tuple<CarProps, ControlData>& result) {
-    EXPECT_EQ_MICRO_CAR_PROPS((std::get<0>(expected)), (std::get<0>(result)));
-    EXPECT_EQ_MICRO_CONTROL_DATA((std::get<1>(expected)), (std::get<1>(result)));
+void expectEqual(const DebugMessage::CarData& expected,
+                 const DebugMessage::CarData& result) {
+    EXPECT_EQ_MICRO_CAR_PROPS(expected.props, result.props);
+    EXPECT_EQ_MICRO_CONTROL_DATA(expected.control, result.control);
 }
 
 void expectEqual(const std::optional<ParamManager::NamedParam>& expected,
@@ -60,14 +60,19 @@ void testFormat(const T& data, const char * const expected) {
     EXPECT_STREQ(expected, msg);
 }
 
-void testParse(const DebugMessage::ParseResult& expected, etl::string<512> json) {
-    const auto result = DebugMessage::parse(const_cast<char*>(json.c_str()));
-    ASSERT_TRUE(result.has_value());
-    ASSERT_EQ(expected.index(), result->index());
+template <typename T>
+void testParse(const T& expected, etl::string<512> json) {
+	T result{};
+    const auto success = DebugMessage::parse(const_cast<char*>(json.c_str()), result);
+    EXPECT_TRUE(success);
+    expectEqual(expected, result);
+}
 
-    std::visit(
-        [&result](const auto& exp){ expectEqual(exp, std::get<std::decay_t<decltype(exp)>>(*result)); },
-        expected);
+template <typename T>
+void testParseFailure(etl::string<512> json) {
+	T result{};
+    const auto success = DebugMessage::parse(const_cast<char*>(json.c_str()), result);
+    EXPECT_FALSE(success);
 }
 
 } // namespace
@@ -91,24 +96,27 @@ TEST(DebugMessage, formatCarProps) {
     testFormat(car, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
 }
 
+TEST(DebugMessage, parseFailure) {
+    testParseFailure<DebugMessage::CarData>("P:{}\n");
+}
+
 TEST(DebugMessage, parseCarProps) {
-    std::tuple<CarProps, ControlData> expected;
-    auto& [car, controlData] = expected;
+	DebugMessage::CarData car;
 
-    car.pose.pos.X = millimeter_t(1);
-    car.pose.pos.Y = millimeter_t(2);
-    car.pose.angle = radian_t(3.02);
-    car.speed = m_per_sec_t(4);
-    car.frontWheelAngle = radian_t(0.12);
-    car.rearWheelAngle  = radian_t(-0.22);
-    car.isRemoteControlled = false;
+    car.props.pose.pos.X = millimeter_t(1);
+    car.props.pose.pos.Y = millimeter_t(2);
+    car.props.pose.angle = radian_t(3.02);
+    car.props.speed = m_per_sec_t(4);
+    car.props.frontWheelAngle = radian_t(0.12);
+    car.props.rearWheelAngle  = radian_t(-0.22);
+    car.props.isRemoteControlled = false;
 
-    controlData.lineControl.actual.pos = millimeter_t(5);
-    controlData.lineControl.actual.angle = radian_t(-0.32);
-    controlData.lineControl.target.pos = millimeter_t(6);
-    controlData.lineControl.target.angle = radian_t(0.4);
+    car.control.lineControl.actual.pos = millimeter_t(5);
+    car.control.lineControl.actual.angle = radian_t(-0.32);
+    car.control.lineControl.target.pos = millimeter_t(6);
+    car.control.lineControl.target.angle = radian_t(0.4);
 
-    testParse(expected, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
+    testParse(car, "C:[1,2,3.02,4.00,0.12,-0.22,5,-0.32,6,0.40,0]\n");
 }
 
 TEST(DebugMessage, formatParam) {

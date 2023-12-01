@@ -1,8 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <tuple>
-#include <variant>
 
 #include <micro/debug/ParamManager.hpp>
 
@@ -21,13 +19,11 @@ public:
 		micro::ControlData control;
 	};
 
-    using ParseResult = std::variant<
-        std::tuple<micro::CarProps, micro::ControlData>,
-        std::optional<micro::ParamManager::NamedParam>,
-        std::optional<IndexedSectionControlParameters>>;
-
     static size_t format(char * const output, const size_t size, const CarData& car);
     static size_t format(char * const output, const size_t size, const micro::ParamManager::NamedParam& param);
     static size_t format(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl);
-    static std::optional<ParseResult> parse(char * const input);
+
+    static bool parse(char * const input, CarData& car);
+    static bool parse(char * const input, std::optional<micro::ParamManager::NamedParam>& namedParam);
+    static bool parse(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl);
 };
