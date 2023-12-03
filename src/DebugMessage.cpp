@@ -66,7 +66,7 @@ size_t formatBody(char * const output, const size_t size, const DebugMessage::Ca
         static_cast<int32_t>(std::lround(car.control.lineControl.actual.pos.get())),
         car.control.lineControl.actual.angle.get(),
         static_cast<int32_t>(std::lround(car.control.lineControl.target.pos.get())),
-		car.control.lineControl.target.angle.get(),
+        car.control.lineControl.target.angle.get(),
         car.props.isRemoteControlled ? 1 : 0);
 }
 
@@ -132,8 +132,8 @@ void parseBody(char * const input, std::optional<IndexedSectionControlParameters
     const auto json = micro::JSONParser(input).root();
 
     if (json.empty()) {
-    	sectionControl = std::nullopt;
-    	return;
+        sectionControl = std::nullopt;
+        return;
     }
 
     sectionControl = IndexedSectionControlParameters{};
@@ -161,7 +161,7 @@ bool parseOutput(char * const input, const Type type, T& output) {
     Type incomingType = Type::Unknown;
     const auto n = parseType(input, incomingType);
     if (incomingType != type) {
-    	return false;
+        return false;
     }
 
     parseBody(&input[n], output);
@@ -173,11 +173,11 @@ bool parseOutput(char * const input, const Type type, T& output) {
 
 
 size_t DebugMessage::format(char * const output, const size_t size, const CarData& car) {
-	return formatInput(output, size, Type::Car, car);
+    return formatInput(output, size, Type::Car, car);
 }
 
 size_t DebugMessage::format(char * const output, const size_t size, const micro::ParamManager::NamedParam& param) {
-	return formatInput(output, size, Type::Param, param);
+    return formatInput(output, size, Type::Param, param);
 }
 
 size_t DebugMessage::format(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl) {
@@ -187,17 +187,17 @@ size_t DebugMessage::format(char * const output, const size_t size, const Indexe
     const auto type = Type::TestTrackControl;
 #endif
 
-	return formatInput(output, size, type, sectionControl);
+    return formatInput(output, size, type, sectionControl);
 }
 
-bool DebugMessage::parse(char * const input, CarData& car) {
-	return parseOutput(input, Type::Car, car);
+bool DebugMessage::parse(char * const input, CarData& OUT car) {
+    return parseOutput(input, Type::Car, car);
 }
 
-bool DebugMessage::parse(char * const input, std::optional<micro::ParamManager::NamedParam>& namedParam) {
-	return parseOutput(input, Type::Param, namedParam);
+bool DebugMessage::parse(char * const input, std::optional<micro::ParamManager::NamedParam>& OUT namedParam) {
+    return parseOutput(input, Type::Param, namedParam);
 }
 
-bool DebugMessage::parse(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl) {
-	return parseOutput(input, Type::TestTrackControl, sectionControl);
+bool DebugMessage::parse(char * const input, std::optional<IndexedSectionControlParameters>& OUT sectionControl) {
+    return parseOutput(input, Type::TestTrackControl, sectionControl);
 }

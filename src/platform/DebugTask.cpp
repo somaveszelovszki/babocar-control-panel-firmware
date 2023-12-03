@@ -46,52 +46,51 @@ void transmit() {
 }
 
 bool handleIncomingParam(char * const input) {
-	std::optional<ParamManager::NamedParam> param;
-	if (!DebugMessage::parse(input, param)) {
-		return false;
-	}
+    std::optional<ParamManager::NamedParam> param;
+    if (!DebugMessage::parse(input, param)) {
+        return false;
+    }
 
     if (param) {
         if (globalParams.update(param->first, param->second)) {
-            DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, *param);
-            transmit();
+            params[param->first] = param->second;
         }
     } else {
-        params = globalParams.getAll();
+        globalParams.getAll(params);
     }
 
     return true;
 }
 
 bool handleIncomingSectionControl(char * const input) {
-	std::optional<IndexedSectionControlParameters> sectionControl;
-	if (!DebugMessage::parse(input, sectionControl)) {
-		return false;
-	}
+    std::optional<IndexedSectionControlParameters> sectionControl;
+    if (!DebugMessage::parse(input, sectionControl)) {
+        return false;
+    }
 
-	if (sectionControl) {
+    if (sectionControl) {
         sectionControlOverrideQueue.send(*sectionControl);
-	} else {
-		lapControlQueue.peek(lapControl, millisecond_t(0));
-	}
+    } else {
+        lapControlQueue.peek(lapControl, millisecond_t(0));
+    }
 
-	return true;
+    return true;
 }
 
 bool handleIncomingMessages() {
-	auto incomingBuffer = []() -> std::optional<rxBuffer_t> {
-		std::scoped_lock lock{incomingMessagesMutex};
-		if (incomingMessages.empty()) {
-			return std::nullopt;
-		}
+    auto incomingBuffer = []() -> std::optional<rxBuffer_t> {
+        std::scoped_lock lock{incomingMessagesMutex};
+        if (incomingMessages.empty()) {
+            return std::nullopt;
+        }
 
-	    const auto incomingBuffer = incomingMessages.front();
-	    incomingMessages.pop();
-	    return incomingBuffer;
-	}();
+        const auto incomingBuffer = incomingMessages.front();
+        incomingMessages.pop();
+        return incomingBuffer;
+    }();
 
     if (!incomingBuffer) {
-    	return false;
+        return false;
     }
 
     return handleIncomingParam(incomingBuffer->value)
@@ -101,17 +100,19 @@ bool handleIncomingMessages() {
 } // namespace
 
 extern "C" void runDebugTask(void) {
-    uart_receive(uart_Debug, reinterpret_cast<uint8_t*>(rxBuffer.value), MAX_BUFFER_SIZE);
-
     taskMonitor.registerInitializedTask();
+
+    uart_receive(uart_Debug, reinterpret_cast<uint8_t*>(rxBuffer.value), MAX_BUFFER_SIZE);
 
     DebugLed debugLed(gpio_Led);
     Timer carPropsSendTimer(millisecond_t(50));
     Timer paramsSyncTimer(millisecond_t(25));
     Timer lapControlCheckTimer(second_t(1));
 
+    globalParams.getAll(params);
+
     while (true) {
-    	handleIncomingMessages();
+        handleIncomingMessages();
 
         if (carPropsSendTimer.checkTimeout()) {
             DebugMessage::CarData carData;
@@ -123,7 +124,7 @@ extern "C" void runDebugTask(void) {
         }
 
         if (params.empty() && paramsSyncTimer.checkTimeout()) {
-            params = globalParams.sync();
+            globalParams.sync(params);
         }
 
         if (!params.empty()) {
@@ -141,9 +142,9 @@ extern "C" void runDebugTask(void) {
         if (lapControl.empty() && lapControlCheckTimer.checkTimeout()) {
             lapControlQueue.peek(lapControl, millisecond_t(0));
             if (lapControl == latestLapControl) {
-            	lapControl.clear();
+                lapControl.clear();
             } else {
-            	latestLapControl = lapControl;
+                latestLapControl = lapControl;
             }
         }
 
@@ -165,9 +166,8 @@ extern "C" void runDebugTask(void) {
 
 void micro_Command_Uart_RxCpltCallback() {
     if (MAX_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
-    	std::scoped_lock lock{incomingMessagesMutex};
-    	incomingMessages.push(rxBuffer);
-    }
+        std::scoped_lock lock{incomingMessagesMutex};
+        incomingMessages.push(rxBuffer);    }
 
     uart_receive(uart_Debug, reinterpret_cast<uint8_t*>(rxBuffer.value), MAX_BUFFER_SIZE);
 }

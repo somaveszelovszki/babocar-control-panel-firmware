@@ -23,7 +23,7 @@ public:
     static size_t format(char * const output, const size_t size, const micro::ParamManager::NamedParam& param);
     static size_t format(char * const output, const size_t size, const IndexedSectionControlParameters& sectionControl);
 
-    static bool parse(char * const input, CarData& car);
-    static bool parse(char * const input, std::optional<micro::ParamManager::NamedParam>& namedParam);
-    static bool parse(char * const input, std::optional<IndexedSectionControlParameters>& sectionControl);
+    static bool parse(char * const input, CarData& OUT car);
+    static bool parse(char * const input, std::optional<micro::ParamManager::NamedParam>& OUT namedParam);
+    static bool parse(char * const input, std::optional<IndexedSectionControlParameters>& OUT sectionControl);
 };
