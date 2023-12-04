@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <limits>
 #include <optional>
 #include <utility>
 
@@ -97,7 +98,7 @@ private:
     LapTrackSections sections_;
     bool sectionsOverriden_{false};
 
-    size_t lap_ = 0u;
+    size_t lap_ = std::numeric_limits<size_t>::max();
     size_t sectionIdx_ = 0u;
 };
 
