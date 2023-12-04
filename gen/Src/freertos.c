@@ -79,16 +79,16 @@
 
 /* USER CODE END Variables */
 osThreadId DebugTaskHandle;
-uint32_t DebugTaskBuffer[ 1024 ];
+uint32_t DebugTaskBuffer[ 2048 ];
 osStaticThreadDef_t DebugTaskControlBlock;
 osThreadId ControlTaskHandle;
-uint32_t ControlTaskBuffer[ 512 ];
+uint32_t ControlTaskBuffer[ 1024 ];
 osStaticThreadDef_t ControlTaskControlBlock;
 osThreadId VehicleStateTaskHandle;
-uint32_t VehicleStateTaskBuffer[ 512 ];
+uint32_t VehicleStateTaskBuffer[ 1024 ];
 osStaticThreadDef_t VehicleStateTaskControlBlock;
 osThreadId LineDetectTaskHandle;
-uint32_t LineDetectTaskBuffer[ 512 ];
+uint32_t LineDetectTaskBuffer[ 1024 ];
 osStaticThreadDef_t LineDetectTaskControlBlock;
 osThreadId StartupTaskHandle;
 uint32_t StartupTaskBuffer[ 512 ];
@@ -97,10 +97,10 @@ osThreadId DistSensorTaskHandle;
 uint32_t DistSensorTaskBuffer[ 512 ];
 osStaticThreadDef_t DistSensorTaskControlBlock;
 osThreadId ProgLabyrinthTaskHandle;
-uint32_t TaskProgLabyrinthBuffer[ 1024 ];
+uint32_t TaskProgLabyrinthBuffer[ 2048 ];
 osStaticThreadDef_t TaskProgLabyrinthControlBlock;
 osThreadId ProgRaceTrackTaskHandle;
-uint32_t ProgRaceTrackTaskBuffer[ 1024 ];
+uint32_t ProgRaceTrackTaskBuffer[ 2048 ];
 osStaticThreadDef_t ProgRaceTrackTaskControlBlock;
 osThreadId RadioRecvTaskHandle;
 uint32_t RadioRecvTaskBuffer[ 512 ];
@@ -189,19 +189,19 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of DebugTask */
-  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 1024, DebugTaskBuffer, &DebugTaskControlBlock);
+  osThreadStaticDef(DebugTask, StartDebugTask, osPriorityLow, 0, 2048, DebugTaskBuffer, &DebugTaskControlBlock);
   DebugTaskHandle = osThreadCreate(osThread(DebugTask), NULL);
 
   /* definition and creation of ControlTask */
-  osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 512, ControlTaskBuffer, &ControlTaskControlBlock);
+  osThreadStaticDef(ControlTask, StartControlTask, osPriorityRealtime, 0, 1024, ControlTaskBuffer, &ControlTaskControlBlock);
   ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
 
   /* definition and creation of VehicleStateTask */
-  osThreadStaticDef(VehicleStateTask, StartVehicleStateTask, osPriorityNormal, 0, 512, VehicleStateTaskBuffer, &VehicleStateTaskControlBlock);
+  osThreadStaticDef(VehicleStateTask, StartVehicleStateTask, osPriorityNormal, 0, 1024, VehicleStateTaskBuffer, &VehicleStateTaskControlBlock);
   VehicleStateTaskHandle = osThreadCreate(osThread(VehicleStateTask), NULL);
 
   /* definition and creation of LineDetectTask */
-  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 512, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
+  osThreadStaticDef(LineDetectTask, StartLineDetectTask, osPriorityHigh, 0, 1024, LineDetectTaskBuffer, &LineDetectTaskControlBlock);
   LineDetectTaskHandle = osThreadCreate(osThread(LineDetectTask), NULL);
 
   /* definition and creation of StartupTask */
@@ -213,11 +213,11 @@ void MX_FREERTOS_Init(void) {
   DistSensorTaskHandle = osThreadCreate(osThread(DistSensorTask), NULL);
 
   /* definition and creation of ProgLabyrinthTask */
-  osThreadStaticDef(ProgLabyrinthTask, StartProgLabyrinthTask, osPriorityNormal, 0, 1024, TaskProgLabyrinthBuffer, &TaskProgLabyrinthControlBlock);
+  osThreadStaticDef(ProgLabyrinthTask, StartProgLabyrinthTask, osPriorityNormal, 0, 2048, TaskProgLabyrinthBuffer, &TaskProgLabyrinthControlBlock);
   ProgLabyrinthTaskHandle = osThreadCreate(osThread(ProgLabyrinthTask), NULL);
 
   /* definition and creation of ProgRaceTrackTask */
-  osThreadStaticDef(ProgRaceTrackTask, StartProgRaceTrackTask, osPriorityNormal, 0, 1024, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
+  osThreadStaticDef(ProgRaceTrackTask, StartProgRaceTrackTask, osPriorityNormal, 0, 2048, ProgRaceTrackTaskBuffer, &ProgRaceTrackTaskControlBlock);
   ProgRaceTrackTaskHandle = osThreadCreate(osThread(ProgRaceTrackTask), NULL);
 
   /* definition and creation of RadioRecvTask */
