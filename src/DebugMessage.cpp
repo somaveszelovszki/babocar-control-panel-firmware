@@ -118,7 +118,7 @@ size_t formatBody(char * const output, const size_t size, const IndexedSectionCo
     const auto& [index, control] = sectionControl;
 
     return micro::format_to_n(output, size,
-        "[{},{:.2f},{},{},{:.2f},{},{:.2f}]",
+        "[{},{:.2f},{},{},{},{},{}]",
         index,
         control.speed.get(),
         static_cast<uint32_t>(std::lround(control.rampTime.get())),
