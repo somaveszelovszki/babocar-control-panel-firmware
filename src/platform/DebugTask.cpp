@@ -37,7 +37,7 @@ char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;
 std::tuple<CarProps, ControlData> carData;
 LapControlParameters lapControl;
-LapControlParameters latestLapControl;
+LapControlParameters prevLapControl;
 ParamManager::Values params;
 
 void transmit() {
@@ -141,10 +141,10 @@ extern "C" void runDebugTask(void) {
 
         if (lapControl.empty() && lapControlCheckTimer.checkTimeout()) {
             lapControlQueue.peek(lapControl, millisecond_t(0));
-            if (lapControl == latestLapControl) {
+            if (lapControl == prevLapControl) {
                 lapControl.clear();
             } else {
-                latestLapControl = lapControl;
+            	prevLapControl = lapControl;
             }
         }
 
