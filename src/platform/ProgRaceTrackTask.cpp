@@ -105,6 +105,7 @@ extern "C" void runProgRaceTrackTask(void) {
 			sectionControlOverrideQueue.receive(sectionControlOverride, millisecond_t(0))) {
 			const auto& [index, control] = sectionControlOverride;
 			trackController.overrideControlParameters(index, control);
+			lapControlQueue.overwrite(trackController.getControlParameters());
 		}
 
 		// runs for the first time that this task handles the program state
