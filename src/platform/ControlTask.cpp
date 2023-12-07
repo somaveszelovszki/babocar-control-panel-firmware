@@ -17,6 +17,7 @@
 
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
+#include <cfg_system.hpp>
 #include <cfg_track.hpp>
 #include <globals.hpp>
 

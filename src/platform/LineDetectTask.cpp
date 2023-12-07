@@ -7,8 +7,7 @@
 #include <micro/utils/LinePattern.hpp>
 #include <micro/utils/timer.hpp>
 
-#include <cfg_board.hpp>
-#include <cfg_car.hpp>
+#include <cfg_system.hpp>
 #include <globals.hpp>
 
 using namespace micro;

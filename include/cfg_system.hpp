@@ -4,6 +4,9 @@
 
 namespace cfg {
 
-constexpr uint8_t NUM_MONITORED_TASKS = 8;
+constexpr bool    USE_SAFETY_ENABLE_SIGNAL        = false;
+constexpr bool    INDICATOR_LEDS_ENABLED          = true;
+constexpr uint8_t REDUCED_LINE_DETECT_SCAN_RADIUS = 12;
+constexpr uint8_t NUM_MONITORED_TASKS             = 8;
 
 } // namespace cfg
