@@ -74,6 +74,23 @@ public:
 	~ILapTrackSectionProvider() = default;
 };
 
+class OverridableLapTrackSectionProvider : public ILapTrackSectionProvider {
+public:
+	explicit OverridableLapTrackSectionProvider(ILapTrackSectionProvider& underlyingProvider)
+		: underlyingProvider_{underlyingProvider}
+	{}
+
+	~OverridableLapTrackSectionProvider() = default;
+
+	LapTrackSections operator()(const size_t lap);
+	void overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control);
+
+private:
+	ILapTrackSectionProvider& underlyingProvider_;
+	micro::map<size_t, TrackSection::ControlParameters, cfg::MAX_NUM_RACE_SEGMENTS> overridenSections_;
+	size_t lastUntouchedLap_ = 0;
+};
+
 class RaceTrackController {
 public:
     explicit RaceTrackController(ILapTrackSectionProvider& sectionProvider);
@@ -97,8 +114,8 @@ private:
     ILapTrackSectionProvider& sectionProvider_;
     LapTrackSections sections_;
 
-    size_t lap_ = std::numeric_limits<size_t>::max();
-    size_t sectionIdx_ = 0u;
+    size_t lap_ = 0;
+    size_t sectionIdx_ = 0;
 };
 
 #define EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected, result)                               \

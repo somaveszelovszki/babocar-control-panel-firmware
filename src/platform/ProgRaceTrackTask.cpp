@@ -101,6 +101,7 @@ extern "C" void runProgRaceTrackTask(void) {
 			if (sectionControlOverrideCheckTimer.checkTimeout() &&
 				sectionControlOverrideQueue.receive(sectionControlOverride, millisecond_t(0))) {
 				const auto& [index, control] = sectionControlOverride;
+				lapTrackSectionProvider.overrideControlParameters(index, control);
 				trackController.overrideControlParameters(index, control);
 				lapControlQueue.overwrite(trackController.getControlParameters());
 			}

@@ -129,6 +129,8 @@ sections.push_back(TrackSection{                                                
     return sections;
 }
 
+RaceLapTrackSectionProvider provider;
+
 } // namespace
 
 LapTrackSections RaceLapTrackSectionProvider::operator()(const size_t lap) {
@@ -138,6 +140,6 @@ LapTrackSections RaceLapTrackSectionProvider::operator()(const size_t lap) {
 	return sections;
 }
 
-RaceLapTrackSectionProvider raceLapTrackSectionProvider;
+OverridableLapTrackSectionProvider raceLapTrackSectionProvider(provider);
 
 #endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS

@@ -18,7 +18,7 @@ private:
 	micro::OrientedLine lastLineGradient_;
 };
 
-extern RaceLapTrackSectionProvider raceLapTrackSectionProvider;
+extern OverridableLapTrackSectionProvider raceLapTrackSectionProvider;
 LabyrinthGraph buildRaceLabyrinthGraph();
 
 #endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
@@ -34,7 +34,7 @@ private:
 	micro::OrientedLine lastLineGradient_;
 };
 
-extern TestLapTrackSectionProvider testLapTrackSectionProvider;
+extern OverridableLapTrackSectionProvider testLapTrackSectionProvider;
 LabyrinthGraph buildTestLabyrinthGraph();
 
 #endif // TRACK == TEST_TRACK || COMPILE_ALL_TRACKS

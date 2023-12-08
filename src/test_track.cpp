@@ -137,6 +137,8 @@ sections.push_back(TrackSection{                                                
     return sections;
 }
 
+TestLapTrackSectionProvider provider;
+
 } // namespace
 
 LapTrackSections TestLapTrackSectionProvider::operator()(const size_t lap) {
@@ -146,6 +148,6 @@ LapTrackSections TestLapTrackSectionProvider::operator()(const size_t lap) {
 	return sections;
 }
 
-TestLapTrackSectionProvider testLapTrackSectionProvider;
+OverridableLapTrackSectionProvider testLapTrackSectionProvider(provider);
 
 #endif // TRACK == TEST_TRACK || COMPILE_ALL_TRACKS

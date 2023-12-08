@@ -51,6 +51,23 @@ micro::OrientedLine TrackSection::getTargetLine(const micro::CarProps& car) cons
     };
 }
 
+LapTrackSections OverridableLapTrackSectionProvider::operator()(const size_t lap) {
+	if (overridenSections_.empty()) {
+		lastUntouchedLap_ = lap;
+	}
+
+	auto sections = underlyingProvider_(lastUntouchedLap_);
+
+	for (const auto& [index, control] : overridenSections_) {
+		sections[index].control = control;
+	}
+
+	return sections;
+}
+void OverridableLapTrackSectionProvider::overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control) {
+	overridenSections_[index] = control;
+}
+
 RaceTrackController::RaceTrackController(ILapTrackSectionProvider& sectionProvider)
     : sectionProvider_{sectionProvider}
 	, sections_{sectionProvider_(1)}
