@@ -1,3 +1,4 @@
+#include "ProgramState.hpp"
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
@@ -61,7 +62,8 @@ extern "C" void runStartupTask(void) {
     }
 
     LOG_DEBUG("Number of clicks: {}", buttonClick);
-    programState.set(static_cast<ProgramState::Value>(buttonClick));
+    //programState.set(static_cast<ProgramState::Value>(buttonClick));
+    programState.set(ProgramState::ReachSafetyCar);
 
     if (ProgramState::WaitStartSignal == programState.get()) {
         waitStartSignal();

@@ -96,7 +96,6 @@ public:
 private:
     ILapTrackSectionProvider& sectionProvider_;
     LapTrackSections sections_;
-    bool sectionsOverriden_{false};
 
     size_t lap_ = std::numeric_limits<size_t>::max();
     size_t sectionIdx_ = 0u;

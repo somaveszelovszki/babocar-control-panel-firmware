@@ -93,127 +93,127 @@ extern "C" void runProgRaceTrackTask(void) {
 
     while (true) {
         const auto prevProgramState = std::exchange(currentProgramState, programState.get());
-        if (!shouldHandle(currentProgramState)) {
-        	continue;
-        }
+        if (shouldHandle(currentProgramState)) {
+			carPropsQueue.peek(car, millisecond_t(0));
+			lineInfoQueue.peek(lineInfo, millisecond_t(0));
+			frontDistanceQueue.peek(frontDistance, millisecond_t(0));
 
-		carPropsQueue.peek(car, millisecond_t(0));
-		lineInfoQueue.peek(lineInfo, millisecond_t(0));
-		frontDistanceQueue.peek(frontDistance, millisecond_t(0));
+			if (sectionControlOverrideCheckTimer.checkTimeout() &&
+				sectionControlOverrideQueue.receive(sectionControlOverride, millisecond_t(0))) {
+				const auto& [index, control] = sectionControlOverride;
+				trackController.overrideControlParameters(index, control);
+				lapControlQueue.overwrite(trackController.getControlParameters());
+			}
 
-		if (sectionControlOverrideCheckTimer.checkTimeout() &&
-			sectionControlOverrideQueue.receive(sectionControlOverride, millisecond_t(0))) {
-			const auto& [index, control] = sectionControlOverride;
-			trackController.overrideControlParameters(index, control);
-			lapControlQueue.overwrite(trackController.getControlParameters());
+			// runs for the first time that this task handles the program state
+			if (!shouldHandle(prevProgramState)) {
+				const uint32_t currentSection = getFastSection(currentProgramState);
+				if (currentSection != std::numeric_limits<uint32_t>::max()) { // race
+					trackController.setSection(car, 4, currentSection);
+					programState.set(ProgramState::Race);
+				} else { // reach safety car
+					trackController.setSection(car, 1, 0);
+				}
+
+				lastDistWithSafetyCar = car.distance;
+			}
+
+			micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
+
+			ControlData controlData = trackController.update(car, lineInfo, mainLine);
+
+			if (std::exchange(currentLap, trackController.lap()) != trackController.lap()) {
+				lapControlQueue.overwrite(trackController.getControlParameters());
+			}
+
+			LineDetectControl lineDetectControlData;
+			lineDetectControlData.domain = linePatternDomain_t::Race;
+			lineDetectControlData.isReducedScanRangeEnabled = false;
+
+			if (frontDistance < centimeter_t(100)) {
+				lastDistWithSafetyCar = car.distance;
+			}
+
+			switch (currentProgramState) {
+			case ProgramState::ReachSafetyCar:
+				controlData.speed = REACH_SAFETY_CAR_SPEED;
+				controlData.rampTime = millisecond_t(500);
+				if (frontDistance != centimeter_t(0) && abs(safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
+					programState.set(ProgramState::FollowSafetyCar);
+					LOG_DEBUG("Reached safety car, starts following");
+				}
+				break;
+
+			case ProgramState::FollowSafetyCar:
+				controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
+				controlData.rampTime = millisecond_t(0);
+
+				if (overtakeSection == trackController.sectionIndex() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
+					programState.set(ProgramState::OvertakeSafetyCar);
+					LOG_DEBUG("Starts overtake");
+				} else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackController.isCurrentSectionFast()) {
+					programState.set(ProgramState::Race);
+					LOG_DEBUG("Safety car left the track, starts race");
+				}
+				break;
+
+			case ProgramState::OvertakeSafetyCar:
+				if (currentProgramState != prevProgramState) {
+					lastOvertakeLap = trackController.lap();
+					overtake.initialize(car, Sign::POSITIVE,
+						OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_SPEED, OVERTAKE_END_SPEED,
+						OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
+						OVERTAKE_SIDE_DISTANCE);
+				}
+
+				controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
+				overtake.update(car, lineInfo, mainLine, controlData);
+
+				if (overtake.finished()) {
+					programState.set(ProgramState::Race);
+					LOG_DEBUG("Overtake finished, starts race");
+				}
+				break;
+
+			case ProgramState::Race:
+				lineDetectControlData.isReducedScanRangeEnabled = trackController.lap() >= 4 &&
+																  (car.speed > m_per_sec_t(0) ?
+																	  lineInfo.front.lines.size() == 1 :
+																	  lineInfo.rear.lines.size() == 1);
+
+				if (trackController.lap() > cfg::NUM_RACE_LAPS) {
+					programState.set(ProgramState::Finish);
+					LOG_DEBUG("Race finished");
+
+				}
+//				else if (trackController.lap() <= 3 && frontDistance < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
+//					programState.set(ProgramState::FollowSafetyCar);
+//					LOG_DEBUG("Reached safety car, starts following");
+//				}
+				break;
+
+			case ProgramState::Finish:
+				if (!trackController.isCurrentSectionFast() || car.distance - trackController.getSectionStartDistance() > meter_t(2)) {
+					controlData.speed = m_per_sec_t(0);
+					controlData.rampTime = millisecond_t(1500);
+				}
+				break;
+
+			case ProgramState::Test:
+				controlData.speed = targetSpeed;
+				controlData.rampTime = millisecond_t(500);
+				controlData.lineControl.target.pos = millimeter_t(0);
+				controlData.lineControl.target.angle = radian_t(0);
+				break;
+
+			default:
+				LOG_ERROR("Invalid program state: {}", underlying_value(currentProgramState));
+				break;
+			}
+
+			controlQueue.overwrite(controlData);
+			lineDetectControlQueue.overwrite(lineDetectControlData);
 		}
-
-		// runs for the first time that this task handles the program state
-		if (!shouldHandle(prevProgramState)) {
-			const uint32_t currentSection = getFastSection(currentProgramState);
-			if (currentSection != std::numeric_limits<uint32_t>::max()) { // race
-				trackController.setSection(car, 3, currentSection);
-				programState.set(ProgramState::Race);
-			} else { // reach safety car
-				trackController.setSection(car, 1, 0);
-			}
-
-			lastDistWithSafetyCar = car.distance;
-		}
-
-		micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
-
-		ControlData controlData = trackController.update(car, lineInfo, mainLine);
-
-		if (std::exchange(currentLap, trackController.lap()) != trackController.lap()) {
-			lapControlQueue.overwrite(trackController.getControlParameters());
-		}
-
-		LineDetectControl lineDetectControlData;
-		lineDetectControlData.domain = linePatternDomain_t::Race;
-		lineDetectControlData.isReducedScanRangeEnabled = false;
-
-		if (frontDistance < centimeter_t(100)) {
-			lastDistWithSafetyCar = car.distance;
-		}
-
-		switch (currentProgramState) {
-		case ProgramState::ReachSafetyCar:
-			controlData.speed = REACH_SAFETY_CAR_SPEED;
-			controlData.rampTime = millisecond_t(500);
-			if (frontDistance != centimeter_t(0) && abs(safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast())) < abs(controlData.speed)) {
-				programState.set(ProgramState::FollowSafetyCar);
-				LOG_DEBUG("Reached safety car, starts following");
-			}
-			break;
-
-		case ProgramState::FollowSafetyCar:
-			controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
-			controlData.rampTime = millisecond_t(0);
-
-			if (overtakeSection == trackController.sectionIndex() && (1 == trackController.lap() || 3 == trackController.lap()) && trackController.lap() != lastOvertakeLap) {
-				programState.set(ProgramState::OvertakeSafetyCar);
-				LOG_DEBUG("Starts overtake");
-			} else if (car.distance - lastDistWithSafetyCar > MAX_VALID_SAFETY_CAR_DISTANCE && trackController.isCurrentSectionFast()) {
-				programState.set(ProgramState::Race);
-				LOG_DEBUG("Safety car left the track, starts race");
-			}
-			break;
-
-		case ProgramState::OvertakeSafetyCar:
-			if (currentProgramState != prevProgramState) {
-				lastOvertakeLap = trackController.lap();
-				overtake.initialize(car, Sign::POSITIVE,
-					OVERTAKE_BEGIN_SPEED, OVERTAKE_STRAIGHT_START_SPEED, OVERTAKE_STRAIGHT_SPEED, OVERTAKE_END_SPEED,
-					OVERTAKE_SECTION_LENGTH, OVERTAKE_PREPARE_DISTANCE, OVERTAKE_BEGIN_SINE_ARC_LENGTH, OVERTAKE_END_SINE_ARC_LENGTH,
-					OVERTAKE_SIDE_DISTANCE);
-			}
-
-			controlData.speed = safetyCarFollowSpeed(frontDistance, trackController.isCurrentSectionFast());
-			overtake.update(car, lineInfo, mainLine, controlData);
-
-			if (overtake.finished()) {
-				programState.set(ProgramState::Race);
-				LOG_DEBUG("Overtake finished, starts race");
-			}
-			break;
-
-		case ProgramState::Race:
-			lineDetectControlData.isReducedScanRangeEnabled = trackController.lap() >= 4 &&
-															  (car.speed > m_per_sec_t(0) ?
-																  lineInfo.front.lines.size() == 1 :
-																  lineInfo.rear.lines.size() == 1);
-
-			if (trackController.lap() > cfg::NUM_RACE_LAPS) {
-				programState.set(ProgramState::Finish);
-				LOG_DEBUG("Race finished");
-
-			} else if (trackController.lap() <= 3 && frontDistance < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
-				programState.set(ProgramState::FollowSafetyCar);
-				LOG_DEBUG("Reached safety car, starts following");
-
-			}
-			break;
-
-		case ProgramState::Finish:
-			if (!trackController.isCurrentSectionFast() || car.distance - trackController.getSectionStartDistance() > meter_t(2)) {
-				controlData.speed = m_per_sec_t(0);
-				controlData.rampTime = millisecond_t(1500);
-			}
-			break;
-
-		case ProgramState::Test:
-			controlData.speed = targetSpeed;
-			controlData.rampTime = millisecond_t(500);
-			break;
-
-		default:
-			LOG_ERROR("Invalid program state: {}", underlying_value(currentProgramState));
-			break;
-		}
-
-		controlQueue.overwrite(controlData);
-		lineDetectControlQueue.overwrite(lineDetectControlData);
 
         taskMonitor.notify(true);
         os_sleep(millisecond_t(1));

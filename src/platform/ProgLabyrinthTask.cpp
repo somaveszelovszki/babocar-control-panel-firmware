@@ -108,7 +108,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     while (true) {
         const auto prevProgramState = std::exchange(currentProgramState, programState.get());
         if (shouldHandle(currentProgramState)) {
-
             CarProps car;
             carPropsQueue.peek(car, millisecond_t(0));
 

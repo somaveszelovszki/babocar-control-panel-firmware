@@ -52,7 +52,9 @@ micro::OrientedLine TrackSection::getTargetLine(const micro::CarProps& car) cons
 }
 
 RaceTrackController::RaceTrackController(ILapTrackSectionProvider& sectionProvider)
-    : sectionProvider_(sectionProvider) {}
+    : sectionProvider_{sectionProvider}
+	, sections_{sectionProvider_(1)}
+{}
 
 ControlData RaceTrackController::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine) {
     if (sections_[sectionIdx_].checkTransition(car, lineInfo.front.pattern)) {
@@ -72,6 +74,7 @@ void RaceTrackController::setSection(const CarProps& car, const size_t lap, cons
 
     sectionIdx_ = sectionIdx;
     sections_[sectionIdx_].startCarProps = car;
+    LOG_DEBUG("Track section changed. Lap: {}, section: {}", lap_, sectionIdx_);
 }
 
 size_t RaceTrackController::getFastSectionIndex(size_t n) const {
