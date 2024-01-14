@@ -151,7 +151,7 @@ TEST(DebugMessage, formatTrackControl) {
         }
     };
 
-    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.20,-5,-0.20]\n");
+    testFormat(sectionControl, TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.2000,-5,-0.2000]\n");
 }
 
 TEST(DebugMessage, parseTrackControl) {
@@ -163,6 +163,6 @@ TEST(DebugMessage, parseTrackControl) {
         }
     };
 
-    testParse(std::make_optional(expected), TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.20,-5,-0.20]\n");
+    testParse(std::make_optional(expected), TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.2000,-5,-0.2000]\n");
     testParse(std::optional<IndexedSectionControlParameters>(), TRACK_CONTROL_PREFIX_STR ":[]\n");
 }
