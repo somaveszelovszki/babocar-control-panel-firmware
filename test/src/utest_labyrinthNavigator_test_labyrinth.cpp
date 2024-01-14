@@ -223,7 +223,7 @@ TEST(labyrinthNavigator_test_labyrinth, F_H) {
 
     navigator.currentSeg_          = graph.findSegment('F');
     navigator.prevConn_            = graph.findConnection(*navigator.currentSeg_, *graph.findSegment('G'));
-    navigator.route_               = LabyrinthRoute::create(*navigator.prevConn_, *navigator.currentSeg_, *graph.findSegment('H'), true);
+    navigator.route_               = LabyrinthRoute::create(*navigator.prevConn_, *navigator.currentSeg_, *graph.findSegment('H'), {}, true);
     navigator.isLastTarget_        = false;
     navigator.lastJuncDist_        = meter_t(1);
     navigator.targetDir_           = Direction::CENTER;

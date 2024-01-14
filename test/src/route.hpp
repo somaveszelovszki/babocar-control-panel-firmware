@@ -19,4 +19,10 @@ struct RouteConnection {
 
 typedef micro::vector<RouteConnection, 50> RouteConnections;
 
-void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const bool allowBackwardNavigation, const RouteConnections& expectedConnections);
+void checkRoute(
+    const Connection& prevConn,
+    const Segment& src,
+    const Segment& dest,
+    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+    const bool allowBackwardNavigation,
+    const RouteConnections& expectedConnections);

@@ -330,7 +330,7 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
 
 void LabyrinthNavigator::updateRoute() {
     LOG_DEBUG("Updating route to: {}", this->targetSeg_->name);
-    this->route_ = LabyrinthRoute::create(*this->prevConn_, *this->currentSeg_, *this->targetSeg_, true);
+    this->route_ = LabyrinthRoute::create(*this->prevConn_, *this->currentSeg_, *this->targetSeg_, {}, true);
 
     LOG_DEBUG("Planned route:");
 

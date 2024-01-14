@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <micro/container/set.hpp>
 #include <micro/container/vector.hpp>
 
 #include <LabyrinthGraph.hpp>
@@ -26,5 +27,10 @@ struct LabyrinthRoute {
 
     static bool isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn);
 
-    static LabyrinthRoute create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg, const bool allowBackwardNavigation);
+    static LabyrinthRoute create(
+        const Connection& prevConn,
+        const Segment& currentSeg,
+        const Segment& destSeg,
+        const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+        const bool allowBackwardNavigation);
 };

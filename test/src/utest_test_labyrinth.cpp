@@ -23,7 +23,7 @@ TEST(test_labyrinth, P_T) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, false, {
+    checkRoute(prevConn, src, dest, {}, false, {
         { graph.findJunction(2), JunctionDecision(radian_t(0), Direction::LEFT)   },
         { graph.findJunction(4), JunctionDecision(radian_t(0), Direction::CENTER) },
         { graph.findJunction(5), JunctionDecision(radian_t(0), Direction::CENTER) },
@@ -42,7 +42,7 @@ TEST(test_labyrinth, P_L) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, false, {
+    checkRoute(prevConn, src, dest, {}, false, {
         { graph.findJunction(1),  JunctionDecision(PI,          Direction::RIGHT)  },
         { graph.findJunction(1),  JunctionDecision(radian_t(0), Direction::RIGHT)  },
         { graph.findJunction(2),  JunctionDecision(radian_t(0), Direction::LEFT)   },
@@ -65,7 +65,7 @@ TEST(test_labyrinth, M_O) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, false, {
+    checkRoute(prevConn, src, dest, {}, false, {
         { graph.findJunction(12), JunctionDecision(radian_t(0), Direction::CENTER) },
         { graph.findJunction(13), JunctionDecision(radian_t(0), Direction::RIGHT)  }
     });
@@ -81,7 +81,7 @@ TEST(test_labyrinth, O_W_no_route) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, false, {});
+    checkRoute(prevConn, src, dest, {}, false, {});
 }
 
 TEST(test_labyrinth, O_N) {
@@ -94,7 +94,7 @@ TEST(test_labyrinth, O_N) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, true, {
+    checkRoute(prevConn, src, dest, {}, true, {
         { graph.findJunction(13), JunctionDecision(PI,          Direction::CENTER) },
         { graph.findJunction(13), JunctionDecision(radian_t(0), Direction::LEFT)   }
     });
@@ -110,7 +110,7 @@ TEST(test_labyrinth, D_E) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, true, {
+    checkRoute(prevConn, src, dest, {}, true, {
         { graph.findJunction(2), JunctionDecision(PI,          Direction::CENTER) },
         { graph.findJunction(1), JunctionDecision(PI,          Direction::RIGHT)  },
         { graph.findJunction(1), JunctionDecision(radian_t(0), Direction::LEFT)   },
@@ -128,7 +128,7 @@ TEST(test_labyrinth, S_I) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, true, {
+    checkRoute(prevConn, src, dest, {}, true, {
         { graph.findJunction(8),  JunctionDecision(radian_t(0), Direction::CENTER) },
         { graph.findJunction(10), JunctionDecision(radian_t(0), Direction::LEFT)   },
         { graph.findJunction(10), JunctionDecision(PI,          Direction::RIGHT)  }
@@ -145,7 +145,7 @@ TEST(test_labyrinth, S_M) {
         return c->junction == &prevJunc;
     });
 
-    checkRoute(prevConn, src, dest, true, {
+    checkRoute(prevConn, src, dest, {}, true, {
         { graph.findJunction(8),  JunctionDecision(radian_t(0), Direction::CENTER) },
         { graph.findJunction(10), JunctionDecision(radian_t(0), Direction::LEFT)   },
         { graph.findJunction(11), JunctionDecision(radian_t(0), Direction::CENTER) }

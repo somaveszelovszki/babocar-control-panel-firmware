@@ -46,73 +46,78 @@ bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segme
     return !isBwd;
 }
 
-LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment& currentSeg, const Segment& destSeg, const bool allowBackwardNavigation) {
-
+LabyrinthRoute LabyrinthRoute::create(
+    const Connection& prevConn,
+    const Segment& currentSeg,
+    const Segment& destSeg, 
+    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+    const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
-    // specifically tuned for forward-moving car in a graph that allows multiple connections between the nodes
+    // specifically tuned for a car in a graph that allows multiple connections between the nodes
 
     struct SegmentRouteInfo {
         const Segment *seg            = nullptr;
         meter_t dist                  = micro::numeric_limits<meter_t>::infinity();
         const Connection *prevConn    = nullptr;
-        bool isDistMinimized          = false;
+        bool visited                  = false;
         SegmentRouteInfo *prevSegInfo = nullptr;
     };
-    typedef micro::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> SegmentRouteInfos;
+    micro::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> segmentInfos;
 
-    SegmentRouteInfos info;
-
-    info.push_back(SegmentRouteInfo{ &currentSeg, meter_t(0), &prevConn, false, nullptr });
-    SegmentRouteInfos::iterator segInfo = info.begin();
+    segmentInfos.push_back(SegmentRouteInfo{ &currentSeg, meter_t(0), &prevConn, false, nullptr });
+    auto segInfo = segmentInfos.begin();
 
     while (true) {
-        segInfo = std::min_element(info.begin(), info.end(), [](const SegmentRouteInfo& a, const SegmentRouteInfo& b) {
-            // nodes with already minimized distance cannot be selected as minimum value
-            return a.isDistMinimized == b.isDistMinimized ? a.dist < b.dist : !a.isDistMinimized;
+        segInfo = std::min_element(segmentInfos.begin(), segmentInfos.end(), [](const auto& a, const auto& b) {
+            // nodes that have already been visited cannot be selected as minimum value
+            return a.visited == b.visited ? a.dist < b.dist : !a.visited;
         });
 
         if (segInfo->seg == &destSeg) {
             break;
-        } else if (segInfo->isDistMinimized) {
+        } else if (segInfo->visited) {
             // an error has occurred
             segInfo->prevSegInfo = nullptr;
             break;
         }
 
-        for (Connection *newConn : segInfo->seg->edges) {
-            if (allowBackwardNavigation || isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn)) {
+        for (auto *newConn : segInfo->seg->edges) {
+            const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
+            if (forbiddenSegments.contains(newSeg->name) ||
+                (!allowBackwardNavigation && !isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn))) {
+                continue;
+            }
 
-                SegmentRouteInfo newSegInfo;
-                newSegInfo.seg             = newConn->getOtherSegment(*segInfo->seg);
-                newSegInfo.prevConn        = newConn;
-                newSegInfo.isDistMinimized = false;
-                newSegInfo.prevSegInfo     = segInfo;
+            SegmentRouteInfo newSegInfo;
+            newSegInfo.seg         = newSeg;
+            newSegInfo.prevConn    = newConn;
+            newSegInfo.visited     = false;
+            newSegInfo.prevSegInfo = segInfo;
 
-                // when going back to the previous junction, distance is not the same as when passing through the whole segment
-                if (segInfo != info.begin() && allowBackwardNavigation && segInfo->prevConn->junction == newConn->junction) {
-                    newSegInfo.dist = segInfo->dist - segInfo->seg->length / 2 + meter_t(1.2f) + newSegInfo.seg->length / 2;
-                } else {
-                    newSegInfo.dist = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
+            // when going back to the previous junction, distance is not the same as when passing through the whole segment
+            if (segInfo != segmentInfos.begin() && allowBackwardNavigation && segInfo->prevConn->junction == newConn->junction) {
+                newSegInfo.dist = segInfo->dist - segInfo->seg->length / 2 + meter_t(1.2f) + newSegInfo.seg->length / 2;
+            } else {
+                newSegInfo.dist = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
+            }
+
+            auto existingSegInfo = std::find_if(segmentInfos.begin(), segmentInfos.end(), [&newSegInfo, allowBackwardNavigation](const auto& element) {
+                return element.seg == newSegInfo.seg &&
+                        (allowBackwardNavigation ||
+                            (element.prevConn->junction == newSegInfo.prevConn->junction &&
+                            element.prevConn->getDecision(*newSegInfo.seg) == newSegInfo.prevConn->getDecision(*newSegInfo.seg)));
+            });
+
+            if (existingSegInfo != segmentInfos.end()) {
+                if (newSegInfo.dist < existingSegInfo->dist) {
+                    *existingSegInfo = newSegInfo;
                 }
-
-                SegmentRouteInfos::iterator existingSegInfo = std::find_if(info.begin(), info.end(), [&newSegInfo, allowBackwardNavigation](const SegmentRouteInfo& element) {
-                    return element.seg == newSegInfo.seg &&
-                           (allowBackwardNavigation ||
-                               (element.prevConn->junction == newSegInfo.prevConn->junction &&
-                                element.prevConn->getDecision(*newSegInfo.seg) == newSegInfo.prevConn->getDecision(*newSegInfo.seg)));
-                });
-
-                if (existingSegInfo != info.end()) {
-                    if (newSegInfo.dist < existingSegInfo->dist) {
-                        *existingSegInfo = newSegInfo;
-                    }
-                } else {
-                    info.push_back(newSegInfo);
-                }
+            } else {
+                segmentInfos.push_back(newSegInfo);
             }
         }
 
-        segInfo->isDistMinimized = true;
+        segInfo->visited = true;
     }
 
     LabyrinthRoute route(&destSeg);

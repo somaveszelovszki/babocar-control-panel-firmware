@@ -6,9 +6,15 @@
 
 using namespace micro;
 
-void checkRoute(const Connection& prevConn, const Segment& src, const Segment& dest, const bool allowBackwardNavigation, const RouteConnections& expectedConnections) {
+void checkRoute(
+    const Connection& prevConn,
+    const Segment& src,
+    const Segment& dest,
+    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+    const bool allowBackwardNavigation,
+    const RouteConnections& expectedConnections) {
     
-    LabyrinthRoute route = LabyrinthRoute::create(prevConn, src, dest, allowBackwardNavigation);
+    LabyrinthRoute route = LabyrinthRoute::create(prevConn, src, dest, forbiddenSegments, allowBackwardNavigation);
 
     ASSERT_EQ(expectedConnections.size(), route.connections.size());
 
