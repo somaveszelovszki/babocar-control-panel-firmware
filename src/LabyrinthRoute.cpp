@@ -50,7 +50,7 @@ LabyrinthRoute LabyrinthRoute::create(
     const Connection& prevConn,
     const Segment& currentSeg,
     const Segment& destSeg, 
-    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+    const micro::set<uint8_t, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenJunctions,
     const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for a car in a graph that allows multiple connections between the nodes
@@ -83,13 +83,13 @@ LabyrinthRoute LabyrinthRoute::create(
 
         for (auto *newConn : segInfo->seg->edges) {
             const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
-            if (forbiddenSegments.contains(newSeg->name) ||
+            if (forbiddenJunctions.contains(newConn->junction->id) ||
                 (!allowBackwardNavigation && !isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn))) {
                 continue;
             }
 
             SegmentRouteInfo newSegInfo;
-            newSegInfo.seg         = newSeg;
+            newSegInfo.seg         = newConn->getOtherSegment(*segInfo->seg);
             newSegInfo.prevConn    = newConn;
             newSegInfo.visited     = false;
             newSegInfo.prevSegInfo = segInfo;

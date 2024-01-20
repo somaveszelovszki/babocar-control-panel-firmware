@@ -31,6 +31,6 @@ struct LabyrinthRoute {
         const Connection& prevConn,
         const Segment& currentSeg,
         const Segment& destSeg,
-        const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+        const micro::set<uint8_t, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenJunctions,
         const bool allowBackwardNavigation);
 };

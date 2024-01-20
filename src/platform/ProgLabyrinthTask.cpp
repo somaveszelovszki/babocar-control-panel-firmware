@@ -123,14 +123,12 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 if (currentProgramState != prevProgramState) {
                     enforceGraphValidity();
                     carOrientationUpdateQueue.overwrite(radian_t(0));
-                    endTime = getTime() + second_t(20);
+                    endTime = getTime() + minute_t(5);
                     navigator.initialize();
                 }
 
                 updateTargetSegment();
                 navigator.update(car, lineInfo, mainLine, controlData);
-
-                lineDetectControlData.isReducedScanRangeEnabled = false;
 
                 const Pose correctedCarPose = navigator.correctedCarPose();
                 if (correctedCarPose.angle != car.pose.angle) {

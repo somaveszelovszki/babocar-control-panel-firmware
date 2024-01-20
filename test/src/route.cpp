@@ -10,11 +10,11 @@ void checkRoute(
     const Connection& prevConn,
     const Segment& src,
     const Segment& dest,
-    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+    const micro::set<uint8_t, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenJunctions,
     const bool allowBackwardNavigation,
     const RouteConnections& expectedConnections) {
     
-    LabyrinthRoute route = LabyrinthRoute::create(prevConn, src, dest, forbiddenSegments, allowBackwardNavigation);
+    LabyrinthRoute route = LabyrinthRoute::create(prevConn, src, dest, forbiddenJunctions, allowBackwardNavigation);
 
     ASSERT_EQ(expectedConnections.size(), route.connections.size());
 
