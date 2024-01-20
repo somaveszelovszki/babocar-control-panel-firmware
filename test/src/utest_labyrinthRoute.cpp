@@ -27,12 +27,12 @@ LabyrinthGraph createGraph() {
     graph.addSegment(Segment('L', meter_t(5), false));
 
     graph.addJunction(Junction(1, { meter_t(3.5), meter_t(7.0) }));
-    graph.addJunction(Junction(2, { meter_t(1.0), meter_t(7.5) }));
+    graph.addJunction(Junction(2, { meter_t(1.0), meter_t(8.0) }));
     graph.addJunction(Junction(3, { meter_t(4.0), meter_t(5.5) }));
     graph.addJunction(Junction(4, { meter_t(6.0), meter_t(2.0) }));
-    graph.addJunction(Junction(5, { meter_t(4.5), meter_t(1.0) }));
-    graph.addJunction(Junction(6, { meter_t(2.0), meter_t(2.5) }));
-    graph.addJunction(Junction(7, { meter_t(2.0), meter_t(3.5) }));
+    graph.addJunction(Junction(5, { meter_t(5.0), meter_t(1.0) }));
+    graph.addJunction(Junction(6, { meter_t(2.0), meter_t(2.0) }));
+    graph.addJunction(Junction(7, { meter_t(2.0), meter_t(4.0) }));
 
     graph.connect(graph.findSegment('A'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::LEFT));
     graph.connect(graph.findSegment('B'), graph.findJunction(1), JunctionDecision(radian_t(0), Direction::RIGHT));
@@ -69,7 +69,7 @@ LabyrinthGraph createGraph() {
 
 } // namespace
 
-TEST(labyrinthRoute, route_0_conn) {
+TEST(labyrinthRoute, SameSourceAndTarget) {
     LabyrinthGraph graph = createGraph();
 
     const Segment& src         = *graph.findSegment('L');
@@ -82,7 +82,7 @@ TEST(labyrinthRoute, route_0_conn) {
     checkRoute(prevConn, src, dest, {}, false, {});
 }
 
-TEST(labyrinthRoute, route_1_conn) {
+TEST(labyrinthRoute, OneConnection) {
     LabyrinthGraph graph = createGraph();
 
     const Segment& src         = *graph.findSegment('A');
@@ -97,7 +97,7 @@ TEST(labyrinthRoute, route_1_conn) {
     });
 }
 
-TEST(labyrinthRoute, route_4_conn_hoop) {
+TEST(labyrinthRoute, LoopInRoute) {
     LabyrinthGraph graph = createGraph();
 
     const Segment& src         = *graph.findSegment('B');
@@ -115,7 +115,7 @@ TEST(labyrinthRoute, route_4_conn_hoop) {
     });
 }
 
-TEST(labyrinthRoute, route_3_conn_fastest) {
+TEST(labyrinthRoute, RegularRoute) {
     LabyrinthGraph graph = createGraph();
 
     const Segment& src         = *graph.findSegment('F');
@@ -128,6 +128,22 @@ TEST(labyrinthRoute, route_3_conn_fastest) {
     checkRoute(prevConn, src, dest, {}, false, {
         { graph.findJunction(4), JunctionDecision(PI_2, Direction::LEFT) },
         { graph.findJunction(3), JunctionDecision(PI_2, Direction::CENTER) },
+        { graph.findJunction(1), JunctionDecision(PI,   Direction::RIGHT) }
+    });
+}
+
+TEST(labyrinthRoute, ForbiddenJunctions) {
+    LabyrinthGraph graph = createGraph();
+
+    const Segment& src         = *graph.findSegment('F');
+    const Segment& dest        = *graph.findSegment('C');
+    const Junction& prevJunc   = *graph.findJunction(5);
+    const Connection& prevConn = **std::find_if(src.edges.begin(), src.edges.end(), [&prevJunc](const Connection *c) {
+        return c->junction == &prevJunc;
+    });
+
+    checkRoute(prevConn, src, dest, {3}, false, {
+        { graph.findJunction(4), JunctionDecision(PI_2, Direction::RIGHT) },
         { graph.findJunction(1), JunctionDecision(PI,   Direction::RIGHT) }
     });
 }
