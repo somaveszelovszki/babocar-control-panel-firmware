@@ -29,3 +29,30 @@ TEST_F(TestLabyrinthTest, A_AC_FH) {
         {'F', {radian_t(0), Direction::LEFT}}
     });
 }
+
+TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationDisabled) {
+    checkRoute(graph_, 'T', "RT", "VX", false, {
+        {'R', {PI, Direction::RIGHT}},
+        {'P', {PI, Direction::RIGHT}},
+        {'M', {PI, Direction::RIGHT}},
+        {'K', {PI, Direction::RIGHT}},
+        {'H', {PI, Direction::RIGHT}},
+        {'F', {PI, Direction::RIGHT}},
+        {'C', {radian_t(0), Direction::CENTER}},
+        {'E', {radian_t(0), Direction::RIGHT}},
+        {'G', {radian_t(0), Direction::RIGHT}},
+        {'I', {radian_t(0), Direction::CENTER}},
+        {'L', {radian_t(0), Direction::RIGHT}},
+        {'N', {radian_t(0), Direction::RIGHT}},
+        {'Q', {radian_t(0), Direction::RIGHT}},
+        {'S', {radian_t(0), Direction::RIGHT}},
+        {'V', {radian_t(0), Direction::CENTER}}
+    });
+}
+
+TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationEnabled) {
+    checkRoute(graph_, 'T', "RT", "VX", true, {
+        {'T', {radian_t(0), Direction::RIGHT}},
+        {'V', {radian_t(0), Direction::CENTER}}
+    });
+}

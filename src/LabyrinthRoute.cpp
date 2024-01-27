@@ -96,7 +96,9 @@ LabyrinthRoute LabyrinthRoute::create(
 
             auto existingSegInfo = std::find_if(segmentInfos.begin(), segmentInfos.end(), [segInfo, &newSegInfo, allowBackwardNavigation](const auto& s) {
                 return s.seg == newSegInfo.seg &&
-                    (allowBackwardNavigation || isForwardConnection(*s.prevConn, *segInfo->seg, *newSegInfo.prevConn));
+                    // The existing segment info only matches the new one if either backward navigation is enabled
+                    // or the last connection is at the same junction with the same orientation.
+                    (allowBackwardNavigation || !isForwardConnection(*s.prevConn, *segInfo->seg, *newSegInfo.prevConn));
             });
 
             if (existingSegInfo != segmentInfos.end()) {

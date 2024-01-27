@@ -10,9 +10,7 @@ using namespace micro;
 
 void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph) {
     graph.addJunction(Junction('A', {centimeter_t(0),  centimeter_t(0)}));
-    graph.addJunction(Junction('B', {centimeter_t(180),  centimeter_t(20)}));
     graph.addJunction(Junction('C', {centimeter_t(330),  centimeter_t(-60)}));
-    graph.addJunction(Junction('D', {centimeter_t(550),  centimeter_t(90)}));
     graph.addJunction(Junction('E', {centimeter_t(480),  centimeter_t(-60)}));
     graph.addJunction(Junction('F', {centimeter_t(860),  centimeter_t(90)}));
     graph.addJunction(Junction('G', {centimeter_t(860),  centimeter_t(-60)}));
@@ -40,10 +38,8 @@ void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph) {
     graph.connectDeadEnd('X', {radian_t(0), Direction::RIGHT}, centimeter_t(407));
 
     graph.connect('A', {radian_t(0), Direction::CENTER}, 'C', {PI,          Direction::LEFT},   centimeter_t(365));
-    graph.connect('B', {3 * PI_2,    Direction::CENTER}, 'C', {PI,          Direction::RIGHT},  centimeter_t(218));
-    graph.connect('B', {PI_2,        Direction::CENTER}, 'D', {PI,          Direction::CENTER}, centimeter_t(452));
     graph.connect('C', {radian_t(0), Direction::CENTER}, 'E', {PI,          Direction::CENTER}, centimeter_t(160));
-    graph.connect('D', {radian_t(0), Direction::CENTER}, 'F', {PI,          Direction::RIGHT},  centimeter_t(316));
+    graph.connect('C', {PI,          Direction::RIGHT},  'F', {PI,          Direction::RIGHT},  centimeter_t(959));
     graph.connect('E', {radian_t(0), Direction::LEFT},   'F', {PI,          Direction::LEFT},   centimeter_t(428));
     graph.connect('E', {radian_t(0), Direction::RIGHT},  'G', {PI,          Direction::CENTER}, centimeter_t(385));
     graph.connect('F', {radian_t(0), Direction::LEFT},   'H', {PI,          Direction::RIGHT},  centimeter_t(284));
