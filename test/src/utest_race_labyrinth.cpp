@@ -8,13 +8,13 @@
 
 using namespace micro;
 
-class RaceLabyrinthTest : testing::Test {
+class RaceLabyrinthTest : public testing::Test {
 public:
     RaceLabyrinthTest() = default;
 
 protected:
     LabyrinthGraph graph_{buildRaceLabyrinthGraph()};
-}
+};
 
 TEST_F(RaceLabyrinthTest, valid) {
     ASSERT_TRUE(graph_.valid());

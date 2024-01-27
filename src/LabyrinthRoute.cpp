@@ -41,31 +41,31 @@ void LabyrinthRoute::reset(const Segment& currentSeg) {
 }
 
 bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
-    // does not permit going backwards
     const bool isBwd = newConn.junction == prevConn.junction && newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
     return !isBwd;
 }
+
 
 LabyrinthRoute LabyrinthRoute::create(
     const Connection& prevConn,
     const Segment& currentSeg,
     const Segment& destSeg, 
-    const micro::set<uint8_t, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenJunctions,
     const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for a car in a graph that allows multiple connections between the nodes
 
     struct SegmentRouteInfo {
         const Segment *seg            = nullptr;
-        meter_t dist                  = micro::numeric_limits<meter_t>::infinity();
-        const Connection *prevConn    = nullptr;
-        bool visited                  = false;
+        const Connection* prevConn    = nullptr;
         SegmentRouteInfo *prevSegInfo = nullptr;
+        bool visited                  = false;
+        meter_t dist                  = micro::numeric_limits<meter_t>::infinity();
     };
     micro::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> segmentInfos;
 
-    segmentInfos.push_back(SegmentRouteInfo{ &currentSeg, meter_t(0), &prevConn, false, nullptr });
+    segmentInfos.push_back(SegmentRouteInfo{ &currentSeg, &prevConn, nullptr });
     auto segInfo = segmentInfos.begin();
+    segInfo->dist = meter_t(0);
 
     while (true) {
         segInfo = std::min_element(segmentInfos.begin(), segmentInfos.end(), [](const auto& a, const auto& b) {
@@ -81,31 +81,24 @@ LabyrinthRoute LabyrinthRoute::create(
             break;
         }
 
-        for (auto *newConn : segInfo->seg->edges) {
-            const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
-            if (forbiddenJunctions.contains(newConn->junction->id) ||
-                (!allowBackwardNavigation && !isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn))) {
+        for (const auto *newConn : segInfo->seg->edges) {
+            const auto isFwd = isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn);
+            if (!allowBackwardNavigation && !isFwd) {
                 continue;
             }
 
-            SegmentRouteInfo newSegInfo;
-            newSegInfo.seg         = newConn->getOtherSegment(*segInfo->seg);
-            newSegInfo.prevConn    = newConn;
-            newSegInfo.visited     = false;
-            newSegInfo.prevSegInfo = segInfo;
+            SegmentRouteInfo newSegInfo{newConn->getOtherSegment(*segInfo->seg), newConn, segInfo};
 
             // when going back to the previous junction, distance is not the same as when passing through the whole segment
-            if (segInfo != segmentInfos.begin() && allowBackwardNavigation && segInfo->prevConn->junction == newConn->junction) {
+            if (segInfo != segmentInfos.begin() && !isFwd) {
                 newSegInfo.dist = segInfo->dist - segInfo->seg->length / 2 + meter_t(1.2f) + newSegInfo.seg->length / 2;
             } else {
                 newSegInfo.dist = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
             }
 
-            auto existingSegInfo = std::find_if(segmentInfos.begin(), segmentInfos.end(), [&newSegInfo, allowBackwardNavigation](const auto& element) {
-                return element.seg == newSegInfo.seg &&
-                        (allowBackwardNavigation ||
-                            (element.prevConn->junction == newSegInfo.prevConn->junction &&
-                            element.prevConn->getDecision(*newSegInfo.seg) == newSegInfo.prevConn->getDecision(*newSegInfo.seg)));
+            auto existingSegInfo = std::find_if(segmentInfos.begin(), segmentInfos.end(), [segInfo, &newSegInfo, allowBackwardNavigation](const auto& s) {
+                return s.seg == newSegInfo.seg &&
+                    (allowBackwardNavigation || isForwardConnection(*s.prevConn, *segInfo->seg, *newSegInfo.prevConn));
             });
 
             if (existingSegInfo != segmentInfos.end()) {

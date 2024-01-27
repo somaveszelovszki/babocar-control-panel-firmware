@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <etl/string.h>
+
 #include <micro/container/map.hpp>
 #include <micro/container/vector.hpp>
 #include <micro/utils/point2.hpp>
@@ -58,13 +60,13 @@ struct Junction {
     using SideSegments = micro::map<micro::Direction, Segment*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
     using segment_map = micro::map<micro::radian_t, SideSegments, 2>;
 
-    uint8_t id{0};
+    char id{'\0'};
     micro::point2<micro::meter_t> pos; // Junction position - relative to car start position.
     segment_map segments;
 
     Junction() = default;
 
-    Junction(const uint8_t id, const micro::point2<micro::meter_t>& pos)
+    Junction(const char id, const micro::point2<micro::meter_t>& pos)
         : id(id)
         , pos(pos) {}
 
@@ -84,16 +86,18 @@ struct Junction {
 /* @brief Labyrinth segment.
  */
 struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
-    char name{'\0'};
-    micro::meter_t length;  // The segment length.
+    using Id = etl::string<2>;
+    Id id;
+    micro::meter_t length;
     bool isDeadEnd{false};
 
     Segment() = default;
 
-    Segment(char name, micro::meter_t length, bool isDeadEnd)
-        : name(name)
-        , length(length)
-        , isDeadEnd(isDeadEnd) {}
+    Segment(const char junction1, const char junction2, micro::meter_t length, const bool isDeadEnd = false)
+        : length{length}, isDeadEnd{isDeadEnd} {
+            id.push_back(std::min(junction1, junction2));
+            id.push_back(std::max(junction1, junction2));
+        }
 
     bool isFloating() const;
     bool isLoop() const;
@@ -105,19 +109,32 @@ public:
 
     void addSegment(const Segment& seg);
     void addJunction(const Junction& junc);
-    void connect(Segment *seg, Junction *junc, const JunctionDecision& decision);
+    void connect(
+        const char junc1,
+        const JunctionDecision& decision1,
+        const char junc2,
+        const JunctionDecision& decision2,
+        const micro::meter_t sectionLength);
 
-    Segment* findSegment(char name);
-    const Segment* findSegment(char name) const;
+    void connectDeadEnd(
+        const char junc,
+        const JunctionDecision& decision,
+        const micro::meter_t sectionLength);
 
-    Junction* findJunction(uint8_t id);
-    const Junction* findJunction(uint8_t id) const;
+    Segment* findSegment(const Segment::Id& id);
+    const Segment* findSegment(const Segment::Id& id) const;
+
+    Junction* findJunction(const char id);
+    const Junction* findJunction(const char id) const;
 
     const Junction* findJunction(const micro::point2m& pos, const micro::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
-    const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
+    const Connection* findConnection(const Segment::Id& seg1, const Segment::Id& seg2) const;
 
     bool valid() const;
+
+private:
+    void connect(Segment *seg, Junction *junc, const JunctionDecision& decision);
 
 private:
     typedef micro::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;

@@ -24,13 +24,12 @@ struct LabyrinthRoute {
     const Connection* lastConnection() const;
 
     void reset(const Segment& currentSeg);
-
+    
     static bool isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn);
 
     static LabyrinthRoute create(
         const Connection& prevConn,
         const Segment& currentSeg,
         const Segment& destSeg,
-        const micro::set<uint8_t, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenJunctions,
         const bool allowBackwardNavigation);
 };

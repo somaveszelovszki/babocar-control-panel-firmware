@@ -1,3 +1,4 @@
+#include "micro/utils/units.hpp"
 #include <cfg_track.hpp>
 
 #if TRACK == TEST_TRACK || COMPILE_ALL_TRACKS
@@ -10,101 +11,73 @@ using namespace micro;
 LabyrinthGraph buildTestLabyrinthGraph() {
     LabyrinthGraph graph;
 
-    graph.addSegment(Segment('A', centimeter_t(844),  false));
-    graph.addSegment(Segment('B', centimeter_t(233),  false));
-    graph.addSegment(Segment('C', centimeter_t(274),  false));
-    graph.addSegment(Segment('D', centimeter_t(428),  false));
-    graph.addSegment(Segment('E', centimeter_t(648),  false));
-    graph.addSegment(Segment('F', centimeter_t(192),  false));
-    graph.addSegment(Segment('G', centimeter_t(210),  false));
-    graph.addSegment(Segment('H', centimeter_t(328),  false));
-    graph.addSegment(Segment('I', centimeter_t(222),  false));
-    graph.addSegment(Segment('J', centimeter_t(676),  false));
-    graph.addSegment(Segment('K', centimeter_t(495),  false));
-    graph.addSegment(Segment('L', centimeter_t(445),  false));
-    graph.addSegment(Segment('M', centimeter_t(446),  false));
-    graph.addSegment(Segment('N', centimeter_t(1360), false));
-    graph.addSegment(Segment('O', centimeter_t(398),  true ));
-    graph.addSegment(Segment('P', centimeter_t(100),  false));
-    graph.addSegment(Segment('Q', centimeter_t(198),  false));
-    graph.addSegment(Segment('R', centimeter_t(120),  false));
-    graph.addSegment(Segment('S', centimeter_t(285),  false));
-    graph.addSegment(Segment('T', centimeter_t(245),  false));
-    graph.addSegment(Segment('U', centimeter_t(307),  false));
-    graph.addSegment(Segment('V', centimeter_t(460),  false));
-    graph.addSegment(Segment('W', centimeter_t(539),  false));
+    graph.addJunction(Junction('A', {centimeter_t(0),    centimeter_t(0)}));
+    graph.addJunction(Junction('B', {centimeter_t(180),  centimeter_t(20)}));
+    graph.addJunction(Junction('C', {centimeter_t(330),  centimeter_t(-60)}));
+    graph.addJunction(Junction('D', {centimeter_t(550),  centimeter_t(90)}));
+    graph.addJunction(Junction('E', {centimeter_t(480),  centimeter_t(-60)}));
+    graph.addJunction(Junction('F', {centimeter_t(860),  centimeter_t(90)}));
+    graph.addJunction(Junction('G', {centimeter_t(860),  centimeter_t(-60)}));
+    graph.addJunction(Junction('H', {centimeter_t(1140), centimeter_t(90)}));
+    graph.addJunction(Junction('I', {centimeter_t(1140), centimeter_t(-60)}));
+    graph.addJunction(Junction('J', {centimeter_t(1340), centimeter_t(30)}));
+    graph.addJunction(Junction('K', {centimeter_t(1540), centimeter_t(90)}));
+    graph.addJunction(Junction('L', {centimeter_t(1550), centimeter_t(-60)}));
+    graph.addJunction(Junction('M', {centimeter_t(1820), centimeter_t(90)}));
+    graph.addJunction(Junction('N', {centimeter_t(1800), centimeter_t(-60)}));
+    graph.addJunction(Junction('O', {centimeter_t(2000), centimeter_t(30)}));
+    graph.addJunction(Junction('P', {centimeter_t(2230), centimeter_t(90)}));
+    graph.addJunction(Junction('Q', {centimeter_t(2240), centimeter_t(-60)}));
+    graph.addJunction(Junction('R', {centimeter_t(2530), centimeter_t(90)}));
+    graph.addJunction(Junction('S', {centimeter_t(2520), centimeter_t(-30)}));
+    graph.addJunction(Junction('T', {centimeter_t(2710), centimeter_t(30)}));
+    graph.addJunction(Junction('U', {centimeter_t(2890), centimeter_t(90)}));
+    graph.addJunction(Junction('V', {centimeter_t(2920), centimeter_t(-30)}));
+    graph.addJunction(Junction('W', {centimeter_t(3060), centimeter_t(130)}));
+    graph.addJunction(Junction('X', {centimeter_t(3060), centimeter_t(-90)}));
+    graph.addJunction(Junction('Y', {centimeter_t(3310), centimeter_t(90)}));
 
-    graph.addJunction(Junction(1,  { centimeter_t(-2250), centimeter_t(60)  }));
-    graph.addJunction(Junction(2,  { centimeter_t(-2130), centimeter_t(60)  }));
-    graph.addJunction(Junction(3,  { centimeter_t(-2040), centimeter_t(150) }));
-    graph.addJunction(Junction(4,  { centimeter_t(-1865), centimeter_t(60)  }));
-    graph.addJunction(Junction(5,  { centimeter_t(-1740), centimeter_t(60)  }));
-    graph.addJunction(Junction(6,  { centimeter_t(-1580), centimeter_t(60)  }));
-    graph.addJunction(Junction(7,  { centimeter_t(-1415), centimeter_t(150) }));
-    graph.addJunction(Junction(8,  { centimeter_t(-1290), centimeter_t(60)  }));
-    graph.addJunction(Junction(9,  { centimeter_t(-1170), centimeter_t(150) }));
-    graph.addJunction(Junction(10, { centimeter_t(-1000), centimeter_t(60)  }));
-    graph.addJunction(Junction(11, { centimeter_t(-540),  centimeter_t(60)  }));
-    graph.addJunction(Junction(12, { centimeter_t(-140),  centimeter_t(0)   }));
-    graph.addJunction(Junction(13, { centimeter_t(380),   centimeter_t(-30) }));
+    graph.connectDeadEnd('C', {PI, Direction::LEFT}, centimeter_t(425));
+    graph.connectDeadEnd('W', {radian_t(0), Direction::LEFT}, centimeter_t(314));
+    graph.connectDeadEnd('X', {radian_t(0), Direction::RIGHT}, centimeter_t(407));
 
-    graph.connect(graph.findSegment('A'), graph.findJunction(1),  JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('A'), graph.findJunction(1),  JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('B'), graph.findJunction(1),  JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('P'), graph.findJunction(1),  JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('P'), graph.findJunction(2),  JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('C'), graph.findJunction(2),  JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('D'), graph.findJunction(2),  JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('B'), graph.findJunction(3),  JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('E'), graph.findJunction(3),  JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('Q'), graph.findJunction(3),  JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('C'), graph.findJunction(4),  JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('Q'), graph.findJunction(4),  JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('R'), graph.findJunction(4),  JunctionDecision(radian_t(0), Direction::CENTER));
-
-    graph.connect(graph.findSegment('D'), graph.findJunction(5),  JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('R'), graph.findJunction(5),  JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('F'), graph.findJunction(5),  JunctionDecision(radian_t(0), Direction::CENTER));
-
-    graph.connect(graph.findSegment('F'), graph.findJunction(6),  JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('G'), graph.findJunction(6),  JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('S'), graph.findJunction(6),  JunctionDecision(radian_t(0), Direction::CENTER));
-    graph.connect(graph.findSegment('H'), graph.findJunction(6),  JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('G'), graph.findJunction(7),  JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('E'), graph.findJunction(7),  JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('T'), graph.findJunction(7),  JunctionDecision(radian_t(0), Direction::CENTER));
-
-    graph.connect(graph.findSegment('H'), graph.findJunction(8),  JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('S'), graph.findJunction(8),  JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('U'), graph.findJunction(8),  JunctionDecision(radian_t(0), Direction::CENTER));
-
-    graph.connect(graph.findSegment('T'), graph.findJunction(9),  JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('J'), graph.findJunction(9),  JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('I'), graph.findJunction(9),  JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('U'), graph.findJunction(10), JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('I'), graph.findJunction(10), JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('V'), graph.findJunction(10), JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('K'), graph.findJunction(10), JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('K'), graph.findJunction(11), JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('V'), graph.findJunction(11), JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('J'), graph.findJunction(11), JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('N'), graph.findJunction(11), JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('M'), graph.findJunction(11), JunctionDecision(radian_t(0), Direction::CENTER));
-    graph.connect(graph.findSegment('L'), graph.findJunction(11), JunctionDecision(radian_t(0), Direction::RIGHT));
-
-    graph.connect(graph.findSegment('L'), graph.findJunction(12), JunctionDecision(PI,          Direction::LEFT));
-    graph.connect(graph.findSegment('M'), graph.findJunction(12), JunctionDecision(PI,          Direction::RIGHT));
-    graph.connect(graph.findSegment('W'), graph.findJunction(12), JunctionDecision(radian_t(0), Direction::CENTER));
-
-    graph.connect(graph.findSegment('W'), graph.findJunction(13), JunctionDecision(PI,          Direction::CENTER));
-    graph.connect(graph.findSegment('N'), graph.findJunction(13), JunctionDecision(radian_t(0), Direction::LEFT));
-    graph.connect(graph.findSegment('O'), graph.findJunction(13), JunctionDecision(radian_t(0), Direction::RIGHT));
+    graph.connect('B', {3 * PI_2,    Direction::CENTER}, 'C', {PI,          Direction::RIGHT},  centimeter_t(218));
+    graph.connect('B', {PI_2,        Direction::CENTER}, 'D', {PI,          Direction::CENTER}, centimeter_t(452));
+    graph.connect('C', {radian_t(0), Direction::CENTER}, 'E', {PI,          Direction::CENTER}, centimeter_t(160));
+    graph.connect('D', {radian_t(0), Direction::CENTER}, 'F', {PI,          Direction::RIGHT},  centimeter_t(316));
+    graph.connect('E', {radian_t(0), Direction::LEFT},   'F', {PI,          Direction::LEFT},   centimeter_t(428));
+    graph.connect('E', {radian_t(0), Direction::RIGHT},  'G', {PI,          Direction::CENTER}, centimeter_t(385));
+    graph.connect('F', {radian_t(0), Direction::LEFT},   'H', {PI,          Direction::RIGHT},  centimeter_t(284));
+    graph.connect('F', {radian_t(0), Direction::RIGHT},  'I', {PI,          Direction::RIGHT},  centimeter_t(335));
+    graph.connect('G', {radian_t(0), Direction::LEFT},   'H', {PI,          Direction::LEFT},   centimeter_t(336));
+    graph.connect('G', {radian_t(0), Direction::RIGHT},  'I', {PI,          Direction::LEFT},   centimeter_t(284));
+    graph.connect('H', {radian_t(0), Direction::LEFT},   'K', {PI,          Direction::RIGHT},  centimeter_t(407));
+    graph.connect('H', {radian_t(0), Direction::RIGHT},  'J', {PI,          Direction::CENTER}, centimeter_t(220));
+    graph.connect('J', {radian_t(0), Direction::LEFT},   'K', {PI,          Direction::LEFT},   centimeter_t(214));
+    graph.connect('J', {radian_t(0), Direction::RIGHT},  'L', {PI,          Direction::RIGHT},  centimeter_t(239));
+    graph.connect('I', {radian_t(0), Direction::CENTER}, 'L', {PI,          Direction::LEFT},   centimeter_t(418));
+    graph.connect('K', {radian_t(0), Direction::LEFT},   'M', {PI,          Direction::RIGHT},  centimeter_t(288));
+    graph.connect('K', {radian_t(0), Direction::RIGHT},  'N', {PI,          Direction::RIGHT},  centimeter_t(319));
+    graph.connect('L', {radian_t(0), Direction::LEFT},   'M', {PI,          Direction::LEFT},   centimeter_t(329));
+    graph.connect('L', {radian_t(0), Direction::RIGHT},  'N', {PI,          Direction::LEFT},   centimeter_t(258));
+    graph.connect('M', {radian_t(0), Direction::LEFT},   'P', {PI,          Direction::RIGHT},  centimeter_t(416));
+    graph.connect('M', {radian_t(0), Direction::RIGHT},  'O', {PI,          Direction::RIGHT},  centimeter_t(198));
+    graph.connect('N', {radian_t(0), Direction::LEFT},   'O', {PI,          Direction::LEFT},   centimeter_t(228));
+    graph.connect('N', {radian_t(0), Direction::RIGHT},  'Q', {PI,          Direction::CENTER}, centimeter_t(447));
+    graph.connect('O', {radian_t(0), Direction::CENTER}, 'P', {PI,          Direction::LEFT},   centimeter_t(248));
+    graph.connect('P', {radian_t(0), Direction::LEFT},   'R', {PI,          Direction::RIGHT},  centimeter_t(305));
+    graph.connect('P', {radian_t(0), Direction::RIGHT},  'S', {PI,          Direction::RIGHT},  centimeter_t(346));
+    graph.connect('Q', {radian_t(0), Direction::LEFT},   'R', {PI,          Direction::LEFT},   centimeter_t(346));
+    graph.connect('Q', {radian_t(0), Direction::RIGHT},  'S', {PI,          Direction::LEFT},   centimeter_t(284));
+    graph.connect('R', {radian_t(0), Direction::LEFT},   'U', {PI,          Direction::RIGHT},  centimeter_t(366));
+    graph.connect('R', {radian_t(0), Direction::RIGHT},  'T', {PI,          Direction::RIGHT},  centimeter_t(204));
+    graph.connect('S', {radian_t(0), Direction::LEFT},   'T', {PI,          Direction::LEFT},   centimeter_t(223));
+    graph.connect('S', {radian_t(0), Direction::RIGHT},  'V', {PI,          Direction::LEFT},   centimeter_t(406));
+    graph.connect('T', {radian_t(0), Direction::LEFT},   'U', {PI,          Direction::LEFT},   centimeter_t(192));
+    graph.connect('T', {radian_t(0), Direction::RIGHT},  'V', {PI,          Direction::RIGHT},  centimeter_t(233));
+    graph.connect('U', {radian_t(0), Direction::CENTER}, 'W', {PI,          Direction::CENTER}, centimeter_t(183));
+    graph.connect('V', {radian_t(0), Direction::CENTER}, 'X', {PI,          Direction::CENTER}, centimeter_t(149));
+    graph.connect('W', {radian_t(0), Direction::RIGHT},  'X', {radian_t(0), Direction::LEFT},   centimeter_t(377));
 
     return graph;
 }

@@ -77,6 +77,40 @@ void LabyrinthGraph::addJunction(const Junction& junc) {
     junctions_.push_back(junc);
 }
 
+void LabyrinthGraph::connect(
+    const char junc1,
+    const JunctionDecision& decision1,
+    const char junc2,
+    const JunctionDecision& decision2,
+    const micro::meter_t sectionLength) {
+    auto* junction1 = findJunction(junc1);
+    auto* junction2 = findJunction(junc2);
+    if (!junction1 || !junction2) {
+        return;
+    }
+
+    addSegment(Segment(junc1, junc2, sectionLength));
+    auto* segment = to_raw_pointer(segments_.rbegin());
+
+    connect(segment, junction1, decision1);
+    connect(segment, junction2, decision2);
+}
+
+void LabyrinthGraph::connectDeadEnd(
+    const char junc,
+    const JunctionDecision& decision,
+    const micro::meter_t sectionLength) {
+    auto* junction = findJunction(junc);
+    if (!junction) {
+        return;
+    }
+
+    addSegment(Segment('_', junc, sectionLength));
+    auto* segment = to_raw_pointer(segments_.rbegin());
+
+    connect(segment, junction, decision);
+}
+
 void LabyrinthGraph::connect(Segment *seg, Junction *junc, const JunctionDecision& decision) {
     junc->addSegment(*seg, decision);
 
@@ -95,23 +129,20 @@ void LabyrinthGraph::connect(Segment *seg, Junction *junc, const JunctionDecisio
     }
 }
 
-Segment* LabyrinthGraph::findSegment(char name) {
-    return const_cast<Segment*>(const_cast<const LabyrinthGraph*>(this)->findSegment(name));
+Segment* LabyrinthGraph::findSegment(const Segment::Id& id) {
+    return const_cast<Segment*>(const_cast<const LabyrinthGraph*>(this)->findSegment(id));
 }
 
-const Segment* LabyrinthGraph::findSegment(char name) const {
-    const Segments::const_iterator it = std::find_if(segments_.begin(), segments_.end(), [name](const Segment& seg) {
-        return seg.name == name;
-    });
-
+const Segment* LabyrinthGraph::findSegment(const Segment::Id& id) const {
+    const auto it = std::find_if(segments_.begin(), segments_.end(), [&id](const auto& s) { return s.id == id; });
     return it != segments_.end() ? to_raw_pointer(it) : nullptr;
 }
 
-Junction* LabyrinthGraph::findJunction(uint8_t id) {
+Junction* LabyrinthGraph::findJunction(const char id) {
     return const_cast<Junction*>(const_cast<const LabyrinthGraph*>(this)->findJunction(id));
 }
 
-const Junction* LabyrinthGraph::findJunction(uint8_t id) const {
+const Junction* LabyrinthGraph::findJunction(const char id) const {
     const Junctions::const_iterator it = std::find_if(junctions_.begin(), junctions_.end(), [id](const Junction& junc) {
         return junc.id == id;
     });
@@ -184,50 +215,48 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::ve
     return result != junctions_.end() ? to_raw_pointer(result) : nullptr;
 }
 
-const Connection* LabyrinthGraph::findConnection(const Segment& seg1, const Segment& seg2) const {
+const Connection* LabyrinthGraph::findConnection(const Segment::Id& seg1, const Segment::Id& seg2) const {
     const auto it = std::find_if(connections_.begin(), connections_.end(), [&seg1, &seg2](const Connection& c) {
-        return (c.node1->name == seg1.name && c.node2->name == seg2.name) || (c.node1->name == seg2.name && c.node2->name == seg1.name);
+        return (c.node1->id == seg1 && c.node2->id == seg2) || (c.node1->id == seg2 && c.node2->id == seg1);
     });
 
     return it != connections_.end() ? to_raw_pointer(it) : nullptr;
 }
 
 bool LabyrinthGraph::valid() const {
-    bool isValid = true;
-
-    for (const Segment& seg : segments_) {
-
-        if (!isBtw(seg.name, 'A', 'Z')) {
-            isValid = false;
-
-        } else if (seg.length <= meter_t(0)) {
-            isValid = false;
-
-        } else if (seg.isFloating()) {
-            isValid = false;
-
-        } else {
-            micro::set<Junction*, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> junctions;
-            for (const Connection& conn : connections_) {
-                if (conn.node1 == &seg || conn.node2 == &seg) {
-                    junctions.insert(conn.junction);
-                }
+    for (const auto& seg : segments_) {
+        if (seg.id.size() != 2) {
+            return false;
+        }
+        
+        if (seg.length <= meter_t(0)) {
+            return false;
+        }
+        
+        if (seg.isFloating()) {
+            return false;
+        }
+        
+        micro::set<Junction*, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> junctions;
+        for (const auto& conn : connections_) {
+            if (conn.node1 == &seg || conn.node2 == &seg) {
+                junctions.insert(conn.junction);
             }
+        }
 
-            if (junctions.size() != (seg.isDeadEnd || seg.isLoop() ? 1 : 2)) {
-                isValid = false;
-            } else {
-                uint32_t occurences = 0;
-                for (const Junction& junc : junctions_) {
-                    occurences += junc.getConnectionCount(seg);
-                }
+        if (junctions.size() != (seg.isDeadEnd || seg.isLoop() ? 1 : 2)) {
+            return false;
+        }
 
-                if (occurences != (seg.isDeadEnd ? 1 : 2)) {
-                    isValid = false;
-                }
-            }
+        uint32_t occurences = 0;
+        for (const auto& junc : junctions_) {
+            occurences += junc.getConnectionCount(seg);
+        }
+
+        if (occurences != (seg.isDeadEnd ? 1 : 2)) {
+            return false;
         }
     }
 
-    return isValid;
+    return true;
 }

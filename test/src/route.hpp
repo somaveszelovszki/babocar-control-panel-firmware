@@ -5,14 +5,8 @@
 #include <LabyrinthGraph.hpp>
 
 struct RouteConnection {
-    const Junction *junction;
+    char junction{'\0'};
     JunctionDecision decision;
-
-    RouteConnection() = default;
-    
-    RouteConnection(const Junction *junction, const JunctionDecision& decision)
-        : junction(junction)
-        , decision(decision) {}
 
     RouteConnection& operator=(const RouteConnection&) = default;
 };
@@ -20,9 +14,9 @@ struct RouteConnection {
 typedef micro::vector<RouteConnection, 50> RouteConnections;
 
 void checkRoute(
-    const Connection& prevConn,
-    const Segment& src,
-    const Segment& dest,
-    const micro::set<uint8_t, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenJunctions,
+    const LabyrinthGraph& graph,
+    const char prevJunction,
+    const Segment::Id& src,
+    const Segment::Id& dest,
     const bool allowBackwardNavigation,
     const RouteConnections& expectedConnections);
