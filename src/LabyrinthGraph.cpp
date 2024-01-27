@@ -105,7 +105,7 @@ void LabyrinthGraph::connectDeadEnd(
         return;
     }
 
-    addSegment(Segment('_', junc, sectionLength));
+    addSegment(Segment('_', junc, sectionLength, true));
     auto* segment = to_raw_pointer(segments_.rbegin());
 
     connect(segment, junction, decision);

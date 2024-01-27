@@ -8,10 +8,9 @@
 #include <LabyrinthGraph.hpp>
 
 struct LabyrinthRoute {
-    static constexpr uint32_t MAX_LENGTH = 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS;
     const Segment* startSeg;
     const Segment* destSeg;
-    micro::vector<const Connection*, MAX_LENGTH> connections;
+    micro::vector<const Connection*, cfg::MAX_NUM_LABYRINTH_SEGMENTS> connections;
 
     explicit LabyrinthRoute(const Segment *currentSeg = nullptr);
 

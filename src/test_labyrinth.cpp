@@ -8,10 +8,8 @@
 
 using namespace micro;
 
-LabyrinthGraph buildTestLabyrinthGraph() {
-    LabyrinthGraph graph;
-
-    graph.addJunction(Junction('A', {centimeter_t(0),    centimeter_t(0)}));
+void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph) {
+    graph.addJunction(Junction('A', {centimeter_t(0),  centimeter_t(0)}));
     graph.addJunction(Junction('B', {centimeter_t(180),  centimeter_t(20)}));
     graph.addJunction(Junction('C', {centimeter_t(330),  centimeter_t(-60)}));
     graph.addJunction(Junction('D', {centimeter_t(550),  centimeter_t(90)}));
@@ -37,10 +35,11 @@ LabyrinthGraph buildTestLabyrinthGraph() {
     graph.addJunction(Junction('X', {centimeter_t(3060), centimeter_t(-90)}));
     graph.addJunction(Junction('Y', {centimeter_t(3310), centimeter_t(90)}));
 
-    graph.connectDeadEnd('C', {PI, Direction::LEFT}, centimeter_t(425));
-    graph.connectDeadEnd('W', {radian_t(0), Direction::LEFT}, centimeter_t(314));
+    graph.connectDeadEnd('A', {PI, Direction::CENTER}, centimeter_t(60));
+    graph.connectDeadEnd('Y', {radian_t(0), Direction::CENTER}, centimeter_t(50));
     graph.connectDeadEnd('X', {radian_t(0), Direction::RIGHT}, centimeter_t(407));
 
+    graph.connect('A', {radian_t(0), Direction::CENTER}, 'C', {PI,          Direction::LEFT},   centimeter_t(365));
     graph.connect('B', {3 * PI_2,    Direction::CENTER}, 'C', {PI,          Direction::RIGHT},  centimeter_t(218));
     graph.connect('B', {PI_2,        Direction::CENTER}, 'D', {PI,          Direction::CENTER}, centimeter_t(452));
     graph.connect('C', {radian_t(0), Direction::CENTER}, 'E', {PI,          Direction::CENTER}, centimeter_t(160));
@@ -77,9 +76,8 @@ LabyrinthGraph buildTestLabyrinthGraph() {
     graph.connect('T', {radian_t(0), Direction::RIGHT},  'V', {PI,          Direction::RIGHT},  centimeter_t(233));
     graph.connect('U', {radian_t(0), Direction::CENTER}, 'W', {PI,          Direction::CENTER}, centimeter_t(183));
     graph.connect('V', {radian_t(0), Direction::CENTER}, 'X', {PI,          Direction::CENTER}, centimeter_t(149));
+    graph.connect('W', {radian_t(0), Direction::LEFT},   'Y', {PI,          Direction::CENTER}, centimeter_t(264));
     graph.connect('W', {radian_t(0), Direction::RIGHT},  'X', {radian_t(0), Direction::LEFT},   centimeter_t(377));
-
-    return graph;
 }
 
 #endif // TRACK == TEST_TRACK || COMPILE_ALL_TRACKS

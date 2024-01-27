@@ -46,11 +46,10 @@ constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 #define LAST_VALID_SEGMENT  'W'
 #endif
 
-const LabyrinthGraph graph = buildLabyrinthGraph();
-const Segment *startSeg = graph.findSegment(START_SEGMENT);
-const Connection *prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
-const Segment *laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
+LabyrinthGraph graph;
+const Segment *startSeg = nullptr;
+const Connection *prevConn = nullptr;
+const Segment *laneChangeSeg = nullptr;
 micro::vector<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
@@ -62,7 +61,7 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
-void updateTargetSegment() {
+void updateTargetSegment(LabyrinthNavigator& navigator) {
     char segId = '\0';
     radioRecvQueue.peek(segId, millisecond_t(0));
     const bool isLabyrinthFinished = 'X' == segId;
@@ -96,6 +95,12 @@ void enforceGraphValidity() {
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
+    buildLabyrinthGraph(graph);
+    startSeg = graph.findSegment(START_SEGMENT);
+    prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
+    laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
+    LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
+
     taskMonitor.registerInitializedTask();
 
     LineInfo lineInfo;
@@ -127,7 +132,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     navigator.initialize();
                 }
 
-                updateTargetSegment();
+                updateTargetSegment(navigator);
                 navigator.update(car, lineInfo, mainLine, controlData);
 
                 const Pose correctedCarPose = navigator.correctedCarPose();

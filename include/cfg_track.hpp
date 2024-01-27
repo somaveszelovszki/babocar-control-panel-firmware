@@ -8,7 +8,8 @@ namespace cfg {
 #define RACE_TRACK  2
 #define TRACK       TEST_TRACK
 
-constexpr uint8_t         MAX_NUM_LABYRINTH_SEGMENTS     = 25;
+constexpr uint8_t         MAX_NUM_LABYRINTH_JUNCTIONS    = 30;
+constexpr uint8_t         MAX_NUM_LABYRINTH_SEGMENTS     = 50;
 constexpr uint8_t         NUM_LABYRINTH_GATE_SEGMENTS    = 15;
 constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS_SIDE = 3;
 constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS      = MAX_NUM_CROSSING_SEGMENTS_SIDE * 2;

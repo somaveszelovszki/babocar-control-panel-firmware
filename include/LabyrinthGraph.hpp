@@ -106,6 +106,8 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
 class LabyrinthGraph {
 public:
     LabyrinthGraph() = default;
+    LabyrinthGraph(const LabyrinthGraph&) = delete;
+    LabyrinthGraph(LabyrinthGraph&&) = delete;
 
     void addSegment(const Segment& seg);
     void addJunction(const Junction& junc);
@@ -137,9 +139,9 @@ private:
     void connect(Segment *seg, Junction *junc, const JunctionDecision& decision);
 
 private:
-    typedef micro::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Segments;
-    typedef micro::vector<Junction, cfg::MAX_NUM_LABYRINTH_SEGMENTS> Junctions;
-    typedef micro::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2> Connections;
+    using Segments = micro::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS>;
+    using Junctions = micro::vector<Junction, cfg::MAX_NUM_LABYRINTH_JUNCTIONS>;
+    using Connections = micro::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2>;
 
     Segments segments_;
     Junctions junctions_;

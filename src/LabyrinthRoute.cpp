@@ -4,8 +4,6 @@
 
 using namespace micro;
 
-constexpr uint32_t LabyrinthRoute::MAX_LENGTH;
-
 LabyrinthRoute::LabyrinthRoute(const Segment *currentSeg)
     : startSeg(currentSeg)
     , destSeg(currentSeg) {}

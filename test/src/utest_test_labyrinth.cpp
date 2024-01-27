@@ -10,10 +10,12 @@ using namespace micro;
 
 class TestLabyrinthTest : public testing::Test {
 public:
-    TestLabyrinthTest() = default;
+    TestLabyrinthTest() {
+        buildTestLabyrinthGraph(graph_);
+    }
 
 protected:
-    LabyrinthGraph graph_{buildTestLabyrinthGraph()};
+    LabyrinthGraph graph_;
 };
 
 TEST_F(TestLabyrinthTest, valid) {

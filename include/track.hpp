@@ -19,7 +19,7 @@ private:
 };
 
 extern OverridableLapTrackSectionProvider raceLapTrackSectionProvider;
-LabyrinthGraph buildRaceLabyrinthGraph();
+void buildRaceLabyrinthGraph(LabyrinthGraph& OUT graph);
 
 #endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
 
@@ -35,7 +35,7 @@ private:
 };
 
 extern OverridableLapTrackSectionProvider testLapTrackSectionProvider;
-LabyrinthGraph buildTestLabyrinthGraph();
+void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph);
 
 #endif // TRACK == TEST_TRACK || COMPILE_ALL_TRACKS
 

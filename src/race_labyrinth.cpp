@@ -7,9 +7,6 @@
 
 using namespace micro;
 
-LabyrinthGraph buildRaceLabyrinthGraph() {
-    LabyrinthGraph graph;
-    return graph;
-}
+void buildRaceLabyrinthGraph(LabyrinthGraph& OUT graph) {}
 
 #endif // TRACK == RACE_TRACK || COMPILE_ALL_TRACKS
