@@ -25,6 +25,8 @@ public:
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
+    static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
+
 private:
     void navigateToLaneChange();
 
@@ -54,8 +56,6 @@ private:
     micro::Direction randomDirection(const uint8_t numOutSegments);
 
     static bool isJunction(const micro::LinePattern& pattern);
-
-    static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
 
     micro::m_per_sec_t targetSpeed_;
     micro::m_per_sec_t targetFastSpeed_;
