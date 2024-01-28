@@ -6,27 +6,9 @@
 
 using namespace micro;
 
-LabyrinthNavigator::LabyrinthNavigator(
-    const LabyrinthGraph& graph,
-    micro::irandom_generator& random,
-    const Segment *startSeg,
-    const Connection *prevConn,
-    const Segment *laneChangeSeg,
-    const micro::m_per_sec_t targetSpeed,
-    const micro::m_per_sec_t targetFastSpeed,
-    const micro::m_per_sec_t targetDeadEndSpeed)
+LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, micro::irandom_generator& random)
     : Maneuver()
-    , targetSpeed_(targetSpeed)
-    , targetFastSpeed_(targetFastSpeed)
-    , targetDeadEndSpeed_(targetDeadEndSpeed)
     , graph_(graph)
-    , startSeg_(startSeg)
-    , prevConn_(prevConn)
-    , currentSeg_(startSeg_)
-    , targetSeg_(startSeg)
-    , laneChangeSeg_(laneChangeSeg)
-    , route_(startSeg)
-    , isLastTarget_(false)
     , lastJuncDist_(0)
     , targetDir_(Direction::CENTER)
     , targetSpeedSign_(Sign::POSITIVE)
@@ -35,25 +17,30 @@ LabyrinthNavigator::LabyrinthNavigator(
     , isInJunction_(false)
     , random_(random) {}
 
-void LabyrinthNavigator::initialize(const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments) {
-    currentSeg_ = startSeg_;
+void LabyrinthNavigator::initialize(
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments,
+    const Segment *currentSeg,
+    const Connection *prevConn,
+    const Segment *laneChangeSeg,
+    const micro::m_per_sec_t targetSpeed,
+    const micro::m_per_sec_t targetFastSpeed,
+    const micro::m_per_sec_t targetDeadEndSpeed) {
     unvisitedSegments_ = unvisitedSegments;
-}
-
-const Segment* LabyrinthNavigator::currentSegment() const {
-    return currentSeg_;
-}
-
-const Segment* LabyrinthNavigator::targetSegment() const {
-    return targetSeg_;
+    currentSeg_ = currentSeg;
+    prevConn_ = prevConn;
+    laneChangeSeg_ = laneChangeSeg;
+    targetSpeed_ = targetSpeed;
+    targetFastSpeed_ = targetFastSpeed;
+    targetDeadEndSpeed_ = targetDeadEndSpeed;
 }
 
 const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
     return correctedCarPose_;
 }
 
-void LabyrinthNavigator::setObstacleRoute(const LabyrinthRoute& obstacleRoute) {
-    obstacleRoute_ = obstacleRoute;
+void LabyrinthNavigator::setForbidden(const micro::set<Segment::Id, 2>& forbiddenSegments, const char forbiddenJunction) {
+    forbiddenSegments_ = forbiddenSegments;
+    forbiddenJunction_ = forbiddenJunction;
 }
 
 void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) {
@@ -88,14 +75,10 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         }
 
         // start going backward when a dead-end sign is detected
-        if (isDeadEnd(car, frontPattern)) {
+        if (isDeadEnd(car, frontPattern) && !isDeadEnd(car, prevFrontPattern)) {
             LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
             tryToggleTargetSpeedSign(car.distance);
         }
-    }
-
-    if (targetSeg_ != route_.destSeg || currentSeg_ != route_.startSeg) {
-        updateRoute();
     }
 
     // Checks if car needs to change speed sign in order to follow route.
@@ -111,15 +94,14 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 
     prevLineInfo_ = lineInfo;
 
-    if (isLastTarget_ && (LinePattern::LANE_CHANGE == frontPattern.type || LinePattern::LANE_CHANGE == rearPattern.type)) {
+    if (targetSeg_ == laneChangeSeg_ && (LinePattern::LANE_CHANGE == frontPattern.type || LinePattern::LANE_CHANGE == rearPattern.type)) {
         finish();
     }
 }
 
 void LabyrinthNavigator::navigateToLaneChange() {
     LOG_DEBUG("Navigating to the lane change segment");
-    targetSeg_    = laneChangeSeg_;
-    isLastTarget_ = true;
+    targetSeg_ = laneChangeSeg_;
 }
 
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
@@ -198,6 +180,10 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
                     currentSeg_ = nextConn->getOtherSegment(*currentSeg_);
                     targetDir_  = nextConn->getDecision(*currentSeg_).direction;
                     prevConn_   = nextConn;
+
+                    if (targetSeg_) {
+                        updateRoute();
+                    }
                 } else {
                     LOG_ERROR("nextConn is nullptr after finding a valid connection. Something's wrong...");
                     reset(*junc, negOri);
@@ -230,7 +216,6 @@ void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDi
 }
 
 void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const {
-
     // target line is only overwritten when the car is going in or coming out of a junction
     if (isTargetLineOverrideEnabled(car, lineInfo)) {
         switch (targetSpeedSign_ * targetDir_) {
@@ -267,7 +252,6 @@ void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::
 }
 
 void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const {
-
     const m_per_sec_t prevSpeed = controlData.speed;
 
     if (currentSeg_->isDeadEnd && !hasSpeedSignChanged_) {
@@ -277,7 +261,7 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
                1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                   &&
                1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                    &&
                car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                              &&
-               !(isLastTarget_ && currentSeg_ == laneChangeSeg_)) {
+               currentSeg_ != targetSeg_) {
         controlData.speed = targetSpeedSign_ * targetFastSpeed_;
 
     } else {
@@ -329,7 +313,7 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
 
 void LabyrinthNavigator::updateRoute() {
     LOG_DEBUG("Updating route to: {}", targetSeg_->id);
-    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, {targetSeg_->id}, {}, {}, true);
+    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, *targetSeg_, {forbiddenSegments_.begin(), forbiddenSegments_.end()}, {forbiddenJunction_}, false);
 
     LOG_DEBUG("Planned route:");
 

@@ -50,10 +50,6 @@ constexpr meter_t LANE_DISTANCE = centimeter_t(60);
 #endif
 
 LabyrinthGraph graph;
-const Segment *startSeg = nullptr;
-const Connection *prevConn = nullptr;
-const Segment *laneChangeSeg = nullptr;
-micro::vector<const Segment*, cfg::NUM_LABYRINTH_GATE_SEGMENTS> foundSegments;
 millisecond_t endTime;
 
 struct JunctionPatternInfo {
@@ -83,16 +79,7 @@ void enforceGraphValidity() {
     }
 }
 
-class fixed_number_generator : public micro::irandom_generator {
-public:
-    explicit fixed_number_generator(const float value) : value_{value} {}
-    float operator()() const override { return value_; }
-
-private:
-    float value_{}
-};
-
-class random_generator_wrapper : public micro::irandom_generator {
+class RandomGeneratorWrapper : public micro::irandom_generator {
 public:
     template <typename T>
     void setGenerator(const T& generator) {
@@ -107,19 +94,16 @@ public:
     }
 
 private:
-    std::variant<std::monostate, micro::random_generator, fixed_number_generator> generator_;
+    std::variant<std::monostate, micro::random_generator, micro::fixed_number_generator> generator_;
 };
 
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
     buildLabyrinthGraph(graph);
-    startSeg = graph.findSegment(START_SEGMENT);
-    prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
-    laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
 
-    random_generator_wrapper random{};
-    LabyrinthNavigator navigator(graph, random, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
+    RandomGeneratorWrapper random{};
+    LabyrinthNavigator navigator(graph, random);
 
     taskMonitor.registerInitializedTask();
 
@@ -158,15 +142,18 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                         break;
 
                     case ProgramState::NavigateLabyrinthLeft:
-                        random.setGenerator(fixed_number_generator{0.999999f});
+                        random.setGenerator(micro::fixed_number_generator{0.999999f});
                         break;
 
                     case ProgramState::NavigateLabyrinthRight:
-                        random.setGenerator(fixed_number_generator{0.0});
+                        random.setGenerator(micro::fixed_number_generator{0.0});
                         break;
                     }
 
-                    navigator.initialize(graph.getVisitableSegments());
+                    const auto* startSeg = graph.findSegment(START_SEGMENT);
+                    const auto* prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
+                    const auto* laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
+                    navigator.initialize(graph.getVisitableSegments(), startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
                 }
 
                 updateObstacleInfo(navigator);

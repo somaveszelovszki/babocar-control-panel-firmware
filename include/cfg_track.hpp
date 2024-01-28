@@ -10,7 +10,6 @@ namespace cfg {
 
 constexpr uint8_t         MAX_NUM_LABYRINTH_JUNCTIONS    = 30;
 constexpr uint8_t         MAX_NUM_LABYRINTH_SEGMENTS     = 50;
-constexpr uint8_t         NUM_LABYRINTH_GATE_SEGMENTS    = 15;
 constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS_SIDE = 3;
 constexpr uint8_t         MAX_NUM_CROSSING_SEGMENTS      = MAX_NUM_CROSSING_SEGMENTS_SIDE * 2;
 constexpr micro::meter_t  MIN_JUNCTION_LENGTH            = micro::centimeter_t(20);

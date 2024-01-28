@@ -29,7 +29,7 @@ struct LabyrinthRoute {
     static LabyrinthRoute create(
         const Connection& prevConn,
         const Segment& currentSeg,
-        const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> destSegments,
+        const Segment& destSeg,
         const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
         const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
         const bool allowBackwardNavigation);

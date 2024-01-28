@@ -47,7 +47,7 @@ bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segme
 LabyrinthRoute LabyrinthRoute::create(
     const Connection& prevConn,
     const Segment& currentSeg,
-    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> destSegments,
+    const Segment& destSeg,
     const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
     const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
     const bool allowBackwardNavigation) {
@@ -73,7 +73,7 @@ LabyrinthRoute LabyrinthRoute::create(
             return a.visited == b.visited ? a.dist < b.dist : !a.visited;
         });
 
-        if (destSegments.contains(segInfo->seg->id)) {
+        if (segInfo->seg == &destSeg) {
             break;
         } else if (segInfo->visited) {
             // an error has occurred

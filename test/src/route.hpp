@@ -16,7 +16,7 @@ void checkRoute(
     const LabyrinthGraph& graph,
     const char prevJunction,
     const Segment::Id& src,
-    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> destSegments,
+    const Segment::Id& dest,
     const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
     const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
     const bool allowBackwardNavigation,

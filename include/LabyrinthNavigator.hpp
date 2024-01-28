@@ -8,9 +8,10 @@
 
 class LabyrinthNavigator : public micro::Maneuver {
 public:
-    LabyrinthNavigator(
-        const LabyrinthGraph& graph,
-        micro::irandom_generator& random,
+    LabyrinthNavigator(const LabyrinthGraph& graph, micro::irandom_generator& random);
+
+    void initialize(
+        const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments,
         const Segment *startSeg,
         const Connection *prevConn,
         const Segment *laneChangeSeg,
@@ -18,13 +19,9 @@ public:
         const micro::m_per_sec_t targetFastSpeed,
         const micro::m_per_sec_t targetDeadEndSpeed);
 
-    void initialize(const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments);
-
-    const Segment* currentSegment() const;
-    const Segment* targetSegment() const;
     const micro::Pose& correctedCarPose() const;
 
-    void setObstacleRoute(const LabyrinthRoute& obstacleRoute);
+    void setForbidden(const micro::set<Segment::Id, 2>& forbiddenSegments, const char forbiddenJunction);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
@@ -60,18 +57,15 @@ private:
 
     static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
 
-    const micro::m_per_sec_t targetSpeed_;
-    const micro::m_per_sec_t targetFastSpeed_;
-    const micro::m_per_sec_t targetDeadEndSpeed_;
+    micro::m_per_sec_t targetSpeed_;
+    micro::m_per_sec_t targetFastSpeed_;
+    micro::m_per_sec_t targetDeadEndSpeed_;
     const LabyrinthGraph& graph_;
-    const Segment *startSeg_;
-    const Connection *prevConn_;
-    const Segment *currentSeg_;
-    const Segment *targetSeg_;
+    const Connection *prevConn_{nullptr};
+    const Segment *currentSeg_{nullptr};
+    const Segment *targetSeg_{nullptr};
     const Segment *laneChangeSeg_;
     LabyrinthRoute route_;
-    LabyrinthRoute obstacleRoute_;
-    bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
     micro::Sign targetSpeedSign_;
@@ -84,4 +78,6 @@ private:
     bool isInJunction_;
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
+    micro::set<Segment::Id, 2> forbiddenSegments_;
+    char forbiddenJunction_{'\0'};
 };
