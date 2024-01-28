@@ -6,6 +6,7 @@
 #include <micro/utils/units.hpp>
 
 #include <cfg_car.hpp>
+#include <LabyrinthGraph.hpp>
 #include <LabyrinthNavigator.hpp>
 #include <track.hpp>
 
@@ -32,75 +33,87 @@ public:
     }
 
 protected:
-    void setCar(const point2m& pos, const meter_t distance) {
+    void moveCar(const point2m& pos, const meter_t distance) {
         car_.pose.pos = pos;
-        car_.distance = distance;
+        car_.distance += distance;
     }
 
-    void setFrontLines(const LinePattern& pattern) {
+    void setNextDecision(const Direction dir) {
+        random_.setValue(dir == Direction::RIGHT ? 0.0f : 0.9999f);
+    }
+
+    void setLines(const LinePattern& pattern) {
         lineInfo_.front.pattern = pattern;
         lineInfo_.front.pattern.startDist = car_.distance;
         lineInfo_.front.lines = makeLines(pattern);
+
+        lineInfo_.rear.pattern = lineInfo_.front.pattern;
+        lineInfo_.rear.pattern.dir = -lineInfo_.rear.pattern.dir;
+        lineInfo_.rear.pattern.side = -lineInfo_.rear.pattern.side;
+
+        lineInfo_.rear.lines.clear();
+        for (auto line : lineInfo_.front.lines) {
+            line.pos = -line.pos;
+            lineInfo_.rear.lines.insert(line);
+        }
+        
+        micro::updateMainLine(lineInfo_.front.lines, lineInfo_.rear.lines, mainLine_);
     }
 
-    void setRearLines(const LinePattern& pattern) {
-        lineInfo_.rear.pattern = pattern;
-        lineInfo_.rear.pattern.startDist = car_.distance;
-        lineInfo_.rear.lines = makeLines(pattern);
-    }
+    Lines makeLines(const LinePattern& pattern) const {
+        const auto id = [this](const uint8_t incr = 0) { return static_cast<uint8_t>(mainLine_.frontLine.id + incr); };
 
-    static Lines makeLines(const LinePattern& pattern) {
-        const auto numLines = [&pattern]() -> uint8_t {
-            if (pattern.type == LinePattern::NONE) {
-                return 0;
-            }
+        switch (pattern.type) {
+        case LinePattern::SINGLE_LINE:
+        case LinePattern::JUNCTION_1:
+            return { { LINE_POS_CENTER, id() } };
 
-            if (pattern.type == LinePattern::SINGLE_LINE) {
-                return 1;
-            }
+        case LinePattern::JUNCTION_2:
+            switch (pattern.side) {
+            case Direction::LEFT:
+                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_CENTER, id() } };
 
-            if (pattern.dir != Sign::POSITIVE) {
-                return 1;
-            }
+            case Direction::RIGHT:
+                return { { LINE_POS_CENTER, id() }, { LINE_POS_RIGHT, id(1) } };
 
-            return LabyrinthNavigator::numJunctionSegments(pattern);
-        }();
-
-        return [numLines]() -> Lines {
-            switch (numLines) {
-            case 1:
-                return Lines{ { LINE_POS_CENTER, 1 } };
-            case 2:
-                return Lines{ { LINE_POS_LEFT, 1 }, { LINE_POS_RIGHT, 2 } };
-            case 3:
-                return Lines{ { LINE_POS_LEFT, 1 }, { LINE_POS_CENTER, 2 }, { LINE_POS_RIGHT, 3 } };
-            case 0:
             default:
                 return {};
             }
-        }();
-    }
 
-    void testUpdate(const m_per_sec_t speed, const Direction targetLineDir) {
-        micro::updateMainLine(lineInfo_.front.lines, lineInfo_.rear.lines, mainLine_);
-        navigator_.update(car_, lineInfo_, mainLine_, controlData_);
-        car_.speed = controlData_.speed;
-        const auto targetLinePos = [targetLineDir](){
-            switch (targetLineDir) {
+        case LinePattern::JUNCTION_3:
+            switch (pattern.side) {
             case Direction::LEFT:
-                return LINE_POS_LEFT;
-
-            case Direction::RIGHT:
-                return LINE_POS_RIGHT;
+                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_CENTER, id(2) }, { LINE_POS_RIGHT, id() } };
 
             case Direction::CENTER:
-            default:
-                return LINE_POS_CENTER;
-            }
-        }();
+                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_CENTER, id() }, { LINE_POS_RIGHT, id(2) } };
 
+            case Direction::RIGHT:
+                return { { LINE_POS_LEFT, id() }, { LINE_POS_CENTER, id(1) }, { LINE_POS_RIGHT, id(2) } };
+
+            default:
+                return {};
+            }
+
+        case LinePattern::NONE:
+        default:
+            return {};        
+        }
+    }
+
+    void testUpdate(const m_per_sec_t speed, const centimeter_t targetLinePos) {
+        navigator_.update(car_, lineInfo_, mainLine_, controlData_);
+        car_.speed = controlData_.speed;
         EXPECT_NEAR_UNIT_DEFAULT(speed, car_.speed);
-        EXPECT_NEAR_UNIT_DEFAULT(targetLinePos, controlData_.lineControl.target.pos);
+        EXPECT_NEAR_UNIT_DEFAULT(targetLinePos, controlData_.lineControl.actual.pos);
+    }
+
+    point2m getJunctionPos(const char junctionId) const {
+        return graph_.findJunction(junctionId)->pos;
+    }
+
+    meter_t getSegmentLength(const Segment::Id& segmentId) {
+        return graph_.findSegment(segmentId)->length;
     }
 
 protected:
@@ -113,11 +126,36 @@ protected:
     ControlData controlData_{LABYRINTH_SPEED, millisecond_t(500), false, {}};
 };
 
-TEST_F(LabyrinthNavigatorTest, KeepRight) {
-    setCar({meter_t(0), meter_t(0)}, meter_t(0));
-    setFrontLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
-    setRearLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL, Direction::CENTER });
-    testUpdate(LABYRINTH_SPEED, Direction::CENTER);
+TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
+    moveCar(getJunctionPos('Y'), meter_t(0));
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('W'), getSegmentLength("WY"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('U'), getSegmentLength("UW"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('T'), getSegmentLength("TU"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
 } // namespace
