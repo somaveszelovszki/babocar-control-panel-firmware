@@ -43,19 +43,8 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
     return correctedCarPose_;
 }
 
-bool LabyrinthNavigator::isLastTarget() const {
-    return isLastTarget_;
-}
-
 void LabyrinthNavigator::setObstacleRoute(const LabyrinthRoute& obstacleRoute) {
     obstacleRoute_ = obstacleRoute;
-}
-
-
-void LabyrinthNavigator::setTargetSegment(const Segment *targetSeg, bool isLast) {
-    LOG_DEBUG("Next target segment: {}", targetSeg->id);
-    targetSeg_    = targetSeg;
-    isLastTarget_ = isLast;
 }
 
 void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) {
@@ -118,6 +107,12 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 }
 
+void LabyrinthNavigator::navigateToLaneChange() {
+    LOG_DEBUG("Navigating to the lane change segment");
+    targetSeg_    = laneChangeSeg_;
+    isLastTarget_ = true;
+}
+
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
     return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.front.pattern : lineInfo.rear.pattern;
 }
@@ -126,20 +121,12 @@ const micro::LinePattern& LabyrinthNavigator::rearLinePattern(const micro::LineI
     return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.rear.pattern : lineInfo.front.pattern;
 }
 
-const micro::Lines& LabyrinthNavigator::frontLines(const micro::LineInfo& lineInfo) const {
-    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.front.lines : lineInfo.rear.lines;
-}
-
-const micro::Lines& LabyrinthNavigator::rearLines(const micro::LineInfo& lineInfo) const {
-    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.rear.lines : lineInfo.front.lines;
-}
-
 void LabyrinthNavigator::updateCarOrientation(const CarProps& car, const LineInfo& lineInfo) {
     const LinePattern& frontPattern = frontLinePattern(lineInfo);
-    if (car.orientedDistance > centimeter_t(60)                             &&
+    if (car.orientedDistance > centimeter_t(60)                       &&
         car.distance - lastOrientationUpdateDist_ > centimeter_t(100) &&
-        LinePattern::SINGLE_LINE == frontPattern.type                       &&
-        car.distance - frontPattern.startDist > centimeter_t(100)           &&
+        LinePattern::SINGLE_LINE == frontPattern.type                 &&
+        car.distance - frontPattern.startDist > centimeter_t(100)     &&
         eqWithOverflow360(car.pose.angle, round90(car.pose.angle), degree_t(10))) {
 
         correctedCarPose_.angle = round90(car.pose.angle);
@@ -148,7 +135,6 @@ void LabyrinthNavigator::updateCarOrientation(const CarProps& car, const LineInf
 }
 
 void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegments, uint8_t numOutSegments) {
-
     const radian_t posOri = round90(car.speed >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI);
     const radian_t negOri = round90(posOri + PI);
 
@@ -279,9 +265,9 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
         controlData.speed = targetSpeedSign_ * targetDeadEndSpeed_;
 
     } else if (isBtw(car.distance, lastJuncDist_ + centimeter_t(20), lastJuncDist_ + currentSeg_->length - centimeter_t(20)) &&
-               1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                                     &&
-               1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                                      &&
-               car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                                          &&
+               1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                   &&
+               1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                    &&
+               car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                              &&
                !(isLastTarget_ && currentSeg_ == laneChangeSeg_)) {
         controlData.speed = targetSpeedSign_ * targetFastSpeed_;
 

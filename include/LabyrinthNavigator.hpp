@@ -17,20 +17,15 @@ public:
     const Segment* targetSegment() const;
     const micro::Pose& correctedCarPose() const;
 
-    bool isLastTarget() const;
-
     void setObstacleRoute(const LabyrinthRoute& obstacleRoute);
-
-    void setTargetSegment(const Segment *targetSeg, bool isLast);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
 private:
+    void navigateToLaneChange();
+
     const micro::LinePattern& frontLinePattern(const micro::LineInfo& lineInfo) const;
     const micro::LinePattern& rearLinePattern(const micro::LineInfo& lineInfo) const;
-
-    const micro::Lines& frontLines(const micro::LineInfo& lineInfo) const;
-    const micro::Lines& rearLines(const micro::LineInfo& lineInfo) const;
 
     void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
 

@@ -61,21 +61,9 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
-void updateTargetSegment(LabyrinthNavigator& navigator) {
+void updateObstacleInfo(LabyrinthNavigator& navigator) {
     char segId = '\0';
     radioRecvQueue.peek(segId, millisecond_t(0));
-    const bool isLabyrinthFinished = 'X' == segId;
-
-    const Segment *targetSeg =
-        isLabyrinthFinished                   ? laneChangeSeg            :
-        isBtw(segId, 'A', LAST_VALID_SEGMENT) ? graph.findSegment(segId) :
-        startSeg;
-
-    if (targetSeg != navigator.targetSegment() || (isLabyrinthFinished && !navigator.isLastTarget())) {
-        foundSegments.push_back(navigator.currentSegment());
-        navigator.setTargetSegment(targetSeg, isLabyrinthFinished);
-        endTime += second_t(15);
-    }
 }
 
 bool shouldHandle(const ProgramState::Value state) {
@@ -132,7 +120,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     navigator.initialize();
                 }
 
-                updateTargetSegment(navigator);
+                updateObstacleInfo(navigator);
                 navigator.update(car, lineInfo, mainLine, controlData);
 
                 const Pose correctedCarPose = navigator.correctedCarPose();
