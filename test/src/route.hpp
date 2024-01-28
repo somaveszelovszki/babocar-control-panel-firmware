@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cfg_track.hpp"
 #include <micro/container/vector.hpp>
 
+#include <cfg_track.hpp>
 #include <LabyrinthGraph.hpp>
 
 struct RouteConnection {
