@@ -32,6 +32,8 @@ void LabyrinthNavigator::initialize(
     targetSpeed_ = targetSpeed;
     targetFastSpeed_ = targetFastSpeed;
     targetDeadEndSpeed_ = targetDeadEndSpeed;
+
+    unvisitedSegments_.erase(currentSeg_->id);
 }
 
 const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
@@ -141,68 +143,56 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         static_cast<uint32_t>(numInSegments),
         static_cast<uint32_t>(numOutSegments));
 
+    lastJuncDist_ = car.distance;
+    hasSpeedSignChanged_ = false;
+
     const Junction *junc = graph_.findJunction(car.pose.pos, numSegments);
 
     // checks if any junction has been found at the current position
-    if (junc) {
-        LOG_DEBUG("Junction found: {} ({}, {}), current segment: {}",
-            junc->id,
-            junc->pos.X.get(),
-            junc->pos.Y.get(),
-            currentSeg_->id);
-
-        correctedCarPose_.pos = junc->pos;
-
-        // checks if current segment connects to found junction
-        if (junc->getConnectionCount(*currentSeg_) > 0) {
-            const Connection *nextConn = route_.firstConnection();
-
-            // checks if next connection is available, meaning the route is not yet finished
-            if (nextConn) {
-                if (junc == nextConn->junction) {
-                    targetDir_ = nextConn->getDecision(*nextConn->getOtherSegment(*route_.startSeg)).direction;
-                    LOG_DEBUG("Next connection ok, target direction: {}", to_string(targetDir_));
-
-                    route_.pop_front();
-                    currentSeg_ = route_.startSeg;
-                    prevConn_   = nextConn;
-
-                } else {
-                    LOG_ERROR("Unexpected junction, resets navigator");
-                    reset(*junc, negOri);
-                }
-
-            } else {
-                LOG_DEBUG("No next connection available, choosing randomly from unvisited sections");
-                nextConn = randomConnection(*junc, *currentSeg_);
-
-                if (nextConn) {
-                    currentSeg_ = nextConn->getOtherSegment(*currentSeg_);
-                    targetDir_  = nextConn->getDecision(*currentSeg_).direction;
-                    prevConn_   = nextConn;
-
-                    if (targetSeg_) {
-                        updateRoute();
-                    }
-                } else {
-                    LOG_ERROR("nextConn is nullptr after finding a valid connection. Something's wrong...");
-                    reset(*junc, negOri);
-                }
-            }
-
-        } else {
-            LOG_ERROR("Current segment does not connect to found junction, resets navigator");
-            reset(*junc, negOri);
-        }
-    } else {
-        LOG_ERROR("Junction not found, chooses target direction randomly. Something's wrong...");
+    if (!junc) {
+        LOG_ERROR("Junction not found, chooses target direction randomly.");
         targetDir_ = randomDirection(numOutSegments);
+        return;
     }
 
-    LOG_INFO("Current segment: {}", currentSeg_->id);
+    LOG_DEBUG("Junction found: {}, current segment: {}", junc->id, currentSeg_->id);
 
-    lastJuncDist_ = car.distance;
-    hasSpeedSignChanged_ = false;
+    correctedCarPose_.pos = junc->pos;
+
+    // checks if the current segment connects to the found junction
+    if (junc->getConnectionCount(*currentSeg_) == 0) {
+        LOG_ERROR("Current segment does not connect to found junction.");
+        reset(*junc, negOri);
+    }
+
+    stepToNextSegment(*junc);
+}
+
+void LabyrinthNavigator::stepToNextSegment(const Junction& junction) {
+    const auto* nextConn = route_.firstConnection();
+    if (nextConn) {
+        LOG_DEBUG("Route connection available");
+        route_.pop_front();
+    } else {
+        LOG_DEBUG("No route defined, choosing randomly from unvisited sections");
+        nextConn = randomConnection(junction, *currentSeg_);
+    }
+
+    if (!nextConn) {
+        LOG_WARN("Could not find a valid next connection");
+        return;
+    }
+
+    currentSeg_ = nextConn->getOtherSegment(*currentSeg_);
+    targetDir_  = nextConn->getDecision(*currentSeg_).direction;
+    prevConn_   = nextConn;
+    unvisitedSegments_.erase(currentSeg_->id);
+    LOG_DEBUG("Stepping to next segment: {}. Target direction: {}", currentSeg_->id, to_string(targetDir_));
+
+    // if a target segment is already defined but the route is not yet created, creates it
+    if (targetSeg_) {
+        updateRoute();
+    }
 }
 
 void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDist) {
@@ -294,21 +284,10 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
         sideSegments = junc.getSideSegments(micro::normalize360(negOri + PI));
     }
 
-    const auto* prevSeg = sideSegments->begin()->second;
-    if (!prevSeg) {
-        LOG_ERROR("prevSeg is nullptr after getting side segments. Something's wrong...");
-        return;
-    }
+    currentSeg_ = sideSegments->begin()->second;
+    route_.reset();
 
-    const auto* nextConn = randomConnection(junc, *prevSeg);
-    if (!nextConn) {
-        LOG_ERROR("nextConn is nullptr after finding a random valid connection. Something's wrong...");
-        return;
-    }
-
-    currentSeg_ = nextConn->getOtherSegment(*prevSeg);
-    targetDir_  = nextConn->getDecision(*currentSeg_).direction;
-    prevConn_   = nextConn;
+    LOG_INFO("Navigator reset to the junction: {}. Current segment: {}", junc.id, currentSeg_->id);
 }
 
 void LabyrinthNavigator::updateRoute() {

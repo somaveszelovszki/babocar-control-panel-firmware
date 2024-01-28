@@ -22,7 +22,7 @@ struct LabyrinthRoute {
     const Connection* firstConnection() const;
     const Connection* lastConnection() const;
 
-    void reset(const Segment& currentSeg);
+    void reset(const Segment *currentSeg = nullptr);
     
     static bool isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn);
 

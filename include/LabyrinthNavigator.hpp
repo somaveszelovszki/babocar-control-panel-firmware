@@ -53,6 +53,8 @@ private:
 
     micro::Direction randomDirection(const uint8_t numOutSegments);
 
+    void stepToNextSegment(const Junction& junction);
+
     static bool isJunction(const micro::LinePattern& pattern);
 
     static uint8_t numJunctionSegments(const micro::LinePattern& pattern);

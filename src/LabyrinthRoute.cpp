@@ -33,8 +33,8 @@ const Connection* LabyrinthRoute::lastConnection() const {
     return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
 }
 
-void LabyrinthRoute::reset(const Segment& currentSeg) {
-    this->startSeg = this->destSeg = &currentSeg;
+void LabyrinthRoute::reset(const Segment* currentSeg) {
+    this->startSeg = this->destSeg = currentSeg;
     this->connections.clear();
 }
 

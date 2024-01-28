@@ -253,6 +253,16 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // Checks that navigation should prefer unvisited segments.
+    moveCar(getJunctionPos('H'), getSegmentLength("FH"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
 } // namespace
