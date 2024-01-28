@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cfg_track.hpp"
 #include <micro/container/vector.hpp>
 
 #include <LabyrinthGraph.hpp>
@@ -11,12 +12,12 @@ struct RouteConnection {
     RouteConnection& operator=(const RouteConnection&) = default;
 };
 
-typedef micro::vector<RouteConnection, 50> RouteConnections;
-
 void checkRoute(
     const LabyrinthGraph& graph,
     const char prevJunction,
     const Segment::Id& src,
-    const Segment::Id& dest,
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> destSegments,
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
+    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
     const bool allowBackwardNavigation,
-    const RouteConnections& expectedConnections);
+    const micro::vector<RouteConnection, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& expectedConnections);

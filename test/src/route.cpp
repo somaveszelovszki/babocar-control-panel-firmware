@@ -13,9 +13,11 @@ void checkRoute(
     const LabyrinthGraph& graph,
     const char prevJunction,
     const Segment::Id& src,
-    const Segment::Id& dest,
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> destSegments,
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
+    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
     const bool allowBackwardNavigation,
-    const RouteConnections& expectedConnections) {
+    const micro::vector<RouteConnection, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& expectedConnections) {
 
     const auto* currentSeg = graph.findSegment(src);
     ASSERT_NE(nullptr, currentSeg);
@@ -24,11 +26,8 @@ void checkRoute(
         [prevJunction](const auto& c){ return c->junction->id == prevJunction; });
     ASSERT_NE(currentSeg->edges.end(), prevConn);
 
-    const auto* destSeg = graph.findSegment(dest);
-    ASSERT_NE(nullptr, destSeg);
 
-
-    auto route = LabyrinthRoute::create(**prevConn, *currentSeg, *destSeg, allowBackwardNavigation);
+    auto route = LabyrinthRoute::create(**prevConn, *currentSeg, destSegments, forbiddenSegments, forbiddenJunctions, allowBackwardNavigation);
     ASSERT_EQ(expectedConnections.size(), route.connections.size());
 
     const Segment *seg = currentSeg;

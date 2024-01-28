@@ -47,7 +47,9 @@ bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segme
 LabyrinthRoute LabyrinthRoute::create(
     const Connection& prevConn,
     const Segment& currentSeg,
-    const Segment& destSeg, 
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> destSegments,
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
+    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
     const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for a car in a graph that allows multiple connections between the nodes
@@ -71,7 +73,7 @@ LabyrinthRoute LabyrinthRoute::create(
             return a.visited == b.visited ? a.dist < b.dist : !a.visited;
         });
 
-        if (segInfo->seg == &destSeg) {
+        if (destSegments.contains(segInfo->seg->id)) {
             break;
         } else if (segInfo->visited) {
             // an error has occurred
@@ -81,11 +83,15 @@ LabyrinthRoute LabyrinthRoute::create(
 
         for (const auto *newConn : segInfo->seg->edges) {
             const auto isFwd = isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn);
-            if (!allowBackwardNavigation && !isFwd) {
+            const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
+
+            if ((!allowBackwardNavigation && !isFwd) ||
+                forbiddenJunctions.contains(newConn->junction->id) ||
+                forbiddenSegments.contains(newSeg->id)) {
                 continue;
             }
 
-            SegmentRouteInfo newSegInfo{newConn->getOtherSegment(*segInfo->seg), newConn, segInfo};
+            SegmentRouteInfo newSegInfo{newSeg, newConn, segInfo};
 
             // when going back to the previous junction, distance is not the same as when passing through the whole segment
             if (segInfo != segmentInfos.begin() && !isFwd) {
@@ -113,7 +119,7 @@ LabyrinthRoute LabyrinthRoute::create(
         segInfo->visited = true;
     }
 
-    LabyrinthRoute route(&destSeg);
+    LabyrinthRoute route(segInfo->seg);
 
     while (segInfo->prevSegInfo) {
         route.push_front(*segInfo->prevConn);
