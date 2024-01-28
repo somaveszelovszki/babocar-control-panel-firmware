@@ -146,7 +146,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
     // checks if any junction has been found at the current position
     if (junc) {
         LOG_DEBUG("Junction found: {} ({}, {}), current segment: {}",
-            static_cast<uint32_t>(junc->id),
+            junc->id,
             junc->pos.X.get(),
             junc->pos.Y.get(),
             currentSeg_->id);
@@ -353,7 +353,7 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
 
     auto& connections = !unvisitedConnections.empty() ? unvisitedConnections : allConnections;
     std::sort(connections.begin(), connections.end(), [&seg](const auto& a, const auto& b){
-        return a->getDecision(seg) < b->getDecision(seg);
+        return a->getDecision(*a->getOtherSegment(seg)) < b->getDecision(*b->getOtherSegment(seg));
     });
     
     return connections[static_cast<size_t>(random_() * connections.size())];
