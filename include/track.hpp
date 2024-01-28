@@ -42,12 +42,12 @@ void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph);
 #if TRACK == RACE_TRACK
 
 #define lapTrackSectionProvider raceLapTrackSectionProvider
-#define buildLabyrinthGraph()   buildRaceLabyrinthGraph()
+#define buildLabyrinthGraph     buildRaceLabyrinthGraph
 
 #elif TRACK == TEST_TRACK
 
 #define lapTrackSectionProvider testLapTrackSectionProvider
-#define buildLabyrinthGraph()   buildTestLabyrinthGraph()
+#define buildLabyrinthGraph     buildTestLabyrinthGraph
 
 #endif // TRACK == TEST_TRACK
 

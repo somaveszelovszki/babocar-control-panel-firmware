@@ -1,4 +1,5 @@
 #include <utility>
+#include <variant>
 
 #include <micro/container/vector.hpp>
 #include <micro/debug/ParamManager.hpp>
@@ -16,7 +17,6 @@
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
-#include <micro/utils/variant_utils.hpp>
 
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
@@ -30,23 +30,20 @@ using namespace micro;
 
 namespace {
 
-m_per_sec_t LABYRINTH_SPEED          = m_per_sec_t(1.0f);
-m_per_sec_t LABYRINTH_FAST_SPEED     = m_per_sec_t(1.2f);
-m_per_sec_t LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.85f);
-m_per_sec_t LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
-
-constexpr meter_t LANE_DISTANCE = centimeter_t(60);
+constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.0f);
+constexpr auto LABYRINTH_FAST_SPEED     = m_per_sec_t(1.2f);
+constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.85f);
+constexpr auto LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
+constexpr auto LANE_DISTANCE            = centimeter_t(60);
 
 #if TRACK == RACE_TRACK
-#define START_SEGMENT       'U'
-#define PREV_SEGMENT        'N'
-#define LANE_CHANGE_SEGMENT 'B'
-#define LAST_VALID_SEGMENT  'U'
+#define START_SEGMENT       "UX"
+#define PREV_SEGMENT        "U_"
+#define LANE_CHANGE_SEGMENT "VW"
 #elif TRACK == TEST_TRACK
-#define START_SEGMENT       'W'
-#define PREV_SEGMENT        'M'
-#define LANE_CHANGE_SEGMENT 'N'
-#define LAST_VALID_SEGMENT  'W'
+#define START_SEGMENT       "WY"
+#define PREV_SEGMENT        "Y_"
+#define LANE_CHANGE_SEGMENT "NQ"
 #endif
 
 LabyrinthGraph graph;
@@ -87,14 +84,11 @@ public:
     }
 
     float operator()() override {
-        return std::visit(micro::variant_visitor{
-            [](const std::monostate&) { return 0.0f; }
-            [](const auto& generator) { return generator(); }
-        }, generator_);
+    	return std::visit([](auto& g){ return g(); }, generator_);
     }
 
 private:
-    std::variant<std::monostate, micro::random_generator, micro::fixed_number_generator> generator_;
+    std::variant<micro::random_generator, micro::fixed_number_generator> generator_;
 };
 
 } // namespace
@@ -148,10 +142,13 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     case ProgramState::NavigateLabyrinthRight:
                         random.setGenerator(micro::fixed_number_generator{0.0});
                         break;
+
+                    default:
+                    	break;
                     }
 
                     const auto* startSeg = graph.findSegment(START_SEGMENT);
-                    const auto* prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
+                    const auto* prevConn = graph.findConnection(PREV_SEGMENT, START_SEGMENT);
                     const auto* laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
                     navigator.initialize(graph.getVisitableSegments(), startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
                 }
