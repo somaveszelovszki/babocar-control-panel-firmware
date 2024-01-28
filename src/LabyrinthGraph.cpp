@@ -223,6 +223,16 @@ const Connection* LabyrinthGraph::findConnection(const Segment::Id& seg1, const 
     return it != connections_.end() ? to_raw_pointer(it) : nullptr;
 }
 
+micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> LabyrinthGraph::getVisitableSegments() {
+    micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> segments;
+    for (const auto& seg : segments_) {
+        if (!seg.isDeadEnd) {
+            segments.insert(seg.id);
+        }
+    }
+    return segments;
+}
+
 bool LabyrinthGraph::valid() const {
     for (const auto& seg : segments_) {
         if (seg.id.size() != 2) {

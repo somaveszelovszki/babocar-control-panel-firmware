@@ -1,12 +1,20 @@
 #include <micro/container/vector.hpp>
 #include <micro/log/log.hpp>
+#include <micro/math/numeric.hpp>
 
 #include <LabyrinthNavigator.hpp>
 
 using namespace micro;
 
-LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn, const Segment *laneChangeSeg,
-    const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed, const micro::m_per_sec_t targetDeadEndSpeed)
+LabyrinthNavigator::LabyrinthNavigator(
+    const LabyrinthGraph& graph,
+    micro::irandom_generator& random,
+    const Segment *startSeg,
+    const Connection *prevConn,
+    const Segment *laneChangeSeg,
+    const micro::m_per_sec_t targetSpeed,
+    const micro::m_per_sec_t targetFastSpeed,
+    const micro::m_per_sec_t targetDeadEndSpeed)
     : Maneuver()
     , targetSpeed_(targetSpeed)
     , targetFastSpeed_(targetFastSpeed)
@@ -25,10 +33,11 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segmen
     , isSpeedSignChangeInProgress_(false)
     , hasSpeedSignChanged_(false)
     , isInJunction_(false)
-    , random_(0) {}
+    , random_(random) {}
 
-void LabyrinthNavigator::initialize() {
+void LabyrinthNavigator::initialize(const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments) {
     currentSeg_ = startSeg_;
+    unvisitedSegments_ = unvisitedSegments;
 }
 
 const Segment* LabyrinthNavigator::currentSegment() const {
@@ -182,7 +191,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
                 }
 
             } else {
-                LOG_WARN("No next connection available, chooses next connection randomly");
+                LOG_DEBUG("No next connection available, choosing randomly from unvisited sections");
                 nextConn = randomConnection(*junc, *currentSeg_);
 
                 if (nextConn) {
@@ -342,35 +351,41 @@ bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::Line
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
-    micro::vector<Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> validConnections;
+    micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> allConnections, unvisitedConnections;
 
     for (Connection *c : seg.edges) {
-        if (c->junction->id == junc.id) {
-            validConnections.push_back(c);
+        const auto* otherSeg = c->getOtherSegment(seg);
+        if (c->junction->id == junc.id && !otherSeg->isDeadEnd) {
+            allConnections.push_back(c);
+            if (unvisitedSegments_.contains(otherSeg->id)) {
+                unvisitedConnections.push_back(c);
+            }
         }
     }
 
-    return validConnections.size() > 0 ? validConnections[random_.get(0, validConnections.size())] : nullptr;
+    if (allConnections.empty()) {
+        return nullptr;
+    }
+
+    auto& connections = !unvisitedConnections.empty() ? unvisitedConnections : allConnections;
+    std::sort(connections.begin(), connections.end(), [&seg](const auto& a, const auto& b){
+        return a->getDecision(seg) < b->getDecision(seg);
+    });
+    
+    return connections[static_cast<size_t>(random_() * connections.size())];
 }
 
 Direction LabyrinthNavigator::randomDirection(const uint8_t numOutSegments) {
-    const uint8_t targetLineIdx = random_.get(0, numOutSegments);
-
-    Direction dir = Direction::CENTER;
+    const auto targetLineIdx = static_cast<uint8_t>(random_() * numOutSegments);
 
     switch (numOutSegments) {
     case 3:
-        dir = 0 == targetLineIdx ? Direction::LEFT : 1 == targetLineIdx ? Direction::CENTER : Direction::RIGHT;
-        break;
+        return 0 == targetLineIdx ? Direction::RIGHT : 1 == targetLineIdx ? Direction::CENTER : Direction::LEFT;
     case 2:
-        dir = 0 == targetLineIdx ? Direction::LEFT : Direction::RIGHT;
-        break;
+        return 0 == targetLineIdx ? Direction::RIGHT : Direction::LEFT;
     default:
-        dir = Direction::CENTER;
-        break;
+        return Direction::CENTER;
     }
-
-    return dir;
 }
 
 bool LabyrinthNavigator::isJunction(const LinePattern& pattern) {

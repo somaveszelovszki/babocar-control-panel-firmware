@@ -8,10 +8,17 @@
 
 class LabyrinthNavigator : public micro::Maneuver {
 public:
-    LabyrinthNavigator(const LabyrinthGraph& graph, const Segment *startSeg, const Connection *prevConn, const Segment *laneChangeSeg,
-        const micro::m_per_sec_t targetSpeed, const micro::m_per_sec_t targetFastSpeed, const micro::m_per_sec_t targetDeadEndSpeed);
+    LabyrinthNavigator(
+        const LabyrinthGraph& graph,
+        micro::irandom_generator& random,
+        const Segment *startSeg,
+        const Connection *prevConn,
+        const Segment *laneChangeSeg,
+        const micro::m_per_sec_t targetSpeed,
+        const micro::m_per_sec_t targetFastSpeed,
+        const micro::m_per_sec_t targetDeadEndSpeed);
 
-    void initialize();
+    void initialize(const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments);
 
     const Segment* currentSegment() const;
     const Segment* targetSegment() const;
@@ -75,5 +82,6 @@ private:
     micro::meter_t lastOrientationUpdateDist_;
     bool hasSpeedSignChanged_;
     bool isInJunction_;
-    micro::random_generator random_;
+    micro::irandom_generator& random_;
+    micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
 };

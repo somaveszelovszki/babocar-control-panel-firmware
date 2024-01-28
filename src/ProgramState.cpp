@@ -11,6 +11,8 @@ const char* to_string(const ProgramState::Value& value) {
         case ProgramState::Value::INVALID:           return "INVALID";
         case ProgramState::Value::WaitStartSignal:   return "WaitStartSignal";
         case ProgramState::Value::NavigateLabyrinth: return "NavigateLabyrinth";
+        case ProgramState::Value::NavigateLabyrinthLeft: return "NavigateLabyrinthLeft";
+        case ProgramState::Value::NavigateLabyrinthRight: return "NavigateLabyrinthRight";
         case ProgramState::Value::LaneChange:        return "LaneChange";
         case ProgramState::Value::ReachSafetyCar:    return "ReachSafetyCar";
         case ProgramState::Value::FollowSafetyCar:   return "FollowSafetyCar";

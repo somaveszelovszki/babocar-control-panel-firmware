@@ -6,7 +6,9 @@
 #include <micro/log/log.hpp>
 #include <micro/port/queue.hpp>
 #include <micro/port/task.hpp>
+#include <micro/port/timer.hpp>
 #include <micro/math/numeric.hpp>
+#include <micro/math/random_generator.hpp>
 #include <micro/math/unit_utils.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
@@ -14,6 +16,7 @@
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
+#include <micro/utils/variant_utils.hpp>
 
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
@@ -80,6 +83,33 @@ void enforceGraphValidity() {
     }
 }
 
+class fixed_number_generator : public micro::irandom_generator {
+public:
+    explicit fixed_number_generator(const float value) : value_{value} {}
+    float operator()() const override { return value_; }
+
+private:
+    float value_{}
+};
+
+class random_generator_wrapper : public micro::irandom_generator {
+public:
+    template <typename T>
+    void setGenerator(const T& generator) {
+        generator_ = generator;
+    }
+
+    float operator()() override {
+        return std::visit(micro::variant_visitor{
+            [](const std::monostate&) { return 0.0f; }
+            [](const auto& generator) { return generator(); }
+        }, generator_);
+    }
+
+private:
+    std::variant<std::monostate, micro::random_generator, fixed_number_generator> generator_;
+};
+
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
@@ -87,7 +117,9 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
     startSeg = graph.findSegment(START_SEGMENT);
     prevConn = graph.findConnection(*graph.findSegment(PREV_SEGMENT), *startSeg);
     laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-    LabyrinthNavigator navigator(graph, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
+
+    random_generator_wrapper random{};
+    LabyrinthNavigator navigator(graph, random, startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
 
     taskMonitor.registerInitializedTask();
 
@@ -112,12 +144,29 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
             switch (currentProgramState) {
             case ProgramState::NavigateLabyrinth:
+            case ProgramState::NavigateLabyrinthLeft:
+            case ProgramState::NavigateLabyrinthRight:
             {
                 if (currentProgramState != prevProgramState) {
                     enforceGraphValidity();
                     carOrientationUpdateQueue.overwrite(radian_t(0));
                     endTime = getTime() + minute_t(5);
-                    navigator.initialize();
+
+                    switch (currentProgramState) {
+                    case ProgramState::NavigateLabyrinth:
+                        random.setGenerator(random_generator{static_cast<uint16_t>(micro::getExactTime().get())});
+                        break;
+
+                    case ProgramState::NavigateLabyrinthLeft:
+                        random.setGenerator(fixed_number_generator{0.999999f});
+                        break;
+
+                    case ProgramState::NavigateLabyrinthRight:
+                        random.setGenerator(fixed_number_generator{0.0});
+                        break;
+                    }
+
+                    navigator.initialize(graph.getVisitableSegments());
                 }
 
                 updateObstacleInfo(navigator);

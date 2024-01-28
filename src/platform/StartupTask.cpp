@@ -67,6 +67,6 @@ extern "C" void runStartupTask(void) {
 
     if (ProgramState::WaitStartSignal == programState.get()) {
         waitStartSignal();
-        programState.set(ProgramState::NavigateLabyrinth);
+        programState.set(ProgramState::NavigateLabyrinthRight);
     }
 }

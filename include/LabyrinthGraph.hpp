@@ -5,6 +5,7 @@
 #include <etl/string.h>
 
 #include <micro/container/map.hpp>
+#include <micro/container/set.hpp>
 #include <micro/container/vector.hpp>
 #include <micro/utils/point2.hpp>
 #include <micro/utils/units.hpp>
@@ -31,6 +32,15 @@ struct JunctionDecision {
         return !(*this == other);
     }
 };
+
+inline bool operator<(const JunctionDecision& a, const JunctionDecision& b) {
+    return a.orientation < b.orientation ||
+        (a.orientation == b.orientation && micro::underlying_value(a.direction) < micro::underlying_value(b.direction));
+}
+
+inline bool operator>(const JunctionDecision& a, const JunctionDecision& b) { return a < b; }
+inline bool operator<=(const JunctionDecision& a, const JunctionDecision& b) { return !(b < a); }
+inline bool operator>=(const JunctionDecision& a, const JunctionDecision& b) { return !(a < b); }
 
 struct Junction;
 struct Segment;
@@ -132,6 +142,8 @@ public:
     const Junction* findJunction(const micro::point2m& pos, const micro::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
     const Connection* findConnection(const Segment::Id& seg1, const Segment::Id& seg2) const;
+
+    micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> getVisitableSegments();
 
     bool valid() const;
 

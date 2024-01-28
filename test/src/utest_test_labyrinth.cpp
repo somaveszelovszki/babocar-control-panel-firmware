@@ -22,8 +22,8 @@ TEST_F(TestLabyrinthTest, valid) {
     ASSERT_TRUE(graph_.valid());
 }
 
-TEST_F(TestLabyrinthTest, A_AC_FH) {
-    checkRoute(graph_, 'A', "AC", {"FH"}, {}, {}, false, {
+TEST_F(TestLabyrinthTest, F_CF_FH_backbardNavigationDisabled) {
+    checkRoute(graph_, 'F', "CF", {"FH"}, {}, {}, false, {
         {'C', {radian_t(0), Direction::CENTER}},
         {'E', {radian_t(0), Direction::LEFT}},
         {'F', {radian_t(0), Direction::LEFT}}

@@ -33,11 +33,10 @@ void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph) {
     graph.addJunction(Junction('X', {centimeter_t(3060), centimeter_t(-90)}));
     graph.addJunction(Junction('Y', {centimeter_t(3310), centimeter_t(90)}));
 
-    graph.connectDeadEnd('A', {PI, Direction::CENTER}, centimeter_t(60));
+    graph.connectDeadEnd('C', {PI, Direction::LEFT}, centimeter_t(425));
     graph.connectDeadEnd('Y', {radian_t(0), Direction::CENTER}, centimeter_t(50));
     graph.connectDeadEnd('X', {radian_t(0), Direction::RIGHT}, centimeter_t(407));
 
-    graph.connect('A', {radian_t(0), Direction::CENTER}, 'C', {PI,          Direction::LEFT},   centimeter_t(365));
     graph.connect('C', {radian_t(0), Direction::CENTER}, 'E', {PI,          Direction::CENTER}, centimeter_t(160));
     graph.connect('C', {PI,          Direction::RIGHT},  'F', {PI,          Direction::RIGHT},  centimeter_t(959));
     graph.connect('E', {radian_t(0), Direction::LEFT},   'F', {PI,          Direction::LEFT},   centimeter_t(428));
