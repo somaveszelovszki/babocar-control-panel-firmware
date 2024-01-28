@@ -14,7 +14,7 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segmen
     , graph_(graph)
     , startSeg_(startSeg)
     , prevConn_(prevConn)
-    , currentSeg_(this->startSeg_)
+    , currentSeg_(startSeg_)
     , targetSeg_(startSeg)
     , laneChangeSeg_(laneChangeSeg)
     , route_(startSeg)
@@ -28,118 +28,122 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, const Segmen
     , random_(0) {}
 
 void LabyrinthNavigator::initialize() {
-    this->currentSeg_ = this->startSeg_;
+    currentSeg_ = startSeg_;
 }
 
 const Segment* LabyrinthNavigator::currentSegment() const {
-    return this->currentSeg_;
+    return currentSeg_;
 }
 
 const Segment* LabyrinthNavigator::targetSegment() const {
-    return this->targetSeg_;
+    return targetSeg_;
 }
 
 const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
-    return this->correctedCarPose_;
+    return correctedCarPose_;
 }
 
 bool LabyrinthNavigator::isLastTarget() const {
-    return this->isLastTarget_;
+    return isLastTarget_;
 }
+
+void LabyrinthNavigator::setObstacleRoute(const LabyrinthRoute& obstacleRoute) {
+    obstacleRoute_ = obstacleRoute;
+}
+
 
 void LabyrinthNavigator::setTargetSegment(const Segment *targetSeg, bool isLast) {
     LOG_DEBUG("Next target segment: {}", targetSeg->id);
-    this->targetSeg_    = targetSeg;
-    this->isLastTarget_ = isLast;
+    targetSeg_    = targetSeg;
+    isLastTarget_ = isLast;
 }
 
 void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) {
-
-    this->correctedCarPose_ = car.pose;
+    correctedCarPose_ = car.pose;
 
     updateCarOrientation(car, lineInfo);
 
-    const LinePattern& prevFrontPattern = this->frontLinePattern(this->prevLineInfo_);
-    const LinePattern& prevRearPattern  = this->rearLinePattern(this->prevLineInfo_);
-    const LinePattern& frontPattern     = this->frontLinePattern(lineInfo);
-    const LinePattern& rearPattern      = this->rearLinePattern(lineInfo);
+    const LinePattern& prevFrontPattern = frontLinePattern(prevLineInfo_);
+    const LinePattern& prevRearPattern  = rearLinePattern(prevLineInfo_);
+    const LinePattern& frontPattern     = frontLinePattern(lineInfo);
+    const LinePattern& rearPattern      = rearLinePattern(lineInfo);
 
     // does not handle pattern changes while car is changing speed sign
-    if (this->isSpeedSignChangeInProgress_) {
-        if (sgn(car.speed) == this->targetSpeedSign_ && LinePattern::SINGLE_LINE == frontPattern.type) {
-            this->isSpeedSignChangeInProgress_ = false;
+    if (isSpeedSignChangeInProgress_) {
+        if (sgn(car.speed) == targetSpeedSign_ && LinePattern::SINGLE_LINE == frontPattern.type) {
+            isSpeedSignChangeInProgress_ = false;
             LOG_DEBUG("Speed sign change finished");
         }
     } else {
         if (frontPattern != prevFrontPattern) {
             if (isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir) {
                 // car is coming out of a junction
-                this->handleJunction(car, numJunctionSegments(prevFrontPattern), numJunctionSegments(frontPattern));
-                this->isInJunction_ = true;
+                handleJunction(car, numJunctionSegments(prevFrontPattern), numJunctionSegments(frontPattern));
+                isInJunction_ = true;
             }
         }
 
         if (rearPattern != prevRearPattern) {
             if (LinePattern::SINGLE_LINE == rearPattern.type) {
-                this->isInJunction_ = false;
+                isInJunction_ = false;
             }
         }
 
         // start going backward when a dead-end sign is detected
-        if (this->isDeadEnd(car, frontPattern)) {
-            LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to {}", to_string(this->targetSpeedSign_));
-            this->tryToggleTargetSpeedSign(car.distance);
+        if (isDeadEnd(car, frontPattern)) {
+            LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
+            tryToggleTargetSpeedSign(car.distance);
         }
     }
 
-    if (this->targetSeg_ != this->route_.destSeg || this->currentSeg_ != this->route_.startSeg) {
-        this->updateRoute();
+    if (targetSeg_ != route_.destSeg || currentSeg_ != route_.startSeg) {
+        updateRoute();
     }
 
     // Checks if car needs to change speed sign in order to follow route.
     // @note This is only enabled when the car is not in a junction.
-    if (!this->isInJunction_) {
-        const Connection *nextConn = this->route_.firstConnection();
-        if (nextConn && this->prevConn_ && nextConn->junction == this->prevConn_->junction && !this->currentSeg_->isLoop()) {
-            this->tryToggleTargetSpeedSign(car.distance);
+    if (!isInJunction_) {
+        const Connection *nextConn = route_.firstConnection();
+        if (nextConn && prevConn_ && nextConn->junction == prevConn_->junction && !currentSeg_->isLoop()) {
+            tryToggleTargetSpeedSign(car.distance);
         }
     }
 
-    this->setControl(car, lineInfo, mainLine, controlData);
+    setControl(car, lineInfo, mainLine, controlData);
 
-    this->prevLineInfo_ = lineInfo;
+    prevLineInfo_ = lineInfo;
 
-    if (this->isLastTarget_ && (LinePattern::LANE_CHANGE == frontPattern.type || LinePattern::LANE_CHANGE == rearPattern.type)) {
-        this->finish();
+    if (isLastTarget_ && (LinePattern::LANE_CHANGE == frontPattern.type || LinePattern::LANE_CHANGE == rearPattern.type)) {
+        finish();
     }
 }
 
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
-    return Sign::POSITIVE == this->targetSpeedSign_ ? lineInfo.front.pattern : lineInfo.rear.pattern;
+    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.front.pattern : lineInfo.rear.pattern;
 }
 
 const micro::LinePattern& LabyrinthNavigator::rearLinePattern(const micro::LineInfo& lineInfo) const {
-    return Sign::POSITIVE == this->targetSpeedSign_ ? lineInfo.rear.pattern : lineInfo.front.pattern;
+    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.rear.pattern : lineInfo.front.pattern;
 }
 
 const micro::Lines& LabyrinthNavigator::frontLines(const micro::LineInfo& lineInfo) const {
-    return Sign::POSITIVE == this->targetSpeedSign_ ? lineInfo.front.lines : lineInfo.rear.lines;
+    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.front.lines : lineInfo.rear.lines;
 }
 
 const micro::Lines& LabyrinthNavigator::rearLines(const micro::LineInfo& lineInfo) const {
-    return Sign::POSITIVE == this->targetSpeedSign_ ? lineInfo.rear.lines : lineInfo.front.lines;
+    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.rear.lines : lineInfo.front.lines;
 }
 
 void LabyrinthNavigator::updateCarOrientation(const CarProps& car, const LineInfo& lineInfo) {
-    const LinePattern& frontPattern = this->frontLinePattern(lineInfo);
+    const LinePattern& frontPattern = frontLinePattern(lineInfo);
     if (car.orientedDistance > centimeter_t(60)                             &&
-        car.distance - this->lastOrientationUpdateDist_ > centimeter_t(100) &&
+        car.distance - lastOrientationUpdateDist_ > centimeter_t(100) &&
         LinePattern::SINGLE_LINE == frontPattern.type                       &&
         car.distance - frontPattern.startDist > centimeter_t(100)           &&
         eqWithOverflow360(car.pose.angle, round90(car.pose.angle), degree_t(10))) {
 
-        this->correctedCarPose_.angle = round90(car.pose.angle);
-        this->lastOrientationUpdateDist_ = car.distance;
+        correctedCarPose_.angle = round90(car.pose.angle);
+        lastOrientationUpdateDist_ = car.distance;
     }
 }
 
@@ -160,7 +164,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         static_cast<uint32_t>(numInSegments),
         static_cast<uint32_t>(numOutSegments));
 
-    const Junction *junc = this->graph_.findJunction(car.pose.pos, numSegments);
+    const Junction *junc = graph_.findJunction(car.pose.pos, numSegments);
 
     // checks if any junction has been found at the current position
     if (junc) {
@@ -168,73 +172,73 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
             static_cast<uint32_t>(junc->id),
             junc->pos.X.get(),
             junc->pos.Y.get(),
-            this->currentSeg_->id);
+            currentSeg_->id);
 
-        this->correctedCarPose_.pos = junc->pos;
+        correctedCarPose_.pos = junc->pos;
 
         // checks if current segment connects to found junction
-        if (junc->getConnectionCount(*this->currentSeg_) > 0) {
-            const Connection *nextConn = this->route_.firstConnection();
+        if (junc->getConnectionCount(*currentSeg_) > 0) {
+            const Connection *nextConn = route_.firstConnection();
 
             // checks if next connection is available, meaning the route is not yet finished
             if (nextConn) {
                 if (junc == nextConn->junction) {
-                    this->targetDir_ = nextConn->getDecision(*nextConn->getOtherSegment(*this->route_.startSeg)).direction;
-                    LOG_DEBUG("Next connection ok, target direction: {}", to_string(this->targetDir_));
+                    targetDir_ = nextConn->getDecision(*nextConn->getOtherSegment(*route_.startSeg)).direction;
+                    LOG_DEBUG("Next connection ok, target direction: {}", to_string(targetDir_));
 
-                    this->route_.pop_front();
-                    this->currentSeg_ = this->route_.startSeg;
-                    this->prevConn_   = nextConn;
+                    route_.pop_front();
+                    currentSeg_ = route_.startSeg;
+                    prevConn_   = nextConn;
 
                 } else {
                     LOG_ERROR("Unexpected junction, resets navigator");
-                    this->reset(*junc, negOri);
+                    reset(*junc, negOri);
                 }
 
             } else {
                 LOG_WARN("No next connection available, chooses next connection randomly");
-                nextConn = this->randomConnection(*junc, *this->currentSeg_);
+                nextConn = randomConnection(*junc, *currentSeg_);
 
                 if (nextConn) {
-                    this->currentSeg_ = nextConn->getOtherSegment(*this->currentSeg_);
-                    this->targetDir_  = nextConn->getDecision(*this->currentSeg_).direction;
-                    this->prevConn_   = nextConn;
+                    currentSeg_ = nextConn->getOtherSegment(*currentSeg_);
+                    targetDir_  = nextConn->getDecision(*currentSeg_).direction;
+                    prevConn_   = nextConn;
                 } else {
                     LOG_ERROR("nextConn is nullptr after finding a valid connection. Something's wrong...");
-                    this->reset(*junc, negOri);
+                    reset(*junc, negOri);
                 }
             }
 
         } else {
             LOG_ERROR("Current segment does not connect to found junction, resets navigator");
-            this->reset(*junc, negOri);
+            reset(*junc, negOri);
         }
     } else {
         LOG_ERROR("Junction not found, chooses target direction randomly. Something's wrong...");
-        this->targetDir_ = this->randomDirection(numOutSegments);
+        targetDir_ = randomDirection(numOutSegments);
     }
 
-    LOG_INFO("Current segment: {}", this->currentSeg_->id);
+    LOG_INFO("Current segment: {}", currentSeg_->id);
 
-    this->lastJuncDist_ = car.distance;
-    this->hasSpeedSignChanged_ = false;
+    lastJuncDist_ = car.distance;
+    hasSpeedSignChanged_ = false;
 }
 
 void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDist) {
-    if (!this->hasSpeedSignChanged_) {
-        this->targetSpeedSign_             = -this->targetSpeedSign_;
-        this->isSpeedSignChangeInProgress_ = true;
-        this->hasSpeedSignChanged_         = true;
-        this->lastSpeedSignChangeDistance_ = currentDist;
-        LOG_DEBUG("Labyrinth target speed sign changed to {}", to_string(this->targetSpeedSign_));
+    if (!hasSpeedSignChanged_) {
+        targetSpeedSign_             = -targetSpeedSign_;
+        isSpeedSignChangeInProgress_ = true;
+        hasSpeedSignChanged_         = true;
+        lastSpeedSignChangeDistance_ = currentDist;
+        LOG_DEBUG("Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
     }
 }
 
 void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const {
 
     // target line is only overwritten when the car is going in or coming out of a junction
-    if (this->isTargetLineOverrideEnabled(car, lineInfo)) {
-        switch (this->targetSpeedSign_ * this->targetDir_) {
+    if (isTargetLineOverrideEnabled(car, lineInfo)) {
+        switch (targetSpeedSign_ * targetDir_) {
         case Direction::LEFT:
             if (!lineInfo.front.lines.empty()) {
                 mainLine.frontLine = *lineInfo.front.lines.begin();
@@ -271,18 +275,18 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
     const m_per_sec_t prevSpeed = controlData.speed;
 
-    if (this->currentSeg_->isDeadEnd && !this->hasSpeedSignChanged_) {
-        controlData.speed = this->targetSpeedSign_ * this->targetDeadEndSpeed_;
+    if (currentSeg_->isDeadEnd && !hasSpeedSignChanged_) {
+        controlData.speed = targetSpeedSign_ * targetDeadEndSpeed_;
 
-    } else if (isBtw(car.distance, this->lastJuncDist_ + centimeter_t(20), this->lastJuncDist_ + this->currentSeg_->length - centimeter_t(20)) &&
+    } else if (isBtw(car.distance, lastJuncDist_ + centimeter_t(20), lastJuncDist_ + currentSeg_->length - centimeter_t(20)) &&
                1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                                     &&
                1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                                      &&
-               car.distance - this->lastSpeedSignChangeDistance_ >= centimeter_t(100)                                                          &&
-               !(this->isLastTarget_ && this->currentSeg_ == this->laneChangeSeg_)) {
-        controlData.speed = this->targetSpeedSign_ * this->targetFastSpeed_;
+               car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                                          &&
+               !(isLastTarget_ && currentSeg_ == laneChangeSeg_)) {
+        controlData.speed = targetSpeedSign_ * targetFastSpeed_;
 
     } else {
-        controlData.speed = this->targetSpeedSign_ * this->targetSpeed_;
+        controlData.speed = targetSpeedSign_ * targetSpeed_;
     }
 
     if (car.distance < meter_t(1)) {
@@ -295,7 +299,7 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
         LOG_DEBUG("Target speed changed to {}m/s", controlData.speed.get());
     }
 
-    this->setTargetLine(car, lineInfo, mainLine);
+    setTargetLine(car, lineInfo, mainLine);
 
     // enables rear wheel steering when coming out of a junction
     controlData.rearSteerEnabled   = true;
@@ -317,25 +321,25 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
         return;
     }
 
-    const auto* nextConn = this->randomConnection(junc, *prevSeg);
+    const auto* nextConn = randomConnection(junc, *prevSeg);
     if (!nextConn) {
         LOG_ERROR("nextConn is nullptr after finding a random valid connection. Something's wrong...");
         return;
     }
 
-    this->currentSeg_ = nextConn->getOtherSegment(*prevSeg);
-    this->targetDir_  = nextConn->getDecision(*this->currentSeg_).direction;
-    this->prevConn_   = nextConn;
+    currentSeg_ = nextConn->getOtherSegment(*prevSeg);
+    targetDir_  = nextConn->getDecision(*currentSeg_).direction;
+    prevConn_   = nextConn;
 }
 
 void LabyrinthNavigator::updateRoute() {
-    LOG_DEBUG("Updating route to: {}", this->targetSeg_->id);
-    this->route_ = LabyrinthRoute::create(*this->prevConn_, *this->currentSeg_, *this->targetSeg_, true);
+    LOG_DEBUG("Updating route to: {}", targetSeg_->id);
+    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, *targetSeg_, true);
 
     LOG_DEBUG("Planned route:");
 
-    const Segment *prev = this->route_.startSeg;
-    for (const Connection *c : this->route_.connections) {
+    const Segment *prev = route_.startSeg;
+    for (const Connection *c : route_.connections) {
         const Segment *next = c->getOtherSegment(*prev);
         LOG_DEBUG("-> {} ({})", next->id, to_string(c->getDecision(*next).direction));
         prev = next;
@@ -343,12 +347,12 @@ void LabyrinthNavigator::updateRoute() {
 }
 
 bool LabyrinthNavigator::isTargetLineOverrideEnabled(const CarProps& car, const LineInfo& lineInfo) const {
-    const LinePattern& frontPattern = this->frontLinePattern(lineInfo);
+    const LinePattern& frontPattern = frontLinePattern(lineInfo);
     return isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir;
 }
 
 bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const {
-    return LinePattern::NONE == pattern.type && (this->currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
+    return LinePattern::NONE == pattern.type && (currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
@@ -360,11 +364,11 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
         }
     }
 
-    return validConnections.size() > 0 ? validConnections[this->random_.get(0, validConnections.size())] : nullptr;
+    return validConnections.size() > 0 ? validConnections[random_.get(0, validConnections.size())] : nullptr;
 }
 
 Direction LabyrinthNavigator::randomDirection(const uint8_t numOutSegments) {
-    const uint8_t targetLineIdx = this->random_.get(0, numOutSegments);
+    const uint8_t targetLineIdx = random_.get(0, numOutSegments);
 
     Direction dir = Direction::CENTER;
 

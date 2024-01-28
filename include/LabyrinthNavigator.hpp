@@ -19,6 +19,8 @@ public:
 
     bool isLastTarget() const;
 
+    void setObstacleRoute(const LabyrinthRoute& obstacleRoute);
+
     void setTargetSegment(const Segment *targetSeg, bool isLast);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
@@ -66,6 +68,7 @@ private:
     const Segment *targetSeg_;
     const Segment *laneChangeSeg_;
     LabyrinthRoute route_;
+    LabyrinthRoute obstacleRoute_;
     bool isLastTarget_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
