@@ -24,35 +24,35 @@ TEST_F(TestLabyrinthTest, valid) {
 
 TEST_F(TestLabyrinthTest, F_CF_FH_backbardNavigationDisabled) {
     checkRoute(graph_, 'F', "CF", "FH", {}, {}, false, {
-        {'C', {radian_t(0), Direction::CENTER}},
-        {'E', {radian_t(0), Direction::LEFT}},
-        {'F', {radian_t(0), Direction::LEFT}}
+        {'C', {PI, Direction::CENTER}},
+        {'E', {PI, Direction::LEFT}},
+        {'F', {PI, Direction::LEFT}}
     });
 }
 
 TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationDisabled) {
     checkRoute(graph_, 'T', "RT", "VX", {}, {}, false, {
-        {'R', {PI, Direction::RIGHT}},
-        {'P', {PI, Direction::RIGHT}},
-        {'M', {PI, Direction::RIGHT}},
-        {'K', {PI, Direction::RIGHT}},
-        {'H', {PI, Direction::RIGHT}},
-        {'F', {PI, Direction::RIGHT}},
-        {'C', {radian_t(0), Direction::CENTER}},
-        {'E', {radian_t(0), Direction::RIGHT}},
-        {'G', {radian_t(0), Direction::RIGHT}},
-        {'I', {radian_t(0), Direction::CENTER}},
-        {'L', {radian_t(0), Direction::RIGHT}},
-        {'N', {radian_t(0), Direction::RIGHT}},
-        {'Q', {radian_t(0), Direction::RIGHT}},
-        {'S', {radian_t(0), Direction::RIGHT}},
-        {'V', {radian_t(0), Direction::CENTER}}
+        {'R', {radian_t(0), Direction::RIGHT}},
+        {'P', {radian_t(0), Direction::RIGHT}},
+        {'M', {radian_t(0), Direction::RIGHT}},
+        {'K', {radian_t(0), Direction::RIGHT}},
+        {'H', {radian_t(0), Direction::RIGHT}},
+        {'F', {radian_t(0), Direction::RIGHT}},
+        {'C', {PI, Direction::CENTER}},
+        {'E', {PI, Direction::RIGHT}},
+        {'G', {PI, Direction::RIGHT}},
+        {'I', {PI, Direction::CENTER}},
+        {'L', {PI, Direction::RIGHT}},
+        {'N', {PI, Direction::RIGHT}},
+        {'Q', {PI, Direction::RIGHT}},
+        {'S', {PI, Direction::RIGHT}},
+        {'V', {PI, Direction::CENTER}}
     });
 }
 
 TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationEnabled) {
     checkRoute(graph_, 'T', "RT", "VX", {}, {}, true, {
-        {'T', {radian_t(0), Direction::RIGHT}},
-        {'V', {radian_t(0), Direction::CENTER}}
+        {'T', {PI, Direction::RIGHT}},
+        {'V', {PI, Direction::CENTER}}
     });
 }
