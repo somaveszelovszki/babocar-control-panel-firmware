@@ -165,7 +165,7 @@ extern "C" void runDebugTask(void) {
 }
 
 void micro_Command_Uart_RxCpltCallback() {
-    if (MAX_BUFFER_SIZE > uart_Debug.handle->hdmarx->Instance->NDTR) {
+    if (uart_Debug.handle->hdmarx->Instance->NDTR < MAX_BUFFER_SIZE) {
         std::scoped_lock lock{incomingMessagesMutex};
         incomingMessages.push(rxBuffer);    }
 

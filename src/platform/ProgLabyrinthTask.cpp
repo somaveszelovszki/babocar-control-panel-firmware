@@ -40,14 +40,17 @@ constexpr auto LANE_DISTANCE            = centimeter_t(60);
 #define START_SEGMENT       "UX"
 #define PREV_SEGMENT        "U_"
 #define LANE_CHANGE_SEGMENT "VW"
+#define FLOOD_SEGMENT       "Q_"
 #elif TRACK == TEST_TRACK
 #define START_SEGMENT       "WY"
 #define PREV_SEGMENT        "Y_"
 #define LANE_CHANGE_SEGMENT "NQ"
+#define FLOOD_SEGMENT       "X_"
 #endif
 
 LabyrinthGraph graph;
 millisecond_t endTime;
+millisecond_t lastFloodCommandTime;
 
 struct JunctionPatternInfo {
     Sign dir            = Sign::NEUTRAL;
@@ -57,9 +60,38 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
-void updateObstacleInfo(LabyrinthNavigator& navigator) {
-    char segId = '\0';
-    radioRecvQueue.peek(segId, millisecond_t(0));
+void handleRadioCommand(LabyrinthNavigator& navigator) {
+    etl::string<RADIO_COMMAND_MAX_LENGTH> command;
+    if (!radioCommandQueue.receive(command, millisecond_t(0))) {
+        return;
+    }
+
+    if (command.length() != 6) {
+        LOG_WARN("Invalid labyrinth command: {}", command);
+        return;
+    }
+
+    if (command == "FLOOD!") {
+        lastFloodCommandTime = micro::getTime();
+    } else {
+        char prev = command[0];
+        char next = command[1];
+
+#if TRACK == TEST_TRACK
+        // In the test track, some segments are partitioned into multiple 'fake' segments.
+        // Since the application logic cannot handle segments that are not separated by real junctions,
+        // these partitions are joined together, forming one segment.
+        if ((prev == 'C' && next == 'B') || (prev == 'B' && next == 'D') || (prev == 'D' && next == 'F')) {
+            prev = 'C';
+            next = 'F';
+        } else if ((prev == 'F' && next == 'D') || (prev == 'D' && next == 'B') || (prev == 'B' && next == 'C')) {
+            prev = 'F';
+            next = 'C';
+        }
+#endif // TRACK == TEST_TRACK
+
+        navigator.setForbiddenSegment(graph.findSegment(Segment::makeId(prev, next)));
+    }
 }
 
 bool shouldHandle(const ProgramState::Value state) {
@@ -84,7 +116,7 @@ public:
     }
 
     float operator()() override {
-    	return std::visit([](auto& g){ return g(); }, generator_);
+        return std::visit([](auto& g){ return g(); }, generator_);
     }
 
 private:
@@ -144,16 +176,28 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                         break;
 
                     default:
-                    	break;
+                        break;
                     }
 
-                    const auto* startSeg = graph.findSegment(START_SEGMENT);
-                    const auto* prevConn = graph.findConnection(PREV_SEGMENT, START_SEGMENT);
+                    const auto* prevSeg       = graph.findSegment(PREV_SEGMENT);
+                    const auto* startSeg      = graph.findSegment(START_SEGMENT);
                     const auto* laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-                    navigator.initialize(graph.getVisitableSegments(), startSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
+                    const auto* floodSeg      = graph.findSegment(FLOOD_SEGMENT);
+                    const auto* prevConn      = graph.findConnection(*prevSeg, *startSeg);
+
+                    navigator.initialize(
+                        graph.getVisitableSegments(),
+                        startSeg,
+                        prevConn,
+                        laneChangeSeg,
+                        floodSeg,
+                        LABYRINTH_SPEED,
+                        LABYRINTH_FAST_SPEED,
+                        LABYRINTH_DEAD_END_SPEED);
                 }
 
-                updateObstacleInfo(navigator);
+                handleRadioCommand(navigator);
+                navigator.setFlood(micro::getTime() - lastFloodCommandTime < millisecond_t(450));
                 navigator.update(car, lineInfo, mainLine, controlData);
 
                 const Pose correctedCarPose = navigator.correctedCarPose();

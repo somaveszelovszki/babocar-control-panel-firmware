@@ -1,21 +1,25 @@
-#include "ProgramState.hpp"
+#include <limits>
+
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/log/log.hpp>
+#include <micro/math/numeric.hpp>
 #include <micro/utils/timer.hpp>
 
 #include <cfg_board.hpp>
 #include <cfg_track.hpp>
 #include <globals.hpp>
+#include <ProgramState.hpp>
+
 
 using namespace micro;
 
 namespace {
 
 void waitStartSignal() {
-    char startCounter = '\0';
+    uint32_t startCounter = std::numeric_limits<uint32_t>::max();
 
     ControlData controlData;
     controlData.speed = m_per_sec_t(0);
@@ -24,21 +28,21 @@ void waitStartSignal() {
     controlData.lineControl.actual = {};
     controlData.lineControl.target = {};
 
-    while (startCounter != '0' && !isBtw(startCounter, 'A', 'Z')) {
-        char prevStartCounter = startCounter;
-        radioRecvQueue.peek(startCounter, millisecond_t(10));
-
-        if (startCounter != prevStartCounter) {
-            LOG_DEBUG("Start counter: {}", startCounter);
-            prevStartCounter = startCounter;
+    while (startCounter != 0) {
+        etl::string<RADIO_COMMAND_MAX_LENGTH> command;
+        if (radioCommandQueue.receive(command, millisecond_t(0))) {
+            const uint32_t c = micro::isBtw(command[0], '0', '5') ? command[0] - '0' : 0;
+            if (startCounter != c) {
+                startCounter = c;
+                LOG_INFO("Start counter: {}", startCounter);
+            }
         }
 
         controlQueue.overwrite(controlData);
         os_sleep(millisecond_t(50));
-
     };
 
-    LOG_DEBUG("Started!");
+    LOG_INFO("Started!");
 }
 
 } // namespace

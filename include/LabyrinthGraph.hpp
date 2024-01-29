@@ -104,14 +104,21 @@ struct Segment : public Node<Connection, cfg::MAX_NUM_CROSSING_SEGMENTS> {
     Segment() = default;
 
     Segment(const char junction1, const char junction2, micro::meter_t length, const bool isDeadEnd = false)
-        : length{length}, isDeadEnd{isDeadEnd} {
-            id.push_back(std::min(junction1, junction2));
-            id.push_back(std::max(junction1, junction2));
-        }
+        : id{makeId(junction1, junction2)}
+        , length{length}
+        , isDeadEnd{isDeadEnd} {}
 
     bool isFloating() const;
     bool isLoop() const;
+
+    static Id makeId(const char junction1, const char junction2);
 };
+
+using Segments = micro::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS>;
+using Junctions = micro::vector<Junction, cfg::MAX_NUM_LABYRINTH_JUNCTIONS>;
+using Connections = micro::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2>;
+
+using JunctionIds = micro::set<char, cfg::MAX_NUM_LABYRINTH_JUNCTIONS>;
 
 class LabyrinthGraph {
 public:
@@ -141,7 +148,7 @@ public:
 
     const Junction* findJunction(const micro::point2m& pos, const micro::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const;
 
-    const Connection* findConnection(const Segment::Id& seg1, const Segment::Id& seg2) const;
+    const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
 
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> getVisitableSegments();
 
@@ -151,10 +158,6 @@ private:
     void connect(Segment *seg, Junction *junc, const JunctionDecision& decision);
 
 private:
-    using Segments = micro::vector<Segment, cfg::MAX_NUM_LABYRINTH_SEGMENTS>;
-    using Junctions = micro::vector<Junction, cfg::MAX_NUM_LABYRINTH_JUNCTIONS>;
-    using Connections = micro::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2>;
-
     Segments segments_;
     Junctions junctions_;
     Connections connections_;

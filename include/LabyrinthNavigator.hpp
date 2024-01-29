@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <micro/control/maneuver.hpp>
 #include <micro/math/random_generator.hpp>
 
@@ -15,19 +17,20 @@ public:
         const Segment *startSeg,
         const Connection *prevConn,
         const Segment *laneChangeSeg,
+        const Segment *floodSeg,
         const micro::m_per_sec_t targetSpeed,
         const micro::m_per_sec_t targetFastSpeed,
         const micro::m_per_sec_t targetDeadEndSpeed);
 
     const micro::Pose& correctedCarPose() const;
 
-    void setForbidden(const micro::set<Segment::Id, 2>& forbiddenSegments, const char forbiddenJunction);
+    void setForbiddenSegment(const Segment* segment);
+    void setFlood(const bool flood);
+    void navigateToLaneChange();
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
 private:
-    void navigateToLaneChange();
-
     const micro::LinePattern& frontLinePattern(const micro::LineInfo& lineInfo) const;
     const micro::LinePattern& rearLinePattern(const micro::LineInfo& lineInfo) const;
 
@@ -43,7 +46,7 @@ private:
 
     void reset(const Junction& junc, micro::radian_t negOri);
 
-    void updateRoute();
+    void createRoute();
 
     bool isTargetLineOverrideEnabled(const micro::CarProps& car, const micro::LineInfo& lineInfo) const;
 
@@ -67,6 +70,7 @@ private:
     const Segment *currentSeg_{nullptr};
     const Segment *targetSeg_{nullptr};
     const Segment *laneChangeSeg_;
+    const Segment *floodSeg_;
     LabyrinthRoute route_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
@@ -80,6 +84,5 @@ private:
     bool isInJunction_;
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
-    micro::set<Segment::Id, 2> forbiddenSegments_;
-    char forbiddenJunction_{'\0'};
+    const Segment* forbiddenSegment_{nullptr};
 };

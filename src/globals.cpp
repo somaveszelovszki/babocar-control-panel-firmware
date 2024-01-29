@@ -15,7 +15,7 @@ queue_t<IndexedSectionControlParameters, 8> sectionControlOverrideQueue;
 queue_t<ControlData, 1> lastControlQueue;
 queue_t<LineDetectControl, 1> lineDetectControlQueue;
 queue_t<LineInfo, 1> lineInfoQueue;
-queue_t<char, 1> radioRecvQueue;
+queue_t<etl::string<RADIO_COMMAND_MAX_LENGTH>, 4> radioCommandQueue;
 queue_t<meter_t, 1> rearDistancesQueue;
 
 CanManager vehicleCanManager(can_Vehicle);

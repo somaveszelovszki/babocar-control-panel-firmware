@@ -26,10 +26,21 @@ class LabyrinthNavigatorTest : public ::testing::Test {
 public:
     LabyrinthNavigatorTest() {
         buildTestLabyrinthGraph(graph_);
-        const auto* currentSeg = graph_.findSegment("WY");
-        const auto* prevConn = graph_.findConnection("Y_", "WY");
+        const auto* prevSeg       = graph_.findSegment("Y_");
+        const auto* currentSeg    = graph_.findSegment("WY");
         const auto* laneChangeSeg = graph_.findSegment("NQ");
-        navigator_.initialize(graph_.getVisitableSegments(), currentSeg, prevConn, laneChangeSeg, LABYRINTH_SPEED, LABYRINTH_FAST_SPEED, LABYRINTH_DEAD_END_SPEED);
+        const auto* floodSeg      = graph_.findSegment("X_");
+        const auto* prevConn      = graph_.findConnection(*prevSeg, *currentSeg);
+
+        navigator_.initialize(
+            graph_.getVisitableSegments(),
+            currentSeg,
+            prevConn,
+            laneChangeSeg,
+            floodSeg,
+            LABYRINTH_SPEED,
+            LABYRINTH_FAST_SPEED,
+            LABYRINTH_DEAD_END_SPEED);
     }
 
 protected:

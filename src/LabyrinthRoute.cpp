@@ -33,8 +33,8 @@ const Connection* LabyrinthRoute::lastConnection() const {
     return this->connections.size() > 0 ? this->connections[this->connections.size() - 1] : nullptr;
 }
 
-void LabyrinthRoute::reset(const Segment* currentSeg) {
-    this->startSeg = this->destSeg = currentSeg;
+void LabyrinthRoute::reset() {
+    this->startSeg = this->destSeg = nullptr;
     this->connections.clear();
 }
 
@@ -48,8 +48,7 @@ LabyrinthRoute LabyrinthRoute::create(
     const Connection& prevConn,
     const Segment& currentSeg,
     const Segment& destSeg,
-    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments,
-    const micro::set<char, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenJunctions,
+    const JunctionIds& forbiddenJunctions,
     const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for a car in a graph that allows multiple connections between the nodes
@@ -86,8 +85,7 @@ LabyrinthRoute LabyrinthRoute::create(
             const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
 
             if ((!allowBackwardNavigation && !isFwd) ||
-                forbiddenJunctions.contains(newConn->junction->id) ||
-                forbiddenSegments.contains(newSeg->id)) {
+                forbiddenJunctions.contains(newConn->junction->id)) {
                 continue;
             }
 

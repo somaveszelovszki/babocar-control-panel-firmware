@@ -1,5 +1,7 @@
 #pragma once
 
+#include <etl/string.h>
+
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/panel/CanManager.hpp>
@@ -11,6 +13,8 @@
 #include "ProgramState.hpp"
 #include "RaceTrackController.hpp"
 
+inline constexpr size_t RADIO_COMMAND_MAX_LENGTH = 7;
+
 extern micro::queue_t<micro::radian_t, 1> carOrientationUpdateQueue;
 extern micro::queue_t<micro::point2m, 1> carPosUpdateQueue;
 extern micro::queue_t<micro::CarProps, 1> carPropsQueue;
@@ -21,7 +25,7 @@ extern micro::queue_t<IndexedSectionControlParameters, 8> sectionControlOverride
 extern micro::queue_t<micro::ControlData, 1> lastControlQueue;
 extern micro::queue_t<micro::LineDetectControl, 1> lineDetectControlQueue;
 extern micro::queue_t<micro::LineInfo, 1> lineInfoQueue;
-extern micro::queue_t<char, 1> radioRecvQueue;
+extern micro::queue_t<etl::string<RADIO_COMMAND_MAX_LENGTH>, 4> radioCommandQueue;
 extern micro::queue_t<micro::meter_t, 1> rearDistanceQueue;
 
 extern micro::CanManager vehicleCanManager;

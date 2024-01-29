@@ -69,6 +69,13 @@ bool Segment::isLoop() const {
     return edges.size() > 0 && edges[0]->junction->getConnectionCount(*this) == 2;
 }
 
+auto Segment::makeId(const char junction1, const char junction2) -> Id {
+    Id id;
+    id.push_back(std::min(junction1, junction2));
+    id.push_back(std::max(junction1, junction2));
+    return id;
+}
+
 void LabyrinthGraph::addSegment(const Segment& seg) {
     segments_.push_back(seg);
 }
@@ -215,12 +222,12 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::ve
     return result != junctions_.end() ? to_raw_pointer(result) : nullptr;
 }
 
-const Connection* LabyrinthGraph::findConnection(const Segment::Id& seg1, const Segment::Id& seg2) const {
-    const auto it = std::find_if(connections_.begin(), connections_.end(), [&seg1, &seg2](const Connection& c) {
-        return (c.node1->id == seg1 && c.node2->id == seg2) || (c.node1->id == seg2 && c.node2->id == seg1);
+const Connection* LabyrinthGraph::findConnection(const Segment& seg1, const Segment& seg2) const {
+    const auto it = std::find_if(seg1.edges.begin(), seg1.edges.end(), [&seg1, &seg2](const auto& c) {
+        return (c->node1 == &seg1 && c->node2 == &seg2) || (c->node1 == &seg2 && c->node2 == &seg1);
     });
 
-    return it != connections_.end() ? to_raw_pointer(it) : nullptr;
+    return it != seg1.edges.end() ? *it : nullptr;
 }
 
 micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> LabyrinthGraph::getVisitableSegments() {

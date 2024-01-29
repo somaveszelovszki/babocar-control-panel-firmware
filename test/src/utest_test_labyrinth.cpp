@@ -23,7 +23,7 @@ TEST_F(TestLabyrinthTest, valid) {
 }
 
 TEST_F(TestLabyrinthTest, F_CF_FH_backbardNavigationDisabled) {
-    checkRoute(graph_, 'F', "CF", "FH", {}, {}, false, {
+    checkRoute(graph_, 'F', "CF", "FH", {}, false, {
         {'C', {PI, Direction::CENTER}},
         {'E', {PI, Direction::LEFT}},
         {'F', {PI, Direction::LEFT}}
@@ -31,7 +31,7 @@ TEST_F(TestLabyrinthTest, F_CF_FH_backbardNavigationDisabled) {
 }
 
 TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationDisabled) {
-    checkRoute(graph_, 'T', "RT", "VX", {}, {}, false, {
+    checkRoute(graph_, 'T', "RT", "VX", {}, false, {
         {'R', {radian_t(0), Direction::RIGHT}},
         {'P', {radian_t(0), Direction::RIGHT}},
         {'M', {radian_t(0), Direction::RIGHT}},
@@ -51,7 +51,7 @@ TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationDisabled) {
 }
 
 TEST_F(TestLabyrinthTest, T_RT_VX_backbardNavigationEnabled) {
-    checkRoute(graph_, 'T', "RT", "VX", {}, {}, true, {
+    checkRoute(graph_, 'T', "RT", "VX", {}, true, {
         {'T', {PI, Direction::RIGHT}},
         {'V', {PI, Direction::CENTER}}
     });

@@ -22,6 +22,7 @@ void LabyrinthNavigator::initialize(
     const Segment *currentSeg,
     const Connection *prevConn,
     const Segment *laneChangeSeg,
+    const Segment *floodSeg,
     const micro::m_per_sec_t targetSpeed,
     const micro::m_per_sec_t targetFastSpeed,
     const micro::m_per_sec_t targetDeadEndSpeed) {
@@ -29,6 +30,7 @@ void LabyrinthNavigator::initialize(
     currentSeg_ = currentSeg;
     prevConn_ = prevConn;
     laneChangeSeg_ = laneChangeSeg;
+    floodSeg_ = floodSeg;
     targetSpeed_ = targetSpeed;
     targetFastSpeed_ = targetFastSpeed;
     targetDeadEndSpeed_ = targetDeadEndSpeed;
@@ -40,9 +42,27 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
     return correctedCarPose_;
 }
 
-void LabyrinthNavigator::setForbidden(const micro::set<Segment::Id, 2>& forbiddenSegments, const char forbiddenJunction) {
-    forbiddenSegments_ = forbiddenSegments;
-    forbiddenJunction_ = forbiddenJunction;
+void LabyrinthNavigator::setForbiddenSegment(const Segment* segment) {
+    forbiddenSegment_ = segment;
+    LOG_INFO("Forbidden segment set to: ", forbiddenSegment_ ? forbiddenSegment_->id : "NULL");
+}
+
+void LabyrinthNavigator::setFlood(const bool flood) {
+    const auto currentFlood = targetSeg_ == floodSeg_;
+    if (currentFlood == flood) {
+        return;
+    }
+
+    LOG_INFO("Flood {}", flood ? "activated" : "deactivated");
+
+    if (flood) {
+        LOG_INFO("Flood activated");
+        targetSeg_ = floodSeg_;
+    } else {
+        LOG_INFO("Flood deactivated");
+        targetSeg_ = nullptr;
+        route_.reset();
+    }
 }
 
 void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) {
@@ -92,6 +112,12 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         }
     }
 
+    // If the car is in the flood segment but the flood is deactivated,
+    // the car needs to change speed sign to reversse back into the labyrinth.
+    if (currentSeg_ == floodSeg_ && targetSeg_ != floodSeg_) {
+        tryToggleTargetSpeedSign(car.distance);
+    }
+
     setControl(car, lineInfo, mainLine, controlData);
 
     prevLineInfo_ = lineInfo;
@@ -102,7 +128,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 }
 
 void LabyrinthNavigator::navigateToLaneChange() {
-    LOG_DEBUG("Navigating to the lane change segment");
+    LOG_INFO("Navigating to the lane change segment");
     targetSeg_ = laneChangeSeg_;
 }
 
@@ -165,6 +191,10 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegmen
         reset(*junc, negOri);
     }
 
+    if (targetSeg_ != route_.destSeg) {
+        createRoute();
+    }
+
     stepToNextSegment(*junc);
 }
 
@@ -187,12 +217,7 @@ void LabyrinthNavigator::stepToNextSegment(const Junction& junction) {
     targetDir_  = nextConn->getDecision(*currentSeg_).direction;
     prevConn_   = nextConn;
     unvisitedSegments_.erase(currentSeg_->id);
-    LOG_DEBUG("Stepping to next segment: {}. Target direction: {}", currentSeg_->id, to_string(targetDir_));
-
-    // if a target segment is already defined but the route is not yet created, creates it
-    if (targetSeg_) {
-        updateRoute();
-    }
+    LOG_INFO("Stepping to next segment: {}. Target direction: {}", currentSeg_->id, to_string(targetDir_));
 }
 
 void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDist) {
@@ -201,7 +226,7 @@ void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDi
         isSpeedSignChangeInProgress_ = true;
         hasSpeedSignChanged_         = true;
         lastSpeedSignChangeDistance_ = currentDist;
-        LOG_DEBUG("Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
+        LOG_INFO("Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
     }
 }
 
@@ -244,19 +269,30 @@ void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::
 void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const {
     const m_per_sec_t prevSpeed = controlData.speed;
 
-    if (currentSeg_->isDeadEnd && !hasSpeedSignChanged_) {
-        controlData.speed = targetSpeedSign_ * targetDeadEndSpeed_;
+    const auto speed = [this, &car, &lineInfo]() {
+        if (currentSeg_ == floodSeg_ && !hasSpeedSignChanged_) {
+           return targetDeadEndSpeed_;
+        }
 
-    } else if (isBtw(car.distance, lastJuncDist_ + centimeter_t(20), lastJuncDist_ + currentSeg_->length - centimeter_t(20)) &&
-               1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                   &&
-               1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                    &&
-               car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                              &&
-               currentSeg_ != targetSeg_) {
-        controlData.speed = targetSpeedSign_ * targetFastSpeed_;
+        if (currentSeg_->isDeadEnd && !hasSpeedSignChanged_) {
+            const auto slowSectionLength = currentSeg_ == floodSeg_ ? centimeter_t(250) : centimeter_t(100);
+            if (car.distance - lastJuncDist_ > floodSeg_->length - slowSectionLength) {
+                return targetDeadEndSpeed_;
+            }
+        }
 
-    } else {
-        controlData.speed = targetSpeedSign_ * targetSpeed_;
-    }
+        if (isBtw(car.distance, lastJuncDist_ + centimeter_t(20), lastJuncDist_ + currentSeg_->length - centimeter_t(20)) &&
+            1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                   &&
+            1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                    &&
+            car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                              &&
+            currentSeg_ != targetSeg_) {
+            return targetFastSpeed_;
+        }
+
+        return targetSpeed_;
+    }();
+
+    controlData.speed = targetSpeedSign_ * speed;
 
     if (car.distance < meter_t(1)) {
         controlData.speed = abs(controlData.speed);
@@ -290,9 +326,14 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
     LOG_INFO("Navigator reset to the junction: {}. Current segment: {}", junc.id, currentSeg_->id);
 }
 
-void LabyrinthNavigator::updateRoute() {
-    LOG_DEBUG("Updating route to: {}", targetSeg_->id);
-    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, *targetSeg_, {forbiddenSegments_.begin(), forbiddenSegments_.end()}, {forbiddenJunction_}, false);
+void LabyrinthNavigator::createRoute() {
+    LOG_INFO("Updating route to: {}", targetSeg_->id);
+
+    const auto forbiddenJunctions = forbiddenSegment_
+        ? JunctionIds{forbiddenSegment_->id[0], forbiddenSegment_->id[1]}
+        : JunctionIds{};
+
+    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, *targetSeg_, forbiddenJunctions, false);
 
     LOG_DEBUG("Planned route:");
 
@@ -314,23 +355,26 @@ bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::Line
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
-    micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> allConnections, unvisitedConnections;
+    micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> allowedConnections, unvisitedConnections;
 
     for (Connection *c : seg.edges) {
         const auto* otherSeg = c->getOtherSegment(seg);
-        if (c->junction->id == junc.id && !otherSeg->isDeadEnd) {
-            allConnections.push_back(c);
+        const auto isAllowed = c->junction->id == junc.id &&
+                               !otherSeg->isDeadEnd &&
+                               (!forbiddenSegment_ || !graph_.findConnection(*otherSeg, *forbiddenSegment_));
+        if (isAllowed) {
+            allowedConnections.push_back(c);
             if (unvisitedSegments_.contains(otherSeg->id)) {
                 unvisitedConnections.push_back(c);
             }
         }
     }
 
-    if (allConnections.empty()) {
+    if (allowedConnections.empty()) {
         return nullptr;
     }
 
-    auto& connections = !unvisitedConnections.empty() ? unvisitedConnections : allConnections;
+    auto& connections = !unvisitedConnections.empty() ? unvisitedConnections : allowedConnections;
     std::sort(connections.begin(), connections.end(), [&seg](const auto& a, const auto& b){
         return a->getDecision(*a->getOtherSegment(seg)) < b->getDecision(*b->getOtherSegment(seg));
     });
