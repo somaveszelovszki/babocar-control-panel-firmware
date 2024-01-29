@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <gtest/gtest.h>
 #include <string>
 
 #include <etl/string.h>
@@ -50,6 +51,11 @@ void expectEqual(const std::optional<IndexedSectionControlParameters>& expected,
 
     EXPECT_EQ(expected->first, result->first);
     EXPECT_EQ_TRACK_CONTROL_PARAMETERS(expected->second, result->second);
+}
+
+void expectEqual(const DebugMessage::RadioCommand& expected,
+                 const DebugMessage::RadioCommand& result) {
+    EXPECT_STREQ(expected.text.c_str(), result.text.c_str());
 }
 
 template <typename T>
@@ -165,4 +171,14 @@ TEST(DebugMessage, parseTrackControl) {
 
     testParse(std::make_optional(expected), TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.2000,-5,-0.2000]\n");
     testParse(std::optional<IndexedSectionControlParameters>(), TRACK_CONTROL_PREFIX_STR ":[]\n");
+}
+
+TEST(DebugMessage, formatRadioCommand) {
+    const DebugMessage::RadioCommand command{"FLOOD!"};
+    testFormat(command, "O:FLOOD!\n");
+}
+
+TEST(DebugMessage, parseRadioCommand) {
+    const DebugMessage::RadioCommand expected{"FLOOD!"};
+    testParse(expected, "O:FLOOD!\n");
 }

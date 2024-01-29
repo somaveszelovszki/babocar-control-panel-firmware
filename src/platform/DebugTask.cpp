@@ -69,11 +69,21 @@ bool handleIncomingSectionControl(char * const input) {
     }
 
     if (sectionControl) {
-        sectionControlOverrideQueue.send(*sectionControl);
+        sectionControlOverrideQueue.send(*sectionControl, millisecond_t(0));
     } else {
         lapControlQueue.peek(lapControl, millisecond_t(0));
     }
 
+    return true;
+}
+
+bool handleIncomingRadioCommand(char * const input) {
+    DebugMessage::RadioCommand command;
+    if (!DebugMessage::parse(input, command)) {
+        return false;
+    }
+
+    radioCommandQueue.send(command.text, millisecond_t(0));
     return true;
 }
 
@@ -94,7 +104,8 @@ bool handleIncomingMessages() {
     }
 
     return handleIncomingParam(incomingBuffer->value)
-        || handleIncomingSectionControl(incomingBuffer->value);
+        || handleIncomingSectionControl(incomingBuffer->value)
+        || handleIncomingRadioCommand(incomingBuffer->value);
 }
 
 } // namespace

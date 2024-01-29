@@ -22,7 +22,8 @@ enum class Type : char {
     Car = 'C',
     Param = 'P',
     RaceTrackControl = 'R',
-    TestTrackControl = 'T'
+    TestTrackControl = 'T',
+    RadioCommand = 'O'
 };
 
 std::optional<ParamManager::value_type> parseParamValue(const micro::JSONValue& json) {
@@ -148,6 +149,16 @@ void parseBody(char * const input, std::optional<IndexedSectionControlParameters
     control.lineGradient.second.angle = radian_t(*json[6].as<float>());
 }
 
+size_t formatBody(char * const output, const size_t size, const DebugMessage::RadioCommand& command) {
+    return micro::format_to_n(output, size, "{}", command.text);
+}
+
+void parseBody(char * const input, DebugMessage::RadioCommand& command) {
+    for (size_t i = 0; i < 6; i++) {
+        command.text.push_back(input[i]);
+    }
+}
+
 template <typename T>
 size_t formatInput(char * const output, const size_t size, const Type type, const T& input) {
     auto n = formatType(output, size, type);
@@ -190,6 +201,10 @@ size_t DebugMessage::format(char * const output, const size_t size, const Indexe
     return formatInput(output, size, type, sectionControl);
 }
 
+size_t DebugMessage::format(char * const output, const size_t size, const RadioCommand& command) {
+    return formatInput(output, size, Type::RadioCommand, command);
+}
+
 bool DebugMessage::parse(char * const input, CarData& OUT car) {
     return parseOutput(input, Type::Car, car);
 }
@@ -201,3 +216,8 @@ bool DebugMessage::parse(char * const input, std::optional<micro::ParamManager::
 bool DebugMessage::parse(char * const input, std::optional<IndexedSectionControlParameters>& OUT sectionControl) {
     return parseOutput(input, Type::TestTrackControl, sectionControl);
 }
+
+bool DebugMessage::parse(char * const input, RadioCommand& OUT command) {
+    return parseOutput(input, Type::RadioCommand, command);
+}
+

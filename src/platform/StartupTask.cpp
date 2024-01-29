@@ -29,7 +29,7 @@ void waitStartSignal() {
     controlData.lineControl.target = {};
 
     while (startCounter != 0) {
-        etl::string<RADIO_COMMAND_MAX_LENGTH> command;
+        etl::string<cfg::RADIO_COMMAND_MAX_LENGTH> command;
         if (radioCommandQueue.receive(command, millisecond_t(0))) {
             const uint32_t c = micro::isBtw(command[0], '0', '5') ? command[0] - '0' : 0;
             if (startCounter != c) {

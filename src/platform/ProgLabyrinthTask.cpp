@@ -61,7 +61,7 @@ struct JunctionPatternInfo {
 LaneChangeManeuver laneChange;
 
 void handleRadioCommand(LabyrinthNavigator& navigator) {
-    etl::string<RADIO_COMMAND_MAX_LENGTH> command;
+    etl::string<cfg::RADIO_COMMAND_MAX_LENGTH> command;
     if (!radioCommandQueue.receive(command, millisecond_t(0))) {
         return;
     }
