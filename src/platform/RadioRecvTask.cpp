@@ -1,5 +1,3 @@
-#include <optional>
-
 #include <etl/circular_buffer.h>
 
 #include <micro/debug/TaskMonitor.hpp>
@@ -20,22 +18,24 @@ namespace {
 struct rxBuffer_t{ char value[cfg::RADIO_COMMAND_MAX_LENGTH]; };
 rxBuffer_t rxBuffer;
 micro::mutex_t incomingMessagesMutex;
-etl::circular_buffer<rxBuffer_t, 4> incomingMessages;
+etl::circular_buffer<rxBuffer_t, 2> incomingMessages;
 
-std::optional<etl::string<cfg::RADIO_COMMAND_MAX_LENGTH>> read() {
+bool read(char OUT result[cfg::RADIO_COMMAND_MAX_LENGTH]) {
     std::scoped_lock lock{incomingMessagesMutex};
     if (incomingMessages.empty()) {
-        return std::nullopt;
+        return false;
     }
 
     auto incomingBuffer = incomingMessages.front();
     incomingMessages.pop();
 
     size_t i = 0;
-    for (; i < cfg::RADIO_COMMAND_MAX_LENGTH - 1 && incomingBuffer.value[i] != '\r'; i++) {}
-    incomingBuffer.value[i] = '\0';
+    for (; i < cfg::RADIO_COMMAND_MAX_LENGTH - 1 && incomingBuffer.value[i] != '\r'; i++) {
+        result[i] = incomingBuffer.value[i];
+    }
+    result[i] = '\0';
 
-    return incomingBuffer.value;
+    return true;
 }
 
 } // namespace
@@ -46,9 +46,10 @@ extern "C" void runRadioRecvTask(void) {
     uart_receive(uart_RadioModule, reinterpret_cast<uint8_t*>(rxBuffer.value), cfg::RADIO_COMMAND_MAX_LENGTH);
 
     while (true) {
-        if (const auto command = read()) {
-            LOG_INFO("Received radio command: {}", *command);
-            radioCommandQueue.send(*command, millisecond_t(0));
+        char command[cfg::RADIO_COMMAND_MAX_LENGTH];
+        if (read(command)) {
+            LOG_INFO("Received radio command: {}", command);
+            radioCommandQueue.send(command, millisecond_t(0));
         }
 
         taskMonitor.notify(true);

@@ -31,7 +31,7 @@ constexpr uint32_t MAX_BUFFER_SIZE = 128;
 struct rxBuffer_t{ char value[MAX_BUFFER_SIZE]; };
 rxBuffer_t rxBuffer;
 micro::mutex_t incomingMessagesMutex;
-etl::circular_buffer<rxBuffer_t, 4> incomingMessages;
+etl::circular_buffer<rxBuffer_t, 2> incomingMessages;
 
 char txBuffer[MAX_BUFFER_SIZE];
 semaphore_t txSemaphore;

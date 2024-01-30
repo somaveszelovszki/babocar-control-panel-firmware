@@ -150,13 +150,11 @@ void parseBody(char * const input, std::optional<IndexedSectionControlParameters
 }
 
 size_t formatBody(char * const output, const size_t size, const DebugMessage::RadioCommand& command) {
-    return micro::format_to_n(output, size, "{}", command.text);
+    return micro::format_to_n(output, size, "\"{}\"", command.text);
 }
 
 void parseBody(char * const input, DebugMessage::RadioCommand& command) {
-    for (size_t i = 0; i < 6; i++) {
-        command.text.push_back(input[i]);
-    }
+    etl::strncpy(command.text, &input[1], 6);
 }
 
 template <typename T>

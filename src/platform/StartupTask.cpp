@@ -29,7 +29,7 @@ void waitStartSignal() {
     controlData.lineControl.target = {};
 
     while (startCounter != 0) {
-        etl::string<cfg::RADIO_COMMAND_MAX_LENGTH> command;
+        char command[cfg::RADIO_COMMAND_MAX_LENGTH];
         if (radioCommandQueue.receive(command, millisecond_t(0))) {
             const uint32_t c = micro::isBtw(command[0], '0', '5') ? command[0] - '0' : 0;
             if (startCounter != c) {
@@ -52,18 +52,18 @@ extern "C" void runStartupTask(void) {
     uint32_t buttonClick = 0;
     gpioPinState_t prevButtonState = gpioPinState_t::SET;
 
-    while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
-        gpioPinState_t buttonState;
-        gpio_read(gpio_Btn1, buttonState);
+   while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
+       gpioPinState_t buttonState;
+       gpio_read(gpio_Btn1, buttonState);
 
-        if (gpioPinState_t::RESET == buttonState && gpioPinState_t::SET == prevButtonState) { // detects falling edges
-            ++buttonClick;
-            lastButtonClickTime = getTime();
-            LOG_DEBUG("Click! ({})", buttonClick);
-        }
-        prevButtonState = buttonState;
-        os_sleep(millisecond_t(50));
-    }
+       if (gpioPinState_t::RESET == buttonState && gpioPinState_t::SET == prevButtonState) { // detects falling edges
+           ++buttonClick;
+           lastButtonClickTime = getTime();
+           LOG_DEBUG("Click! ({})", buttonClick);
+       }
+       prevButtonState = buttonState;
+       os_sleep(millisecond_t(50));
+   }
 
     LOG_DEBUG("Number of clicks: {}", buttonClick);
     //programState.set(static_cast<ProgramState::Value>(buttonClick));

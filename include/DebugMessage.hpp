@@ -21,7 +21,7 @@ public:
 	};
 
 	struct RadioCommand {
-	    etl::string<cfg::RADIO_COMMAND_MAX_LENGTH> text;
+	    char text[cfg::RADIO_COMMAND_MAX_LENGTH];
 	};
 
     static size_t format(char * const output, const size_t size, const CarData& car);

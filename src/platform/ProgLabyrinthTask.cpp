@@ -48,9 +48,48 @@ constexpr auto LANE_DISTANCE            = centimeter_t(60);
 #define FLOOD_SEGMENT       "X_"
 #endif
 
+class RandomGeneratorWrapper : public micro::irandom_generator {
+public:
+    template <typename T>
+    void setGenerator(const T& generator) {
+        generator_ = generator;
+    }
+
+    float operator()() override {
+        return std::visit([](auto& g){ return g(); }, generator_);
+    }
+
+private:
+    std::variant<micro::random_generator, micro::fixed_number_generator> generator_;
+};
+
 LabyrinthGraph graph;
+RandomGeneratorWrapper randomWrapper;
+LabyrinthNavigator navigator(graph, randomWrapper);
 millisecond_t endTime;
 millisecond_t lastFloodCommandTime;
+
+const auto _ = []() {
+    buildLabyrinthGraph(graph);
+
+    const auto* prevSeg       = graph.findSegment(PREV_SEGMENT);
+    const auto* startSeg      = graph.findSegment(START_SEGMENT);
+    const auto* laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
+    const auto* floodSeg      = graph.findSegment(FLOOD_SEGMENT);
+    const auto* prevConn      = graph.findConnection(*prevSeg, *startSeg);
+
+    navigator.initialize(
+        graph.getVisitableSegments(),
+        startSeg,
+        prevConn,
+        laneChangeSeg,
+        floodSeg,
+        LABYRINTH_SPEED,
+        LABYRINTH_FAST_SPEED,
+        LABYRINTH_DEAD_END_SPEED);
+
+    return true;
+}();
 
 struct JunctionPatternInfo {
     Sign dir            = Sign::NEUTRAL;
@@ -60,18 +99,18 @@ struct JunctionPatternInfo {
 
 LaneChangeManeuver laneChange;
 
-void handleRadioCommand(LabyrinthNavigator& navigator) {
-    etl::string<cfg::RADIO_COMMAND_MAX_LENGTH> command;
+void handleRadioCommand() {
+    char command[cfg::RADIO_COMMAND_MAX_LENGTH];
     if (!radioCommandQueue.receive(command, millisecond_t(0))) {
         return;
     }
 
-    if (command.length() != 6) {
+    if (etl::strlen(command, cfg::RADIO_COMMAND_MAX_LENGTH) != 6) {
         LOG_WARN("Invalid labyrinth command: {}", command);
         return;
     }
 
-    if (command == "FLOOD!") {
+    if (etl::strcmp(command, "FLOOD!") == 0) {
         lastFloodCommandTime = micro::getTime();
     } else {
         char prev = command[0];
@@ -81,6 +120,14 @@ void handleRadioCommand(LabyrinthNavigator& navigator) {
         // In the test track, some segments are partitioned into multiple 'fake' segments.
         // Since the application logic cannot handle segments that are not separated by real junctions,
         // these partitions are joined together, forming one segment.
+        if (prev == 'A' || prev == 'Y') {
+            prev = '_';
+        }
+
+        if (next == 'A' || next == 'Y') {
+            next = '_';
+        }
+
         if ((prev == 'C' && next == 'B') || (prev == 'B' && next == 'D') || (prev == 'D' && next == 'F')) {
             prev = 'C';
             next = 'F';
@@ -108,29 +155,9 @@ void enforceGraphValidity() {
     }
 }
 
-class RandomGeneratorWrapper : public micro::irandom_generator {
-public:
-    template <typename T>
-    void setGenerator(const T& generator) {
-        generator_ = generator;
-    }
-
-    float operator()() override {
-        return std::visit([](auto& g){ return g(); }, generator_);
-    }
-
-private:
-    std::variant<micro::random_generator, micro::fixed_number_generator> generator_;
-};
-
 } // namespace
 
 extern "C" void runProgLabyrinthTask(void const *argument) {
-    buildLabyrinthGraph(graph);
-
-    RandomGeneratorWrapper random{};
-    LabyrinthNavigator navigator(graph, random);
-
     taskMonitor.registerInitializedTask();
 
     LineInfo lineInfo;
@@ -164,39 +191,23 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
                     switch (currentProgramState) {
                     case ProgramState::NavigateLabyrinth:
-                        random.setGenerator(random_generator{static_cast<uint16_t>(micro::getExactTime().get())});
+                        randomWrapper.setGenerator(random_generator{static_cast<uint16_t>(micro::getExactTime().get())});
                         break;
 
                     case ProgramState::NavigateLabyrinthLeft:
-                        random.setGenerator(micro::fixed_number_generator{0.999999f});
+                        randomWrapper.setGenerator(micro::fixed_number_generator{0.999999f});
                         break;
 
                     case ProgramState::NavigateLabyrinthRight:
-                        random.setGenerator(micro::fixed_number_generator{0.0});
+                        randomWrapper.setGenerator(micro::fixed_number_generator{0.0});
                         break;
 
                     default:
                         break;
                     }
-
-                    const auto* prevSeg       = graph.findSegment(PREV_SEGMENT);
-                    const auto* startSeg      = graph.findSegment(START_SEGMENT);
-                    const auto* laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-                    const auto* floodSeg      = graph.findSegment(FLOOD_SEGMENT);
-                    const auto* prevConn      = graph.findConnection(*prevSeg, *startSeg);
-
-                    navigator.initialize(
-                        graph.getVisitableSegments(),
-                        startSeg,
-                        prevConn,
-                        laneChangeSeg,
-                        floodSeg,
-                        LABYRINTH_SPEED,
-                        LABYRINTH_FAST_SPEED,
-                        LABYRINTH_DEAD_END_SPEED);
                 }
 
-                handleRadioCommand(navigator);
+                handleRadioCommand();
                 navigator.setFlood(micro::getTime() - lastFloodCommandTime < millisecond_t(450));
                 navigator.update(car, lineInfo, mainLine, controlData);
 

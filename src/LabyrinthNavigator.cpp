@@ -44,7 +44,7 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
 
 void LabyrinthNavigator::setForbiddenSegment(const Segment* segment) {
     forbiddenSegment_ = segment;
-    LOG_INFO("Forbidden segment set to: ", forbiddenSegment_ ? forbiddenSegment_->id : "NULL");
+    LOG_INFO("Forbidden segment set to: {}", forbiddenSegment_ ? forbiddenSegment_->id : "NULL");
 }
 
 void LabyrinthNavigator::setFlood(const bool flood) {

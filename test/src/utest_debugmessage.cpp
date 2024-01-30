@@ -55,7 +55,7 @@ void expectEqual(const std::optional<IndexedSectionControlParameters>& expected,
 
 void expectEqual(const DebugMessage::RadioCommand& expected,
                  const DebugMessage::RadioCommand& result) {
-    EXPECT_STREQ(expected.text.c_str(), result.text.c_str());
+    EXPECT_STREQ(expected.text, result.text);
 }
 
 template <typename T>
@@ -175,10 +175,10 @@ TEST(DebugMessage, parseTrackControl) {
 
 TEST(DebugMessage, formatRadioCommand) {
     const DebugMessage::RadioCommand command{"FLOOD!"};
-    testFormat(command, "O:FLOOD!\n");
+    testFormat(command, "O:\"FLOOD!\"\n");
 }
 
 TEST(DebugMessage, parseRadioCommand) {
     const DebugMessage::RadioCommand expected{"FLOOD!"};
-    testParse(expected, "O:FLOOD!\n");
+    testParse(expected, "O:\"FLOOD!\"\n");
 }
