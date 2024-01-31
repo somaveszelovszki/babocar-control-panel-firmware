@@ -38,7 +38,7 @@ private:
 
     void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
 
-    void tryToggleTargetSpeedSign(const micro::meter_t currentDist);
+    void tryToggleTargetSpeedSign(const micro::meter_t currentDist, const char* reason);
 
     void setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const;
 
@@ -51,6 +51,8 @@ private:
     bool isTargetLineOverrideEnabled(const micro::CarProps& car, const micro::LineInfo& lineInfo) const;
 
     bool isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const;
+
+    bool isRestricted(const Segment& segment) const;
 
     const Connection* randomConnection(const Junction& junc, const Segment& seg);
 
@@ -84,5 +86,5 @@ private:
     bool isInJunction_;
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
-    const Segment* forbiddenSegment_{nullptr};
+    JunctionIds forbiddenJunctions_;
 };
