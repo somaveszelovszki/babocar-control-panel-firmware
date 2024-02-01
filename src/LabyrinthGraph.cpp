@@ -208,16 +208,7 @@ const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::ve
         LOG_DEBUG("closest with correct topology: ({}, {})", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
     }
 
-    if (closest.second.dist < centimeter_t(120)) {
-        // a junction at the right position and the correct topology has been found
-        result = closest.second.junc;
-    } else if (closest.first.dist < centimeter_t(80)) {
-        // a junction at the right position but with incorrect topology has been found
-        result = closest.first.junc;
-    } else {
-        // the junction has not been found, returns closest
-        result = closest.first.junc;
-    }
+    result = closest.first.junc;
 
     return result != junctions_.end() ? to_raw_pointer(result) : nullptr;
 }

@@ -43,13 +43,14 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
 }
 
 void LabyrinthNavigator::setForbiddenSegment(const Segment* segment) {
+    forbiddenJunctions_.clear();
+
     if (segment) {
         const auto j1 = segment->id[0];
-        const auto j2 = segment->id[0];
+        const auto j2 = segment->id[1];
         forbiddenJunctions_ = { j1, j2 };
         LOG_INFO("Forbidden junctions: [{}, {}]", j1, j2);
     } else {
-        forbiddenJunctions_.clear();
         LOG_INFO("Forbidden junctions: []");
     }
 }
@@ -111,8 +112,13 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 
     // If the car is in a restricted segment it needs to change speed sign.
-    if (isRestricted(*currentSeg_)) {
+    if (!currentSeg_->isDeadEnd && isRestricted(*currentSeg_)) {
         tryToggleTargetSpeedSign(car.distance, "RESTRICTED_SEGMENT");
+    }
+
+    // If the obstacle is detected to be very close, the car needs to change speed sign.
+    if (detectedDistance_ < centimeter_t(45)) {
+        tryToggleTargetSpeedSign(car.distance, "OBSTACLE_DETECTED");
     }
 
     // Checks if the car needs to change speed sign in order to follow the route.

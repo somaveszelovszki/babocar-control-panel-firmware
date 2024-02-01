@@ -11,7 +11,7 @@
 
 using namespace micro;
 
-#define REAR_DISTANCE_SENSOR_ENABLED false
+#define REAR_DISTANCE_SENSOR_ENABLED true
 
 namespace {
 
@@ -37,9 +37,9 @@ bool handleDistanceSensor(
         queue.overwrite(parseDistSensorPanelData(rxData));
     }
     
-    if (frontDistSensorPanelLink.shouldSend()) {       
+    if (panelLink.shouldSend()) {
         DistSensorPanelInData txData;
-        frontDistSensorPanelLink.send(txData);
+        panelLink.send(txData);
     }
 
     return panelLink.isConnected();

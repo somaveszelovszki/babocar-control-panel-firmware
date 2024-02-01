@@ -66,8 +66,7 @@ extern "C" void runStartupTask(void) {
    }
 
     LOG_DEBUG("Number of clicks: {}", buttonClick);
-    //programState.set(static_cast<ProgramState::Value>(buttonClick));
-    programState.set(ProgramState::ReachSafetyCar);
+    programState.set(static_cast<ProgramState::Value>(buttonClick));
 
     if (ProgramState::WaitStartSignal == programState.get()) {
         waitStartSignal();

@@ -28,6 +28,10 @@ public:
     void setFlood(const bool flood);
     void navigateToLaneChange();
 
+    void setDetectedDistance(const micro::meter_t distance) {
+        detectedDistance_ = distance;
+    }
+
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
 private:
@@ -87,4 +91,5 @@ private:
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
     JunctionIds forbiddenJunctions_;
+    micro::meter_t detectedDistance_{2};
 };

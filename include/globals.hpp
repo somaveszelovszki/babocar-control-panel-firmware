@@ -17,13 +17,13 @@ extern micro::queue_t<micro::point2m, 1> carPosUpdateQueue;
 extern micro::queue_t<micro::CarProps, 1> carPropsQueue;
 extern micro::queue_t<micro::ControlData, 1> controlQueue;
 extern micro::queue_t<micro::meter_t, 1> frontDistanceQueue;
+extern micro::queue_t<micro::meter_t, 1> rearDistanceQueue;
 extern micro::queue_t<LapControlParameters, 1> lapControlQueue;
 extern micro::queue_t<IndexedSectionControlParameters, 8> sectionControlOverrideQueue;
 extern micro::queue_t<micro::ControlData, 1> lastControlQueue;
 extern micro::queue_t<micro::LineDetectControl, 1> lineDetectControlQueue;
 extern micro::queue_t<micro::LineInfo, 1> lineInfoQueue;
 extern micro::queue_t<char[cfg::RADIO_COMMAND_MAX_LENGTH], 4> radioCommandQueue;
-extern micro::queue_t<micro::meter_t, 1> rearDistanceQueue;
 
 extern micro::CanManager vehicleCanManager;
 extern micro::ParamManager globalParams;
