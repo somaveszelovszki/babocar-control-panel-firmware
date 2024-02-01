@@ -129,7 +129,8 @@ extern "C" void runVehicleStateTask(void) {
             gyroDataWd.reset();
         }
 
-        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && isGyroOk);
+        const auto ok = !vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && isGyroOk;
+        taskMonitor.notify(ok);
         os_sleep(millisecond_t(5));
     }
 }

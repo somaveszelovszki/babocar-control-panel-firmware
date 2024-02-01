@@ -184,7 +184,8 @@ extern "C" void runControlTask(void) {
 
         lastControlQueue.overwrite(controlData);
 
-        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut());
+        const auto ok = !vehicleCanManager.hasTimedOut(vehicleCanSubscriberId) && !controlDataWatchdog.hasTimedOut();
+        taskMonitor.notify(ok);
         os_sleep(millisecond_t(1));
     }
 }

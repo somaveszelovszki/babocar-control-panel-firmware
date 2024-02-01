@@ -87,7 +87,8 @@ extern "C" void runLineDetectTask(void) {
                 control.isReducedScanRangeEnabled ? cfg::REDUCED_LINE_DETECT_SCAN_RADIUS : 0, control.domain);
         }
 
-        taskMonitor.notify(!vehicleCanManager.hasTimedOut(vehicleCanSubscriberId));
+        const auto ok = !vehicleCanManager.hasTimedOut(vehicleCanSubscriberId);
+        taskMonitor.notify(ok);
         os_sleep(millisecond_t(1));
     }
 }
