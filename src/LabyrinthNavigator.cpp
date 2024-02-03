@@ -2,9 +2,16 @@
 #include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>
 
+#include <cfg_car.hpp>
 #include <LabyrinthNavigator.hpp>
 
 using namespace micro;
+
+// Offset between checkpoint center and car center
+const auto CHECKPOINT_OFFSET = micro::point2<micro::meter_t>(
+    centimeter_t(10) + cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST / 2,
+    meter_t(0)
+);
 
 LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, micro::irandom_generator& random)
     : Maneuver()
@@ -78,10 +85,19 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 
     updateCarOrientation(car, lineInfo);
 
-    const LinePattern& prevFrontPattern = frontLinePattern(prevLineInfo_);
-    const LinePattern& prevRearPattern  = rearLinePattern(prevLineInfo_);
-    const LinePattern& frontPattern     = frontLinePattern(lineInfo);
-    const LinePattern& rearPattern      = rearLinePattern(lineInfo);
+    const auto& prevFrontPattern = frontLinePattern(prevLineInfo_);
+    const auto& frontPattern     = frontLinePattern(lineInfo);
+    const auto& lines            = frontLines(lineInfo);
+
+    const auto& prevRearPattern = rearLinePattern(prevLineInfo_);
+    const auto& rearPattern     = rearLinePattern(lineInfo);
+
+    if (4 == lines.size() && car.distance - lastPosUpdateDist_ > centimeter_t(50)) {
+        if (const auto closestJunction = graph_.findJunction(car.pose.pos)) {
+            correctedCarPose_.pos = closestJunction->pos - CHECKPOINT_OFFSET.rotate(car.pose.angle);
+            lastPosUpdateDist_ = car.distance;
+        }
+    }
 
     // does not handle pattern changes while car is changing speed sign
     if (isSpeedSignChangeInProgress_) {
@@ -93,7 +109,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         if (frontPattern != prevFrontPattern) {
             if (isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir) {
                 // car is coming out of a junction
-                handleJunction(car, numJunctionSegments(prevFrontPattern), numJunctionSegments(frontPattern));
+                handleJunction(car, frontPattern.type);
                 isInJunction_ = true;
             }
         }
@@ -158,6 +174,14 @@ const micro::LinePattern& LabyrinthNavigator::rearLinePattern(const micro::LineI
     return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.rear.pattern : lineInfo.front.pattern;
 }
 
+const micro::Lines& LabyrinthNavigator::frontLines(const micro::LineInfo& lineInfo) const {
+    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.front.lines : lineInfo.rear.lines;
+}
+
+const micro::Lines& LabyrinthNavigator::rearLines(const micro::LineInfo& lineInfo) const {
+    return Sign::POSITIVE == targetSpeedSign_ ? lineInfo.rear.lines : lineInfo.front.lines;
+}
+
 void LabyrinthNavigator::updateCarOrientation(const CarProps& car, const LineInfo& lineInfo) {
     const LinePattern& frontPattern = frontLinePattern(lineInfo);
     if (car.orientedDistance > centimeter_t(60)                       &&
@@ -171,37 +195,28 @@ void LabyrinthNavigator::updateCarOrientation(const CarProps& car, const LineInf
     }
 }
 
-void LabyrinthNavigator::handleJunction(const CarProps& car, uint8_t numInSegments, uint8_t numOutSegments) {
+void LabyrinthNavigator::handleJunction(const CarProps& car, const micro::LinePattern::type_t patternType) {
     const radian_t posOri = round90(car.speed >= m_per_sec_t(0) ? car.pose.angle : car.pose.angle + PI);
     const radian_t negOri = round90(posOri + PI);
 
-    const micro::vector<std::pair<micro::radian_t, uint8_t>, 2> numSegments = {
-        { negOri, numInSegments  },
-        { posOri, numOutSegments }
-    };
-
-    LOG_DEBUG("Junction detected (car pos: ({}, {}), angle: {} deg, segments: (in: {}, out: {}))",
+    LOG_DEBUG("Junction detected (car pos: ({}, {}), angle: {} deg)",
         car.pose.pos.X.get(),
         car.pose.pos.Y.get(),
-        static_cast<degree_t>(car.pose.angle).get(),
-        static_cast<uint32_t>(numInSegments),
-        static_cast<uint32_t>(numOutSegments));
+        static_cast<degree_t>(car.pose.angle).get());
 
     lastJuncDist_ = car.distance;
     hasSpeedSignChanged_ = false;
 
-    const Junction *junc = graph_.findJunction(car.pose.pos, numSegments);
+    const Junction *junc = graph_.findJunction(car.pose.pos);
 
     // checks if any junction has been found at the current position
     if (!junc) {
         LOG_ERROR("Junction not found, chooses target direction randomly.");
-        targetDir_ = randomDirection(numOutSegments);
+        targetDir_ = randomDirection(patternType);
         return;
     }
 
     LOG_DEBUG("Junction found: {}, current segment: {}", junc->id, currentSeg_->id);
-
-    correctedCarPose_.pos = junc->pos;
 
     // checks if the current segment connects to the found junction
     if (junc->getConnectionCount(*currentSeg_) == 0) {
@@ -400,10 +415,11 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
     return connections[static_cast<size_t>(random_() * connections.size())];
 }
 
-Direction LabyrinthNavigator::randomDirection(const uint8_t numOutSegments) {
-    const auto targetLineIdx = static_cast<uint8_t>(random_() * numOutSegments);
+Direction LabyrinthNavigator::randomDirection(const micro::LinePattern::type_t patternType) {
+    const auto numSegments = micro::underlying_value(patternType) - micro::underlying_value(LinePattern::JUNCTION_1) + 1;
+    const auto targetLineIdx = static_cast<uint8_t>(random_() * numSegments);
 
-    switch (numOutSegments) {
+    switch (numSegments) {
     case 3:
         return 0 == targetLineIdx ? Direction::RIGHT : 1 == targetLineIdx ? Direction::CENTER : Direction::LEFT;
     case 2:
@@ -417,8 +433,4 @@ bool LabyrinthNavigator::isJunction(const LinePattern& pattern) {
     return LinePattern::JUNCTION_1 == pattern.type ||
            LinePattern::JUNCTION_2 == pattern.type ||
            LinePattern::JUNCTION_3 == pattern.type;
-}
-
-uint8_t LabyrinthNavigator::numJunctionSegments(const LinePattern& pattern) {
-    return isJunction(pattern) ? underlying_value(pattern.type) - underlying_value(LinePattern::JUNCTION_1) + 1 : 0;
 }

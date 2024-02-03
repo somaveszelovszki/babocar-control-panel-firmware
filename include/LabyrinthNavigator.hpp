@@ -38,9 +38,12 @@ private:
     const micro::LinePattern& frontLinePattern(const micro::LineInfo& lineInfo) const;
     const micro::LinePattern& rearLinePattern(const micro::LineInfo& lineInfo) const;
 
+    const micro::Lines& frontLines(const micro::LineInfo& lineInfo) const;
+    const micro::Lines& rearLines(const micro::LineInfo& lineInfo) const;
+
     void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
 
-    void handleJunction(const micro::CarProps& car, uint8_t numInSegments, uint8_t numOutSegments);
+    void handleJunction(const micro::CarProps& car, const micro::LinePattern::type_t patternType);
 
     void tryToggleTargetSpeedSign(const micro::meter_t currentDist, const char* reason);
 
@@ -60,13 +63,11 @@ private:
 
     const Connection* randomConnection(const Junction& junc, const Segment& seg);
 
-    micro::Direction randomDirection(const uint8_t numOutSegments);
+    micro::Direction randomDirection(const micro::LinePattern::type_t patternType);
 
     void stepToNextSegment(const Junction& junction);
 
     static bool isJunction(const micro::LinePattern& pattern);
-
-    static uint8_t numJunctionSegments(const micro::LinePattern& pattern);
 
     micro::m_per_sec_t targetSpeed_;
     micro::m_per_sec_t targetFastSpeed_;
@@ -86,6 +87,7 @@ private:
     micro::LineInfo prevLineInfo_;
     micro::Pose correctedCarPose_;
     micro::meter_t lastOrientationUpdateDist_;
+    micro::meter_t lastPosUpdateDist_;
     bool hasSpeedSignChanged_;
     bool isInJunction_;
     micro::irandom_generator& random_;

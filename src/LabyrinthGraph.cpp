@@ -157,60 +157,11 @@ const Junction* LabyrinthGraph::findJunction(const char id) const {
     return it != junctions_.end() ? to_raw_pointer(it) : nullptr;
 }
 
-const Junction* LabyrinthGraph::findJunction(const point2m& pos, const micro::vector<std::pair<micro::radian_t, uint8_t>, 2>& numSegments) const {
+const Junction* LabyrinthGraph::findJunction(const point2m& pos) const {
+    const auto it = std::min_element(junctions_.begin(), junctions_.end(),
+        [&pos](const auto& a, const auto& b) { return pos.distance(a.pos) < pos.distance(b.pos); });
 
-    Junctions::const_iterator result = junctions_.end();
-
-    struct JunctionDist {
-        Junctions::const_iterator junc;
-        meter_t dist;
-    };
-
-    LOG_DEBUG("pos: ({}, {})", pos.X.get(), pos.Y.get());
-
-    // FIRST:  closest junction to current position
-    // SECOND: closest junction to current position with the correct topology
-    std::pair<JunctionDist, JunctionDist> closest = {
-        { junctions_.end(), micro::numeric_limits<meter_t>::infinity() },
-        { junctions_.end(), micro::numeric_limits<meter_t>::infinity() }
-    };
-
-    for(Junctions::const_iterator it = junctions_.begin(); it != junctions_.end(); ++it) {
-        const meter_t dist = pos.distance(it->pos);
-
-        if (dist < closest.first.dist) {
-            closest.first.junc = to_raw_pointer(it);
-            closest.first.dist = dist;
-        }
-
-        if (dist < closest.second.dist) {
-            bool topologyOk = true;
-            for (const std::pair<micro::radian_t, uint8_t>& numSegs : numSegments) {
-                const auto* segments = it->getSideSegments(numSegs.first);
-                if (!segments || segments->size() != numSegs.second) {
-                    topologyOk = false;
-                    break;
-                }
-            }
-
-            if (topologyOk) {
-                closest.second.junc = to_raw_pointer(it);
-                closest.second.dist = dist;
-            }
-        }
-    }
-
-    if (closest.first.junc) {
-        LOG_DEBUG("closest: ({}, {})", closest.first.junc->pos.X.get(), closest.first.junc->pos.Y.get());
-    }
-
-    if (closest.second.junc) {
-        LOG_DEBUG("closest with correct topology: ({}, {})", closest.second.junc->pos.X.get(), closest.second.junc->pos.Y.get());
-    }
-
-    result = closest.first.junc;
-
-    return result != junctions_.end() ? to_raw_pointer(result) : nullptr;
+    return it != junctions_.end() ? to_raw_pointer(it) : nullptr;
 }
 
 const Connection* LabyrinthGraph::findConnection(const Segment& seg1, const Segment& seg2) const {
