@@ -22,3 +22,4 @@ CanManager vehicleCanManager(can_Vehicle);
 ParamManager globalParams;
 TaskMonitor taskMonitor(cfg::NUM_MONITORED_TASKS);
 ProgramState programState;
+bool restartRadioReceiver{false};
