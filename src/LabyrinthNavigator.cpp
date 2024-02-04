@@ -124,12 +124,14 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 
     // If the car is in a restricted segment it needs to change speed sign.
-    if (!currentSeg_->isDeadEnd && isRestricted(*currentSeg_)) {
+    if (!isInJunction_ && !currentSeg_->isDeadEnd && isRestricted(*currentSeg_)) {
         tryToggleTargetSpeedSign(car.distance, "RESTRICTED_SEGMENT");
     }
 
     // If the obstacle is detected to be very close, the car needs to change speed sign.
-    if (detectedDistance_ < centimeter_t(40)) {
+    // @note In the flood segment the ramp might be detected as an obstacle,
+    // so changing the speed sign there is not allowed for this reason.
+    if (currentSeg_ != floodSeg_ && detectedDistance_ < centimeter_t(35)) {
         tryToggleTargetSpeedSign(car.distance, "OBSTACLE_DETECTED");
     }
 
@@ -232,7 +234,7 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, const micro::LinePa
         reset(*junc, negOri);
     }
 
-    if (targetSeg_ != route_.destSeg) {
+    if (targetSeg_ && (targetSeg_ != route_.destSeg || currentSeg_ != route_.startSeg)) {
         createRoute();
     }
 

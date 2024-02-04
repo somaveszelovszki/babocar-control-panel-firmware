@@ -396,4 +396,94 @@ TEST_F(LabyrinthNavigatorTest, KeepRightAvoidObstacle) {
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
+TEST_F(LabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
+    moveCar(getJunctionPos('Y'), meter_t(0));
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('W'), getSegmentLength("WY"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('U'), getSegmentLength("UW"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('T'), getSegmentLength("TU"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('R'), getSegmentLength("RT"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('P'), getSegmentLength("PR"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('O'), getSegmentLength("OP"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('N'), getSegmentLength("NO"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    navigator_.setForbiddenSegment(graph_.findSegment(Segment::makeId('H', 'F')));
+
+    // At this point navigating towards J is acceptable
+    moveCar(getJunctionPos('L'), getSegmentLength("LN"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // From J the car can only navigate towards H, which is a restricted segment.
+    // Therefore the car needs to reverse once the rear line pattern is SINGLE_LINE.
+    moveCar(getJunctionPos('J'), getSegmentLength("JL"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
+}
+
 } // namespace

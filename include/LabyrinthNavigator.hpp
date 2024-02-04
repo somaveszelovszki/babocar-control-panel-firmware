@@ -91,5 +91,5 @@ private:
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
     JunctionIds forbiddenJunctions_;
-    micro::meter_t detectedDistance_{2};
+    micro::meter_t detectedDistance_{std::numeric_limits<float>::infinity()};
 };
