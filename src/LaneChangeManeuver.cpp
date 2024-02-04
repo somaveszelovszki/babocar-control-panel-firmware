@@ -65,19 +65,18 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
 }
 
 void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
-
     this->trajectory_.setStartConfig(Trajectory::config_t{
         car.pose,
         this->speed_
     }, car.distance);
 
     const radian_t forwardAngle = Sign::POSITIVE == this->safetyCarFollowSpeedSign_ ? car.pose.angle : normalize360(car.pose.angle + PI);
+    const auto side = this->initialSpeedSign_ * this->safetyCarFollowSpeedSign_ * micro::underlying_value(patternSide_);
 
     if (this->initialSpeedSign_ * this->patternDir_ == this->safetyCarFollowSpeedSign_) {
-
         this->trajectory_.appendSineArc(Trajectory::config_t{
             Pose{
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(90), -this->laneDistance_ + centimeter_t(5) }.rotate(forwardAngle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(90), side * (this->laneDistance_ - centimeter_t(5)) }.rotate(forwardAngle),
                 car.pose.angle
             },
             this->speed_,
@@ -93,20 +92,20 @@ void LaneChangeManeuver::buildTrajectory(const micro::CarProps& car) {
 
             this->trajectory_.appendSineArc(Trajectory::config_t{
                 Pose{
-                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(60), -sineArcWidth }.rotate(forwardAngle),
+                    this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(60), -side * sineArcWidth }.rotate(forwardAngle),
                     car.pose.angle
                 },
                 this->speed_,
             }, car.pose.angle, Trajectory::orientationUpdate_t::PATH_ORIENTATION, radian_t(0), PI);
 
             this->trajectory_.appendCircle(
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), radius }.rotate(forwardAngle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), side * radius }.rotate(forwardAngle),
                 PI,
                 this->speed_);
 
-        } else {
+                    } else {
             this->trajectory_.appendCircle(
-                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), radius }.rotate(forwardAngle),
+                this->trajectory_.lastConfig().pose.pos + vec2m{ centimeter_t(0), side * radius }.rotate(forwardAngle),
                 PI,
                 this->speed_);
         }
