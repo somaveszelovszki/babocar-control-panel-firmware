@@ -80,10 +80,10 @@ protected:
         case LinePattern::JUNCTION_2:
             switch (pattern.side) {
             case Direction::LEFT:
-                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_CENTER, id() } };
+                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_RIGHT, id() } };
 
             case Direction::RIGHT:
-                return { { LINE_POS_CENTER, id() }, { LINE_POS_RIGHT, id(1) } };
+                return { { LINE_POS_LEFT, id() }, { LINE_POS_RIGHT, id(1) } };
 
             default:
                 return {};
@@ -142,7 +142,7 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
 
     moveCar(getJunctionPos('W'), getSegmentLength("WY"));
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
@@ -152,7 +152,7 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
-    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
     testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -160,16 +160,16 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     moveCar(getJunctionPos('T'), getSegmentLength("TU"));
     setNextDecision(Direction::RIGHT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
-    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
     moveCar(getJunctionPos('R'), getSegmentLength("RT"));
     setNextDecision(Direction::RIGHT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
     testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
@@ -178,8 +178,8 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     moveCar(getJunctionPos('P'), getSegmentLength("PR"));
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
-    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
     testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -188,7 +188,7 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
-    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
     testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -196,16 +196,16 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     moveCar(getJunctionPos('N'), getSegmentLength("NO"));
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
     moveCar(getJunctionPos('L'), getSegmentLength("LN"));
     setNextDecision(Direction::RIGHT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
     testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
@@ -213,7 +213,7 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
 
     moveCar(getJunctionPos('J'), getSegmentLength("JL"));
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
@@ -222,15 +222,15 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     moveCar(getJunctionPos('H'), getSegmentLength("HJ"));
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
     moveCar(getJunctionPos('G'), getSegmentLength("GH"));
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
@@ -238,38 +238,160 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
 
     moveCar(getJunctionPos('E'), getSegmentLength("EG"));
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
-    // Checks that navigating randomly into a dead-end segment should not be allowed.
+    // Checks that navigating randomly into a dead-end segment is not allowed.
     moveCar(getJunctionPos('C'), getSegmentLength("CE"));
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
-    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::LEFT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
     moveCar(getJunctionPos('F'), getSegmentLength("CF"));
     setNextDecision(Direction::LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
-    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // Checks that navigation prefers unvisited segments.
+    moveCar(getJunctionPos('H'), getSegmentLength("FH"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+}
+
+TEST_F(LabyrinthNavigatorTest, KeepRightAvoidObstacle) {
+    moveCar(getJunctionPos('Y'), meter_t(0));
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('W'), getSegmentLength("WY"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
-    // Checks that navigation should prefer unvisited segments.
-    moveCar(getJunctionPos('H'), getSegmentLength("FH"));
+    moveCar(getJunctionPos('U'), getSegmentLength("UW"));
     setNextDecision(Direction::RIGHT);
-    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('R'), getSegmentLength("RU"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('P'), getSegmentLength("PR"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('M'), getSegmentLength("MP"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('K'), getSegmentLength("KM"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('H'), getSegmentLength("HK"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('F'), getSegmentLength("FH"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('C'), getSegmentLength("CF"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // Marks G and I as restricted.
+    // Therefore when the car reaches E, and by default it would navigate to the RIGHT,
+    // it is forced to navigate towards F (LEFT).
+    navigator_.setForbiddenSegment(graph_.findSegment(Segment::makeId('G', 'I')));
+
+    moveCar(getJunctionPos('E'), getSegmentLength("CE"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // G and I are still restricted.
+    // Therefore when the car reaches F, and by default it would navigate to the RIGHT,
+    // it is forced to navigate towards H (LEFT).
+
+    moveCar(getJunctionPos('F'), getSegmentLength("EF"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // Checks that navigation prefers unvisited segments.
+    moveCar(getJunctionPos('H'), getSegmentLength("FH"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }

@@ -401,19 +401,20 @@ bool LabyrinthNavigator::isRestricted(const Segment& segment) const {
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
-    micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> allConnections, allowedConnections, unvisitedConnections;
+    using SideConnections = micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
+    SideConnections allConnections, allowedConnections, unvisitedConnections;
 
     for (Connection *c : seg.edges) {
         const auto* otherSeg = c->getOtherSegment(seg);
+        
         if (c->junction->id == junc.id && !otherSeg->isDeadEnd) {
             allConnections.push_back(c);
 
             if (!isRestricted(*otherSeg)) {
                 allowedConnections.push_back(c);
-            }
-
-            if (unvisitedSegments_.contains(otherSeg->id)) {
-                unvisitedConnections.push_back(c);
+                if (unvisitedSegments_.contains(otherSeg->id)) {
+                    unvisitedConnections.push_back(c);
+                }
             }
         }
     }
@@ -422,12 +423,17 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
         return nullptr;
     }
 
-    auto& connections =
-        !unvisitedConnections.empty()
-            ? unvisitedConnections :
-            !allowedConnections.empty()
-                ? allowedConnections
-                : allConnections;
+    auto& connections = [&]() -> SideConnections& {
+        if (!unvisitedConnections.empty()) {
+            return unvisitedConnections;
+        }
+
+        if (!allowedConnections.empty()) {
+            return allowedConnections;
+        }
+
+        return allConnections;
+    }();
 
     std::sort(connections.begin(), connections.end(), [&seg](const auto& a, const auto& b){
         return a->getDecision(*a->getOtherSegment(seg)) < b->getDecision(*b->getOtherSegment(seg));
