@@ -55,8 +55,6 @@ private:
 
     void createRoute();
 
-    bool isTargetLineOverrideEnabled(const micro::CarProps& car, const micro::LineInfo& lineInfo) const;
-
     bool isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const;
 
     bool isRestricted(const Segment& segment) const;
@@ -66,6 +64,8 @@ private:
     micro::Direction randomDirection(const micro::LinePattern::type_t patternType);
 
     void stepToNextSegment(const Junction& junction);
+
+    const Junction* findExpectedJunction() const;
 
     static bool isJunction(const micro::LinePattern& pattern);
 

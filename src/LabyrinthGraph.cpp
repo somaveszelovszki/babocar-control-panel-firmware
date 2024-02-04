@@ -157,7 +157,7 @@ const Junction* LabyrinthGraph::findJunction(const char id) const {
     return it != junctions_.end() ? to_raw_pointer(it) : nullptr;
 }
 
-const Junction* LabyrinthGraph::findJunction(const point2m& pos) const {
+const Junction* LabyrinthGraph::findClosestJunction(const point2m& pos) const {
     const auto it = std::min_element(junctions_.begin(), junctions_.end(),
         [&pos](const auto& a, const auto& b) { return pos.distance(a.pos) < pos.distance(b.pos); });
 

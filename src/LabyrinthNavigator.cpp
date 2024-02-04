@@ -93,8 +93,8 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     const auto& rearPattern     = rearLinePattern(lineInfo);
 
     if (4 == lines.size() && car.distance - lastPosUpdateDist_ > centimeter_t(50)) {
-        if (const auto closestJunction = graph_.findJunction(car.pose.pos)) {
-            correctedCarPose_.pos = closestJunction->pos - CHECKPOINT_OFFSET.rotate(car.pose.angle);
+        if (const auto* junction = findExpectedJunction(); junction && car.pose.pos.distance(junction->pos) < centimeter_t(100)) {
+            correctedCarPose_.pos = junction->pos - CHECKPOINT_OFFSET.rotate(car.pose.angle);
             lastPosUpdateDist_ = car.distance;
         }
     }
@@ -133,7 +133,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 
     // If the obstacle is detected to be very close, the car needs to change speed sign.
-    if (detectedDistance_ < centimeter_t(45)) {
+    if (detectedDistance_ < centimeter_t(40)) {
         tryToggleTargetSpeedSign(car.distance, "OBSTACLE_DETECTED");
     }
 
@@ -207,7 +207,19 @@ void LabyrinthNavigator::handleJunction(const CarProps& car, const micro::LinePa
     lastJuncDist_ = car.distance;
     hasSpeedSignChanged_ = false;
 
-    const Junction *junc = graph_.findJunction(car.pose.pos);
+    const auto* junc = [this, &car]() -> const Junction* {
+        const auto* expectedJunction = findExpectedJunction();
+        if (expectedJunction && car.pose.pos.distance(expectedJunction->pos) < centimeter_t(120)) {
+            return expectedJunction;
+        }
+
+        const auto* closestJunction = graph_.findClosestJunction(car.pose.pos);
+        if (closestJunction && car.pose.pos.distance(closestJunction->pos) < centimeter_t(80)) {
+            return closestJunction;
+        }
+
+        return nullptr;
+    }();
 
     // checks if any junction has been found at the current position
     if (!junc) {
@@ -253,6 +265,17 @@ void LabyrinthNavigator::stepToNextSegment(const Junction& junction) {
     LOG_INFO("Stepping to next segment: {}. Target direction: {}", currentSeg_->id, to_string(targetDir_));
 }
 
+const Junction* LabyrinthNavigator::findExpectedJunction() const {
+    if (!prevConn_ || !currentSeg_) {
+        return nullptr;
+    }
+
+    const auto it = std::find_if(currentSeg_->edges.begin(), currentSeg_->edges.end(),
+        [this](const auto& c) { return c->junction != prevConn_->junction; });
+
+    return it != currentSeg_->edges.end() ? (*it)->junction : nullptr;
+}
+
 void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDist, const char* reason) {
     if (!hasSpeedSignChanged_) {
         targetSpeedSign_             = -targetSpeedSign_;
@@ -264,8 +287,10 @@ void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDi
 }
 
 void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const {
+    const LinePattern& frontPattern = frontLinePattern(lineInfo);
+
     // target line is only overwritten when the car is going in or coming out of a junction
-    if (isTargetLineOverrideEnabled(car, lineInfo)) {
+    if (isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir) {
         switch (targetSpeedSign_ * targetDir_) {
         case Direction::LEFT:
             if (!lineInfo.front.lines.empty()) {
@@ -374,11 +399,6 @@ void LabyrinthNavigator::createRoute() {
     }
 }
 
-bool LabyrinthNavigator::isTargetLineOverrideEnabled(const CarProps& car, const LineInfo& lineInfo) const {
-    const LinePattern& frontPattern = frontLinePattern(lineInfo);
-    return isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir;
-}
-
 bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const {
     return LinePattern::NONE == pattern.type && (currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
 }
@@ -389,25 +409,34 @@ bool LabyrinthNavigator::isRestricted(const Segment& segment) const {
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
-    micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> allowedConnections, unvisitedConnections;
+    micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE> allConnections, allowedConnections, unvisitedConnections;
 
     for (Connection *c : seg.edges) {
         const auto* otherSeg = c->getOtherSegment(seg);
-        if (c->junction->id == junc.id &&
-            !otherSeg->isDeadEnd &&
-            !isRestricted(*otherSeg)) {
-            allowedConnections.push_back(c);
+        if (c->junction->id == junc.id && !otherSeg->isDeadEnd) {
+            allConnections.push_back(c);
+
+            if (!isRestricted(*otherSeg)) {
+                allowedConnections.push_back(c);
+            }
+
             if (unvisitedSegments_.contains(otherSeg->id)) {
                 unvisitedConnections.push_back(c);
             }
         }
     }
 
-    if (allowedConnections.empty()) {
+    if (allConnections.empty()) {
         return nullptr;
     }
 
-    auto& connections = !unvisitedConnections.empty() ? unvisitedConnections : allowedConnections;
+    auto& connections =
+        !unvisitedConnections.empty()
+            ? unvisitedConnections :
+            !allowedConnections.empty()
+                ? allowedConnections
+                : allConnections;
+
     std::sort(connections.begin(), connections.end(), [&seg](const auto& a, const auto& b){
         return a->getDecision(*a->getOtherSegment(seg)) < b->getDecision(*b->getOtherSegment(seg));
     });

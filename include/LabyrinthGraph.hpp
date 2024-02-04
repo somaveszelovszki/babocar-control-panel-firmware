@@ -146,7 +146,7 @@ public:
     Junction* findJunction(const char id);
     const Junction* findJunction(const char id) const;
 
-    const Junction* findJunction(const micro::point2m& pos) const;
+    const Junction* findClosestJunction(const micro::point2m& pos) const;
 
     const Connection* findConnection(const Segment& seg1, const Segment& seg2) const;
 

@@ -30,8 +30,8 @@ using namespace micro;
 
 namespace {
 
-constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.0f);
-constexpr auto LABYRINTH_FAST_SPEED     = m_per_sec_t(1.0f);
+constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.2f);
+constexpr auto LABYRINTH_FAST_SPEED     = m_per_sec_t(1.2f);
 constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.85f);
 constexpr auto LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
 constexpr auto LANE_DISTANCE            = centimeter_t(60);
@@ -110,7 +110,9 @@ void handleRadioCommand() {
         return;
     }
 
-    if (etl::strcmp(command, "FLOOD!") == 0) {
+    if (etl::strcmp(command, "LANE!!") == 0) {
+        navigator.navigateToLaneChange();
+    } else if (etl::strcmp(command, "FLOOD!") == 0) {
         lastFloodCommandTime = micro::getTime();
     } else {
         char prev = command[0];
