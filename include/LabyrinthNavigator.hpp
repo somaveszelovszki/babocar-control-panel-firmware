@@ -27,9 +27,7 @@ public:
     void setFlood(const bool flood);
     void navigateToLaneChange();
 
-    void setDetectedDistance(const micro::meter_t distance) {
-        detectedDistance_ = distance;
-    }
+    void setDetectedDistance(const micro::meter_t distance);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
@@ -56,7 +54,7 @@ private:
 
     bool isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const;
 
-    bool isRestricted(const Segment& segment) const;
+    bool isRestricted(const Junction& prevJunction, const Segment& segment) const;
 
     const Connection* randomConnection(const Junction& junc, const Segment& seg);
 
@@ -80,7 +78,6 @@ private:
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
     micro::Sign targetSpeedSign_;
-    bool isSpeedSignChangeInProgress_;
     micro::meter_t lastSpeedSignChangeDistance_;
     micro::LineInfo prevLineInfo_;
     micro::Pose correctedCarPose_;

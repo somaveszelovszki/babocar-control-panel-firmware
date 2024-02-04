@@ -1,3 +1,4 @@
+#include "micro/utils/point2.hpp"
 #include <micro/math/random_generator.hpp>
 #include <micro/test/utils.hpp>
 #include <micro/utils/Line.hpp>
@@ -52,18 +53,19 @@ protected:
     }
 
     void setLines(const LinePattern& pattern) {
-        lineInfo_.front.pattern = pattern;
-        lineInfo_.front.pattern.startDist = car_.distance;
-        lineInfo_.front.lines = makeLines(pattern);
+        auto& front = car_.speed >= micro::m_per_sec_t(0) ? lineInfo_.front : lineInfo_.rear;
+        auto& rear = car_.speed >= micro::m_per_sec_t(0) ? lineInfo_.rear : lineInfo_.front;
+        
+        front.pattern = pattern;
+        front.pattern.startDist = car_.distance;
+        front.lines = makeLines(pattern);
 
-        lineInfo_.rear.pattern = lineInfo_.front.pattern;
-        lineInfo_.rear.pattern.dir = -lineInfo_.rear.pattern.dir;
-        lineInfo_.rear.pattern.side = -lineInfo_.rear.pattern.side;
+        rear.pattern = front.pattern;
 
-        lineInfo_.rear.lines.clear();
-        for (auto line : lineInfo_.front.lines) {
+        rear.lines.clear();
+        for (auto line : front.lines) {
             line.pos = -line.pos;
-            lineInfo_.rear.lines.insert(line);
+            rear.lines.insert(line);
         }
         
         micro::updateMainLine(lineInfo_.front.lines, lineInfo_.rear.lines, mainLine_);
@@ -114,7 +116,7 @@ protected:
         navigator_.update(car_, lineInfo_, mainLine_, controlData_);
         car_.speed = controlData_.speed;
         EXPECT_NEAR_UNIT_DEFAULT(speed, car_.speed);
-        EXPECT_NEAR_UNIT_DEFAULT(targetLinePos, controlData_.lineControl.actual.pos);
+        EXPECT_NEAR_UNIT_DEFAULT(targetLinePos * micro::sgn(car_.speed), controlData_.lineControl.actual.pos);
     }
 
     point2m getJunctionPos(const char junctionId) const {
@@ -482,6 +484,55 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
     testUpdate(LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
+}
+
+TEST_F(LabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
+    moveCar(getJunctionPos('Y'), meter_t(0));
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('W'), getSegmentLength("WY"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('U'), getSegmentLength("UW"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_1, Sign::NEGATIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('R'), getSegmentLength("RU"));
+    setNextDecision(Direction::RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    navigator_.setForbiddenSegment(graph_.findSegment(Segment::makeId('P', 'R')));
+
+    // The current segment becomes restricted.
+    // The car needs to reverse ists speed.
+    moveCar(getJunctionPos('R') + point2m{meter_t(1), meter_t(0)}, meter_t(1));
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // When going back to the previous junction, it navigates towards the unvisited segment.
+    moveCar(getJunctionPos('R'), meter_t(1));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
 }

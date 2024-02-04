@@ -19,7 +19,6 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, micro::irand
     , lastJuncDist_(0)
     , targetDir_(Direction::CENTER)
     , targetSpeedSign_(Sign::POSITIVE)
-    , isSpeedSignChangeInProgress_(false)
     , hasSpeedSignChanged_(false)
     , isInJunction_(false)
     , random_(random) {}
@@ -95,36 +94,28 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         }
     }
 
-    // does not handle pattern changes while car is changing speed sign
-    if (isSpeedSignChangeInProgress_) {
-        if (sgn(car.speed) == targetSpeedSign_ && LinePattern::SINGLE_LINE == frontPattern.type) {
-            isSpeedSignChangeInProgress_ = false;
-            LOG_DEBUG("Speed sign change finished");
-        }
-    } else {
-        if (frontPattern != prevFrontPattern) {
-            if (isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir) {
-                // car is coming out of a junction
-                handleJunction(car, frontPattern.type);
-                isInJunction_ = true;
-            }
-        }
-
-        if (rearPattern != prevRearPattern) {
-            if (LinePattern::SINGLE_LINE == rearPattern.type) {
-                isInJunction_ = false;
-            }
-        }
-
-        // start going backward when a dead-end sign is detected
-        if (isDeadEnd(car, frontPattern) && !isDeadEnd(car, prevFrontPattern)) {
-            LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
-            tryToggleTargetSpeedSign(car.distance, "DEAD_END");
+    if (frontPattern != prevFrontPattern) {
+        if (isJunction(frontPattern) && Sign::POSITIVE == frontPattern.dir) {
+            // car is coming out of a junction
+            handleJunction(car, frontPattern.type);
+            isInJunction_ = true;
         }
     }
 
+    if (rearPattern != prevRearPattern) {
+        if (LinePattern::SINGLE_LINE == rearPattern.type) {
+            isInJunction_ = false;
+        }
+    }
+
+    // start going backward when a dead-end sign is detected
+    if (isDeadEnd(car, frontPattern) && !isDeadEnd(car, prevFrontPattern)) {
+        LOG_ERROR("Dead-end detected! Labyrinth target speed sign changed to {}", to_string(targetSpeedSign_));
+        tryToggleTargetSpeedSign(car.distance, "DEAD_END");
+    }
+
     // If the car is in a restricted segment it needs to change speed sign.
-    if (!isInJunction_ && !currentSeg_->isDeadEnd && isRestricted(*currentSeg_)) {
+    if (!isInJunction_ && !currentSeg_->isDeadEnd && prevConn_ && isRestricted(*prevConn_->junction, *currentSeg_)) {
         tryToggleTargetSpeedSign(car.distance, "RESTRICTED_SEGMENT");
     }
 
@@ -162,6 +153,10 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 void LabyrinthNavigator::navigateToLaneChange() {
     LOG_INFO("Navigating to the lane change segment");
     targetSeg_ = laneChangeSeg_;
+}
+
+void LabyrinthNavigator::setDetectedDistance(const micro::meter_t distance) {
+    detectedDistance_ = distance;
 }
 
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
@@ -275,10 +270,8 @@ const Junction* LabyrinthNavigator::findExpectedJunction() const {
 }
 
 void LabyrinthNavigator::tryToggleTargetSpeedSign(const micro::meter_t currentDist, const char* reason) {
-    if (!hasSpeedSignChanged_) {
-        targetSpeedSign_             = -targetSpeedSign_;
-        isSpeedSignChangeInProgress_ = true;
-        hasSpeedSignChanged_         = true;
+    if (!std::exchange(hasSpeedSignChanged_, true)) {
+        targetSpeedSign_ = -targetSpeedSign_;
         lastSpeedSignChangeDistance_ = currentDist;
         LOG_INFO("Labyrinth target speed sign changed to {}. Reason: {}", to_string(targetSpeedSign_), reason);
     }
@@ -397,14 +390,17 @@ bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::Line
     return LinePattern::NONE == pattern.type && (currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
 }
 
-bool LabyrinthNavigator::isRestricted(const Segment& segment) const {
+bool LabyrinthNavigator::isRestricted(const Junction& prevJunction, const Segment& segment) const {
+    // Checking the previous junction is necessary because coming out of a restricted segment should not be blocked by this validation.
     return std::any_of(segment.edges.begin(), segment.edges.end(),
-        [this](const auto& c) { return forbiddenJunctions_.contains(c->junction->id); });
+        [this, &prevJunction](const auto& c) {
+            return &prevJunction != c->junction && forbiddenJunctions_.contains(c->junction->id);
+        });
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
     using SideConnections = micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
-    SideConnections allConnections, allowedConnections, unvisitedConnections;
+    SideConnections allConnections, allowedConnections, unvisitedConnections, unvisitedAllowedConnections;
 
     for (Connection *c : seg.edges) {
         const auto* otherSeg = c->getOtherSegment(seg);
@@ -412,10 +408,17 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
         if (c->junction->id == junc.id && !otherSeg->isDeadEnd) {
             allConnections.push_back(c);
 
-            if (!isRestricted(*otherSeg)) {
+            const auto restricted = isRestricted(*c->junction, *otherSeg);
+            const auto unvisited = unvisitedSegments_.contains(otherSeg->id);
+
+            if (!restricted) {
                 allowedConnections.push_back(c);
-                if (unvisitedSegments_.contains(otherSeg->id)) {
-                    unvisitedConnections.push_back(c);
+            }
+
+            if (unvisited) {
+                unvisitedConnections.push_back(c);
+                if (!restricted) {
+                    unvisitedAllowedConnections.push_back(c);
                 }
             }
         }
@@ -426,12 +429,16 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
     }
 
     auto& connections = [&]() -> SideConnections& {
-        if (!unvisitedConnections.empty()) {
-            return unvisitedConnections;
+        if (!unvisitedAllowedConnections.empty()) {
+            return unvisitedAllowedConnections;
         }
 
         if (!allowedConnections.empty()) {
             return allowedConnections;
+        }
+
+        if (!unvisitedConnections.empty()) {
+            return unvisitedConnections;
         }
 
         return allConnections;
