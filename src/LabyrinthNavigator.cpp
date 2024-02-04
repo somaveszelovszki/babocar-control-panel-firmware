@@ -31,7 +31,6 @@ void LabyrinthNavigator::initialize(
     const Segment *laneChangeSeg,
     const Segment *floodSeg,
     const micro::m_per_sec_t targetSpeed,
-    const micro::m_per_sec_t targetFastSpeed,
     const micro::m_per_sec_t targetDeadEndSpeed) {
     unvisitedSegments_ = unvisitedSegments;
     currentSeg_ = currentSeg;
@@ -39,7 +38,6 @@ void LabyrinthNavigator::initialize(
     laneChangeSeg_ = laneChangeSeg;
     floodSeg_ = floodSeg;
     targetSpeed_ = targetSpeed;
-    targetFastSpeed_ = targetFastSpeed;
     targetDeadEndSpeed_ = targetDeadEndSpeed;
 
     unvisitedSegments_.erase(currentSeg_->id);
@@ -67,8 +65,6 @@ void LabyrinthNavigator::setFlood(const bool flood) {
     if (currentFlood == flood) {
         return;
     }
-
-    LOG_INFO("Flood {}", flood ? "activated" : "deactivated");
 
     if (flood) {
         LOG_INFO("Flood activated");
@@ -332,19 +328,15 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
            return targetDeadEndSpeed_;
         }
 
+        if (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_) {
+           return targetDeadEndSpeed_;
+        }
+
         if (currentSeg_->isDeadEnd && !hasSpeedSignChanged_) {
             const auto slowSectionLength = currentSeg_ == floodSeg_ ? centimeter_t(250) : centimeter_t(100);
             if (car.distance - lastJuncDist_ > floodSeg_->length - slowSectionLength) {
                 return targetDeadEndSpeed_;
             }
-        }
-
-        if (isBtw(car.distance, lastJuncDist_ + centimeter_t(20), lastJuncDist_ + currentSeg_->length - centimeter_t(20)) &&
-            1 == lineInfo.front.lines.size() && LinePattern::SINGLE_LINE == lineInfo.front.pattern.type                   &&
-            1 == lineInfo.rear.lines.size()  && LinePattern::SINGLE_LINE == lineInfo.rear.pattern.type                    &&
-            car.distance - lastSpeedSignChangeDistance_ >= centimeter_t(100)                                              &&
-            currentSeg_ != targetSeg_) {
-            return targetFastSpeed_;
         }
 
         return targetSpeed_;

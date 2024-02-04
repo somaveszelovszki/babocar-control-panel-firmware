@@ -15,7 +15,6 @@ using namespace micro;
 namespace {
 
 constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.0f);
-constexpr auto LABYRINTH_FAST_SPEED     = m_per_sec_t(1.0f);
 constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(1.0f);
 
 constexpr auto LINE_POS_LEFT   = centimeter_t(-3.8f);
@@ -39,7 +38,6 @@ public:
             laneChangeSeg,
             floodSeg,
             LABYRINTH_SPEED,
-            LABYRINTH_FAST_SPEED,
             LABYRINTH_DEAD_END_SPEED);
     }
 

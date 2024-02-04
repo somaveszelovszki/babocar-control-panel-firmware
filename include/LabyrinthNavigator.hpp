@@ -19,7 +19,6 @@ public:
         const Segment *laneChangeSeg,
         const Segment *floodSeg,
         const micro::m_per_sec_t targetSpeed,
-        const micro::m_per_sec_t targetFastSpeed,
         const micro::m_per_sec_t targetDeadEndSpeed);
 
     const micro::Pose& correctedCarPose() const;
@@ -70,7 +69,6 @@ private:
     static bool isJunction(const micro::LinePattern& pattern);
 
     micro::m_per_sec_t targetSpeed_;
-    micro::m_per_sec_t targetFastSpeed_;
     micro::m_per_sec_t targetDeadEndSpeed_;
     const LabyrinthGraph& graph_;
     const Connection *prevConn_{nullptr};

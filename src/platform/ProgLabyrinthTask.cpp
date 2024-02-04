@@ -30,8 +30,7 @@ using namespace micro;
 
 namespace {
 
-constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.2f);
-constexpr auto LABYRINTH_FAST_SPEED     = m_per_sec_t(1.2f);
+constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.1f);
 constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.85f);
 constexpr auto LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
 constexpr auto LANE_DISTANCE            = centimeter_t(60);
@@ -85,7 +84,6 @@ const auto _ = []() {
         laneChangeSeg,
         floodSeg,
         LABYRINTH_SPEED,
-        LABYRINTH_FAST_SPEED,
         LABYRINTH_DEAD_END_SPEED);
 
     return true;
@@ -217,7 +215,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
                 handleRadioCommand();
                 navigator.setFlood(micro::getTime() - lastFloodCommandTime < millisecond_t(450));
-                navigator.setDetectedDistance(car.speed >= m_per_sec_t(0) ? frontDistance : rearDistance);
+                //navigator.setDetectedDistance(car.speed >= m_per_sec_t(0) ? frontDistance : rearDistance);
                 navigator.update(car, lineInfo, mainLine, controlData);
 
                 const Pose correctedCarPose = navigator.correctedCarPose();
