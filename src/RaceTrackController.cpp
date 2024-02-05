@@ -73,6 +73,10 @@ RaceTrackController::RaceTrackController(ILapTrackSectionProvider& sectionProvid
 	, sections_{sectionProvider_(1)}
 {}
 
+void RaceTrackController::initialize(const micro::CarProps& car, const size_t lap, const size_t sectionIdx) {
+    setSection(car, lap, sectionIdx);
+}
+
 ControlData RaceTrackController::update(const CarProps& car, const LineInfo& lineInfo, const MainLine& mainLine) {
     if (sections_[sectionIdx_].checkTransition(car, lineInfo.front.pattern)) {
         const auto newSectionIdx = incr_overflow(sectionIdx_, sections_.size());

@@ -95,9 +95,9 @@ class RaceTrackController {
 public:
     explicit RaceTrackController(ILapTrackSectionProvider& sectionProvider);
 
-    micro::ControlData update(const micro::CarProps& car, const micro::LineInfo& lineInfo, const micro::MainLine& mainLine);
+    void initialize(const micro::CarProps& car, const size_t lap, const size_t sectionIdx);
 
-    void setSection(const micro::CarProps& car, const size_t lap, const size_t sectionIdx);
+    micro::ControlData update(const micro::CarProps& car, const micro::LineInfo& lineInfo, const micro::MainLine& mainLine);
 
     size_t getFastSectionIndex(const size_t n) const;
 
@@ -109,6 +109,9 @@ public:
 
     LapControlParameters getControlParameters() const;
     void overrideControlParameters(const size_t index, const TrackSection::ControlParameters& control);
+
+private:
+    void setSection(const micro::CarProps& car, const size_t lap, const size_t sectionIdx);
 
 private:
     ILapTrackSectionProvider& sectionProvider_;

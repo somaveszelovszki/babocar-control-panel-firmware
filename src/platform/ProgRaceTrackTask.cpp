@@ -73,6 +73,23 @@ bool shouldHandle(const ProgramState::Value state) {
     return isBtw(underlying_value(state), underlying_value(ProgramState::ReachSafetyCar), underlying_value(ProgramState::Test));
 }
 
+class LineDetectScanRangeManager {
+public:
+    bool checkEnabled(const size_t lap, const CarProps& car, const LineInfo& lineInfo) {
+        const auto enable = lap >= 4 && lineInfo.front.lines.size() == 1 && lineInfo.rear.lines.size() == 1;
+
+        if (!enable) {
+            lastDisabledDistance_ = car.distance;
+            return false;
+        } else if (car.distance - lastDisabledDistance_ > meter_t(1)) {
+            return true;
+        }
+    }
+
+private:
+    meter_t lastDisabledDistance_;
+};
+
 } // namespace
 
 extern "C" void runProgRaceTrackTask(void) {
@@ -85,6 +102,7 @@ extern "C" void runProgRaceTrackTask(void) {
     const uint32_t overtakeSection = getFastSection(3);
     meter_t lastDistWithSafetyCar;
     uint8_t lastOvertakeLap = 0;
+    LineDetectScanRangeManager scanRangeManager;
 
     auto currentProgramState = ProgramState::INVALID;
     auto currentLap = trackController.lap();
@@ -110,10 +128,10 @@ extern "C" void runProgRaceTrackTask(void) {
 			if (!shouldHandle(prevProgramState)) {
 				const uint32_t currentSection = getFastSection(currentProgramState);
 				if (currentSection != std::numeric_limits<uint32_t>::max()) { // race
-					trackController.setSection(car, 4, currentSection);
+					trackController.initialize(car, 4, currentSection);
 					programState.set(ProgramState::Race);
 				} else { // reach safety car
-					trackController.setSection(car, 1, 0);
+					trackController.initialize(car, 1, 0);
 				}
 
 				lastDistWithSafetyCar = car.distance;
@@ -177,20 +195,16 @@ extern "C" void runProgRaceTrackTask(void) {
 				break;
 
 			case ProgramState::Race:
-				lineDetectControlData.isReducedScanRangeEnabled = trackController.lap() >= 4 &&
-																  (car.speed > m_per_sec_t(0) ?
-																	  lineInfo.front.lines.size() == 1 :
-																	  lineInfo.rear.lines.size() == 1);
+			    lineDetectControlData.isReducedScanRangeEnabled = scanRangeManager.checkEnabled(trackController.lap(), car, lineInfo);
 
-				if (trackController.lap() > cfg::NUM_RACE_LAPS) {
-					programState.set(ProgramState::Finish);
-					LOG_DEBUG("Race finished");
-
-				}
-//				else if (trackController.lap() <= 3 && frontDistance < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
-//					programState.set(ProgramState::FollowSafetyCar);
-//					LOG_DEBUG("Reached safety car, starts following");
-//				}
+				if (trackController.lap() <= 3
+				    && frontDistance < (trackController.isCurrentSectionFast() ? MAX_VALID_SAFETY_CAR_DISTANCE - centimeter_t(2) : centimeter_t(80))) {
+					programState.set(ProgramState::FollowSafetyCar);
+					LOG_DEBUG("Reached safety car, starts following");
+				} else if (trackController.lap() > cfg::NUM_RACE_LAPS) {
+                    programState.set(ProgramState::Finish);
+                    LOG_DEBUG("Race finished");
+                }
 				break;
 
 			case ProgramState::Finish:
