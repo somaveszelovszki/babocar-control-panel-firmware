@@ -119,6 +119,11 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         tryToggleTargetSpeedSign(car.distance, "RESTRICTED_SEGMENT");
     }
 
+    // If the car goes into a dead-end segment unintentionally it needs to change speed sign.
+    if (!isInJunction_ && currentSeg_->isDeadEnd && currentSeg_ != targetSeg_) {
+        tryToggleTargetSpeedSign(car.distance, "UNINTENTIONAL_DEAD_END");
+    }
+
     // If the obstacle is detected to be very close, the car needs to change speed sign.
     // @note In the flood segment the ramp might be detected as an obstacle,
     // so changing the speed sign there is not allowed for this reason.
@@ -323,15 +328,32 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
            return targetDeadEndSpeed_;
         }
 
+        if (currentSeg_ == floodSeg_) {
+            constexpr auto SLOW_SECTION_LENGTH = centimeter_t(250);
+
+            if (!hasSpeedSignChanged_) {
+                // The hasn't changed speed sign within the flood segment yet.
+                // It needs to decrease its speed when it gets close to the ramp.
+                if (car.distance - lastJuncDist_ > floodSeg_->length - SLOW_SECTION_LENGTH) {
+                    return targetDeadEndSpeed_;
+                }
+            } else {
+                // The has changed speed sign within the flood segment.
+                // At this point the car is on the ramp, going backwards.
+                // It needs to maintain slow speed for a while to go past the ramp.
+                if (car.distance - lastSpeedSignChangeDistance_ > SLOW_SECTION_LENGTH) {
+                    return targetDeadEndSpeed_;
+                }
+            }
+
+        }
+
         if (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_) {
            return targetDeadEndSpeed_;
         }
 
-        if (currentSeg_->isDeadEnd && !hasSpeedSignChanged_) {
-            const auto slowSectionLength = currentSeg_ == floodSeg_ ? centimeter_t(250) : centimeter_t(100);
-            if (car.distance - lastJuncDist_ > floodSeg_->length - slowSectionLength) {
-                return targetDeadEndSpeed_;
-            }
+        if (currentSeg_->isDeadEnd) {
+            return targetDeadEndSpeed_;
         }
 
         return targetSpeed_;
