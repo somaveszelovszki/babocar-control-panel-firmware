@@ -8,8 +8,8 @@
 #include <LabyrinthGraph.hpp>
 
 struct LabyrinthRoute {
-    const Segment* startSeg;
-    const Segment* destSeg;
+    const Segment* startSeg{};
+    const Segment* destSeg{};
     micro::vector<const Connection*, cfg::MAX_NUM_LABYRINTH_SEGMENTS> connections;
 
     explicit LabyrinthRoute(const Segment *currentSeg = nullptr);
