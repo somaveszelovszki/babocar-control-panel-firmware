@@ -247,7 +247,7 @@ void LabyrinthNavigator::stepToNextSegment(const Junction& junction) {
         LOG_DEBUG("Route connection available");
         route_.pop_front();
     } else {
-        LOG_DEBUG("No route defined, choosing randomly from unvisited sections");
+        LOG_DEBUG("No route defined, choosing randomly");
         nextConn = randomConnection(junction, *currentSeg_);
     }
 
@@ -447,22 +447,31 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
     }
 
     if (allConnections.empty()) {
+        LOG_DEBUG("No connections available");
         return nullptr;
     }
 
     auto& connections = [&]() -> SideConnections& {
         if (!unvisitedAllowedConnections.empty()) {
+            LOG_DEBUG("Choosing from unvisited allowed connections");
             return unvisitedAllowedConnections;
         }
 
+        LOG_DEBUG("No unvisited allowed connections");
+
         if (!allowedConnections.empty()) {
+            LOG_DEBUG("Choosing from allowed connections");
             return allowedConnections;
         }
 
+        LOG_DEBUG("No allowed connections");
+
         if (!unvisitedConnections.empty()) {
+            LOG_DEBUG("Choosing from unvisited connections");
             return unvisitedConnections;
         }
 
+        LOG_DEBUG("No unvisited connections. Choosing from all connections");
         return allConnections;
     }();
 
