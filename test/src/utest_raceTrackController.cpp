@@ -121,7 +121,7 @@ public:
 };
 
 TEST_F(RaceTrackControllerCenterLineTest, sameSection) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
 
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
@@ -131,7 +131,7 @@ TEST_F(RaceTrackControllerCenterLineTest, sameSection) {
 }
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionPatternBeforeSectionDistance) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(3);
@@ -140,7 +140,7 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionPatternBeforeSectionDistance
 }
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionPatternAfterSectionDistance) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(5.5f);
@@ -149,7 +149,7 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionPatternAfterSectionDistance)
 }
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionDistanceToleranceExceeded) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(7);
@@ -158,7 +158,7 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionDistanceToleranceExceeded) {
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionDistance) {
    car_.distance = meter_t(3);
-   trackController_.setSection(car_, 1, 1);
+   trackController_.initialize(car_, 1, 1);
    checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {}});
    
    car_.distance = meter_t(3.5f);
@@ -170,7 +170,7 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionDistance) {
 
 TEST_F(RaceTrackControllerCenterLineTest, transitionAcceleration) {
    car_.distance = meter_t(3);
-   trackController_.setSection(car_, 1, 2);
+   trackController_.initialize(car_, 1, 2);
    checkUpdate(1, 2, {m_per_sec_t(2), millisecond_t(500), true, {}});
    
    car_.distance = meter_t(3.5f);
@@ -180,7 +180,7 @@ TEST_F(RaceTrackControllerCenterLineTest, transitionAcceleration) {
 }
 
 TEST_F(RaceTrackControllerCenterLineTest, limitFastSpeed) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(1);
@@ -205,7 +205,7 @@ TEST_F(RaceTrackControllerCenterLineTest, limitFastSpeed) {
 }
 
 TEST_F(RaceTrackControllerOffsetTest, interpolateUntilPattern) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(2.5f);
@@ -231,7 +231,7 @@ TEST_F(RaceTrackControllerOffsetTest, interpolateUntilPattern) {
 }
 
 TEST_F(RaceTrackControllerOffsetTest, interpolateUntilDistance) {
-   trackController_.setSection(car_, 1, 1);
+   trackController_.initialize(car_, 1, 1);
    setLine(LinePattern::SINGLE_LINE, {LINE_OFFSET, degree_t(0)});
    checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
       OrientedLine{LINE_OFFSET, degree_t(0)},
@@ -261,7 +261,7 @@ TEST_F(RaceTrackControllerOffsetTest, interpolateUntilDistance) {
 }
 
 TEST_F(RaceTrackControllerAngleTest, interpolateUntilPattern) {
-   trackController_.setSection(car_, 1, 0);
+   trackController_.initialize(car_, 1, 0);
    checkUpdate(1, 0, {m_per_sec_t(3), millisecond_t(500), false, {}});
    
    car_.distance = meter_t(2.5f);
@@ -287,7 +287,7 @@ TEST_F(RaceTrackControllerAngleTest, interpolateUntilPattern) {
 }
 
 TEST_F(RaceTrackControllerAngleTest, interpolateUntilDistance) {
-   trackController_.setSection(car_, 1, 1);
+   trackController_.initialize(car_, 1, 1);
    setLine(LinePattern::SINGLE_LINE, {centimeter_t(0), LINE_ANGLE});
    checkUpdate(1, 1, {m_per_sec_t(1), millisecond_t(500), true, {
       OrientedLine{centimeter_t(0), LINE_ANGLE},
