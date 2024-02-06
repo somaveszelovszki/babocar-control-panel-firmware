@@ -84,6 +84,8 @@ public:
         } else if (car.distance - lastDisabledDistance_ > meter_t(1)) {
             return true;
         }
+
+        return false;
     }
 
 private:
