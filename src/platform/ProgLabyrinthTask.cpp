@@ -66,7 +66,6 @@ LabyrinthGraph graph;
 RandomGeneratorWrapper randomWrapper;
 LabyrinthNavigator navigator(graph, randomWrapper);
 millisecond_t endTime;
-millisecond_t lastFloodCommandTime;
 
 const auto _ = []() {
     buildLabyrinthGraph(graph);
@@ -108,10 +107,8 @@ void handleRadioCommand() {
         return;
     }
 
-    if (etl::strcmp(command, "LANE!!") == 0) {
+    if (etl::strcmp(command, "FLOOD!") == 0) {
         navigator.navigateToLaneChange();
-    } else if (etl::strcmp(command, "FLOOD!") == 0) {
-        lastFloodCommandTime = micro::getTime();
     } else {
         char prev = command[0];
         char next = command[1];
@@ -214,8 +211,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                 frontDistanceQueue.peek(rearDistance);
 
                 handleRadioCommand();
-                navigator.setFlood(micro::getTime() - lastFloodCommandTime < millisecond_t(450));
-                //navigator.setDetectedDistance(car.speed >= m_per_sec_t(0) ? frontDistance : rearDistance);
                 navigator.update(car, lineInfo, mainLine, controlData);
 
                 const Pose correctedCarPose = navigator.correctedCarPose();
@@ -248,6 +243,7 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     programState.set(ProgramState::ReachSafetyCar);
                 }
                 break;
+
             default:
                 LOG_ERROR("Invalid program state: {}", underlying_value(currentProgramState));
                 break;

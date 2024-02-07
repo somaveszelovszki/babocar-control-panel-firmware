@@ -17,17 +17,13 @@ public:
         const Segment *startSeg,
         const Connection *prevConn,
         const Segment *laneChangeSeg,
-        const Segment *floodSeg,
         const micro::m_per_sec_t targetSpeed,
         const micro::m_per_sec_t targetDeadEndSpeed);
 
     const micro::Pose& correctedCarPose() const;
 
     void setForbiddenSegment(const Segment* segment);
-    void setFlood(const bool flood);
     void navigateToLaneChange();
-
-    void setDetectedDistance(const micro::meter_t distance);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
@@ -73,7 +69,6 @@ private:
     const Segment *currentSeg_{nullptr};
     const Segment *targetSeg_{nullptr};
     const Segment *laneChangeSeg_;
-    const Segment *floodSeg_;
     LabyrinthRoute route_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
@@ -88,5 +83,4 @@ private:
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
     JunctionIds forbiddenJunctions_;
-    micro::meter_t detectedDistance_{std::numeric_limits<float>::infinity()};
 };

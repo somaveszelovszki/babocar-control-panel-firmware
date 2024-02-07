@@ -28,14 +28,12 @@ void LabyrinthNavigator::initialize(
     const Segment *currentSeg,
     const Connection *prevConn,
     const Segment *laneChangeSeg,
-    const Segment *floodSeg,
     const micro::m_per_sec_t targetSpeed,
     const micro::m_per_sec_t targetDeadEndSpeed) {
     unvisitedSegments_ = unvisitedSegments;
     currentSeg_ = currentSeg;
     prevConn_ = prevConn;
     laneChangeSeg_ = laneChangeSeg;
-    floodSeg_ = floodSeg;
     targetSpeed_ = targetSpeed;
     targetDeadEndSpeed_ = targetDeadEndSpeed;
 
@@ -58,22 +56,6 @@ void LabyrinthNavigator::setForbiddenSegment(const Segment* segment) {
         } else {
             LOG_INFO("Forbidden junctions: [{}, {}]", *forbiddenJunctions_.begin(), *std::next(forbiddenJunctions_.begin()));
         }
-    }
-}
-
-void LabyrinthNavigator::setFlood(const bool flood) {
-    const auto currentFlood = targetSeg_ == floodSeg_;
-    if (currentFlood == flood) {
-        return;
-    }
-
-    if (flood) {
-        LOG_INFO("Flood activated");
-        targetSeg_ = floodSeg_;
-    } else {
-        LOG_INFO("Flood deactivated");
-        targetSeg_ = nullptr;
-        route_.reset();
     }
 }
 
@@ -126,13 +108,6 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         tryToggleTargetSpeedSign(car.distance, "UNINTENTIONAL_DEAD_END");
     }
 
-    // If the obstacle is detected to be very close, the car needs to change speed sign.
-    // @note In the flood segment the ramp might be detected as an obstacle,
-    // so changing the speed sign there is not allowed for this reason.
-    if (currentSeg_ != floodSeg_ && detectedDistance_ < centimeter_t(35)) {
-        tryToggleTargetSpeedSign(car.distance, "OBSTACLE_DETECTED");
-    }
-
     // Checks if the car needs to change speed sign in order to follow the route.
     // @note This is only enabled when the car is not in a junction.
     if (!isInJunction_) {
@@ -140,12 +115,6 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         if (nextConn && prevConn_ && nextConn->junction == prevConn_->junction && !currentSeg_->isLoop()) {
             tryToggleTargetSpeedSign(car.distance, "BACKWARDS_ROUTE");
         }
-    }
-
-    // If the car is in the flood segment but the flood is deactivated,
-    // the car needs to change speed sign to reverse back into the labyrinth.
-    if (currentSeg_ == floodSeg_ && targetSeg_ != floodSeg_) {
-        tryToggleTargetSpeedSign(car.distance, "FLOOD_OVER");
     }
 
     setControl(car, lineInfo, mainLine, controlData);
@@ -160,10 +129,6 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 void LabyrinthNavigator::navigateToLaneChange() {
     LOG_INFO("Navigating to the lane change segment");
     targetSeg_ = laneChangeSeg_;
-}
-
-void LabyrinthNavigator::setDetectedDistance(const micro::meter_t distance) {
-    detectedDistance_ = distance;
 }
 
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
@@ -323,55 +288,14 @@ void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::
 }
 
 void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const {
-    const m_per_sec_t prevSpeed = controlData.speed;
+    const auto speed = targetSpeedSign_ * (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_ ? targetSpeed_ : targetDeadEndSpeed_);
 
-    const auto speed = [this, &car, &lineInfo]() {
-        if (currentSeg_ == floodSeg_ && !hasSpeedSignChanged_) {
-           return targetDeadEndSpeed_;
-        }
 
-        if (currentSeg_ == floodSeg_) {
-            constexpr auto SLOW_SECTION_LENGTH = centimeter_t(250);
-
-            if (!hasSpeedSignChanged_) {
-                // The hasn't changed speed sign within the flood segment yet.
-                // It needs to decrease its speed when it gets close to the ramp.
-                if (car.distance - lastJuncDist_ > floodSeg_->length - SLOW_SECTION_LENGTH) {
-                    return targetDeadEndSpeed_;
-                }
-            } else {
-                // The has changed speed sign within the flood segment.
-                // At this point the car is on the ramp, going backwards.
-                // It needs to maintain slow speed for a while to go past the ramp.
-                if (car.distance - lastSpeedSignChangeDistance_ > SLOW_SECTION_LENGTH) {
-                    return targetDeadEndSpeed_;
-                }
-            }
-
-        }
-
-        if (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_) {
-           return targetDeadEndSpeed_;
-        }
-
-        if (currentSeg_->isDeadEnd) {
-            return targetDeadEndSpeed_;
-        }
-
-        return targetSpeed_;
-    }();
-
-    controlData.speed = targetSpeedSign_ * speed;
-
-    if (car.distance < meter_t(1)) {
-        controlData.speed = abs(controlData.speed);
-    }
-
-    controlData.rampTime = millisecond_t(300);
-
-    if (controlData.speed != prevSpeed) {
+    if (std::exchange(controlData.speed, speed) != speed) {
         LOG_DEBUG("Target speed changed to {}m/s", controlData.speed.get());
     }
+
+    controlData.rampTime = millisecond_t(350);
 
     setTargetLine(car, lineInfo, mainLine);
 

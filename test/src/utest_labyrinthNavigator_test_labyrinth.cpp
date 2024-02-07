@@ -29,7 +29,6 @@ public:
         const auto* prevSeg       = graph_.findSegment("Y_");
         const auto* currentSeg    = graph_.findSegment("WY");
         const auto* laneChangeSeg = graph_.findSegment("NQ");
-        const auto* floodSeg      = graph_.findSegment("X_");
         const auto* prevConn      = graph_.findConnection(*prevSeg, *currentSeg);
 
         navigator_.initialize(
@@ -37,7 +36,6 @@ public:
             currentSeg,
             prevConn,
             laneChangeSeg,
-            floodSeg,
             LABYRINTH_SPEED,
             LABYRINTH_DEAD_END_SPEED);
     }
