@@ -169,8 +169,8 @@ TEST(DebugMessage, parseTrackControl) {
         }
     };
 
-    testParse(std::make_optional(expected), TRACK_CONTROL_PREFIX_STR ":[1,1.50,300,5,0.2000,-5,-0.2000]\n");
-    testParse(std::optional<IndexedSectionControlParameters>(), TRACK_CONTROL_PREFIX_STR ":[]\n");
+    testParse(std::make_optional(expected), "T:[1,1.50,300,5,0.2000,-5,-0.2000]\n");
+    testParse(std::optional<IndexedSectionControlParameters>(), "T:[]\n");
 }
 
 TEST(DebugMessage, formatRadioCommand) {
