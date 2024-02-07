@@ -49,13 +49,15 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
 void LabyrinthNavigator::setForbiddenSegment(const Segment* segment) {
     forbiddenJunctions_.clear();
 
-    if (segment) {
-        const auto j1 = segment->id[0];
-        const auto j2 = segment->id[1];
-        forbiddenJunctions_ = { j1, j2 };
-        LOG_INFO("Forbidden junctions: [{}, {}]", j1, j2);
-    } else {
-        LOG_INFO("Forbidden junctions: []");
+    const auto forbiddenJunctions = segment ? JunctionIds{ segment->id[0], segment->id[1] } : JunctionIds{};
+
+    if (forbiddenJunctions != forbiddenJunctions_) {
+        forbiddenJunctions_ = forbiddenJunctions;
+        if (forbiddenJunctions_.empty()) {
+            LOG_INFO("Forbidden junctions: []");
+        } else {
+            LOG_INFO("Forbidden junctions: [{}, {}]", *forbiddenJunctions_.begin(), *std::next(forbiddenJunctions_.begin()));
+        }
     }
 }
 
