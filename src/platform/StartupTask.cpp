@@ -70,7 +70,7 @@ extern "C" void runStartupTask(void) {
 
     if (ProgramState::WaitStartSignal == programState.get()) {
         waitStartSignal();
-        programState.set(ProgramState::NavigateLabyrinthRight);
+        programState.set(ProgramState::NavigateLabyrinth);
     } else {
         // If the car failed to detect the start signal and needed to be started manually,
         // the radio receiver needs to be restarted with the proper buffer size for the incoming labyrinth messages.
