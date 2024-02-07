@@ -38,9 +38,9 @@ struct Data {
 constexpr std::array speeds = {
 //                   |fast1|        slow1        |fast2|                   slow2                  |fast3|        slow3        |fast4|                  slow4                   |
 //                   |     |prepare chic1  chic2 |     |prepare begin  round1 round2  end1   end2 |     |prepare chic1  chic2 |     |prepare begin  round1 round2  end1   end2 |
-    Data<m_per_sec_t>{{1.7}, {1.2}, {1.2}, {1.2}, {1.7}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.7}, {1.8}, {1.8}, {1.8}, {3.0}, {1.7}, {1.7}, {2.0}, {2.0}, {1.7}, {1.7}}, // Lap 1
-    Data<m_per_sec_t>{{2.0}, {1.6}, {1.6}, {1.6}, {3.0}, {1.8}, {1.8}, {2.0}, {2.0}, {1.8}, {1.8}, {3.0}, {1.6}, {1.8}, {1.8}, {3.0}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}}, // Lap 2
-    Data<m_per_sec_t>{{3.0}, {1.5}, {1.5}, {1.5}, {3.0}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.7}, {1.6}, {1.6}, {1.6}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}}, // Lap 3
+    Data<m_per_sec_t>{{1.7}, {1.2}, {1.2}, {1.2}, {1.7}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.7}, {1.8}, {1.8}, {1.8}, {3.5}, {1.7}, {1.7}, {2.0}, {2.0}, {1.7}, {1.7}}, // Lap 1
+    Data<m_per_sec_t>{{4.5}, {2.0}, {2.0}, {2.0}, {4.5}, {2.0}, {2.0}, {2.0}, {2.0}, {2.0}, {2.0}, {4.5}, {2.0}, {2.0}, {2.0}, {4.5}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}}, // Lap 2
+    Data<m_per_sec_t>{{3.6}, {1.5}, {1.5}, {1.5}, {3.6}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.2}, {1.7}, {1.6}, {1.6}, {1.6}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}, {1.8}}, // Lap 3
     Data<m_per_sec_t>{{4.0}, {2.0}, {2.0}, {2.0}, {4.0}, {2.0}, {2.0}, {2.2}, {2.2}, {2.0}, {2.0}, {4.0}, {2.2}, {2.2}, {2.2}, {4.0}, {2.0}, {2.0}, {2.2}, {2.2}, {2.0}, {2.0}}, // Lap 4
     Data<m_per_sec_t>{{3.0}, {2.2}, {2.2}, {2.2}, {3.0}, {2.0}, {2.0}, {2.2}, {2.2}, {2.0}, {2.0}, {3.0}, {2.2}, {2.2}, {2.2}, {3.0}, {2.0}, {2.0}, {2.2}, {2.2}, {2.0}, {2.0}}, // Lap 5
     Data<m_per_sec_t>{{3.0}, {2.2}, {2.2}, {2.2}, {3.0}, {2.0}, {2.0}, {2.2}, {2.2}, {2.0}, {2.0}, {3.0}, {2.2}, {2.2}, {2.2}, {3.0}, {2.0}, {2.0}, {2.2}, {2.2}, {2.0}, {2.0}}, // Lap 6
@@ -74,9 +74,9 @@ constexpr std::array endLinePositions = {
 constexpr std::array endLineAngles = {
 //                |fast1|        slow1        |fast2|                   slow2                  |fast3|        slow3        |fast4|                  slow4                   |
 //                |     |prepare chic1  chic2 |     |prepare begin  round1 round2  end1   end2 |     |prepare chic1  chic2 |     |prepare begin  round1 round2  end1   end2 |
-    Data<degree_t>{{ 0 }, {-15}, { 15}, { 0 }, { 0 }, { 15}, {-15}, {-15}, {-15}, { 15}, { 0 }, { 0 }, {-15}, { 15}, { 0 }, { 0 }, { 15}, {-15}, {-15}, {-15}, { 15}, { 0 }}, // Lap 1
+    Data<degree_t>{{ 0 }, { 15}, {-15}, { 0 }, { 0 }, { 0 }, {-15}, {-15}, { 0 }, { 0 }, { 0 }, { 0 }, {-15}, { 15}, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }}, // Lap 1
     Data<degree_t>{{ 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }}, // Lap 2
-    Data<degree_t>{{ 0 }, {-15}, { 15}, { 0 }, { 0 }, { 15}, {-15}, {-15}, {-15}, { 15}, { 0 }, { 0 }, {-15}, { 15}, { 0 }, { 0 }, { 15}, {-15}, {-15}, {-15}, { 15}, { 0 }}, // Lap 3
+    Data<degree_t>{{ 0 }, { 15}, {-15}, { 0 }, { 0 }, { 0 }, {-15}, {-15}, { 0 }, { 0 }, { 0 }, { 0 }, {-15}, { 15}, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }}, // Lap 3
     Data<degree_t>{{ 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }}, // Lap 4
     Data<degree_t>{{ 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }}, // Lap 5
     Data<degree_t>{{ 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }, { 0 }}, // Lap 6
@@ -113,22 +113,22 @@ sections.push_back(TrackSection{                                                
     ADD_TRACK_SECTION(slow1_chicane2, false, meter_t(0.65), acceleration()                   );
     ADD_TRACK_SECTION(fast2,          true,  meter_t(9.70), pattern(LinePattern::BRAKE)      );
     ADD_TRACK_SECTION(slow2_prepare,  false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
-    ADD_TRACK_SECTION(slow2_begin,    false, meter_t(1.20), distance()                       );
+    ADD_TRACK_SECTION(slow2_begin,    false, meter_t(2.00), distance()                       );
     ADD_TRACK_SECTION(slow2_round1,   false, meter_t(1.55), distance()                       );
     ADD_TRACK_SECTION(slow2_round2,   false, meter_t(1.55), distance()                       );
-    ADD_TRACK_SECTION(slow2_end1,     false, meter_t(0.60), distance()                       );
-    ADD_TRACK_SECTION(slow2_end2,     false, meter_t(0.60), acceleration()                   );
+    ADD_TRACK_SECTION(slow2_end1,     false, meter_t(0.85), distance()                       );
+    ADD_TRACK_SECTION(slow2_end2,     false, meter_t(0.85), acceleration()                   );
     ADD_TRACK_SECTION(fast3,          true,  meter_t(9.70), pattern(LinePattern::BRAKE)      );
     ADD_TRACK_SECTION(slow3_prepare,  false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
     ADD_TRACK_SECTION(slow3_chicane1, false, meter_t(0.65), distance()                       );
     ADD_TRACK_SECTION(slow3_chicane2, false, meter_t(0.65), acceleration()                   );
     ADD_TRACK_SECTION(fast4,          true,  meter_t(9.00), pattern(LinePattern::BRAKE)      );
     ADD_TRACK_SECTION(slow4_prepare,  false, meter_t(3.00), pattern(LinePattern::SINGLE_LINE));
-    ADD_TRACK_SECTION(slow4_begin,    false, meter_t(2.00), distance()                       );
+    ADD_TRACK_SECTION(slow4_begin,    false, meter_t(1.20), distance()                       );
     ADD_TRACK_SECTION(slow4_round1,   false, meter_t(1.55), distance()                       );
     ADD_TRACK_SECTION(slow4_round2,   false, meter_t(1.55), distance()                       );
-    ADD_TRACK_SECTION(slow4_end1,     false, meter_t(0.85), distance()                       );
-    ADD_TRACK_SECTION(slow4_end2,     false, meter_t(0.85), acceleration()                   );
+    ADD_TRACK_SECTION(slow4_end1,     false, meter_t(0.60), distance()                       );
+    ADD_TRACK_SECTION(slow4_end2,     false, meter_t(0.60), acceleration()                   );
 
     return sections;
 }
