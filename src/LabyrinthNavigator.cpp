@@ -313,7 +313,13 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
         sideSegments = junc.getSideSegments(micro::normalize360(negOri + PI));
     }
 
-    currentSeg_ = sideSegments->begin()->second;
+    currentSeg_ = std::find_if(sideSegments->begin(), sideSegments->end(),
+        [](const auto& dir_segment){ return !dir_segment.second->isDeadEnd; })->second;
+
+    prevConn_ = *std::find_if(currentSeg_->edges.begin(), currentSeg_->edges.end(),
+        [&junc](const auto& conn) { return conn->junction != &junc; });
+    
+    sideSegments->begin()->second;
     route_.reset();
 
     LOG_INFO("Navigator reset to the junction: {}. Current segment: {}", junc.id, currentSeg_->id);

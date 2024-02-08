@@ -60,7 +60,7 @@ LabyrinthRoute LabyrinthRoute::create(
         bool visited                  = false;
         meter_t dist                  = micro::numeric_limits<meter_t>::infinity();
     };
-    micro::vector<SegmentRouteInfo, 2 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> segmentInfos;
+    micro::vector<SegmentRouteInfo, 4 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> segmentInfos;
 
     segmentInfos.push_back(SegmentRouteInfo{ &currentSeg, &prevConn, nullptr });
     auto segInfo = segmentInfos.begin();

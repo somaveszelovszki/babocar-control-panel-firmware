@@ -26,9 +26,9 @@ class LabyrinthNavigatorTest : public ::testing::Test {
 public:
     LabyrinthNavigatorTest() {
         buildTestLabyrinthGraph(graph_);
-        const auto* prevSeg       = graph_.findSegment("Y_");
-        const auto* currentSeg    = graph_.findSegment("WY");
-        const auto* laneChangeSeg = graph_.findSegment("NQ");
+        const auto* prevSeg       = graph_.findSegment("QS");
+        const auto* currentSeg    = graph_.findSegment("SV");
+        const auto* laneChangeSeg = graph_.findSegment("X_");
         const auto* prevConn      = graph_.findConnection(*prevSeg, *currentSeg);
 
         navigator_.initialize(
@@ -533,6 +533,23 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
     testUpdate(-LABYRINTH_SPEED, LINE_POS_RIGHT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
+}
+
+TEST_F(LabyrinthNavigatorTest, NavigateToLaneChange) {
+    moveCar(getJunctionPos('Y'), meter_t(0));
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // Tests if creating route causes any issues
+    navigator_.navigateToLaneChange();
+
+    moveCar(getJunctionPos('W'), getSegmentLength("WY"));
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::LEFT });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::JUNCTION_1, Sign::POSITIVE });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
 } // namespace
