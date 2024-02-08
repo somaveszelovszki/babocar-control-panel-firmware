@@ -48,8 +48,8 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, micro::irand
     , random_(random) {}
 
 void LabyrinthNavigator::initialize(
-    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments,
-    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+    const SegmentIds& unvisitedSegments,
+    const SegmentIds& forbiddenSegments,
     const Segment *currentSeg,
     const Connection *prevConn,
     const Segment *laneChangeSeg,

@@ -68,12 +68,10 @@ extern "C" void runStartupTask(void) {
     LOG_DEBUG("Number of clicks: {}", buttonClick);
     programState.set(static_cast<ProgramState::Value>(buttonClick));
 
-    if (ProgramState::WaitStartSignal == programState.get()) {
+    if (ProgramState::WaitStartSignalRoute == programState.get() || ProgramState::WaitStartSignalRandom == programState.get()) {
         waitStartSignal();
-        programState.set(ProgramState::NavigateLabyrinth);
-    } else {
-        // If the car failed to detect the start signal and needed to be started manually,
-        // the radio receiver needs to be restarted with the proper buffer size for the incoming labyrinth messages.
-        restartRadioReceiver = true;
+        programState.set(ProgramState::WaitStartSignalRoute == programState.get()
+            ? ProgramState::LabyrinthRoute
+            : ProgramState::LabyrinthRandom);
     }
 }

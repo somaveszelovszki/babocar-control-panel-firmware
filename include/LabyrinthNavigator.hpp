@@ -24,8 +24,8 @@ public:
     LabyrinthNavigator(const LabyrinthGraph& graph, micro::irandom_generator& random);
 
     void initialize(
-        const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments,
-        const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
+        const SegmentIds& unvisitedSegments,
+        const SegmentIds& forbiddenSegments,
         const Segment *startSeg,
         const Connection *prevConn,
         const Segment *laneChangeSeg,
@@ -95,7 +95,7 @@ private:
     bool hasSpeedSignChanged_;
     bool isInJunction_;
     micro::irandom_generator& random_;
-    micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
-    micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments_;
+    SegmentIds unvisitedSegments_;
+    SegmentIds forbiddenSegments_;
     ObstaclePosition obstaclePosition_;
 };

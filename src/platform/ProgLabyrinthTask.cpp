@@ -1,5 +1,4 @@
 #include <utility>
-#include <variant>
 
 #include <micro/container/vector.hpp>
 #include <micro/debug/ParamManager.hpp>
@@ -47,24 +46,45 @@ constexpr auto LANE_DISTANCE            = centimeter_t(60);
 #define LAST_JUNCTION_BEFORE_LANE_CHANGE 'N'
 #endif
 
-class RandomGeneratorWrapper : public micro::irandom_generator {
+class DirectionGenerator : public micro::irandom_generator {
 public:
-    template <typename T>
-    void setGenerator(const T& generator) {
-        generator_ = generator;
+    using Route = micro::vector<micro::Direction, 20>;
+
+    void initialize(const Route& route = {}) {
+        true_random_ = micro::random_generator{static_cast<uint16_t>(micro::getExactTime().get())};
+        route_ = route;
     }
 
     float operator()() override {
-        return std::visit([](auto& g){ return g(); }, generator_);
+        if (!route_.empty()) {
+            const auto dir = route_.front();
+            route_.erase(route_.begin());
+            switch (dir) {
+            case micro::Direction::LEFT:
+                return 0.999999f;
+
+            case micro::Direction::CENTER:
+                return 0.5f;
+
+            case micro::Direction::RIGHT:
+                return 0.0f;
+
+            default:
+                break;
+            }
+        }
+
+        return true_random_();
     }
 
 private:
-    std::variant<micro::random_generator, micro::fixed_number_generator> generator_;
+    micro::random_generator true_random_;
+    Route route_;
 };
 
 LabyrinthGraph graph;
-RandomGeneratorWrapper randomWrapper;
-LabyrinthNavigator navigator(graph, randomWrapper);
+DirectionGenerator directionGenerator;
+LabyrinthNavigator navigator(graph, directionGenerator);
 millisecond_t endTime;
 
 const auto _ = []() {
@@ -80,7 +100,7 @@ const auto _ = []() {
 
     // The following segments are forbidden because they lead to dead-end segments.
     // Randomly navigating into them is not allowed, but they can be used for route creation.
-    const auto forbiddenSegments = {
+    const SegmentIds forbiddenSegments = {
 #if TRACK == TEST_TRACK
         "WY",
         "AC"
@@ -175,7 +195,7 @@ void handleRadioCommand() {
 }
 
 bool shouldHandle(const ProgramState::Value state) {
-    return isBtw(underlying_value(state), underlying_value(ProgramState::NavigateLabyrinth), underlying_value(ProgramState::LaneChange));
+    return isBtw(underlying_value(state), underlying_value(ProgramState::LabyrinthRoute), underlying_value(ProgramState::LaneChange));
 }
 
 void enforceGraphValidity() {
@@ -213,9 +233,8 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
             lineDetectControlData.isReducedScanRangeEnabled = false;
 
             switch (currentProgramState) {
-            case ProgramState::NavigateLabyrinth:
-            case ProgramState::NavigateLabyrinthLeft:
-            case ProgramState::NavigateLabyrinthRight:
+            case ProgramState::LabyrinthRoute:
+            case ProgramState::LabyrinthRandom:
             {
                 if (currentProgramState != prevProgramState) {
                     enforceGraphValidity();
@@ -223,16 +242,24 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     endTime = getTime() + minute_t(5);
 
                     switch (currentProgramState) {
-                    case ProgramState::NavigateLabyrinth:
-                        randomWrapper.setGenerator(random_generator{static_cast<uint16_t>(micro::getExactTime().get())});
+                    case ProgramState::LabyrinthRoute:
+                        directionGenerator.initialize({
+                            micro::Direction::LEFT,   // UT
+                            micro::Direction::RIGHT,  // NT
+                            micro::Direction::CENTER, // IN
+                            micro::Direction::LEFT,   // FI
+                            micro::Direction::RIGHT,  // AF
+                            micro::Direction::LEFT,   // AB
+                            micro::Direction::CENTER, // BE
+                            micro::Direction::LEFT,   // EJ
+                            micro::Direction::CENTER, // JL
+                            micro::Direction::CENTER  // KL
+
+                        });
                         break;
 
-                    case ProgramState::NavigateLabyrinthLeft:
-                        randomWrapper.setGenerator(micro::fixed_number_generator{0.999999f});
-                        break;
-
-                    case ProgramState::NavigateLabyrinthRight:
-                        randomWrapper.setGenerator(micro::fixed_number_generator{0.0});
+                    case ProgramState::LabyrinthRandom:
+                        directionGenerator.initialize();
                         break;
 
                     default:

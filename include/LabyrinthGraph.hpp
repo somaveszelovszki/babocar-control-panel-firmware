@@ -119,6 +119,7 @@ using Junctions = micro::vector<Junction, cfg::MAX_NUM_LABYRINTH_JUNCTIONS>;
 using Connections = micro::vector<Connection, cfg::MAX_NUM_LABYRINTH_SEGMENTS * 2>;
 
 using JunctionIds = micro::set<char, cfg::MAX_NUM_LABYRINTH_JUNCTIONS>;
+using SegmentIds = micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>;
 
 class LabyrinthGraph {
 public:

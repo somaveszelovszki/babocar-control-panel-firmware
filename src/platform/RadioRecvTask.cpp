@@ -38,11 +38,6 @@ bool read(char OUT result[cfg::RADIO_COMMAND_MAX_LENGTH]) {
     return true;
 }
 
-void restartReceiver() {
-    HAL_UART_DMAStop(uart_RadioModule.handle);
-    uart_receive(uart_RadioModule, reinterpret_cast<uint8_t*>(rxBuffer.value), cfg::RADIO_COMMAND_MAX_LENGTH);
-}
-
 } // namespace
 
 extern "C" void runRadioRecvTask(void) {
@@ -54,10 +49,6 @@ extern "C" void runRadioRecvTask(void) {
         char command[cfg::RADIO_COMMAND_MAX_LENGTH];
         if (read(command)) {
             radioCommandQueue.send(command, millisecond_t(0));
-        }
-
-        if (std::exchange(restartRadioReceiver, false)) {
-            restartReceiver();
         }
 
         taskMonitor.notify(true);
@@ -74,6 +65,7 @@ void micro_RadioModule_Uart_RxCpltCallback() {
     }
 
     if (rxBuffer.value[0] == '0' && rxBuffer.value[1] == '\r') {
-        restartReceiver();
+        HAL_UART_DMAStop(uart_RadioModule.handle);
+        uart_receive(uart_RadioModule, reinterpret_cast<uint8_t*>(rxBuffer.value), cfg::RADIO_COMMAND_MAX_LENGTH);
     }
 }

@@ -29,4 +29,3 @@ extern micro::CanManager vehicleCanManager;
 extern micro::ParamManager globalParams;
 extern micro::TaskMonitor taskMonitor;
 extern ProgramState programState;
-extern bool restartRadioReceiver;
