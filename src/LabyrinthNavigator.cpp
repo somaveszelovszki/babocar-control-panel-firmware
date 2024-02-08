@@ -28,12 +28,14 @@ void LabyrinthNavigator::initialize(
     const Segment *currentSeg,
     const Connection *prevConn,
     const Segment *laneChangeSeg,
+    const Junction *lastJunctionBeforeLaneChange,
     const micro::m_per_sec_t targetSpeed,
     const micro::m_per_sec_t targetDeadEndSpeed) {
     unvisitedSegments_ = unvisitedSegments;
     currentSeg_ = currentSeg;
     prevConn_ = prevConn;
     laneChangeSeg_ = laneChangeSeg;
+    lastJunctionBeforeLaneChange_ = lastJunctionBeforeLaneChange;
     targetSpeed_ = targetSpeed;
     targetDeadEndSpeed_ = targetDeadEndSpeed;
 
@@ -99,13 +101,8 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
     }
 
     // If the car is in a restricted segment it needs to change speed sign.
-    if (!isInJunction_ && !currentSeg_->isDeadEnd && prevConn_ && isRestricted(*prevConn_->junction, *currentSeg_)) {
+    if (!isInJunction_ && prevConn_ && isRestricted(*prevConn_->junction, *currentSeg_)) {
         tryToggleTargetSpeedSign(car.distance, "RESTRICTED_SEGMENT");
-    }
-
-    // If the car goes into a dead-end segment unintentionally it needs to change speed sign.
-    if (!isInJunction_ && currentSeg_->isDeadEnd && currentSeg_ != targetSeg_) {
-        tryToggleTargetSpeedSign(car.distance, "UNINTENTIONAL_DEAD_END");
     }
 
     // Checks if the car needs to change speed sign in order to follow the route.
@@ -129,6 +126,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 void LabyrinthNavigator::navigateToLaneChange() {
     LOG_INFO("Navigating to the lane change segment");
     targetSeg_ = laneChangeSeg_;
+    lastJunctionBeforeTargetSeg_ = lastJunctionBeforeLaneChange_;
 }
 
 const micro::LinePattern& LabyrinthNavigator::frontLinePattern(const micro::LineInfo& lineInfo) const {
@@ -328,7 +326,7 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
 void LabyrinthNavigator::createRoute() {
     LOG_INFO("Updating route to: {}", targetSeg_->id);
 
-    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, *targetSeg_, forbiddenJunctions_, false);
+    route_ = LabyrinthRoute::create(*prevConn_, *currentSeg_, *targetSeg_, *lastJunctionBeforeTargetSeg_, forbiddenJunctions_, false);
 
     LOG_DEBUG("Planned route:");
 

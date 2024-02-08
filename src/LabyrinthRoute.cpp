@@ -48,6 +48,7 @@ LabyrinthRoute LabyrinthRoute::create(
     const Connection& prevConn,
     const Segment& currentSeg,
     const Segment& destSeg,
+    const Junction& lastJunction,
     const JunctionIds& forbiddenJunctions,
     const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
@@ -72,7 +73,7 @@ LabyrinthRoute LabyrinthRoute::create(
             return a.visited == b.visited ? a.dist < b.dist : !a.visited;
         });
 
-        if (segInfo->seg == &destSeg) {
+        if (segInfo->seg == &destSeg && segInfo->prevConn->junction == &lastJunction) {
             break;
         } else if (segInfo->visited) {
             // an error has occurred

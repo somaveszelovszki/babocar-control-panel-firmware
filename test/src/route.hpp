@@ -17,6 +17,7 @@ void checkRoute(
     const char prevJunction,
     const Segment::Id& src,
     const Segment::Id& dest,
+    const char lastJunction,
     const JunctionIds& forbiddenJunctions,
     const bool allowBackwardNavigation,
     const micro::vector<RouteConnection, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& expectedConnections);

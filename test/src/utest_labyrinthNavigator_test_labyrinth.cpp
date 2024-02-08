@@ -26,16 +26,18 @@ class LabyrinthNavigatorTest : public ::testing::Test {
 public:
     LabyrinthNavigatorTest() {
         buildTestLabyrinthGraph(graph_);
-        const auto* prevSeg       = graph_.findSegment("QS");
-        const auto* currentSeg    = graph_.findSegment("SV");
-        const auto* laneChangeSeg = graph_.findSegment("X_");
-        const auto* prevConn      = graph_.findConnection(*prevSeg, *currentSeg);
+        const auto* prevSeg                  = graph_.findSegment("QS");
+        const auto* currentSeg               = graph_.findSegment("SV");
+        const auto* laneChangeSeg            = graph_.findSegment("NQ");
+        const auto* junctionBeforeLaneChange = graph_.findJunction('N');
+        const auto* prevConn                 = graph_.findConnection(*prevSeg, *currentSeg);
 
         navigator_.initialize(
             graph_.getVisitableSegments(),
             currentSeg,
             prevConn,
             laneChangeSeg,
+            junctionBeforeLaneChange,
             LABYRINTH_SPEED,
             LABYRINTH_DEAD_END_SPEED);
     }

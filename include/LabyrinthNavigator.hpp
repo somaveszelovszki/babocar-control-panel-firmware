@@ -17,6 +17,7 @@ public:
         const Segment *startSeg,
         const Connection *prevConn,
         const Segment *laneChangeSeg,
+        const Junction *lastJunctionBeforeLaneChange,
         const micro::m_per_sec_t targetSpeed,
         const micro::m_per_sec_t targetDeadEndSpeed);
 
@@ -65,10 +66,12 @@ private:
     micro::m_per_sec_t targetSpeed_;
     micro::m_per_sec_t targetDeadEndSpeed_;
     const LabyrinthGraph& graph_;
-    const Connection *prevConn_{nullptr};
-    const Segment *currentSeg_{nullptr};
-    const Segment *targetSeg_{nullptr};
-    const Segment *laneChangeSeg_;
+    const Connection *prevConn_{};
+    const Segment *currentSeg_{};
+    const Segment *targetSeg_{};
+    const Junction *lastJunctionBeforeTargetSeg_{};
+    const Segment *laneChangeSeg_{};
+    const Junction *lastJunctionBeforeLaneChange_{};
     LabyrinthRoute route_;
     micro::meter_t lastJuncDist_;
     micro::Direction targetDir_;
