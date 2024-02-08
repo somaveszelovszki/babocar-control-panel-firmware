@@ -1,4 +1,5 @@
-#include "micro/utils/units.hpp"
+#include <micro/utils/units.hpp>
+
 #include <cfg_track.hpp>
 
 #if TRACK == TEST_TRACK || COMPILE_ALL_TRACKS
@@ -9,29 +10,29 @@
 using namespace micro;
 
 void buildTestLabyrinthGraph(LabyrinthGraph& OUT graph) {
-    graph.addJunction(Junction('A', { centimeter_t(3310), centimeter_t(90) }));
-    graph.addJunction(Junction('C', { centimeter_t(2980), centimeter_t(150) }));
-    graph.addJunction(Junction('E', { centimeter_t(2830), centimeter_t(150) }));
-    graph.addJunction(Junction('F', { centimeter_t(2450), centimeter_t(0) }));
-    graph.addJunction(Junction('G', { centimeter_t(2450), centimeter_t(150) }));
-    graph.addJunction(Junction('H', { centimeter_t(2170), centimeter_t(0) }));
-    graph.addJunction(Junction('I', { centimeter_t(2170), centimeter_t(150) }));
-    graph.addJunction(Junction('J', { centimeter_t(1970), centimeter_t(60) }));
-    graph.addJunction(Junction('K', { centimeter_t(1770), centimeter_t(0) }));
-    graph.addJunction(Junction('L', { centimeter_t(1760), centimeter_t(150) }));
-    graph.addJunction(Junction('M', { centimeter_t(1490), centimeter_t(0) }));
-    graph.addJunction(Junction('N', { centimeter_t(1510), centimeter_t(150) }));
-    graph.addJunction(Junction('O', { centimeter_t(1310), centimeter_t(60) }));
-    graph.addJunction(Junction('P', { centimeter_t(1080), centimeter_t(0) }));
-    graph.addJunction(Junction('Q', { centimeter_t(1070), centimeter_t(150) }));
-    graph.addJunction(Junction('R', { centimeter_t(780), centimeter_t(0) }));
-    graph.addJunction(Junction('S', { centimeter_t(790), centimeter_t(150) }));
-    graph.addJunction(Junction('T', { centimeter_t(600), centimeter_t(60) }));
-    graph.addJunction(Junction('U', { centimeter_t(420), centimeter_t(0) }));
-    graph.addJunction(Junction('V', { centimeter_t(390), centimeter_t(150) }));
-    graph.addJunction(Junction('W', { centimeter_t(250), centimeter_t(-40) }));
-    graph.addJunction(Junction('X', { centimeter_t(250), centimeter_t(180) }));
-    graph.addJunction(Junction('Y', { centimeter_t(0), centimeter_t(0) }));
+    graph.addJunction(Junction('A', { centimeter_t(3310), centimeter_t(  90) }));
+    graph.addJunction(Junction('C', { centimeter_t(2980), centimeter_t( 150) }));
+    graph.addJunction(Junction('E', { centimeter_t(2830), centimeter_t( 150) }));
+    graph.addJunction(Junction('F', { centimeter_t(2450), centimeter_t(   0) }));
+    graph.addJunction(Junction('G', { centimeter_t(2450), centimeter_t( 150) }));
+    graph.addJunction(Junction('H', { centimeter_t(2170), centimeter_t(   0) }));
+    graph.addJunction(Junction('I', { centimeter_t(2170), centimeter_t( 150) }));
+    graph.addJunction(Junction('J', { centimeter_t(1970), centimeter_t(  60) }));
+    graph.addJunction(Junction('K', { centimeter_t(1770), centimeter_t(   0) }));
+    graph.addJunction(Junction('L', { centimeter_t(1760), centimeter_t( 150) }));
+    graph.addJunction(Junction('M', { centimeter_t(1490), centimeter_t(   0) }));
+    graph.addJunction(Junction('N', { centimeter_t(1510), centimeter_t( 150) }));
+    graph.addJunction(Junction('O', { centimeter_t(1310), centimeter_t(  60) }));
+    graph.addJunction(Junction('P', { centimeter_t(1080), centimeter_t(   0) }));
+    graph.addJunction(Junction('Q', { centimeter_t(1070), centimeter_t( 150) }));
+    graph.addJunction(Junction('R', { centimeter_t( 780), centimeter_t(   0) }));
+    graph.addJunction(Junction('S', { centimeter_t( 790), centimeter_t( 150) }));
+    graph.addJunction(Junction('T', { centimeter_t( 600), centimeter_t(  60) }));
+    graph.addJunction(Junction('U', { centimeter_t( 420), centimeter_t(   0) }));
+    graph.addJunction(Junction('V', { centimeter_t( 390), centimeter_t( 150) }));
+    graph.addJunction(Junction('W', { centimeter_t( 250), centimeter_t( -40) }));
+    graph.addJunction(Junction('X', { centimeter_t( 250), centimeter_t( 180) }));
+    graph.addJunction(Junction('Y', { centimeter_t(   0), centimeter_t(   0) }));
 
     graph.connectDeadEnd('C', {radian_t(0), Direction::LEFT}, centimeter_t(425));
     graph.connectDeadEnd('Y', {PI, Direction::CENTER}, centimeter_t(50));
