@@ -36,15 +36,15 @@ constexpr auto LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
 constexpr auto LANE_DISTANCE            = centimeter_t(60);
 
 #if TRACK == RACE_TRACK
-#define START_SEGMENT       "UX"
-#define PREV_SEGMENT        "U_"
-#define LANE_CHANGE_SEGMENT "VW"
-#define FLOOD_SEGMENT       "Q_"
+#define START_SEGMENT                    "UX"
+#define PREV_SEGMENT                     "U_"
+#define LANE_CHANGE_SEGMENT              "QV"
+#define LAST_JUNCTION_BEFORE_LANE_CHANGE 'Q'
 #elif TRACK == TEST_TRACK
-#define START_SEGMENT       "WY"
-#define PREV_SEGMENT        "Y_"
-#define LANE_CHANGE_SEGMENT "NQ"
-#define FLOOD_SEGMENT       "X_"
+#define START_SEGMENT                    "WY"
+#define PREV_SEGMENT                     "Y_"
+#define LANE_CHANGE_SEGMENT              "NQ"
+#define LAST_JUNCTION_BEFORE_LANE_CHANGE 'N'
 #endif
 
 class RandomGeneratorWrapper : public micro::irandom_generator {
@@ -70,18 +70,18 @@ millisecond_t endTime;
 const auto _ = []() {
     buildLabyrinthGraph(graph);
 
-    const auto* prevSeg       = graph.findSegment(PREV_SEGMENT);
-    const auto* startSeg      = graph.findSegment(START_SEGMENT);
-    const auto* laneChangeSeg = graph.findSegment(LANE_CHANGE_SEGMENT);
-    const auto* floodSeg      = graph.findSegment(FLOOD_SEGMENT);
-    const auto* prevConn      = graph.findConnection(*prevSeg, *startSeg);
+    const auto* prevSeg                      = graph.findSegment(PREV_SEGMENT);
+    const auto* startSeg                     = graph.findSegment(START_SEGMENT);
+    const auto* laneChangeSeg                = graph.findSegment(LANE_CHANGE_SEGMENT);
+    const auto* lastJunctionBeforeLaneChange = graph.findJunction(LAST_JUNCTION_BEFORE_LANE_CHANGE);
+    const auto* prevConn                     = graph.findConnection(*prevSeg, *startSeg);
 
     navigator.initialize(
         graph.getVisitableSegments(),
         startSeg,
         prevConn,
         laneChangeSeg,
-        floodSeg,
+        lastJunctionBeforeLaneChange,
         LABYRINTH_SPEED,
         LABYRINTH_DEAD_END_SPEED);
 
