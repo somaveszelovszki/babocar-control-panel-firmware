@@ -12,7 +12,6 @@ using namespace micro;
 void buildRaceLabyrinthGraph(LabyrinthGraph& OUT graph) {
     graph.addJunction(Junction('A', { centimeter_t( 510), centimeter_t(-720) }));
     graph.addJunction(Junction('B', { centimeter_t( 270), centimeter_t(-720) }));
-    graph.addJunction(Junction('C', { centimeter_t( 630), centimeter_t(-600) }));
     graph.addJunction(Junction('D', { centimeter_t( 390), centimeter_t(-600) }));
     graph.addJunction(Junction('E', { centimeter_t( 150), centimeter_t(-600) }));
     graph.addJunction(Junction('F', { centimeter_t( 510), centimeter_t(-480) }));
@@ -30,13 +29,16 @@ void buildRaceLabyrinthGraph(LabyrinthGraph& OUT graph) {
     graph.addJunction(Junction('R', { centimeter_t( 510), centimeter_t(   0) }));
     graph.addJunction(Junction('S', { centimeter_t( 390), centimeter_t(   0) }));
     graph.addJunction(Junction('T', { centimeter_t( 270), centimeter_t(   0) }));
-    graph.addJunction(Junction('U', { centimeter_t(   0), centimeter_t(   0) }));
+    graph.addJunction(Junction('U', { centimeter_t(  50), centimeter_t(   0) }));
     graph.addJunction(Junction('V', { centimeter_t( 510), centimeter_t( 120) }));
     graph.addJunction(Junction('W', { centimeter_t( 270), centimeter_t( 120) }));
 
+    // Adding a phantom junction so that there is a valid previous connection at start.
+    graph.addJunction(Junction('X', { centimeter_t(-30), centimeter_t(0) }));
+
     graph.connectDeadEnd('P', {PI_2, Direction::CENTER}, centimeter_t(50));
     graph.connectDeadEnd('Q', {PI, Direction::RIGHT}, centimeter_t(750));
-    graph.connectDeadEnd('U', {3 * PI_2, Direction::CENTER}, centimeter_t(30));
+    graph.connectDeadEnd('X', {3 * PI_2, Direction::CENTER}, centimeter_t(30));
 
     graph.connect('A', {3 * PI_2, Direction::LEFT},   'B', {PI_2,        Direction::RIGHT},  centimeter_t(241));
     graph.connect('A', {3 * PI_2, Direction::RIGHT},  'D', {radian_t(0), Direction::LEFT},   centimeter_t(198));
@@ -79,6 +81,7 @@ void buildRaceLabyrinthGraph(LabyrinthGraph& OUT graph) {
     graph.connect('S', {PI,       Direction::LEFT},   'W', {PI_2,        Direction::RIGHT},  centimeter_t(199));
     graph.connect('S', {PI,       Direction::RIGHT},  'V', {3 * PI_2,    Direction::LEFT},   centimeter_t(198));
     graph.connect('T', {3 * PI_2, Direction::RIGHT},  'U', {PI_2,        Direction::LEFT},   centimeter_t(241));
+    graph.connect('U', {3 * PI_2, Direction::CENTER}, 'X', {PI_2,        Direction::CENTER}, centimeter_t( 60));
     graph.connect('V', {3 * PI_2, Direction::RIGHT},  'W', {PI_2,        Direction::LEFT},   centimeter_t(241));
 }
 

@@ -37,7 +37,7 @@ constexpr auto LANE_DISTANCE            = centimeter_t(60);
 
 #if TRACK == RACE_TRACK
 #define START_SEGMENT                    "UX"
-#define PREV_SEGMENT                     "U_"
+#define PREV_SEGMENT                     "X_"
 #define LANE_CHANGE_SEGMENT              "QV"
 #define LAST_JUNCTION_BEFORE_LANE_CHANGE 'Q'
 #elif TRACK == TEST_TRACK
@@ -112,11 +112,11 @@ void handleRadioCommand() {
     } else {
         char junctions[3] = { command[0], command[1], command[2] };
 
-#if TRACK == TEST_TRACK
         const auto fixPartitions = [](auto& prev, auto& next) {
             // In the test track, some segments are partitioned into multiple 'fake' segments.
             // Since the application logic cannot handle segments that are not separated by real junctions,
             // these partitions are joined together, forming one segment.
+#if TRACK == TEST_TRACK
             if (prev == 'A' || prev == 'Y') {
                 prev = '_';
             }
@@ -132,12 +132,20 @@ void handleRadioCommand() {
                 prev = 'F';
                 next = 'C';
             }
+
+#elif TRACK == RACE_TRACK
+            if ((prev == 'A' && next == 'C') || (prev == 'C' && next == 'F')) {
+                prev = 'A';
+                next = 'F';
+            } else if ((prev == 'F' && next == 'C') || (prev == 'C' && next == 'A')) {
+                prev = 'F';
+                next = 'A';
+            }
+#endif
         };
 
         fixPartitions(junctions[0], junctions[1]);
         fixPartitions(junctions[1], junctions[2]);
-
-#endif // TRACK == TEST_TRACK
 
         const auto current = graph.findSegment(Segment::makeId(junctions[0], junctions[1]));
         const auto next = graph.findSegment(Segment::makeId(junctions[1], junctions[2]));
