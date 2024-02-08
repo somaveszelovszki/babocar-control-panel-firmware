@@ -49,6 +49,7 @@ LabyrinthNavigator::LabyrinthNavigator(const LabyrinthGraph& graph, micro::irand
 
 void LabyrinthNavigator::initialize(
     const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments,
+    const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
     const Segment *currentSeg,
     const Connection *prevConn,
     const Segment *laneChangeSeg,
@@ -56,6 +57,7 @@ void LabyrinthNavigator::initialize(
     const micro::m_per_sec_t targetSpeed,
     const micro::m_per_sec_t targetDeadEndSpeed) {
     unvisitedSegments_ = unvisitedSegments;
+    forbiddenSegments_ = forbiddenSegments;
     currentSeg_ = currentSeg;
     prevConn_ = prevConn;
     laneChangeSeg_ = laneChangeSeg;
@@ -339,8 +341,7 @@ void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
         sideSegments = junc.getSideSegments(micro::normalize360(negOri + PI));
     }
 
-    currentSeg_ = std::find_if(sideSegments->begin(), sideSegments->end(),
-        [](const auto& dir_segment){ return !dir_segment.second->isDeadEnd; })->second;
+    currentSeg_ = sideSegments->begin()->second;
 
     prevConn_ = *std::find_if(currentSeg_->edges.begin(), currentSeg_->edges.end(),
         [&junc](const auto& conn) { return conn->junction != &junc; });
@@ -375,38 +376,46 @@ void LabyrinthNavigator::createRoute() {
 }
 
 bool LabyrinthNavigator::isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const {
-    return LinePattern::NONE == pattern.type && (currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(10));
+    return LinePattern::NONE == pattern.type && (currentSeg_->isDeadEnd || car.distance - pattern.startDist > centimeter_t(5));
 }
 
 const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, const Segment& seg) {
     using SideConnections = micro::vector<const Connection*, cfg::MAX_NUM_CROSSING_SEGMENTS_SIDE>;
-    SideConnections allConnections, allowedConnections, unvisitedConnections, unvisitedAllowedConnections;
+    SideConnections allConnections, allowedConnections, unvisitedConnections, obstacleFreeConnections, unvisitedObstacleFreeConnections;
 
     for (Connection *c : seg.edges) {
         const auto* otherSeg = c->getOtherSegment(seg);
         
-        if (c->junction->id == junc.id && !otherSeg->isDeadEnd) {
-            allConnections.push_back(c);
+        if (c->junction->id != junc.id || otherSeg->isDeadEnd) {
+            continue;
+        }
 
-            const auto allowed = std::all_of(otherSeg->edges.begin(), otherSeg->edges.end(),
-                    [this, &c](const auto& otherConn) {
-                        // Segment is allowed only if the other end of the segment is not a restricted junction.
-                        return (c->junction == otherConn->junction) ||
-                            (otherConn->junction->id != obstaclePosition_.prevJunction() &&
-                            otherConn->junction->id != obstaclePosition_.nextJunction());
-                    });
+        allConnections.push_back(c);
 
-            const auto unvisited = unvisitedSegments_.contains(otherSeg->id);
+        if (forbiddenSegments_.contains(otherSeg->id)) {
+            continue;
+        }
 
-            if (allowed) {
-                allowedConnections.push_back(c);
-            }
+        allowedConnections.push_back(c);
 
-            if (unvisited) {
-                unvisitedConnections.push_back(c);
-                if (allowed) {
-                    unvisitedAllowedConnections.push_back(c);
-                }
+        const auto obstacleFree = std::all_of(otherSeg->edges.begin(), otherSeg->edges.end(),
+                [this, &c](const auto& otherConn) {
+                    // Segment is allowed only if the other end of the segment is not a restricted junction.
+                    return (c->junction == otherConn->junction) ||
+                        (otherConn->junction->id != obstaclePosition_.prevJunction() &&
+                        otherConn->junction->id != obstaclePosition_.nextJunction());
+                });
+
+        const auto unvisited = unvisitedSegments_.contains(otherSeg->id);
+
+        if (obstacleFree) {
+            obstacleFreeConnections.push_back(c);
+        }
+
+        if (unvisited) {
+            unvisitedConnections.push_back(c);
+            if (obstacleFree) {
+                unvisitedObstacleFreeConnections.push_back(c);
             }
         }
     }
@@ -417,26 +426,33 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
     }
 
     auto& connections = [&]() -> SideConnections& {
-        if (!unvisitedAllowedConnections.empty()) {
-            LOG_DEBUG("Choosing from unvisited allowed connections");
-            return unvisitedAllowedConnections;
+        if (!unvisitedObstacleFreeConnections.empty()) {
+            LOG_DEBUG("Choosing from unvisited obstacle-free connections");
+            return unvisitedObstacleFreeConnections;
         }
 
-        LOG_DEBUG("No unvisited allowed connections");
+        LOG_DEBUG("No unvisited obstacle-free connections");
 
-        if (!allowedConnections.empty()) {
-            LOG_DEBUG("Choosing from allowed connections");
-            return allowedConnections;
+        if (!obstacleFreeConnections.empty()) {
+            LOG_DEBUG("Choosing from obstacle-free connections");
+            return obstacleFreeConnections;
         }
 
-        LOG_DEBUG("No allowed connections");
+        LOG_DEBUG("No obstacle-free connections");
 
         if (!unvisitedConnections.empty()) {
             LOG_DEBUG("Choosing from unvisited connections");
             return unvisitedConnections;
         }
 
-        LOG_DEBUG("No unvisited connections. Choosing from all connections");
+        LOG_DEBUG("No unvisited connections");
+
+        if (!allowedConnections.empty()) {
+            LOG_DEBUG("Choosing from allowed connections");
+            return allowedConnections;
+        }
+
+        LOG_DEBUG("No allowed connections. Choosing from all connections");
         return allConnections;
     }();
 

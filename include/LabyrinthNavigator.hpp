@@ -25,6 +25,7 @@ public:
 
     void initialize(
         const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& unvisitedSegments,
+        const micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS>& forbiddenSegments,
         const Segment *startSeg,
         const Connection *prevConn,
         const Segment *laneChangeSeg,
@@ -95,5 +96,6 @@ private:
     bool isInJunction_;
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
+    micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> forbiddenSegments_;
     ObstaclePosition obstaclePosition_;
 };

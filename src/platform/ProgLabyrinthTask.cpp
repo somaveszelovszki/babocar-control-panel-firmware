@@ -76,8 +76,24 @@ const auto _ = []() {
     const auto* lastJunctionBeforeLaneChange = graph.findJunction(LAST_JUNCTION_BEFORE_LANE_CHANGE);
     const auto* prevConn                     = graph.findConnection(*prevSeg, *startSeg);
 
+    const auto unvisitedSegments = graph.getVisitableSegments();
+
+    // The following segments are forbidden because they lead to dead-end segments.
+    // Randomly navigating into them is not allowed, but they can be used for route creation.
+    const auto forbiddenSegments = {
+#if TRACK == TEST_TRACK
+        "WY",
+        "AC"
+#elif TRACK == RACE_TRACK
+        "OU",
+        "TU",
+        "UX"
+#endif
+    };
+
     navigator.initialize(
-        graph.getVisitableSegments(),
+        unvisitedSegments,
+        forbiddenSegments,
         startSeg,
         prevConn,
         laneChangeSeg,

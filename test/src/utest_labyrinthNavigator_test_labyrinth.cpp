@@ -34,6 +34,7 @@ public:
 
         navigator_.initialize(
             graph_.getVisitableSegments(),
+            {},
             currentSeg,
             prevConn,
             laneChangeSeg,
