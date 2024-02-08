@@ -30,8 +30,8 @@ using namespace micro;
 
 namespace {
 
-constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.1f);
-constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.85f);
+constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.0f);
+constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.7f);
 constexpr auto LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
 constexpr auto LANE_DISTANCE            = centimeter_t(60);
 
@@ -85,7 +85,11 @@ const auto _ = []() {
         "WY",
         "AC"
 #elif TRACK == RACE_TRACK
+        "MP",
+        "MQ",
+        "NS",
         "OU",
+        "PR",
         "TU",
         "UX"
 #endif
