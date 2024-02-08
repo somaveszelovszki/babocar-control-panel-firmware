@@ -10,12 +10,12 @@
 
 class LabyrinthNavigator : public micro::Maneuver {
 public:
-    struct RestrictedSegments {
+    struct ObstaclePosition {
         const Segment* current{};
         const Segment* next{};
         micro::millisecond_t lastUpdateTime;
 
-        RestrictedSegments& operator=(const RestrictedSegments&) = default;
+        ObstaclePosition& operator=(const ObstaclePosition&) = default;
 
         char prevJunction() const;
         char nextJunction() const;
@@ -34,7 +34,7 @@ public:
 
     const micro::Pose& correctedCarPose() const;
 
-    void setRestrictedSegments(const RestrictedSegments& restrictedSegments);
+    void setObstaclePosition(const ObstaclePosition& obstaclePosition);
     void navigateToLaneChange();
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
@@ -95,5 +95,5 @@ private:
     bool isInJunction_;
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
-    RestrictedSegments restrictedSegments_;
+    ObstaclePosition obstaclePosition_;
 };

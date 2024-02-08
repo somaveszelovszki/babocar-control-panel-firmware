@@ -150,7 +150,7 @@ void handleRadioCommand() {
         const auto current = graph.findSegment(Segment::makeId(junctions[0], junctions[1]));
         const auto next = graph.findSegment(Segment::makeId(junctions[1], junctions[2]));
 
-        navigator.setRestrictedSegments({ current, next, micro::getTime() });
+        navigator.setObstaclePosition({ current, next, micro::getTime() });
     }
 }
 

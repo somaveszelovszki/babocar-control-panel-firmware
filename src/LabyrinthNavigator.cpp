@@ -15,7 +15,7 @@ const auto CHECKPOINT_OFFSET = micro::point2<micro::meter_t>(
     meter_t(0)
 );
 
-char LabyrinthNavigator::RestrictedSegments::prevJunction() const {
+char LabyrinthNavigator::ObstaclePosition::prevJunction() const {
     if (!current || !next) {
         return '\0';
     }
@@ -26,7 +26,7 @@ char LabyrinthNavigator::RestrictedSegments::prevJunction() const {
     return (c0 == n0 || c0 == n1) ? c1 : c0;
 }
 
-char LabyrinthNavigator::RestrictedSegments::nextJunction() const {
+char LabyrinthNavigator::ObstaclePosition::nextJunction() const {
     if (!current || !next) {
         return '\0';
     }
@@ -70,12 +70,12 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
     return correctedCarPose_;
 }
 
-void LabyrinthNavigator::setRestrictedSegments(const RestrictedSegments& restrictedSegments) {
-    if (restrictedSegments_.current != restrictedSegments.current || restrictedSegments_.next != restrictedSegments.next) {
-        restrictedSegments_ = restrictedSegments;
-        LOG_INFO("Restricted segments: current: {}, next: {}]",
-            restrictedSegments_.current ? restrictedSegments_.current->id : "NULL",
-            restrictedSegments_.next ? restrictedSegments_.next->id : "NULL");
+void LabyrinthNavigator::setObstaclePosition(const ObstaclePosition& obstaclePosition) {
+    if (obstaclePosition_.current != obstaclePosition.current || obstaclePosition_.next != obstaclePosition.next) {
+        obstaclePosition_ = obstaclePosition;
+        LOG_INFO("Obstacle position: current: {}, next: {}]",
+            obstaclePosition_.current ? obstaclePosition_.current->id : "NULL",
+            obstaclePosition_.next ? obstaclePosition_.next->id : "NULL");
     }
 }
 
@@ -159,17 +159,17 @@ std::pair<bool, const char*> LabyrinthNavigator::isSpeedSignChangeNeeded(const m
         return {true, "DEAD_END"};
     }
 
-    if (currentSeg_ == restrictedSegments_.current) {
-        const auto sameDirection = prevConn_->junction->id == restrictedSegments_.prevJunction();
-        const auto obstacleEnteredLater = currentSegStartTime_ < restrictedSegments_.lastUpdateTime;
+    if (currentSeg_ == obstaclePosition_.current) {
+        const auto sameDirection = prevConn_->junction->id == obstaclePosition_.prevJunction();
+        const auto obstacleEnteredLater = currentSegStartTime_ < obstaclePosition_.lastUpdateTime;
 
         if (!(sameDirection && obstacleEnteredLater)) {
-            return {true, "RESTRICTED_CURRENT_SEGMENT"};
+            return {true, "OBSTACLE_IN_CURRENT_SEGMENT"};
         }
     }
     
-    if (currentSeg_ == restrictedSegments_.next && prevConn_->junction->id != restrictedSegments_.nextJunction()) {
-        return {true, "RESTRICTED_NEXT_SEGMENT"};
+    if (currentSeg_ == obstaclePosition_.next && prevConn_->junction->id != obstaclePosition_.nextJunction()) {
+        return {true, "OBSTACLE_IN_NEXT_SEGMENT"};
     }
 
     const Connection *nextConn = route_.firstConnection();
@@ -361,7 +361,7 @@ void LabyrinthNavigator::createRoute() {
         *currentSeg_,
         *targetSeg_,
         *lastJunctionBeforeTargetSeg_,
-        {restrictedSegments_.prevJunction(), restrictedSegments_.nextJunction()},
+        {obstaclePosition_.prevJunction(), obstaclePosition_.nextJunction()},
         ALLOW_BACKWARD_NAVIGATION);
 
     LOG_DEBUG("Planned route:");
@@ -392,8 +392,8 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
                     [this, &c](const auto& otherConn) {
                         // Segment is allowed only if the other end of the segment is not a restricted junction.
                         return (c->junction == otherConn->junction) ||
-                            (otherConn->junction->id != restrictedSegments_.prevJunction() &&
-                            otherConn->junction->id != restrictedSegments_.nextJunction());
+                            (otherConn->junction->id != obstaclePosition_.prevJunction() &&
+                            otherConn->junction->id != obstaclePosition_.nextJunction());
                     });
 
             const auto unvisited = unvisitedSegments_.contains(otherSeg->id);
