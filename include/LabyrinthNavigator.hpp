@@ -10,6 +10,17 @@
 
 class LabyrinthNavigator : public micro::Maneuver {
 public:
+    struct RestrictedSegments {
+        const Segment* current{};
+        const Segment* next{};
+        micro::millisecond_t lastUpdateTime;
+
+        RestrictedSegments& operator=(const RestrictedSegments&) = default;
+
+        char prevJunction() const;
+        char nextJunction() const;
+    };
+
     LabyrinthNavigator(const LabyrinthGraph& graph, micro::irandom_generator& random);
 
     void initialize(
@@ -23,7 +34,7 @@ public:
 
     const micro::Pose& correctedCarPose() const;
 
-    void setForbiddenSegment(const Segment* segment);
+    void setRestrictedSegments(const RestrictedSegments& restrictedSegments);
     void navigateToLaneChange();
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
@@ -35,11 +46,11 @@ private:
     const micro::Lines& frontLines(const micro::LineInfo& lineInfo) const;
     const micro::Lines& rearLines(const micro::LineInfo& lineInfo) const;
 
+    std::pair<bool, const char*> isSpeedSignChangeNeeded(const micro::CarProps& car, const micro::LinePattern& frontPattern) const;
+
     void updateCarOrientation(const micro::CarProps& car, const micro::LineInfo& lineInfo);
 
     void handleJunction(const micro::CarProps& car, const micro::LinePattern::type_t patternType);
-
-    void tryToggleTargetSpeedSign(const micro::meter_t currentDist, const char* reason);
 
     void setTargetLine(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine) const;
 
@@ -50,8 +61,6 @@ private:
     void createRoute();
 
     bool isDeadEnd(const micro::CarProps& car, const micro::LinePattern& pattern) const;
-
-    bool isRestricted(const Junction& prevJunction, const Segment& segment) const;
 
     const Connection* randomConnection(const Junction& junc, const Segment& seg);
 
@@ -68,6 +77,7 @@ private:
     const LabyrinthGraph& graph_;
     const Connection *prevConn_{};
     const Segment *currentSeg_{};
+    micro::millisecond_t currentSegStartTime_;
     const Segment *targetSeg_{};
     const Junction *lastJunctionBeforeTargetSeg_{};
     const Segment *laneChangeSeg_{};
@@ -85,5 +95,5 @@ private:
     bool isInJunction_;
     micro::irandom_generator& random_;
     micro::set<Segment::Id, cfg::MAX_NUM_LABYRINTH_SEGMENTS> unvisitedSegments_;
-    JunctionIds forbiddenJunctions_;
+    RestrictedSegments restrictedSegments_;
 };

@@ -363,7 +363,11 @@ TEST_F(LabyrinthNavigatorTest, KeepRightAvoidObstacle) {
     // Marks G and I as restricted.
     // Therefore when the car reaches E, and by default it would navigate to the RIGHT,
     // it is forced to navigate towards F (LEFT).
-    navigator_.setForbiddenSegment(graph_.findSegment(Segment::makeId('G', 'I')));
+    navigator_.setRestrictedSegments({
+        graph_.findSegment(Segment::makeId('G', 'I')),
+        graph_.findSegment(Segment::makeId('G', 'E')),
+        millisecond_t(0)
+    });
 
     moveCar(getJunctionPos('E'), getSegmentLength("CE"));
     setNextDecision(Direction::RIGHT);
@@ -465,7 +469,11 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
-    navigator_.setForbiddenSegment(graph_.findSegment(Segment::makeId('H', 'F')));
+    navigator_.setRestrictedSegments({
+        graph_.findSegment(Segment::makeId('H', 'F')),
+        graph_.findSegment(Segment::makeId('H', 'J')),
+        millisecond_t(0)
+    });
 
     // At this point navigating towards J is acceptable
     moveCar(getJunctionPos('L'), getSegmentLength("LN"));
@@ -519,10 +527,15 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
-    navigator_.setForbiddenSegment(graph_.findSegment(Segment::makeId('P', 'R')));
-
+    // The obstacle comes into the same segment where the car is, from in front of the car.
     // The current segment becomes restricted.
-    // The car needs to reverse ists speed.
+    // The car needs to reverse its speed.
+    navigator_.setRestrictedSegments({
+        graph_.findSegment(Segment::makeId('P', 'R')),
+        graph_.findSegment(Segment::makeId('R', 'T')),
+        millisecond_t(0)
+    });
+
     moveCar(getJunctionPos('R') + point2m{meter_t(1), meter_t(0)}, meter_t(1));
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
 
@@ -533,6 +546,27 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
     testUpdate(-LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
     testUpdate(-LABYRINTH_SPEED, LINE_POS_RIGHT);
+    setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    // The obstacle comes into the same segment where the car is, from behind the car.
+    // The current segment does not become restricted.
+    // The car needs to maintain its speed.
+    navigator_.setRestrictedSegments({
+        graph_.findSegment(Segment::makeId('R', 'T')),
+        graph_.findSegment(Segment::makeId('T', 'V')),
+        millisecond_t(1000)
+    });
+
+    moveCar(getJunctionPos('R') + point2m{meter_t(-1), meter_t(0.5)}, meter_t(1));
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
+
+    moveCar(getJunctionPos('T'), getSegmentLength("RT"));
+    setNextDecision(Direction::LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::NEGATIVE, Direction::RIGHT });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_LEFT);
+    setLines({ LinePattern::JUNCTION_2, Sign::POSITIVE, Direction::RIGHT });
+    testUpdate(-LABYRINTH_SPEED, LINE_POS_LEFT);
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
 }

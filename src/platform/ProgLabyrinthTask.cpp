@@ -110,31 +110,39 @@ void handleRadioCommand() {
     if (etl::strcmp(command, "FLOOD!") == 0) {
         navigator.navigateToLaneChange();
     } else {
-        char prev = command[0];
-        char next = command[1];
+        char junctions[3] = { command[0], command[1], command[2] };
 
 #if TRACK == TEST_TRACK
-        // In the test track, some segments are partitioned into multiple 'fake' segments.
-        // Since the application logic cannot handle segments that are not separated by real junctions,
-        // these partitions are joined together, forming one segment.
-        if (prev == 'A' || prev == 'Y') {
-            prev = '_';
-        }
+        const auto fixPartitions = [](auto& prev, auto& next) {
+            // In the test track, some segments are partitioned into multiple 'fake' segments.
+            // Since the application logic cannot handle segments that are not separated by real junctions,
+            // these partitions are joined together, forming one segment.
+            if (prev == 'A' || prev == 'Y') {
+                prev = '_';
+            }
 
-        if (next == 'A' || next == 'Y') {
-            next = '_';
-        }
+            if (next == 'A' || next == 'Y') {
+                next = '_';
+            }
 
-        if ((prev == 'C' && next == 'B') || (prev == 'B' && next == 'D') || (prev == 'D' && next == 'F')) {
-            prev = 'C';
-            next = 'F';
-        } else if ((prev == 'F' && next == 'D') || (prev == 'D' && next == 'B') || (prev == 'B' && next == 'C')) {
-            prev = 'F';
-            next = 'C';
-        }
+            if ((prev == 'C' && next == 'B') || (prev == 'B' && next == 'D') || (prev == 'D' && next == 'F')) {
+                prev = 'C';
+                next = 'F';
+            } else if ((prev == 'F' && next == 'D') || (prev == 'D' && next == 'B') || (prev == 'B' && next == 'C')) {
+                prev = 'F';
+                next = 'C';
+            }
+        };
+
+        fixPartitions(junctions[0], junctions[1]);
+        fixPartitions(junctions[1], junctions[2]);
+
 #endif // TRACK == TEST_TRACK
 
-        navigator.setForbiddenSegment(graph.findSegment(Segment::makeId(prev, next)));
+        const auto current = graph.findSegment(Segment::makeId(junctions[0], junctions[1]));
+        const auto next = graph.findSegment(Segment::makeId(junctions[1], junctions[2]));
+
+        navigator.setRestrictedSegments({ current, next, micro::getTime() });
     }
 }
 
