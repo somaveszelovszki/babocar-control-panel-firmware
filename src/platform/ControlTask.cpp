@@ -38,11 +38,11 @@ micro::map<m_per_sec_t, PID_Params, 15> frontLinePosControllerParams = {
     { { 0.00f }, { 0.00f, 0.00f,   0.00f } },
     { { 0.10f }, { 2.20f, 0.00f,  20.00f } },
     { { 1.00f }, { 2.50f, 0.00f,  20.00f } },
-    { { 1.50f }, { 1.80f, 0.00f, 120.00f } },
-    { { 2.00f }, { 1.70f, 0.00f, 120.00f } },
-    { { 2.25f }, { 1.70f, 0.00f, 120.00f } },
-    { { 2.50f }, { 1.70f, 0.00f, 120.00f } },
-    { { 3.00f }, { 1.70f, 0.00f, 120.00f } },
+    { { 1.50f }, { 2.00f, 0.00f, 120.00f } },
+    { { 2.00f }, { 2.10f, 0.00f, 150.00f } },
+    { { 2.25f }, { 2.10f, 0.00f, 150.00f } },
+    { { 2.50f }, { 2.10f, 0.00f, 150.00f } },
+    { { 3.00f }, { 2.10f, 0.00f, 150.00f } },
     { { 3.50f }, { 1.40f, 0.00f, 100.00f } },
     { { 4.00f }, { 0.90f, 0.00f, 100.00f } },
     { { 5.00f }, { 0.65f, 0.00f, 100.00f } },
@@ -52,14 +52,14 @@ micro::map<m_per_sec_t, PID_Params, 15> frontLinePosControllerParams = {
 
 micro::map<m_per_sec_t, PID_Params, 15> rearLineAngleControllerParams = {
     // speed        P      I      D
-    { { 0.00f }, { 0.00f, 0.00f, 0.00f  } },
+    { { 0.00f }, { 0.00f, 0.00f,  0.00f } },
     { { 0.10f }, { 0.60f, 0.00f, 30.00f } },
     { { 1.00f }, { 0.40f, 0.00f,  0.00f } },
     { { 1.50f }, { 0.50f, 0.00f, 30.00f } },
-    { { 2.00f }, { 0.40f, 0.00f, 40.00f } },
-    { { 2.25f }, { 0.40f, 0.00f, 40.00f } },
-    { { 2.50f }, { 0.40f, 0.00f, 40.00f } },
-    { { 3.00f }, { 0.40f, 0.00f, 40.00f } },
+    { { 2.00f }, { 0.60f, 0.00f, 50.00f } },
+    { { 2.25f }, { 0.60f, 0.00f, 50.00f } },
+    { { 2.50f }, { 0.60f, 0.00f, 50.00f } },
+    { { 3.00f }, { 0.60f, 0.00f, 50.00f } },
     { { 3.50f }, { 0.40f, 0.00f, 40.00f } },
     { { 4.00f }, { 0.00f, 0.00f,  0.00f } },
     { { 5.00f }, { 0.00f, 0.00f,  0.00f } },
@@ -124,7 +124,8 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
     if (controlData.rearSteerEnabled) {
-        rearLinePosController.tune(*micro::lerp(rearLineAngleControllerParams, abs(car.speed)));
+        //rearLinePosController.tune(*micro::lerp(rearLineAngleControllerParams, abs(car.speed)));
+        rearLinePosController.tune(rearParams);
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
@@ -156,7 +157,15 @@ extern "C" void runControlTask(void) {
     initializeVehicleCan();
 
     taskMonitor.registerInitializedTask();
-    
+
+    globalParams.registerParam("frontP", frontParams.P);
+    globalParams.registerParam("frontI", frontParams.I);
+    globalParams.registerParam("frontD", frontParams.D);
+
+    globalParams.registerParam("rearP", rearParams.P);
+    globalParams.registerParam("rearI", rearParams.I);
+    globalParams.registerParam("rearD", rearParams.D);
+
     WatchdogTimer controlDataWatchdog(millisecond_t(500));
 
     while (true) {
