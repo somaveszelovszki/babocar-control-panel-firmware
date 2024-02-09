@@ -130,7 +130,7 @@ extern "C" void runProgRaceTrackTask(void) {
 			if (!shouldHandle(prevProgramState)) {
 				const uint32_t currentSection = getFastSection(currentProgramState);
 				if (currentSection != std::numeric_limits<uint32_t>::max()) { // race
-					trackController.initialize(car, 4, currentSection);
+					trackController.initialize(car, 3, currentSection);
 					programState.set(ProgramState::Race);
 				} else { // reach safety car
 					trackController.initialize(car, 1, 0);
