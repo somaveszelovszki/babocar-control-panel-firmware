@@ -11,20 +11,15 @@
 #include <LabyrinthNavigator.hpp>
 #include <track.hpp>
 
+#include "LabyrinthNavigatorTest.hpp"
+
 using namespace micro;
 
 namespace {
 
-constexpr auto LABYRINTH_SPEED          = m_per_sec_t(1.0f);
-constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(1.0f);
-
-constexpr auto LINE_POS_LEFT   = centimeter_t(-3.8f);
-constexpr auto LINE_POS_CENTER = centimeter_t(0);
-constexpr auto LINE_POS_RIGHT  = centimeter_t(3.8f);
-
-class LabyrinthNavigatorTest : public ::testing::Test {
+class TestLabyrinthNavigatorTest : public LabyrinthNavigatorTest {
 public:
-    LabyrinthNavigatorTest() {
+    TestLabyrinthNavigatorTest() : LabyrinthNavigatorTest() {
         buildTestLabyrinthGraph(graph_);
         const auto* prevSeg                  = graph_.findSegment("QS");
         const auto* currentSeg               = graph_.findSegment("SV");
@@ -42,103 +37,9 @@ public:
             LABYRINTH_SPEED,
             LABYRINTH_DEAD_END_SPEED);
     }
-
-protected:
-    void moveCar(const point2m& pos, const meter_t distance) {
-        car_.pose.pos = pos;
-        car_.distance += distance;
-    }
-
-    void setNextDecision(const Direction dir) {
-        random_.setValue(dir == Direction::RIGHT ? 0.0f : 0.9999f);
-    }
-
-    void setLines(const LinePattern& pattern) {
-        auto& front = car_.speed >= micro::m_per_sec_t(0) ? lineInfo_.front : lineInfo_.rear;
-        auto& rear = car_.speed >= micro::m_per_sec_t(0) ? lineInfo_.rear : lineInfo_.front;
-        
-        front.pattern = pattern;
-        front.pattern.startDist = car_.distance;
-        front.lines = makeLines(pattern);
-
-        rear.pattern = front.pattern;
-
-        rear.lines.clear();
-        for (auto line : front.lines) {
-            line.pos = -line.pos;
-            rear.lines.insert(line);
-        }
-        
-        micro::updateMainLine(lineInfo_.front.lines, lineInfo_.rear.lines, mainLine_);
-    }
-
-    Lines makeLines(const LinePattern& pattern) const {
-        const auto id = [this](const uint8_t incr = 0) { return static_cast<uint8_t>(mainLine_.frontLine.id + incr); };
-
-        switch (pattern.type) {
-        case LinePattern::SINGLE_LINE:
-        case LinePattern::JUNCTION_1:
-            return { { LINE_POS_CENTER, id() } };
-
-        case LinePattern::JUNCTION_2:
-            switch (pattern.side) {
-            case Direction::LEFT:
-                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_RIGHT, id() } };
-
-            case Direction::RIGHT:
-                return { { LINE_POS_LEFT, id() }, { LINE_POS_RIGHT, id(1) } };
-
-            default:
-                return {};
-            }
-
-        case LinePattern::JUNCTION_3:
-            switch (pattern.side) {
-            case Direction::LEFT:
-                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_CENTER, id(2) }, { LINE_POS_RIGHT, id() } };
-
-            case Direction::CENTER:
-                return { { LINE_POS_LEFT, id(1) }, { LINE_POS_CENTER, id() }, { LINE_POS_RIGHT, id(2) } };
-
-            case Direction::RIGHT:
-                return { { LINE_POS_LEFT, id() }, { LINE_POS_CENTER, id(1) }, { LINE_POS_RIGHT, id(2) } };
-
-            default:
-                return {};
-            }
-
-        case LinePattern::NONE:
-        default:
-            return {};        
-        }
-    }
-
-    void testUpdate(const m_per_sec_t speed, const centimeter_t targetLinePos) {
-        navigator_.update(car_, lineInfo_, mainLine_, controlData_);
-        car_.speed = controlData_.speed;
-        EXPECT_NEAR_UNIT_DEFAULT(speed, car_.speed);
-        EXPECT_NEAR_UNIT_DEFAULT(targetLinePos * micro::sgn(car_.speed), controlData_.lineControl.actual.pos);
-    }
-
-    point2m getJunctionPos(const char junctionId) const {
-        return graph_.findJunction(junctionId)->pos;
-    }
-
-    meter_t getSegmentLength(const Segment::Id& segmentId) {
-        return graph_.findSegment(segmentId)->length;
-    }
-
-protected:
-    LabyrinthGraph graph_;
-    micro::fixed_number_generator random_{0.0f};
-    LabyrinthNavigator navigator_{graph_, random_};
-    CarProps car_;
-    LineInfo lineInfo_;
-    MainLine mainLine_{cfg::CAR_FRONT_REAR_SENSOR_ROW_DIST};
-    ControlData controlData_{LABYRINTH_SPEED, millisecond_t(500), false, {}};
 };
 
-TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
+TEST_F(TestLabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     moveCar(getJunctionPos('Y'), meter_t(0));
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -277,7 +178,7 @@ TEST_F(LabyrinthNavigatorTest, RandomNavigationNoObstacle) {
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
-TEST_F(LabyrinthNavigatorTest, KeepRightAvoidObstacle) {
+TEST_F(TestLabyrinthNavigatorTest, KeepRightAvoidObstacle) {
     moveCar(getJunctionPos('Y'), meter_t(0));
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -399,7 +300,7 @@ TEST_F(LabyrinthNavigatorTest, KeepRightAvoidObstacle) {
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
-TEST_F(LabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
+TEST_F(TestLabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
     moveCar(getJunctionPos('Y'), meter_t(0));
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -489,7 +390,7 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
-TEST_F(LabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
+TEST_F(TestLabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
     moveCar(getJunctionPos('Y'), meter_t(0));
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
@@ -556,7 +457,7 @@ TEST_F(LabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
-TEST_F(LabyrinthNavigatorTest, NavigateToLaneChange) {
+TEST_F(TestLabyrinthNavigatorTest, NavigateToLaneChange) {
     moveCar(getJunctionPos('Y'), meter_t(0));
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
