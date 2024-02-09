@@ -31,6 +31,6 @@ struct LabyrinthRoute {
         const Segment& currentSeg,
         const Segment& destSeg,
         const Junction& lastJunction,
-        const JunctionIds& restrictedJunctions,
+        const JunctionIds& forbiddenJunctions,
         const bool allowBackwardNavigation);
 };

@@ -11,8 +11,8 @@
 class LabyrinthNavigator : public micro::Maneuver {
 public:
     struct ObstaclePosition {
-        const Segment* current{};
-        const Segment* next{};
+        Segment::Id current{"__"};
+        Segment::Id next{"__"};
         micro::millisecond_t lastUpdateTime;
 
         ObstaclePosition& operator=(const ObstaclePosition&) = default;
@@ -20,6 +20,8 @@ public:
         char prevJunction() const;
         char nextJunction() const;
     };
+
+    using ObstaclePositions = micro::set<ObstaclePosition, 2>;
 
     LabyrinthNavigator(const LabyrinthGraph& graph, micro::irandom_generator& random);
 
@@ -35,7 +37,7 @@ public:
 
     const micro::Pose& correctedCarPose() const;
 
-    void setObstaclePosition(const ObstaclePosition& obstaclePosition);
+    void setObstaclePositions(const ObstaclePositions& obstaclePositions);
     void navigateToLaneChange();
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
@@ -97,5 +99,16 @@ private:
     micro::irandom_generator& random_;
     SegmentIds unvisitedSegments_;
     SegmentIds forbiddenSegments_;
-    ObstaclePosition obstaclePosition_;
+    ObstaclePositions obstaclePositions_;
 };
+
+inline bool operator==(const LabyrinthNavigator::ObstaclePosition& a, const LabyrinthNavigator::ObstaclePosition& b) {
+    return a.current == b.current && a.next == b.next;
+}
+inline bool operator!=(const LabyrinthNavigator::ObstaclePosition& a, const LabyrinthNavigator::ObstaclePosition& b) { return !(a == b); }
+inline bool operator<(const LabyrinthNavigator::ObstaclePosition& a, const LabyrinthNavigator::ObstaclePosition& b) {
+    return a.current < b.current || (a.current == b.current && a.next < b.next);
+}
+inline bool operator>(const LabyrinthNavigator::ObstaclePosition& a, const LabyrinthNavigator::ObstaclePosition& b) { return b < a; }
+inline bool operator<=(const LabyrinthNavigator::ObstaclePosition& a, const LabyrinthNavigator::ObstaclePosition& b) { return !(b < a); }
+inline bool operator>=(const LabyrinthNavigator::ObstaclePosition& a, const LabyrinthNavigator::ObstaclePosition& b) { return !(a < b); }

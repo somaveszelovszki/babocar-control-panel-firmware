@@ -49,7 +49,7 @@ LabyrinthRoute LabyrinthRoute::create(
     const Segment& currentSeg,
     const Segment& destSeg,
     const Junction& lastJunction,
-    const JunctionIds& restrictedJunctions,
+    const JunctionIds& forbiddenJunctions,
     const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for a car in a graph that allows multiple connections between the nodes
@@ -86,7 +86,7 @@ LabyrinthRoute LabyrinthRoute::create(
             const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
 
             if ((!allowBackwardNavigation && !isFwd) ||
-                restrictedJunctions.contains(newConn->junction->id)) {
+                forbiddenJunctions.contains(newConn->junction->id)) {
                 continue;
             }
 

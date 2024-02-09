@@ -16,23 +16,15 @@ const auto CHECKPOINT_OFFSET = micro::point2<micro::meter_t>(
 );
 
 char LabyrinthNavigator::ObstaclePosition::prevJunction() const {
-    if (!current || !next) {
-        return '\0';
-    }
-
-    const auto c0 = current->id[0], c1 = current->id[1];
-    const auto n0 = next->id[0], n1 = next->id[1];
+    const auto c0 = current[0], c1 = current[1];
+    const auto n0 = next[0], n1 = next[1];
 
     return (c0 == n0 || c0 == n1) ? c1 : c0;
 }
 
 char LabyrinthNavigator::ObstaclePosition::nextJunction() const {
-    if (!current || !next) {
-        return '\0';
-    }
-
-    const auto c0 = current->id[0], c1 = current->id[1];
-    const auto n0 = next->id[0], n1 = next->id[1];
+    const auto c0 = current[0], c1 = current[1];
+    const auto n0 = next[0], n1 = next[1];
 
     return (c0 == n0 || c0 == n1) ? c0 : c1;
 }
@@ -72,12 +64,15 @@ const micro::Pose& LabyrinthNavigator::correctedCarPose() const {
     return correctedCarPose_;
 }
 
-void LabyrinthNavigator::setObstaclePosition(const ObstaclePosition& obstaclePosition) {
-    if (obstaclePosition_.current != obstaclePosition.current || obstaclePosition_.next != obstaclePosition.next) {
-        obstaclePosition_ = obstaclePosition;
-        LOG_INFO("Obstacle position: current: {}, next: {}]",
-            obstaclePosition_.current ? obstaclePosition_.current->id : "NULL",
-            obstaclePosition_.next ? obstaclePosition_.next->id : "NULL");
+void LabyrinthNavigator::setObstaclePositions(const ObstaclePositions& obstaclePositions) {
+    if (obstaclePositions_ != obstaclePositions) {
+        obstaclePositions_ = obstaclePositions;
+        LOG_INFO("Obstacle positions: {}", obstaclePositions_.size());
+
+        size_t i = 0;
+        for (const auto& pos : obstaclePositions_) {
+            LOG_INFO("{}: current: {}, next: {}", i++, pos.current, pos.next);
+        }
     }
 }
 
@@ -161,17 +156,19 @@ std::pair<bool, const char*> LabyrinthNavigator::isSpeedSignChangeNeeded(const m
         return {true, "DEAD_END"};
     }
 
-    if (currentSeg_ == obstaclePosition_.current) {
-        const auto sameDirection = prevConn_->junction->id == obstaclePosition_.prevJunction();
-        const auto obstacleEnteredLater = currentSegStartTime_ < obstaclePosition_.lastUpdateTime;
+    for (const auto& obstaclePos : obstaclePositions_) {
+        if (currentSeg_->id == obstaclePos.current) {
+            const auto sameDirection = prevConn_->junction->id == obstaclePos.prevJunction();
+            const auto obstacleEnteredLater = currentSegStartTime_ < obstaclePos.lastUpdateTime;
 
-        if (!(sameDirection && obstacleEnteredLater)) {
-            return {true, "OBSTACLE_IN_CURRENT_SEGMENT"};
+            if (!(sameDirection && obstacleEnteredLater)) {
+                return {true, "OBSTACLE_IN_CURRENT_SEGMENT"};
+            }
         }
-    }
-    
-    if (currentSeg_ == obstaclePosition_.next && prevConn_->junction->id != obstaclePosition_.nextJunction()) {
-        return {true, "OBSTACLE_IN_NEXT_SEGMENT"};
+        
+        if (currentSeg_->id == obstaclePos.next && prevConn_->junction->id != obstaclePos.nextJunction()) {
+            return {true, "OBSTACLE_IN_NEXT_SEGMENT"};
+        }
     }
 
     const Connection *nextConn = route_.firstConnection();
@@ -357,12 +354,18 @@ void LabyrinthNavigator::createRoute() {
 
     LOG_INFO("Updating route to: {}", targetSeg_->id);
 
+    JunctionIds forbiddenJunctions;
+    for (const auto& pos : obstaclePositions_) {
+        forbiddenJunctions.insert(pos.prevJunction());
+        forbiddenJunctions.insert(pos.nextJunction());
+    }
+
     route_ = LabyrinthRoute::create(
         *prevConn_,
         *currentSeg_,
         *targetSeg_,
         *lastJunctionBeforeTargetSeg_,
-        {obstaclePosition_.prevJunction(), obstaclePosition_.nextJunction()},
+        forbiddenJunctions,
         ALLOW_BACKWARD_NAVIGATION);
 
     LOG_DEBUG("Planned route:");
@@ -398,13 +401,20 @@ const Connection* LabyrinthNavigator::randomConnection(const Junction& junc, con
 
         allowedConnections.push_back(c);
 
-        const auto obstacleFree = std::all_of(otherSeg->edges.begin(), otherSeg->edges.end(),
-                [this, &c](const auto& otherConn) {
-                    // Segment is allowed only if the other end of the segment is not a restricted junction.
-                    return (c->junction == otherConn->junction) ||
-                        (otherConn->junction->id != obstaclePosition_.prevJunction() &&
-                        otherConn->junction->id != obstaclePosition_.nextJunction());
+        const auto obstacleFree = [this, &junc, &otherSeg]() {
+            const auto* nextConn = std::find_if(otherSeg->edges.begin(), otherSeg->edges.end(),
+                [&junc](const auto& conn) { return conn->junction != &junc; });
+            
+            if (nextConn == otherSeg->edges.end()) {
+                return false;
+            }
+
+            // Segment is allowed only if the other end of the segment is an obstacle-free junction.
+            return std::all_of(obstaclePositions_.begin(), obstaclePositions_.end(),
+                [nextJunction = (*nextConn)->junction](const auto& pos) {
+                    return nextJunction->id != pos.prevJunction() && nextJunction->id != pos.nextJunction();
                 });
+        }();
 
         const auto unvisited = unvisitedSegments_.contains(otherSeg->id);
 

@@ -187,10 +187,44 @@ void handleRadioCommand() {
         fixPartitions(junctions[0], junctions[1]);
         fixPartitions(junctions[1], junctions[2]);
 
-        const auto current = graph.findSegment(Segment::makeId(junctions[0], junctions[1]));
-        const auto next = graph.findSegment(Segment::makeId(junctions[1], junctions[2]));
+        const auto current = Segment::makeId(junctions[0], junctions[1]);
+        const auto next = Segment::makeId(junctions[1], junctions[2]);
+        const auto now = micro::getTime();
 
-        navigator.setObstaclePosition({ current, next, micro::getTime() });
+        LabyrinthNavigator::ObstaclePositions obstaclePositions{{ current, next, now }};
+
+#if TRACK == RACE_TRACK
+        // If the obstacle is in cross-roads, the crossing segment needs to be added to the list.
+        // Crossing segments:
+        //     DI - FG
+        //     IN - KL
+        //     NS - RT
+        //     OW - TU
+        //     MQ - PR
+        if (current == "DI") {
+            obstaclePositions.insert({ "FG", "EG", now });
+        } else if (current == "FG") {
+            obstaclePositions.insert({ "DI", "BD", now });
+        } else if (current == "IN") {
+            obstaclePositions.insert({ "KL", "LO", now });
+        } else if (current == "KL") {
+            obstaclePositions.insert({ "IN", "NS", now });
+        } else if (current == "NS") {
+            obstaclePositions.insert({ "RT", "RP", now });
+        } else if (current == "RT") {
+            obstaclePositions.insert({ "NS", "SW", now });
+        } else if (current == "OW") {
+            obstaclePositions.insert({ "TU", "UX", now });
+        } else if (current == "TU") {
+            obstaclePositions.insert({ "OW", "VW", now });
+        } else if (current == "MQ") {
+            obstaclePositions.insert({ "PR", "P_", now });
+        } else if (current == "PR") {
+            obstaclePositions.insert({ "MQ", "Q_", now });
+        }
+#endif // TRACK == RACE_TRACK
+
+        navigator.setObstaclePositions(obstaclePositions);
     }
 }
 
