@@ -29,7 +29,7 @@ using namespace micro;
 
 namespace {
 
-constexpr auto LABYRINTH_SPEED          = m_per_sec_t(0.85f);
+constexpr auto LABYRINTH_SPEED          = m_per_sec_t(0.90f);
 constexpr auto LABYRINTH_DEAD_END_SPEED = m_per_sec_t(0.65f);
 constexpr auto LANE_CHANGE_SPEED        = m_per_sec_t(0.65f);
 constexpr auto LANE_DISTANCE            = centimeter_t(60);
@@ -278,16 +278,15 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     switch (currentProgramState) {
                     case ProgramState::LabyrinthRoute:
                         directionGenerator.initialize({
-                            micro::Direction::LEFT,   // UT
-                            micro::Direction::RIGHT,  // NT
-                            micro::Direction::CENTER, // IN
-                            micro::Direction::LEFT,   // FI
-                            micro::Direction::RIGHT,  // AF
-                            micro::Direction::LEFT,   // AB
+                            micro::Direction::RIGHT,  // OU
+                            micro::Direction::CENTER, // LO
+                            micro::Direction::RIGHT,  // IL
+                            micro::Direction::RIGHT,  // GI
+                            micro::Direction::LEFT,   // GE
                             micro::Direction::CENTER, // BE
-                            micro::Direction::LEFT,   // EJ
-                            micro::Direction::CENTER, // JL
-                            micro::Direction::CENTER  // KL
+                            micro::Direction::RIGHT,  // AB
+                            micro::Direction::CENTER, // AF
+                            micro::Direction::CENTER  // FG
 
                         });
                         break;
@@ -324,8 +323,10 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
 
             case ProgramState::LaneChange:
                 if (currentProgramState != prevProgramState) {
-                    const LinePattern& pattern = (LinePattern::LANE_CHANGE == lineInfo.front.pattern.type ? lineInfo.front : lineInfo.rear).pattern;
-                    laneChange.initialize(car, sgn(car.speed), pattern.dir, pattern.side, Sign::POSITIVE, LANE_CHANGE_SPEED, LANE_DISTANCE);
+                    const auto patternDir = Sign::POSITIVE;
+                    const auto patternSide = Direction::RIGHT;
+                    const auto safetyCarFollowSpeedSign = Sign::POSITIVE;
+                    laneChange.initialize(car, sgn(car.speed), patternDir, patternSide, safetyCarFollowSpeedSign, LANE_CHANGE_SPEED, LANE_DISTANCE);
                 }
 
                 laneChange.update(car, lineInfo, mainLine, controlData);
