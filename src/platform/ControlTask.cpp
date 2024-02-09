@@ -157,14 +157,6 @@ extern "C" void runControlTask(void) {
 
     taskMonitor.registerInitializedTask();
 
-    globalParams.registerParam("frontP", frontParams.P);
-    globalParams.registerParam("frontI", frontParams.I);
-    globalParams.registerParam("frontD", frontParams.D);
-
-    globalParams.registerParam("rearP", rearParams.P);
-    globalParams.registerParam("rearI", rearParams.I);
-    globalParams.registerParam("rearD", rearParams.D);
-
     WatchdogTimer controlDataWatchdog(millisecond_t(500));
 
     while (true) {
