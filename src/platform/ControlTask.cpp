@@ -124,8 +124,7 @@ void calcTargetAngles(const CarProps& car, const ControlData& controlData) {
     frontWheelTargetAngle = clamp(frontWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
 
     if (controlData.rearSteerEnabled) {
-        //rearLinePosController.tune(*micro::lerp(rearLineAngleControllerParams, abs(car.speed)));
-        rearLinePosController.tune(rearParams);
+        rearLinePosController.tune(*micro::lerp(rearLineAngleControllerParams, abs(car.speed)));
         rearLinePosController.update(angleError.get(), angleErrorDiff.get());
         rearWheelTargetAngle = degree_t(rearLinePosController.output()) + targetControlAngle;
         rearWheelTargetAngle = clamp(rearWheelTargetAngle, -cfg::WHEEL_MAX_DELTA, cfg::WHEEL_MAX_DELTA);
