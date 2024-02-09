@@ -17,6 +17,7 @@ private:
     enum class state_t : uint8_t {
         CheckOrientation,
         Stop,
+        Reverse,
         FollowTrajectory
     };
 
@@ -28,6 +29,7 @@ private:
     micro::Sign safetyCarFollowSpeedSign_;
     micro::m_per_sec_t speed_;
     micro::meter_t laneDistance_;
+    micro::meter_t reverseStartDist_;
 
     state_t state_;
     micro::Trajectory trajectory_;

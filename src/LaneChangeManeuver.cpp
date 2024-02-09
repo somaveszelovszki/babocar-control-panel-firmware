@@ -1,3 +1,4 @@
+#include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>
 
 #include <cfg_car.hpp>
@@ -36,13 +37,20 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
         controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
 
         if (abs(mainLine.centerLine.pos) < centimeter_t(3) && abs(mainLine.centerLine.angle) < degree_t(4)) {
-            this->state_ = state_t::Stop;
+            if (initialSpeedSign_ == safetyCarFollowSpeedSign_) {
+                this->state_ = state_t::Reverse;
+                this->reverseStartDist_ = car.distance;
+                LOG_DEBUG("Lane change state: REVERSE");
+            } else {
+                this->state_ = state_t::Stop;
+                LOG_DEBUG("Lane change state: STOP");
+            }
         }
         break;
 
     case state_t::Stop:
         controlData.speed    = m_per_sec_t(0);
-        controlData.rampTime = millisecond_t(800);
+        controlData.rampTime = millisecond_t(200);
 
         controlData.rearSteerEnabled   = false;
         controlData.lineControl.actual = mainLine.centerLine;
@@ -51,6 +59,21 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
         if (abs(car.speed) < cm_per_sec_t(2)) {
             this->buildTrajectory(car);
             this->state_ = state_t::FollowTrajectory;
+            LOG_DEBUG("Lane change state: FOLLOW_TRAJECTORY");
+        }
+        break;
+
+    case state_t::Reverse:
+        controlData.speed    = -this->speed_;
+        controlData.rampTime = millisecond_t(350);
+
+        controlData.rearSteerEnabled   = false;
+        controlData.lineControl.actual = mainLine.centerLine;
+        controlData.lineControl.target = { millimeter_t(0), radian_t(0) };
+
+        if (car.distance > reverseStartDist_ + centimeter_t(30)) {
+            this->state_ = state_t::Stop;
+            LOG_DEBUG("Lane change state: STOP");
         }
         break;
 
@@ -58,6 +81,7 @@ void LaneChangeManeuver::update(const CarProps& car, const LineInfo& lineInfo, M
         controlData = this->trajectory_.update(car);
 
         if (this->trajectory_.finished(car, lineInfo, centimeter_t(20))) {
+            LOG_DEBUG("Lane change finished");
             this->finish();
         }
         break;
