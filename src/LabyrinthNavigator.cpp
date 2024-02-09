@@ -120,7 +120,10 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
 
     prevLineInfo_ = lineInfo;
 
-    if (targetSeg_ == laneChangeSeg_ && (LinePattern::LANE_CHANGE == frontPattern.type || LinePattern::LANE_CHANGE == rearPattern.type)) {
+    if (targetSeg_ == laneChangeSeg_ &&
+        currentSeg_ == targetSeg_ &&
+        frontPattern.type == LinePattern::JUNCTION_1 &&
+        frontPattern.dir == Sign::NEGATIVE) {
         finish();
     }
 }
@@ -150,10 +153,6 @@ const micro::Lines& LabyrinthNavigator::rearLines(const micro::LineInfo& lineInf
 std::pair<bool, const char*> LabyrinthNavigator::isSpeedSignChangeNeeded(const micro::CarProps& car, const micro::LinePattern& frontPattern) const {
     if (hasSpeedSignChanged_ || isInJunction_ || !prevConn_) {
         return {false, nullptr};
-    }
-
-    if (isDeadEnd(car, frontPattern)) {
-        return {true, "DEAD_END"};
     }
 
     for (const auto& obstaclePos : obstaclePositions_) {
