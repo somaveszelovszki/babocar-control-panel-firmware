@@ -21,8 +21,9 @@ class TestLabyrinthNavigatorTest : public LabyrinthNavigatorTest {
 public:
     TestLabyrinthNavigatorTest() : LabyrinthNavigatorTest() {
         buildTestLabyrinthGraph(graph_);
-        const auto* prevSeg                  = graph_.findSegment("QS");
-        const auto* currentSeg               = graph_.findSegment("SV");
+
+        const auto* prevSeg                  = graph_.findSegment("Y_");
+        const auto* currentSeg               = graph_.findSegment("WY");
         const auto* laneChangeSeg            = graph_.findSegment("NQ");
         const auto* junctionBeforeLaneChange = graph_.findJunction('N');
         const auto* prevConn                 = graph_.findConnection(*prevSeg, *currentSeg);
