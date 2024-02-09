@@ -263,7 +263,7 @@ TEST_F(TestLabyrinthNavigatorTest, KeepRightAvoidObstacle) {
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
-    // Marks G and I as restricted.
+    // Obstacle is in GI and will continue towards EG.
     // Therefore when the car reaches E, and by default it would navigate to the RIGHT,
     // it is forced to navigate towards F (LEFT).
     navigator_.setObstaclePositions({{"IG", "EG", millisecond_t(0)}});
@@ -277,7 +277,7 @@ TEST_F(TestLabyrinthNavigatorTest, KeepRightAvoidObstacle) {
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
 
-    // G and I are still restricted.
+    // Obstacle is still in GI and will continue towards EG.
     // Therefore when the car reaches F, and by default it would navigate to the RIGHT,
     // it is forced to navigate towards H (LEFT).
 
@@ -391,7 +391,7 @@ TEST_F(TestLabyrinthNavigatorTest, ReverseWhenEnteringRestrictedSegment) {
     testUpdate(-LABYRINTH_SPEED, LINE_POS_CENTER);
 }
 
-TEST_F(TestLabyrinthNavigatorTest, ReverseWhenSegmentBecomesRestricted) {
+TEST_F(TestLabyrinthNavigatorTest, ReverseWhenObstacleEntersSameSegment) {
     moveCar(getJunctionPos('Y'), meter_t(0));
     setLines({ LinePattern::SINGLE_LINE, Sign::NEUTRAL });
     testUpdate(LABYRINTH_SPEED, LINE_POS_CENTER);
