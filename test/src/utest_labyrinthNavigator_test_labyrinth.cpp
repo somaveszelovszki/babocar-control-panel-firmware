@@ -1,8 +1,8 @@
-#include "micro/utils/point2.hpp"
 #include <micro/math/random_generator.hpp>
 #include <micro/test/utils.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/LinePattern.hpp>
+#include <micro/utils/point2.hpp>
 #include <micro/utils/types.hpp>
 #include <micro/utils/units.hpp>
 

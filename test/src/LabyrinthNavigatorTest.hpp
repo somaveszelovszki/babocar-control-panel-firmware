@@ -28,7 +28,22 @@ protected:
     }
 
     void setNextDecision(const micro::Direction dir) {
-        random_.setValue(dir == micro::Direction::RIGHT ? 0.0f : 0.9999f);
+        const auto value = [dir]() {
+            switch (dir) {
+            case micro::Direction::LEFT:
+                return 0.999999f;
+
+            case micro::Direction::CENTER:
+                return 0.5f;
+
+            case micro::Direction::RIGHT:
+                return 0.0f;
+
+            default:
+                return 0.0f;
+            }
+        }();
+        random_.setValue(value);
     }
 
     void setLines(const micro::LinePattern& pattern) {
