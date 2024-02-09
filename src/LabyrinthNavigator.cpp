@@ -319,7 +319,7 @@ void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::
 }
 
 void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const {
-    const auto speed = targetSpeedSign_ * (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_ ? targetSpeed_ : targetDeadEndSpeed_);
+    const auto speed = targetSpeedSign_ * (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_ ? targetDeadEndSpeed_ : targetSpeed_);
 
 
     if (std::exchange(controlData.speed, speed) != speed) {
