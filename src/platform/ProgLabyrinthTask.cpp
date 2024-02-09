@@ -301,12 +301,6 @@ extern "C" void runProgLabyrinthTask(void const *argument) {
                     }
                 }
 
-                meter_t frontDistance;
-                frontDistanceQueue.peek(frontDistance);
-
-                meter_t rearDistance;
-                frontDistanceQueue.peek(rearDistance);
-
                 handleRadioCommand();
                 navigator.update(car, lineInfo, mainLine, controlData);
 

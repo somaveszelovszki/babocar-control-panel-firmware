@@ -11,7 +11,7 @@
 
 using namespace micro;
 
-#define REAR_DISTANCE_SENSOR_ENABLED true
+#define REAR_DISTANCE_SENSOR_ENABLED false
 
 namespace {
 
