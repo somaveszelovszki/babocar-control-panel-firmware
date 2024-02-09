@@ -66,15 +66,15 @@ extern "C" void runLineDetectTask(void) {
         }
 
         if (lineInfo.front.pattern != prevLineInfo.front.pattern) {
-            LOG_INFO("Front pattern changed to [{} {} {}]",
-                to_string(lineInfo.front.pattern.type), to_string(lineInfo.front.pattern.dir), to_string(lineInfo.front.pattern.side));
+//            LOG_INFO("Front pattern changed to [{} {} {}]",
+//                to_string(lineInfo.front.pattern.type), to_string(lineInfo.front.pattern.dir), to_string(lineInfo.front.pattern.side));
 
             prevLineInfo.front = lineInfo.front;
         }
 
         if (lineInfo.rear.pattern != prevLineInfo.rear.pattern) {
-            LOG_INFO("Rear pattern changed to [{} {} {}]",
-                to_string(lineInfo.rear.pattern.type), to_string(lineInfo.rear.pattern.dir), to_string(lineInfo.rear.pattern.side));
+//            LOG_INFO("Rear pattern changed to [{} {} {}]",
+//                to_string(lineInfo.rear.pattern.type), to_string(lineInfo.rear.pattern.dir), to_string(lineInfo.rear.pattern.side));
 
             prevLineInfo.rear = lineInfo.rear;
         }

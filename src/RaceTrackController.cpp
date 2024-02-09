@@ -33,7 +33,15 @@ ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLi
             fullSpeedEnabled = true;
         }
 
-        return fullSpeedEnabled ? control.speed : control.speed / 2;
+        if (!fullSpeedEnabled) {
+            return control.speed / 2;
+        }
+
+        if (isFast && length - (car.distance - startCarProps.distance) < meter_t(1.5f)) {
+            return std::min(control.speed, m_per_sec_t(5.5));
+        }
+
+        return control.speed;
     }();
 
     controlData.rampTime = control.rampTime;
@@ -95,7 +103,7 @@ void RaceTrackController::setSection(const CarProps& car, const size_t lap, cons
 
     sectionIdx_ = sectionIdx;
     sections_[sectionIdx_].startCarProps = car;
-    LOG_DEBUG("Track section changed. Lap: {}, section: {}", lap_, sectionIdx_);
+//    LOG_DEBUG("Track section changed. Lap: {}, section: {}", lap_, sectionIdx_);
 }
 
 size_t RaceTrackController::getFastSectionIndex(size_t n) const {
