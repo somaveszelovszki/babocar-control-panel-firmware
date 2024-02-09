@@ -15,6 +15,11 @@ public:
         Segment::Id next{"__"};
         micro::millisecond_t lastUpdateTime;
 
+        // Indicates that the obstacle position has been generated only to restrict crossroad segments.
+        // Phantom positions only need to be considered when choosing next connection,
+        // but they should be ignored when checking if the car needs to change speed sign.
+        bool isPhantom{false};
+
         ObstaclePosition& operator=(const ObstaclePosition&) = default;
 
         char prevJunction() const;

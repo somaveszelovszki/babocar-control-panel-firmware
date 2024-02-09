@@ -191,7 +191,7 @@ void handleRadioCommand() {
         const auto next = Segment::makeId(junctions[1], junctions[2]);
         const auto now = micro::getTime();
 
-        LabyrinthNavigator::ObstaclePositions obstaclePositions{{ current, next, now }};
+        LabyrinthNavigator::ObstaclePositions obstaclePositions{{ current, next, now, false }};
 
 #if TRACK == RACE_TRACK
         // If the obstacle is in cross-roads, the crossing segment needs to be added to the list.
@@ -202,25 +202,25 @@ void handleRadioCommand() {
         //     OW - TU
         //     MQ - PR
         if (current == "DI") {
-            obstaclePositions.insert({ "FG", "EG", now });
+            obstaclePositions.insert({ "FG", "EG", now, true });
         } else if (current == "FG") {
-            obstaclePositions.insert({ "DI", "BD", now });
+            obstaclePositions.insert({ "DI", "BD", now, true });
         } else if (current == "IN") {
-            obstaclePositions.insert({ "KL", "LO", now });
+            obstaclePositions.insert({ "KL", "LO", now, true });
         } else if (current == "KL") {
-            obstaclePositions.insert({ "IN", "NS", now });
+            obstaclePositions.insert({ "IN", "NS", now, true });
         } else if (current == "NS") {
-            obstaclePositions.insert({ "RT", "RP", now });
+            obstaclePositions.insert({ "RT", "RP", now, true });
         } else if (current == "RT") {
-            obstaclePositions.insert({ "NS", "SW", now });
+            obstaclePositions.insert({ "NS", "SW", now, true });
         } else if (current == "OW") {
-            obstaclePositions.insert({ "TU", "UX", now });
+            obstaclePositions.insert({ "TU", "UX", now, true });
         } else if (current == "TU") {
-            obstaclePositions.insert({ "OW", "VW", now });
+            obstaclePositions.insert({ "OW", "VW", now, true });
         } else if (current == "MQ") {
-            obstaclePositions.insert({ "PR", "P_", now });
+            obstaclePositions.insert({ "PR", "P_", now, true });
         } else if (current == "PR") {
-            obstaclePositions.insert({ "MQ", "Q_", now });
+            obstaclePositions.insert({ "MQ", "Q_", now, true });
         }
 #endif // TRACK == RACE_TRACK
 

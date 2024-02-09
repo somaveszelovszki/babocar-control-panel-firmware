@@ -157,6 +157,12 @@ std::pair<bool, const char*> LabyrinthNavigator::isSpeedSignChangeNeeded(const m
     }
 
     for (const auto& obstaclePos : obstaclePositions_) {
+        // Phantom positions are generated for corssroads, and only need to be considered when choosing next connection,
+        // but they should be ignored when checking if the car needs to change speed sign.
+        if (obstaclePos.isPhantom) {
+            continue;
+        }
+
         if (currentSeg_->id == obstaclePos.current) {
             const auto sameDirection = prevConn_->junction->id == obstaclePos.prevJunction();
             const auto obstacleEnteredLater = currentSegStartTime_ < obstaclePos.lastUpdateTime;

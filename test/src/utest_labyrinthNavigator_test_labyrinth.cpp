@@ -21,7 +21,9 @@ class TestLabyrinthNavigatorTest : public LabyrinthNavigatorTest {
 public:
     TestLabyrinthNavigatorTest() : LabyrinthNavigatorTest() {
         buildTestLabyrinthGraph(graph_);
+    }
 
+    void SetUp() override {
         const auto* prevSeg                  = graph_.findSegment("Y_");
         const auto* currentSeg               = graph_.findSegment("WY");
         const auto* laneChangeSeg            = graph_.findSegment("NQ");
