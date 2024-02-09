@@ -332,13 +332,12 @@ void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::Lin
 
 void LabyrinthNavigator::reset(const Junction& junc, radian_t negOri) {
     // Finds a valid previous segment - may be any of the segments behind the car, connecting to the current junction.
-    auto* sideSegments = junc.getSideSegments(negOri);
-    if (!sideSegments) {
-        // if side segments are not found, tries the other orientation
-        sideSegments = junc.getSideSegments(micro::normalize360(negOri + PI));
+    if (const auto* sideSegments = junc.getSideSegments(negOri)) {
+        currentSeg_ = sideSegments->begin()->second;
+    } else {
+        LOG_ERROR("Could not find side segments for junction {} in orientation: {} deg", junc.id, static_cast<degree_t>(negOri).get());
+        currentSeg_ = junc.segments.begin()->second.begin()->second;
     }
-
-    currentSeg_ = sideSegments->begin()->second;
 
     prevConn_ = *std::find_if(currentSeg_->edges.begin(), currentSeg_->edges.end(),
         [&junc](const auto& conn) { return conn->junction != &junc; });
