@@ -113,6 +113,7 @@ void LabyrinthNavigator::update(const micro::CarProps& car, const micro::LineInf
         hasSpeedSignChanged_ = true;
         targetSpeedSign_ = -targetSpeedSign_;
         lastSpeedSignChangeDistance_ = car.distance;
+        route_.reset();
         LOG_INFO("Labyrinth target speed sign changed to {}. Reason: {}", to_string(targetSpeedSign_), result.second);
     }
 
@@ -153,6 +154,13 @@ const micro::Lines& LabyrinthNavigator::rearLines(const micro::LineInfo& lineInf
 std::pair<bool, const char*> LabyrinthNavigator::isSpeedSignChangeNeeded(const micro::CarProps& car, const micro::LinePattern& frontPattern) const {
     if (hasSpeedSignChanged_ || isInJunction_ || !prevConn_) {
         return {false, nullptr};
+    }
+
+    // Navigating to the lane change segment is only allowed with a positive speed sign.
+    // Therefore, if the current speed sign is negative and the car is navigating to the lane change segment,
+    // the car needs to change speed sign.
+    if (targetSeg_ == laneChangeSeg_ && car.speed < m_per_sec_t(0)) {
+        return {true, "PREPARE_LANE_CHANGE"};
     }
 
     for (const auto& obstaclePos : obstaclePositions_) {
@@ -319,7 +327,6 @@ void LabyrinthNavigator::setTargetLine(const micro::CarProps& car, const micro::
 
 void LabyrinthNavigator::setControl(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) const {
     const auto speed = targetSpeedSign_ * (targetSeg_ == laneChangeSeg_ && currentSeg_ == targetSeg_ ? targetDeadEndSpeed_ : targetSpeed_);
-
 
     if (std::exchange(controlData.speed, speed) != speed) {
         LOG_DEBUG("Target speed changed to {}m/s", controlData.speed.get());
