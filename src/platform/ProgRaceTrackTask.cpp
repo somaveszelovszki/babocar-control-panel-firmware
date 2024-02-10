@@ -108,8 +108,10 @@ extern "C" void runProgRaceTrackTask(void) {
 
     auto currentProgramState = ProgramState::INVALID;
     auto currentLap = trackController.lap();
-
+	
     Timer sectionControlOverrideCheckTimer(millisecond_t(50));
+
+    micro::millisecond_t lapStartTime;
 
     while (true) {
         const auto prevProgramState = std::exchange(currentProgramState, programState.get());
@@ -137,6 +139,7 @@ extern "C" void runProgRaceTrackTask(void) {
 				}
 
 				lastDistWithSafetyCar = car.distance;
+				lapStartTime = micro::getTime();
 			}
 
 			micro::updateMainLine(lineInfo.front.lines, lineInfo.rear.lines, mainLine);
@@ -145,6 +148,8 @@ extern "C" void runProgRaceTrackTask(void) {
 
 			if (std::exchange(currentLap, trackController.lap()) != trackController.lap()) {
 				lapControlQueue.overwrite(trackController.getControlParameters());
+				const auto prevLapStartTime = std::exchange(lapStartTime, micro::getTime());
+				LOG_INFO("Lap {} finished. Time: {} ms", currentLap - 1, (lapStartTime - prevLapStartTime).get());
 			}
 
 			LineDetectControl lineDetectControlData;
