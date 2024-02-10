@@ -37,8 +37,12 @@ ControlData TrackSection::getControl(const CarProps& car, const MainLine& mainLi
             return control.speed / 2;
         }
 
-        if (isFast && length - (car.distance - startCarProps.distance) < meter_t(1.5f)) {
-            return std::min(control.speed, m_per_sec_t(5.5));
+        if (isFast) {
+            const auto preBrakeDistance = control.speed > m_per_sec_t(7) ? meter_t(2.5) : meter_t(1.5);
+
+            if (length - (car.distance - startCarProps.distance) < preBrakeDistance) {
+                return std::min(control.speed, m_per_sec_t(5.5));
+            }
         }
 
         return control.speed;
