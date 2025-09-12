@@ -1,18 +1,15 @@
-#include <limits>
-
-#include <micro/debug/TaskMonitor.hpp>
-#include <micro/port/gpio.hpp>
-#include <micro/port/task.hpp>
-#include <micro/utils/ControlData.hpp>
-#include <micro/log/log.hpp>
-#include <micro/math/numeric.hpp>
-#include <micro/utils/timer.hpp>
-
+#include <ProgramState.hpp>
 #include <cfg_board.hpp>
 #include <cfg_track.hpp>
 #include <globals.hpp>
-#include <ProgramState.hpp>
-
+#include <limits>
+#include <micro/debug/TaskMonitor.hpp>
+#include <micro/log/log.hpp>
+#include <micro/math/numeric.hpp>
+#include <micro/port/gpio.hpp>
+#include <micro/port/task.hpp>
+#include <micro/utils/ControlData.hpp>
+#include <micro/utils/timer.hpp>
 
 using namespace micro;
 
@@ -22,9 +19,9 @@ void waitStartSignal() {
     uint32_t startCounter = std::numeric_limits<uint32_t>::max();
 
     ControlData controlData;
-    controlData.speed = m_per_sec_t(0);
-    controlData.rampTime = millisecond_t(0);
-    controlData.rearSteerEnabled = false;
+    controlData.speed              = m_per_sec_t(0);
+    controlData.rampTime           = millisecond_t(0);
+    controlData.rearSteerEnabled   = false;
     controlData.lineControl.actual = {};
     controlData.lineControl.target = {};
 
@@ -49,29 +46,31 @@ void waitStartSignal() {
 
 extern "C" void runStartupTask(void) {
     millisecond_t lastButtonClickTime = getTime();
-    uint32_t buttonClick = 0;
-    gpioPinState_t prevButtonState = gpioPinState_t::SET;
+    uint32_t buttonClick              = 0;
+    gpioPinState_t prevButtonState    = gpioPinState_t::SET;
 
-   while(0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
-       gpioPinState_t buttonState;
-       gpio_read(gpio_Btn1, buttonState);
+    while (0 == buttonClick || getTime() - lastButtonClickTime < second_t(2)) {
+        gpioPinState_t buttonState;
+        gpio_read(gpio_Btn1, buttonState);
 
-       if (gpioPinState_t::RESET == buttonState && gpioPinState_t::SET == prevButtonState) { // detects falling edges
-           ++buttonClick;
-           lastButtonClickTime = getTime();
-           LOG_DEBUG("Click! ({})", buttonClick);
-       }
-       prevButtonState = buttonState;
-       os_sleep(millisecond_t(50));
-   }
+        if (gpioPinState_t::RESET == buttonState &&
+            gpioPinState_t::SET == prevButtonState) { // detects falling edges
+            ++buttonClick;
+            lastButtonClickTime = getTime();
+            LOG_DEBUG("Click! ({})", buttonClick);
+        }
+        prevButtonState = buttonState;
+        os_sleep(millisecond_t(50));
+    }
 
     LOG_DEBUG("Number of clicks: {}", buttonClick);
     programState.set(static_cast<ProgramState::Value>(buttonClick));
 
-    if (ProgramState::WaitStartSignalRoute == programState.get() || ProgramState::WaitStartSignalRandom == programState.get()) {
+    if (ProgramState::WaitStartSignalRoute == programState.get() ||
+        ProgramState::WaitStartSignalRandom == programState.get()) {
         waitStartSignal();
         programState.set(ProgramState::WaitStartSignalRoute == programState.get()
-            ? ProgramState::LabyrinthRoute
-            : ProgramState::LabyrinthRandom);
+                             ? ProgramState::LabyrinthRoute
+                             : ProgramState::LabyrinthRandom);
     }
 }

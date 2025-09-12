@@ -1,10 +1,8 @@
+#include <FreeRTOS.h>
+#include <cfg_board.hpp>
 #include <micro/panel/panelVersion.hpp>
 #include <micro/port/timer.hpp>
-
-#include <cfg_board.hpp>
 #include <system_init.h>
-
-#include <FreeRTOS.h>
 #include <task.h>
 
 using namespace micro;
@@ -16,7 +14,7 @@ extern "C" void system_init(void) {
         Error_Handler();
     }
 
-    time_init(micro::timer_t{ tim_System });
+    time_init(micro::timer_t{tim_System});
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t, char*) {

@@ -1,18 +1,16 @@
 #pragma once
 
-#include <utility>
-
+#include <LabyrinthGraph.hpp>
 #include <micro/container/set.hpp>
 #include <micro/container/vector.hpp>
-
-#include <LabyrinthGraph.hpp>
+#include <utility>
 
 struct LabyrinthRoute {
     const Segment* startSeg{};
     const Segment* destSeg{};
     micro::vector<const Connection*, cfg::MAX_NUM_LABYRINTH_SEGMENTS> connections;
 
-    explicit LabyrinthRoute(const Segment *currentSeg = nullptr);
+    explicit LabyrinthRoute(const Segment* currentSeg = nullptr);
 
     void push_front(const Connection& c);
     void push_back(const Connection& c);
@@ -23,14 +21,12 @@ struct LabyrinthRoute {
     const Connection* lastConnection() const;
 
     void reset();
-    
-    static bool isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn);
 
-    static LabyrinthRoute create(
-        const Connection& prevConn,
-        const Segment& currentSeg,
-        const Segment& destSeg,
-        const Junction& lastJunction,
-        const JunctionIds& forbiddenJunctions,
-        const bool allowBackwardNavigation);
+    static bool isForwardConnection(const Connection& prevConn, const Segment& currentSeg,
+                                    const Connection& newConn);
+
+    static LabyrinthRoute create(const Connection& prevConn, const Segment& currentSeg,
+                                 const Segment& destSeg, const Junction& lastJunction,
+                                 const JunctionIds& forbiddenJunctions,
+                                 const bool allowBackwardNavigation);
 };

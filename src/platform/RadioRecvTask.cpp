@@ -1,21 +1,21 @@
+#include <cfg_board.hpp>
+#include <cfg_track.hpp>
 #include <etl/circular_buffer.h>
-
+#include <globals.hpp>
 #include <micro/debug/TaskMonitor.hpp>
+#include <micro/log/log.hpp>
 #include <micro/port/gpio.hpp>
 #include <micro/port/mutex.hpp>
 #include <micro/port/task.hpp>
-#include <micro/log/log.hpp>
 #include <micro/utils/timer.hpp>
-
-#include <cfg_board.hpp>
-#include <cfg_track.hpp>
-#include <globals.hpp>
 
 using namespace micro;
 
 namespace {
 
-struct rxBuffer_t{ char value[cfg::RADIO_COMMAND_MAX_LENGTH]; };
+struct rxBuffer_t {
+    char value[cfg::RADIO_COMMAND_MAX_LENGTH];
+};
 rxBuffer_t rxBuffer;
 micro::mutex_t incomingMessagesMutex;
 etl::circular_buffer<rxBuffer_t, 2> incomingMessages;
@@ -66,6 +66,7 @@ void micro_RadioModule_Uart_RxCpltCallback() {
 
     if (rxBuffer.value[0] == '0' && rxBuffer.value[1] == '\r') {
         HAL_UART_DMAStop(uart_RadioModule.handle);
-        uart_receive(uart_RadioModule, reinterpret_cast<uint8_t*>(rxBuffer.value), cfg::RADIO_COMMAND_MAX_LENGTH);
+        uart_receive(uart_RadioModule, reinterpret_cast<uint8_t*>(rxBuffer.value),
+                     cfg::RADIO_COMMAND_MAX_LENGTH);
     }
 }

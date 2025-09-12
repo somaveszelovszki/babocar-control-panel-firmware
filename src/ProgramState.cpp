@@ -1,29 +1,43 @@
 #include <ProgramState.hpp>
-
-#include <utility>
-
 #include <micro/log/log.hpp>
+#include <utility>
 
 namespace {
 
 const char* to_string(const ProgramState::Value& value) {
     switch (value) {
-        case ProgramState::Value::INVALID:               return "INVALID";
-        case ProgramState::Value::WaitStartSignalRoute:  return "WaitStartSignalRoute";
-        case ProgramState::Value::WaitStartSignalRandom: return "WaitStartSignalRandom";
-        case ProgramState::Value::LabyrinthRoute:        return "LabyrinthRoute";
-        case ProgramState::Value::LabyrinthRandom:       return "LabyrinthRandom";
-        case ProgramState::Value::LaneChange:            return "LaneChange";
-        case ProgramState::Value::ReachSafetyCar:        return "ReachSafetyCar";
-        case ProgramState::Value::FollowSafetyCar:       return "FollowSafetyCar";
-        case ProgramState::Value::OvertakeSafetyCar:     return "OvertakeSafetyCar";
-        case ProgramState::Value::Race:                  return "Race";
-        case ProgramState::Value::Race_segFast2:         return "Race_segFast2";
-        case ProgramState::Value::Race_segFast3:         return "Race_segFast3";
-        case ProgramState::Value::Race_segFast4:         return "Race_segFast4";
-        case ProgramState::Value::Finish:                return "Finish";
-        case ProgramState::Value::Test:                  return "Test";
-        default:                                         return "?";
+    case ProgramState::Value::INVALID:
+        return "INVALID";
+    case ProgramState::Value::WaitStartSignalRoute:
+        return "WaitStartSignalRoute";
+    case ProgramState::Value::WaitStartSignalRandom:
+        return "WaitStartSignalRandom";
+    case ProgramState::Value::LabyrinthRoute:
+        return "LabyrinthRoute";
+    case ProgramState::Value::LabyrinthRandom:
+        return "LabyrinthRandom";
+    case ProgramState::Value::LaneChange:
+        return "LaneChange";
+    case ProgramState::Value::ReachSafetyCar:
+        return "ReachSafetyCar";
+    case ProgramState::Value::FollowSafetyCar:
+        return "FollowSafetyCar";
+    case ProgramState::Value::OvertakeSafetyCar:
+        return "OvertakeSafetyCar";
+    case ProgramState::Value::Race:
+        return "Race";
+    case ProgramState::Value::Race_segFast2:
+        return "Race_segFast2";
+    case ProgramState::Value::Race_segFast3:
+        return "Race_segFast3";
+    case ProgramState::Value::Race_segFast4:
+        return "Race_segFast4";
+    case ProgramState::Value::Finish:
+        return "Finish";
+    case ProgramState::Value::Test:
+        return "Test";
+    default:
+        return "?";
     }
 }
 

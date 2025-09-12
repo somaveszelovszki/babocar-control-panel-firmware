@@ -1,7 +1,6 @@
-#include <globals.hpp>
-
 #include <cfg_board.hpp>
 #include <cfg_system.hpp>
+#include <globals.hpp>
 
 using namespace micro;
 

@@ -4,21 +4,22 @@
 #include <micro/utils/trajectory.hpp>
 
 class OvertakeManeuver : public micro::Maneuver {
-public:
+  public:
     OvertakeManeuver();
 
     void initialize(const micro::CarProps& car, const micro::Sign targetSpeedSign,
-        const micro::m_per_sec_t beginSpeed, const micro::m_per_sec_t straightStartSpeed, const micro::m_per_sec_t straightSpeed, const micro::m_per_sec_t endSpeed,
-        const micro::meter_t sectionLength, const micro::meter_t prepareDistance, const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
-        const micro::meter_t sideDistance);
+                    const micro::m_per_sec_t beginSpeed,
+                    const micro::m_per_sec_t straightStartSpeed,
+                    const micro::m_per_sec_t straightSpeed, const micro::m_per_sec_t endSpeed,
+                    const micro::meter_t sectionLength, const micro::meter_t prepareDistance,
+                    const micro::meter_t beginSineArcLength, const micro::meter_t endSineArcLength,
+                    const micro::meter_t sideDistance);
 
-    void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
+    void update(const micro::CarProps& car, const micro::LineInfo& lineInfo,
+                micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
-private:
-    enum class state_t : uint8_t {
-        Prepare,
-        FollowTrajectory
-    };
+  private:
+    enum class state_t : uint8_t { Prepare, FollowTrajectory };
 
     void buildTrajectory(const micro::CarProps& car);
 

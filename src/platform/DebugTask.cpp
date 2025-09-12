@@ -1,26 +1,23 @@
+#include <DebugMessage.hpp>
+#include <RaceTrackController.hpp>
+#include <cfg_board.hpp>
 #include <cmath>
-#include <optional>
-
 #include <etl/circular_buffer.h>
 #include <etl/string.h>
-
+#include <globals.hpp>
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
-#include <micro/port/semaphore.hpp>
 #include <micro/port/queue.hpp>
+#include <micro/port/semaphore.hpp>
 #include <micro/port/task.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
-
-#include <cfg_board.hpp>
-#include <DebugMessage.hpp>
-#include <globals.hpp>
-#include <RaceTrackController.hpp>
+#include <optional>
 
 using namespace micro;
 
@@ -28,7 +25,9 @@ namespace {
 
 constexpr uint32_t MAX_BUFFER_SIZE = 128;
 
-struct rxBuffer_t{ char value[MAX_BUFFER_SIZE]; };
+struct rxBuffer_t {
+    char value[MAX_BUFFER_SIZE];
+};
 rxBuffer_t rxBuffer;
 micro::mutex_t incomingMessagesMutex;
 etl::circular_buffer<rxBuffer_t, 2> incomingMessages;
@@ -45,7 +44,7 @@ void transmit() {
     txSemaphore.take();
 }
 
-bool handleIncomingParam(char * const input) {
+bool handleIncomingParam(char* const input) {
     std::optional<ParamManager::NamedParam> param;
     if (!DebugMessage::parse(input, param)) {
         return false;
@@ -62,7 +61,7 @@ bool handleIncomingParam(char * const input) {
     return true;
 }
 
-bool handleIncomingSectionControl(char * const input) {
+bool handleIncomingSectionControl(char* const input) {
     std::optional<IndexedSectionControlParameters> sectionControl;
     if (!DebugMessage::parse(input, sectionControl)) {
         return false;
@@ -77,7 +76,7 @@ bool handleIncomingSectionControl(char * const input) {
     return true;
 }
 
-bool handleIncomingRadioCommand(char * const input) {
+bool handleIncomingRadioCommand(char* const input) {
     DebugMessage::RadioCommand command;
     if (!DebugMessage::parse(input, command)) {
         return false;
@@ -103,9 +102,9 @@ bool handleIncomingMessages() {
         return false;
     }
 
-    return handleIncomingParam(incomingBuffer->value)
-        || handleIncomingSectionControl(incomingBuffer->value)
-        || handleIncomingRadioCommand(incomingBuffer->value);
+    return handleIncomingParam(incomingBuffer->value) ||
+           handleIncomingSectionControl(incomingBuffer->value) ||
+           handleIncomingRadioCommand(incomingBuffer->value);
 }
 
 } // namespace
@@ -155,13 +154,13 @@ extern "C" void runDebugTask(void) {
             if (lapControl == prevLapControl) {
                 lapControl.clear();
             } else {
-            	prevLapControl = lapControl;
+                prevLapControl = lapControl;
             }
         }
 
         // sends lap control parameters one by one
         if (!lapControl.empty()) {
-            const auto lastIndex = static_cast<uint8_t>(lapControl.size() - 1);
+            const auto lastIndex   = static_cast<uint8_t>(lapControl.size() - 1);
             const auto lastElement = std::next(lapControl.begin(), lastIndex);
             const IndexedSectionControlParameters sectionControl{lastIndex, *lastElement};
             DebugMessage::format(txBuffer, MAX_BUFFER_SIZE, sectionControl);
@@ -178,7 +177,8 @@ extern "C" void runDebugTask(void) {
 void micro_Command_Uart_RxCpltCallback() {
     if (uart_Debug.handle->hdmarx->Instance->NDTR < MAX_BUFFER_SIZE) {
         std::scoped_lock lock{incomingMessagesMutex};
-        incomingMessages.push(rxBuffer);    }
+        incomingMessages.push(rxBuffer);
+    }
 
     uart_receive(uart_Debug, reinterpret_cast<uint8_t*>(rxBuffer.value), MAX_BUFFER_SIZE);
 }

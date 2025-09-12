@@ -3,7 +3,7 @@
 #include <cstdint>
 
 class ProgramState {
-public: 
+  public:
     enum Value : uint8_t {
         // Start states
         INVALID               = 0,
@@ -30,6 +30,6 @@ public:
     Value get() const { return value_; }
     void set(const Value newValue);
 
-private:
+  private:
     Value value_{Value::INVALID};
 };

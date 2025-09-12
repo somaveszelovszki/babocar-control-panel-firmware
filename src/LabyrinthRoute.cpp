@@ -1,12 +1,11 @@
-#include <micro/container/vector.hpp>
-
 #include <LabyrinthRoute.hpp>
+#include <micro/container/vector.hpp>
 
 using namespace micro;
 
-LabyrinthRoute::LabyrinthRoute(const Segment *currentSeg)
-    : startSeg(currentSeg)
-    , destSeg(currentSeg) {}
+LabyrinthRoute::LabyrinthRoute(const Segment* currentSeg)
+    : startSeg(currentSeg), destSeg(currentSeg) {
+}
 
 void LabyrinthRoute::push_front(const Connection& c) {
     this->connections.insert(this->connections.begin(), &c);
@@ -38,40 +37,40 @@ void LabyrinthRoute::reset() {
     this->connections.clear();
 }
 
-bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segment& currentSeg, const Connection& newConn) {
-    const bool isBwd = newConn.junction == prevConn.junction && newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
+bool LabyrinthRoute::isForwardConnection(const Connection& prevConn, const Segment& currentSeg,
+                                         const Connection& newConn) {
+    const bool isBwd = newConn.junction == prevConn.junction &&
+                       newConn.getDecision(currentSeg) == prevConn.getDecision(currentSeg);
     return !isBwd;
 }
 
-
-LabyrinthRoute LabyrinthRoute::create(
-    const Connection& prevConn,
-    const Segment& currentSeg,
-    const Segment& destSeg,
-    const Junction& lastJunction,
-    const JunctionIds& forbiddenJunctions,
-    const bool allowBackwardNavigation) {
+LabyrinthRoute LabyrinthRoute::create(const Connection& prevConn, const Segment& currentSeg,
+                                      const Segment& destSeg, const Junction& lastJunction,
+                                      const JunctionIds& forbiddenJunctions,
+                                      const bool allowBackwardNavigation) {
     // performs Dijkstra-algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
     // specifically tuned for a car in a graph that allows multiple connections between the nodes
 
     struct SegmentRouteInfo {
-        const Segment *seg            = nullptr;
+        const Segment* seg            = nullptr;
         const Connection* prevConn    = nullptr;
-        SegmentRouteInfo *prevSegInfo = nullptr;
+        SegmentRouteInfo* prevSegInfo = nullptr;
         bool visited                  = false;
         meter_t dist                  = micro::numeric_limits<meter_t>::infinity();
     };
     micro::vector<SegmentRouteInfo, 4 * cfg::MAX_NUM_LABYRINTH_SEGMENTS> segmentInfos;
 
-    segmentInfos.push_back(SegmentRouteInfo{ &currentSeg, &prevConn, nullptr });
-    auto segInfo = segmentInfos.begin();
+    segmentInfos.push_back(SegmentRouteInfo{&currentSeg, &prevConn, nullptr});
+    auto segInfo  = segmentInfos.begin();
     segInfo->dist = meter_t(0);
 
     while (true) {
-        segInfo = std::min_element(segmentInfos.begin(), segmentInfos.end(), [](const auto& a, const auto& b) {
-            // nodes that have already been visited cannot be selected as minimum value
-            return a.visited == b.visited ? a.dist < b.dist : !a.visited;
-        });
+        segInfo = std::min_element(segmentInfos.begin(), segmentInfos.end(),
+                                   [](const auto& a, const auto& b) {
+                                       // nodes that have already been visited cannot be selected as
+                                       // minimum value
+                                       return a.visited == b.visited ? a.dist < b.dist : !a.visited;
+                                   });
 
         if (segInfo->seg == &destSeg && segInfo->prevConn->junction == &lastJunction) {
             break;
@@ -81,8 +80,8 @@ LabyrinthRoute LabyrinthRoute::create(
             break;
         }
 
-        for (const auto *newConn : segInfo->seg->edges) {
-            const auto isFwd = isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn);
+        for (const auto* newConn : segInfo->seg->edges) {
+            const auto isFwd   = isForwardConnection(*segInfo->prevConn, *segInfo->seg, *newConn);
             const auto* newSeg = newConn->getOtherSegment(*segInfo->seg);
 
             if ((!allowBackwardNavigation && !isFwd) ||
@@ -92,19 +91,26 @@ LabyrinthRoute LabyrinthRoute::create(
 
             SegmentRouteInfo newSegInfo{newSeg, newConn, segInfo};
 
-            // when going back to the previous junction, distance is not the same as when passing through the whole segment
+            // when going back to the previous junction, distance is not the same as when passing
+            // through the whole segment
             if (segInfo != segmentInfos.begin() && !isFwd) {
-                newSegInfo.dist = segInfo->dist - segInfo->seg->length / 2 + meter_t(1.2f) + newSegInfo.seg->length / 2;
+                newSegInfo.dist = segInfo->dist - segInfo->seg->length / 2 + meter_t(1.2f) +
+                                  newSegInfo.seg->length / 2;
             } else {
-                newSegInfo.dist = segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
+                newSegInfo.dist =
+                    segInfo->dist + segInfo->seg->length / 2 + newSegInfo.seg->length / 2;
             }
 
-            auto existingSegInfo = std::find_if(segmentInfos.begin(), segmentInfos.end(), [segInfo, &newSegInfo, allowBackwardNavigation](const auto& s) {
-                return s.seg == newSegInfo.seg &&
-                    // The existing segment info only matches the new one if either backward navigation is enabled
-                    // or the last connection is at the same junction with the same orientation.
-                    (allowBackwardNavigation || !isForwardConnection(*s.prevConn, *segInfo->seg, *newSegInfo.prevConn));
-            });
+            auto existingSegInfo = std::find_if(
+                segmentInfos.begin(), segmentInfos.end(),
+                [segInfo, &newSegInfo, allowBackwardNavigation](const auto& s) {
+                    return s.seg == newSegInfo.seg &&
+                           // The existing segment info only matches the new one if either backward
+                           // navigation is enabled or the last connection is at the same junction
+                           // with the same orientation.
+                           (allowBackwardNavigation ||
+                            !isForwardConnection(*s.prevConn, *segInfo->seg, *newSegInfo.prevConn));
+                });
 
             if (existingSegInfo != segmentInfos.end()) {
                 if (newSegInfo.dist < existingSegInfo->dist) {

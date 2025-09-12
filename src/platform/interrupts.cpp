@@ -1,14 +1,14 @@
-#include <cfg_board.hpp>
-#include <micro/utils/timer.hpp>
-
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_gpio.h"
-#include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_adc.h"
+#include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_i2c.h"
 #include "stm32f4xx_hal_spi.h"
+#include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_usart.h"
+
+#include <cfg_board.hpp>
+#include <micro/utils/timer.hpp>
 
 // INTERRUPT CALLBACKS - Must be defined in a task's source file!
 
@@ -21,7 +21,7 @@ extern void micro_Gyro_CommCpltCallback();
 extern void micro_Gyro_DataReadyCallback();
 extern void micro_Vehicle_Can_RxFifoMsgPendingCallback();
 
-extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
     if (huart == uart_Debug.handle) {
         micro_Command_Uart_RxCpltCallback();
     } else if (huart == uart_RadioModule.handle) {
@@ -33,31 +33,31 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
     if (huart == uart_Debug.handle) {
         micro_Command_Uart_TxCpltCallback();
     }
 }
 
-extern "C" void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
+extern "C" void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
     if (hspi == spi_Gyro.handle) {
         micro_Gyro_CommCpltCallback();
     }
 }
 
-extern "C" void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
+extern "C" void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
     if (hspi == spi_Gyro.handle) {
         micro_Gyro_CommCpltCallback();
     }
 }
 
-extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
     if (hspi == spi_Gyro.handle) {
         micro_Gyro_CommCpltCallback();
     }
 }
 
-extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
     if (hcan == can_Vehicle.handle) {
         micro_Vehicle_Can_RxFifoMsgPendingCallback();
     }
@@ -68,4 +68,3 @@ extern "C" void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         micro_Gyro_DataReadyCallback();
     }
 }
-

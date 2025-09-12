@@ -1,16 +1,15 @@
-#include <micro/debug/ParamManager.hpp>
-#include <micro/debug/TaskMonitor.hpp>
-#include <micro/panel/CanManager.hpp>
-#include <micro/port/semaphore.hpp>
-#include <micro/port/queue.hpp>
-#include <micro/port/task.hpp>
-#include <micro/utils/CarProps.hpp>
-#include <micro/log/log.hpp>
-#include <micro/utils/timer.hpp>
-
 #include <cfg_board.hpp>
 #include <cfg_car.hpp>
 #include <globals.hpp>
+#include <micro/debug/ParamManager.hpp>
+#include <micro/debug/TaskMonitor.hpp>
+#include <micro/log/log.hpp>
+#include <micro/panel/CanManager.hpp>
+#include <micro/port/queue.hpp>
+#include <micro/port/semaphore.hpp>
+#include <micro/port/task.hpp>
+#include <micro/utils/CarProps.hpp>
+#include <micro/utils/timer.hpp>
 
 #if GYRO_BOARD == GYRO_MPU9250
 #include <micro/hw/MPU9250_Gyroscope.hpp>
@@ -25,7 +24,8 @@ namespace {
 CarProps car;
 
 #if GYRO_BOARD == GYRO_MPU9250
-hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_500DPS, hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
+hw::MPU9250_Gyroscope gyro(spi_Gyro, csGpio_Gyro, hw::Ascale::AFS_2G, hw::Gscale::GFS_500DPS,
+                           hw::Mscale::MFS_16BITS, MMODE_ODR_100Hz);
 #elif GYRO_BOARD == GYRO_LSM6DSO
 hw::LSM6DSO_Gyroscope gyro(spi_Gyro, csGpio_Gyro);
 #endif
@@ -42,25 +42,26 @@ void updateCarOrientedDistance(CarProps& car) {
     const bool isOriented = eqWithOverflow360(car.pose.angle, orientation, degree_t(5));
     if (!isOriented) {
         orientedSectionStartDist = car.distance;
-        orientation = car.pose.angle;
+        orientation              = car.pose.angle;
     }
 
     car.orientedDistance = car.distance - orientedSectionStartDist;
 }
 
 void updateCarPose() {
-    static meter_t prevDist = { 0 };
+    static meter_t prevDist = {0};
     static microsecond_t prevTime;
 
     const microsecond_t now = getExactTime();
 
-    const meter_t d_dist      = car.distance - prevDist;
-    const radian_t d_angle    = car.yawRate * (prevTime > microsecond_t(0) ? now - prevTime : microsecond_t(0));
+    const meter_t d_dist = car.distance - prevDist;
+    const radian_t d_angle =
+        car.yawRate * (prevTime > microsecond_t(0) ? now - prevTime : microsecond_t(0));
     const radian_t speedAngle = car.getSpeedAngle(cfg::CAR_FRONT_REAR_PIVOT_DIST) + d_angle / 2;
 
     car.pose.pos.X += d_dist * cos(speedAngle);
     car.pose.pos.Y += d_dist * sin(speedAngle);
-    car.pose.angle  = normalize360(car.pose.angle + d_angle);
+    car.pose.angle = normalize360(car.pose.angle + d_angle);
 
     updateCarOrientedDistance(car);
     prevDist = car.distance;
@@ -68,18 +69,21 @@ void updateCarPose() {
 }
 
 void initializeVehicleCan() {
-    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [] (const uint8_t * const data) {
+    vehicleCanFrameHandler.registerHandler(can::LateralState::id(), [](const uint8_t* const data) {
         radian_t frontDistSensorServoAngle;
-        reinterpret_cast<const can::LateralState*>(data)->acquire(car.frontWheelAngle, car.rearWheelAngle, frontDistSensorServoAngle);
+        reinterpret_cast<const can::LateralState*>(data)->acquire(
+            car.frontWheelAngle, car.rearWheelAngle, frontDistSensorServoAngle);
     });
 
-    vehicleCanFrameHandler.registerHandler(can::LongitudinalState::id(), [] (const uint8_t * const data) {
-        reinterpret_cast<const can::LongitudinalState*>(data)->acquire(car.speed, car.isRemoteControlled, car.distance);
-    });
+    vehicleCanFrameHandler.registerHandler(
+        can::LongitudinalState::id(), [](const uint8_t* const data) {
+            reinterpret_cast<const can::LongitudinalState*>(data)->acquire(
+                car.speed, car.isRemoteControlled, car.distance);
+        });
 
     const CanFrameIds rxFilter = vehicleCanFrameHandler.identifiers();
     const CanFrameIds txFilter = {};
-    vehicleCanSubscriberId = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
+    vehicleCanSubscriberId     = vehicleCanManager.registerSubscriber(rxFilter, txFilter);
 }
 
 } // namespace
@@ -99,9 +103,9 @@ extern "C" void runVehicleStateTask(void) {
 
         point2m pos;
         if (carPosUpdateQueue.receive(pos, millisecond_t(0))) {
-            LOG_DEBUG("Car pos updated: {}, {}) -> ({}, {}) | diff: {} [m]",
-                car.pose.pos.X.get(), car.pose.pos.Y.get(), pos.X.get(), pos.Y.get(),
-                car.pose.pos.distance(pos).get());
+            LOG_DEBUG("Car pos updated: {}, {}) -> ({}, {}) | diff: {} [m]", car.pose.pos.X.get(),
+                      car.pose.pos.Y.get(), pos.X.get(), pos.Y.get(),
+                      car.pose.pos.distance(pos).get());
             car.pose.pos = pos;
         }
 
@@ -111,7 +115,6 @@ extern "C" void runVehicleStateTask(void) {
         }
 
         if (dataReadySemaphore.take(millisecond_t(0))) {
-
             const point3<rad_per_sec_t> gyroData = gyro.readGyroData();
             if (!micro::isinf(gyroData.X)) {
                 car.yawRate = gyroData.Z;

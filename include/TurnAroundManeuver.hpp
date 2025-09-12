@@ -4,19 +4,18 @@
 #include <micro/utils/trajectory.hpp>
 
 class TurnAroundManeuver : public micro::Maneuver {
-public:
+  public:
     TurnAroundManeuver();
 
     void initialize(const micro::CarProps& car, const micro::Sign targetSpeedSign,
-        const micro::m_per_sec_t speed, const micro::meter_t sineArcLength, const micro::meter_t circleRadius);
+                    const micro::m_per_sec_t speed, const micro::meter_t sineArcLength,
+                    const micro::meter_t circleRadius);
 
-    void update(const micro::CarProps& car, const micro::LineInfo& lineInfo, micro::MainLine& mainLine, micro::ControlData& controlData) override;
+    void update(const micro::CarProps& car, const micro::LineInfo& lineInfo,
+                micro::MainLine& mainLine, micro::ControlData& controlData) override;
 
-public:
-    enum class state_t : uint8_t {
-        Stop,
-        FollowTrajectory
-    };
+  public:
+    enum class state_t : uint8_t { Stop, FollowTrajectory };
 
     void buildTrajectory(const micro::CarProps& car);
 
