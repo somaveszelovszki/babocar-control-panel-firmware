@@ -86,7 +86,8 @@ void parseBody(char* const input, DebugMessage::CarData& car) {
 
 size_t formatBody(char* const output, const size_t size,
                   const ParamManager::NamedParam& namedParam) {
-    const auto& [name, value] = namedParam;
+    const auto& name  = namedParam.first;
+    const auto& value = namedParam.second;
 
     size_t n = micro::format_to_n(output, size, "{{");
 
