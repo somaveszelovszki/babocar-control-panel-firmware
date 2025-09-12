@@ -1,12 +1,14 @@
 #include <DebugMessage.hpp>
 #include <RaceTrackController.hpp>
 #include <algorithm>
+#include <string>
+
 #include <etl/string.h>
 #include <gtest/gtest.h>
+
 #include <micro/debug/ParamManager.hpp>
 #include <micro/math/unit_utils.hpp>
 #include <micro/test/utils.hpp>
-#include <string>
 
 using namespace micro;
 

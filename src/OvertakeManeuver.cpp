@@ -1,4 +1,5 @@
 #include <OvertakeManeuver.hpp>
+
 #include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>
 

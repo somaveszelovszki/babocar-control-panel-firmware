@@ -3,8 +3,9 @@
 #include <RaceTrackController.hpp>
 #include <cfg_system.hpp>
 #include <cfg_track.hpp>
-#include <micro/debug/ParamManager.hpp>
 #include <optional>
+
+#include <micro/debug/ParamManager.hpp>
 
 namespace micro {
 struct CarProps;

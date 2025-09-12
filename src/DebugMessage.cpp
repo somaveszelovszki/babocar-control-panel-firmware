@@ -1,7 +1,10 @@
-#include <DebugMessage.hpp>
 #include <cmath>
 #include <cstdlib>
+
+#include <DebugMessage.hpp>
+
 #include <etl/string.h>
+
 #include <micro/debug/ParamManager.hpp>
 #include <micro/format/format.hpp>
 #include <micro/json/json.hpp>

@@ -11,7 +11,7 @@ class LaneChangeManeuver : public micro::Maneuver {
     void initialize(const micro::CarProps& car, const micro::Sign initialSpeedSign,
                     const micro::Sign patternDir, const micro::Direction patternSide,
                     const micro::Sign safetyCarFollowSpeedSign, const micro::m_per_sec_t speed,
-                    const micro::meter_t laneDistance);
+                    const micro::meter_t laneDistance, const bool reverseBeforeSine);
 
     void update(const micro::CarProps& car, const micro::LineInfo& lineInfo,
                 micro::MainLine& mainLine, micro::ControlData& controlData) override;
@@ -28,6 +28,7 @@ class LaneChangeManeuver : public micro::Maneuver {
     micro::m_per_sec_t speed_;
     micro::meter_t laneDistance_;
     micro::meter_t reverseStartDist_;
+    bool reverseBeforeSine_{false};
 
     state_t state_;
     micro::Trajectory trajectory_;

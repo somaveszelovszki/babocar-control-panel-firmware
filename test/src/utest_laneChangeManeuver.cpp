@@ -1,4 +1,5 @@
 #include <cfg_car.hpp>
+
 #include <micro/test/utils.hpp>
 
 #define private public
@@ -27,7 +28,7 @@ void test(const micro::Sign& initialSpeedSign, const micro::Sign patternDir,
     ControlData controlData;
 
     maneuver.initialize(car, initialSpeedSign, patternDir, patternSide, safetyCarFollowSpeedSign,
-                        m_per_sec_t(1), centimeter_t(60));
+                        m_per_sec_t(1), centimeter_t(60), false);
 
     // updates maneuver twice to go through orientation check and build trajectory
     maneuver.update(car, lineInfo, mainLine, controlData);

@@ -1,11 +1,12 @@
-#include "micro/utils/ControlData.hpp"
-
 #include <RaceTrackController.hpp>
 #include <cfg_car.hpp>
+
 #include <micro/test/utils.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/LinePattern.hpp>
 #include <micro/utils/units.hpp>
+
+#include "micro/utils/ControlData.hpp"
 
 using namespace micro;
 using namespace testing;

@@ -1,3 +1,7 @@
+#include <cfg_board.hpp>
+
+#include <micro/utils/timer.hpp>
+
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_adc.h"
 #include "stm32f4xx_hal_gpio.h"
@@ -6,9 +10,6 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_usart.h"
-
-#include <cfg_board.hpp>
-#include <micro/utils/timer.hpp>
 
 // INTERRUPT CALLBACKS - Must be defined in a task's source file!
 

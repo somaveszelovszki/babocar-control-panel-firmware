@@ -2,6 +2,7 @@
 
 #include <RaceTrackController.hpp>
 #include <cfg_track.hpp>
+
 #include <micro/utils/Line.hpp>
 
 class LabyrinthGraph;

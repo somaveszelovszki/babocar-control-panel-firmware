@@ -1,6 +1,7 @@
 #include <RaceTrackController.hpp>
 #include <algorithm>
 #include <limits>
+
 #include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>
 #include <micro/math/unit_utils.hpp>

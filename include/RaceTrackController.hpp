@@ -2,16 +2,18 @@
 
 #include <array>
 #include <cfg_track.hpp>
-#include <etl/string.h>
 #include <limits>
+#include <optional>
+#include <utility>
+
+#include <etl/string.h>
+
 #include <micro/container/map.hpp>
 #include <micro/container/vector.hpp>
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/Line.hpp>
 #include <micro/utils/LinePattern.hpp>
-#include <optional>
-#include <utility>
 
 struct TrackSection {
     struct TransitionCriteria {

@@ -1,5 +1,6 @@
 #include <cfg_system.hpp>
 #include <globals.hpp>
+
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/panel/CanManager.hpp>

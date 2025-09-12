@@ -1,4 +1,5 @@
 #include <TurnAroundManeuver.hpp>
+
 #include <micro/math/numeric.hpp>
 
 using namespace micro;

@@ -1,7 +1,9 @@
 #include <cfg_board.hpp>
 #include <cfg_track.hpp>
-#include <etl/circular_buffer.h>
 #include <globals.hpp>
+
+#include <etl/circular_buffer.h>
+
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
 #include <micro/port/gpio.hpp>

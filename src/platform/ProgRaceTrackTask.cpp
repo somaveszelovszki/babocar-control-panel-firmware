@@ -6,6 +6,8 @@
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <globals.hpp>
+#include <track.hpp>
+
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/log/log.hpp>
@@ -19,7 +21,6 @@
 #include <micro/utils/state.hpp>
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
-#include <track.hpp>
 
 using namespace micro;
 

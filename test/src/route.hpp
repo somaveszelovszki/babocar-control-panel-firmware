@@ -2,6 +2,7 @@
 
 #include <LabyrinthGraph.hpp>
 #include <cfg_track.hpp>
+
 #include <micro/container/vector.hpp>
 
 struct RouteConnection {

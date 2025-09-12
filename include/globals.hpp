@@ -1,9 +1,5 @@
 #pragma once
 
-#include "ProgramState.hpp"
-#include "RaceTrackController.hpp"
-#include "cfg_system.hpp"
-
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/TaskMonitor.hpp>
 #include <micro/panel/CanManager.hpp>
@@ -11,6 +7,10 @@
 #include <micro/utils/CarProps.hpp>
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/LinePattern.hpp>
+
+#include "ProgramState.hpp"
+#include "RaceTrackController.hpp"
+#include "cfg_system.hpp"
 
 extern micro::queue_t<micro::radian_t, 1> carOrientationUpdateQueue;
 extern micro::queue_t<micro::point2m, 1> carPosUpdateQueue;

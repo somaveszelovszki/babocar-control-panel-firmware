@@ -1,4 +1,5 @@
 #include <TestManeuver.hpp>
+
 #include <micro/math/numeric.hpp>
 
 using namespace micro;

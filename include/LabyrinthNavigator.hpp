@@ -2,9 +2,10 @@
 
 #include <LabyrinthGraph.hpp>
 #include <LabyrinthRoute.hpp>
+#include <optional>
+
 #include <micro/control/maneuver.hpp>
 #include <micro/math/random_generator.hpp>
-#include <optional>
 
 class LabyrinthNavigator : public micro::Maneuver {
   public:

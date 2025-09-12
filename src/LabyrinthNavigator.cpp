@@ -1,5 +1,6 @@
 #include <LabyrinthNavigator.hpp>
 #include <cfg_car.hpp>
+
 #include <micro/container/vector.hpp>
 #include <micro/log/log.hpp>
 #include <micro/math/numeric.hpp>

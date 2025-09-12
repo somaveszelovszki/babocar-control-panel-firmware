@@ -1,9 +1,10 @@
-#include "route.hpp"
-
 #include <LabyrinthGraph.hpp>
 #include <LabyrinthRoute.hpp>
-#include <micro/test/utils.hpp>
 #include <track.hpp>
+
+#include <micro/test/utils.hpp>
+
+#include "route.hpp"
 
 using namespace micro;
 

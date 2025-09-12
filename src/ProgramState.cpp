@@ -1,6 +1,7 @@
 #include <ProgramState.hpp>
-#include <micro/log/log.hpp>
 #include <utility>
+
+#include <micro/log/log.hpp>
 
 namespace {
 

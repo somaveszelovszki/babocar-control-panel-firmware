@@ -4,6 +4,9 @@
 #include <cfg_car.hpp>
 #include <cfg_track.hpp>
 #include <globals.hpp>
+#include <track.hpp>
+#include <utility>
+
 #include <micro/container/vector.hpp>
 #include <micro/debug/ParamManager.hpp>
 #include <micro/debug/TaskMonitor.hpp>
@@ -20,8 +23,6 @@
 #include <micro/utils/timer.hpp>
 #include <micro/utils/trajectory.hpp>
 #include <micro/utils/units.hpp>
-#include <track.hpp>
-#include <utility>
 
 using namespace micro;
 
@@ -317,7 +318,7 @@ extern "C" void runProgLabyrinthTask(void const* argument) {
                     const auto safetyCarFollowSpeedSign = Sign::POSITIVE;
                     laneChange.initialize(car, sgn(car.speed), patternDir, patternSide,
                                           safetyCarFollowSpeedSign, LANE_CHANGE_SPEED,
-                                          LANE_DISTANCE);
+                                          LANE_DISTANCE, true /* reverseBeforeSine */);
                 }
 
                 laneChange.update(car, lineInfo, mainLine, controlData);

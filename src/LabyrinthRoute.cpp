@@ -1,4 +1,5 @@
 #include <LabyrinthRoute.hpp>
+
 #include <micro/container/vector.hpp>
 
 using namespace micro;

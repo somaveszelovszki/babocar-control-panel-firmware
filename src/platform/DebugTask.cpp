@@ -1,10 +1,14 @@
+#include <cmath>
+
 #include <DebugMessage.hpp>
 #include <RaceTrackController.hpp>
 #include <cfg_board.hpp>
-#include <cmath>
+#include <globals.hpp>
+#include <optional>
+
 #include <etl/circular_buffer.h>
 #include <etl/string.h>
-#include <globals.hpp>
+
 #include <micro/container/ring_buffer.hpp>
 #include <micro/debug/DebugLed.hpp>
 #include <micro/debug/ParamManager.hpp>
@@ -17,7 +21,6 @@
 #include <micro/utils/ControlData.hpp>
 #include <micro/utils/str_utils.hpp>
 #include <micro/utils/timer.hpp>
-#include <optional>
 
 using namespace micro;
 

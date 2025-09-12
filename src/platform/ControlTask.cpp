@@ -2,8 +2,10 @@
 #include <cfg_car.hpp>
 #include <cfg_system.hpp>
 #include <cfg_track.hpp>
-#include <etl/circular_buffer.h>
 #include <globals.hpp>
+
+#include <etl/circular_buffer.h>
+
 #include <micro/container/map.hpp>
 #include <micro/control/PID_Controller.hpp>
 #include <micro/debug/ParamManager.hpp>

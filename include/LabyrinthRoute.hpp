@@ -1,9 +1,10 @@
 #pragma once
 
 #include <LabyrinthGraph.hpp>
+#include <utility>
+
 #include <micro/container/set.hpp>
 #include <micro/container/vector.hpp>
-#include <utility>
 
 struct LabyrinthRoute {
     const Segment* startSeg{};

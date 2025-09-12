@@ -1,5 +1,6 @@
 #include <LabyrinthGraph.hpp>
 #include <algorithm>
+
 #include <micro/container/set.hpp>
 #include <micro/container/vector.hpp>
 #include <micro/log/log.hpp>
