@@ -18,7 +18,6 @@ extern void micro_Command_Uart_TxCpltCallback();
 extern void micro_RadioModule_Uart_RxCpltCallback();
 extern void micro_FrontDistSensor_Uart_RxCpltCallback();
 extern void micro_RearDistSensor_Uart_RxCpltCallback();
-extern void micro_Gyro_CommCpltCallback();
 extern void micro_Gyro_DataReadyCallback();
 extern void micro_Vehicle_Can_RxFifoMsgPendingCallback();
 
@@ -37,24 +36,6 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
     if (huart == uart_Debug.handle) {
         micro_Command_Uart_TxCpltCallback();
-    }
-}
-
-extern "C" void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
-    if (hspi == spi_Gyro.handle) {
-        micro_Gyro_CommCpltCallback();
-    }
-}
-
-extern "C" void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
-    if (hspi == spi_Gyro.handle) {
-        micro_Gyro_CommCpltCallback();
-    }
-}
-
-extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
-    if (hspi == spi_Gyro.handle) {
-        micro_Gyro_CommCpltCallback();
     }
 }
 

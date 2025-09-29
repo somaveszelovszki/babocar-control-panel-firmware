@@ -139,10 +139,6 @@ extern "C" void runVehicleStateTask(void) {
     }
 }
 
-void micro_Gyro_CommCpltCallback() {
-    gyro.onCommFinished();
-}
-
 void micro_Gyro_DataReadyCallback() {
     dataReadySemaphore.give();
 }
